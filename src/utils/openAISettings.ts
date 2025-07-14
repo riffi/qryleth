@@ -1,6 +1,9 @@
+export type LLMProvider = 'openrouter' | 'openai' | 'compatible'
+
 export interface OpenAISettingsGroup {
   id: string;
   name: string;
+  provider: LLMProvider;
   url: string;
   model: string;
   apiKey: string;
@@ -17,10 +20,11 @@ function getDefaultGroup(): OpenAISettingsGroup {
   return {
     id: 'default',
     name: 'Default',
-    url: 'https://api.polza.ai/api/v1/chat/completions',
+    provider: 'openrouter',
+    url: 'https://openrouter.ai/api/v1/chat/completions',
     model: 'anthropic/claude-sonnet-4',
     apiKey: ''
-  };
+  }
 }
 
 function loadFromStorage(): StoredSettings {
@@ -35,6 +39,10 @@ function loadFromStorage(): StoredSettings {
     if (!parsed.groups || !Array.isArray(parsed.groups)) {
       throw new Error('Invalid');
     }
+    parsed.groups = parsed.groups.map(g => ({
+      ...g,
+      provider: (g as Partial<OpenAISettingsGroup>).provider ?? 'openrouter'
+    }))
     return parsed;
   } catch {
     const def = { groups: [getDefaultGroup()], activeId: 'default' };
