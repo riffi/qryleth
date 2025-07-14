@@ -3,7 +3,7 @@ import {
   AppShell,
   Container,
   Group,
-  TextInput,
+  Textarea,
   Button,
   Title,
   Paper,
@@ -150,23 +150,31 @@ function App() {
         </AppShell.Header>
 
         <AppShell.Main>
-          <Container size="xl" fluid h="100%" style={{ display: 'flex', flexDirection: 'column', width: "100%" }}>
-            <Paper shadow="sm" radius="md" p="md" mb="md">
+          <Container
+              size="xl"
+              fluid
+              h="100%"
+              style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-md)' }}
+          >
+            <Paper shadow="sm" radius="md" p="md" style={{ width: 360 }}>
               <Stack gap="md">
+                <Textarea
+                    placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
+                    value={prompt}
+                    autosize
+                    minRows={3}
+                    maxRows={10}
+                    onChange={(event) => setPrompt(event.currentTarget.value)}
+                    onKeyDown={(event) => {
+                      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !loading) {
+                        handleGenerate()
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                    size="md"
+                    disabled={loading}
+                />
                 <Group>
-                  <TextInput
-                      placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.currentTarget.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !loading) {
-                          handleGenerate()
-                        }
-                      }}
-                      style={{ flex: 1 }}
-                      size="md"
-                      disabled={loading}
-                  />
 
                   <Button
                       onClick={handleGenerate}
