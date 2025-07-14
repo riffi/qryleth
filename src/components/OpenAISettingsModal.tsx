@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Modal, Button, TextInput, Stack, Group, Paper, ActionIcon } from '@mantine/core'
-import { IconPlus, IconTrash, IconCheck } from '@tabler/icons-react'
+import { Modal, Button, TextInput, Stack, Group, Paper, ActionIcon, Text } from '@mantine/core'
+import { IconPlus, IconTrash, IconCheck, IconEdit } from '@tabler/icons-react'
 import { nanoid } from 'nanoid'
 import {
   getAllGroups,
@@ -17,6 +17,7 @@ interface Props {
 export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
   const [groups, setGroups] = useState<OpenAISettingsGroup[]>([])
   const [activeId, setActiveId] = useState<string | undefined>()
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (opened) {
@@ -27,16 +28,18 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
   }, [opened])
 
   const handleAdd = () => {
+    const id = nanoid()
     setGroups(prev => [
       ...prev,
       {
-        id: nanoid(),
+        id,
         name: 'New',
         url: '',
         model: '',
         apiKey: ''
       }
     ])
+    setEditingId(id)
   }
 
   const handleSave = () => {
@@ -50,23 +53,19 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
     if (activeId === id) {
       setActiveId(undefined)
     }
+    if (editingId === id) {
+      setEditingId(null)
+    }
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title="OpenAI API Settings" size="lg">
+    <Modal opened={opened} onClose={onClose} title="OpenAI API Settings" fullScreen>
       <Stack>
         {groups.map(g => (
           <Paper key={g.id} withBorder p="md">
-            <Stack gap="xs">
-              <Group justify="space-between" align="center">
-                <TextInput
-                  label="Название"
-                  value={g.name}
-                  onChange={e => {
-                    const val = e.currentTarget.value
-                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, name: val } : it))
-                  }}
-                />
+            <Group justify="space-between" align="center">
+              <Group>
+                <Text fw={500}>{g.name}</Text>
                 <Button
                   size="xs"
                   variant={activeId === g.id ? 'filled' : 'outline'}
@@ -75,39 +74,60 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                 >
                   Активировать
                 </Button>
+              </Group>
+              <Group>
+                <ActionIcon variant="subtle" color="blue" onClick={() => setEditingId(g.id)}>
+                  <IconEdit size="1rem" />
+                </ActionIcon>
                 <ActionIcon color="red" variant="subtle" onClick={() => handleRemove(g.id)}>
                   <IconTrash size="1rem" />
                 </ActionIcon>
               </Group>
-              <TextInput
-                label="OPENAI_URL"
-                value={g.url}
-                onChange={e => {
-                  const val = e.currentTarget.value
-                  setGroups(prev => prev.map(it => it.id === g.id ? { ...it, url: val } : it))
-                }}
-              />
-              <TextInput
-                label="OPENAI_MODEL"
-                value={g.model}
-                onChange={e => {
-                  const val = e.currentTarget.value
-                  setGroups(prev => prev.map(it => it.id === g.id ? { ...it, model: val } : it))
-                }}
-              />
-              <TextInput
-                label="OPENAI_API_KEY"
-                value={g.apiKey}
-                onChange={e => {
-                  const val = e.currentTarget.value
-                  setGroups(prev => prev.map(it => it.id === g.id ? { ...it, apiKey: val } : it))
-                }}
-              />
-            </Stack>
+            </Group>
+
+            {editingId === g.id && (
+              <Stack gap="xs" mt="xs">
+                <TextInput
+                  label="Название"
+                  value={g.name}
+                  onChange={e => {
+                    const val = e.currentTarget.value
+                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, name: val } : it))
+                  }}
+                />
+                <TextInput
+                  label="OPENAI_URL"
+                  value={g.url}
+                  onChange={e => {
+                    const val = e.currentTarget.value
+                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, url: val } : it))
+                  }}
+                />
+                <TextInput
+                  label="OPENAI_MODEL"
+                  value={g.model}
+                  onChange={e => {
+                    const val = e.currentTarget.value
+                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, model: val } : it))
+                  }}
+                />
+                <TextInput
+                  label="OPENAI_API_KEY"
+                  value={g.apiKey}
+                  onChange={e => {
+                    const val = e.currentTarget.value
+                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, apiKey: val } : it))
+                  }}
+                />
+                <Group justify="flex-end">
+                  <Button size="xs" onClick={() => setEditingId(null)}>Готово</Button>
+                </Group>
+              </Stack>
+            )}
           </Paper>
         ))}
         <Button leftSection={<IconPlus size="1rem" />} variant="light" onClick={handleAdd}>
-          Добавить группу
+          Add AI Connection
         </Button>
         <Group justify="flex-end">
           <Button onClick={handleSave}>Сохранить</Button>
