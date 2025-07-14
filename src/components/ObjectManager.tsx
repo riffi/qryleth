@@ -73,7 +73,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                     {obj.name}
                                                 </Text>
                                                 <Text size="xs" c="dimmed">
-                                                    Копий: {obj.count}
+                                                    Всего: {obj.count}
                                                 </Text>
                                             </Box>
                                         </Group>
