@@ -8,6 +8,13 @@ export interface SceneLights {
   directional: THREE.DirectionalLight;
 }
 
+export interface ObjectInfo {
+  name: string
+  count: number
+  visible: boolean
+  objectIndex: number
+}
+
 export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | null>) => {
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -16,6 +23,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
+  const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
+  const placementsRef = useRef<ScenePlacement[]>([])
+  const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -112,6 +123,66 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       setIsInitialized(false)
     }
   }, [containerRef])
+
+  const updateObjectsInfo = () => {
+    if (!sceneObjects.length || !placementsRef.current.length) {
+      setObjectsInfo([])
+      return
+    }
+
+    const objectCounts = new Map<number, number>()
+
+    // Подсчитываем количество размещений для каждого объекта
+    placementsRef.current.forEach(placement => {
+      objectCounts.set(placement.objectIndex, (objectCounts.get(placement.objectIndex) || 0) + 1)
+    })
+
+    // Создаем информацию об объектах
+    const info: ObjectInfo[] = []
+    objectCounts.forEach((count, objectIndex) => {
+      const sceneObject = sceneObjects[objectIndex]
+      if (sceneObject) {
+        info.push({
+          name: sceneObject.name,
+          count,
+          visible: objectVisibilityRef.current.get(objectIndex) !== false,
+          objectIndex
+        })
+      }
+    })
+
+    setObjectsInfo(info)
+  }
+
+  const toggleObjectVisibility = (objectIndex: number) => {
+    if (!sceneRef.current) return
+
+    const scene = sceneRef.current
+    const isVisible = objectVisibilityRef.current.get(objectIndex) !== false
+    const newVisibility = !isVisible
+
+    objectVisibilityRef.current.set(objectIndex, newVisibility)
+
+    // Обновляем видимость всех объектов с данным индексом
+    scene.children.forEach(child => {
+      if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+        child.visible = newVisibility
+      }
+    })
+
+    updateObjectsInfo()
+  }
+
+  const removeObjectFromScene = (objectIndex: number) => {
+    if (!sceneRef.current) return
+
+    const scene = sceneRef.current
+
+    // Удаляем информацию о видимости
+    objectVisibilityRef.current.delete(objectIndex)
+
+    updateObjectsInfo()
+  }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
     const color = new THREE.Color(primitive.color || '#cccccc')
@@ -245,6 +316,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       placements = objects.map((_, index) => ({ objectIndex: index }))
     }
 
+    // Сохраняем данные в состояние
+    setSceneObjects(objects)
+    placementsRef.current = placements
+
+    // Сбрасываем состояние видимости
+    objectVisibilityRef.current.clear()
+
     // Применяем настройки освещения, если они есть
     if (lighting) {
       updateLighting(lighting)
@@ -261,6 +339,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         objectIndex: idx,
         position: [0, 0, 0] as [number, number, number]
       }))
+      placementsRef.current = placements
     }
 
     // Создаем и размещаем составные объекты
@@ -284,8 +363,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
 
       compositeObject.userData.generated = true
+      compositeObject.userData.objectIndex = placement.objectIndex
       scene.add(compositeObject)
     })
+
+    // Обновляем информацию об объектах
+    updateObjectsInfo()
   }
 
   const clearScene = () => {
@@ -296,6 +379,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         child.userData.generated === true
     )
     objectsToRemove.forEach(obj => scene.remove(obj))
+
+    // Очищаем состояние
+    setSceneObjects([])
+    setObjectsInfo([])
+    placementsRef.current = []
+    objectVisibilityRef.current.clear()
   }
 
   const updateLighting = (settings: LightingSettings) => {
@@ -332,9 +421,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     buildSceneFromDescription,
     clearScene,
     updateLighting,
+    toggleObjectVisibility,
+    removeObjectFromScene,
     scene: sceneRef.current,
     renderer: rendererRef.current,
     camera: cameraRef.current,
-    isInitialized
+    isInitialized,
+    objectsInfo
   }
 }

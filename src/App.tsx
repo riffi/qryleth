@@ -25,6 +25,7 @@ import {
   IconBrain
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
+import { ObjectManager } from './components/ObjectManager'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
 
@@ -35,7 +36,7 @@ function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -103,139 +104,145 @@ function App() {
 
   return (
       <>
-      <AppShell
-          header={{ height: 70 }}
-          padding="md"
-          styles={{
-            main: {
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100vh',
-            },
-          }}
-      >
-        <AppShell.Header>
-          <Container size="xl" h="100%">
-            <Group h="100%" justify="space-between">
-              <Group>
-                <IconBrain size={32} color="var(--mantine-color-blue-6)" />
-                <Title order={2} c="blue.6">
-                  Qryleth 3D Generator
-                </Title>
-              </Group>
-
-              <Group>
-                <Badge
-                    color={getStatusColor()}
-                    variant="light"
-                    size="lg"
-                >
-                  {getStatusText()}
-                </Badge>
-
-                <Tooltip label="Настройки">
-                  <ActionIcon variant="subtle" size="lg" onClick={() => setSettingsOpened(true)}>
-                    <IconSettings size="1.2rem" />
-                  </ActionIcon>
-                </Tooltip>
-
-                <Tooltip label="Информация">
-                  <ActionIcon variant="subtle" size="lg">
-                    <IconInfoCircle size="1.2rem" />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            </Group>
-          </Container>
-        </AppShell.Header>
-
-        <AppShell.Main>
-          <Container
-              size="xl"
-              fluid
-              h="100%"
-              style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-md)' }}
-          >
-            <Paper shadow="sm" radius="md" p="md" style={{ width: 360 }}>
-              <Stack gap="md">
-                <Textarea
-                    placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
-                    value={prompt}
-                    autosize
-                    minRows={3}
-                    maxRows={10}
-                    onChange={(event) => setPrompt(event.currentTarget.value)}
-                    onKeyDown={(event) => {
-                      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !loading) {
-                        handleGenerate()
-                      }
-                    }}
-                    style={{ flex: 1 }}
-                    size="md"
-                    disabled={loading}
-                />
+        <AppShell
+            header={{ height: 70 }}
+            padding="md"
+            styles={{
+              main: {
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+              },
+            }}
+        >
+          <AppShell.Header>
+            <Container size="xl" h="100%">
+              <Group h="100%" justify="space-between">
                 <Group>
-
-                  <Button
-                      onClick={handleGenerate}
-                      loading={loading}
-                      leftSection={<IconWand size="1rem" />}
-                      size="md"
-                      disabled={!prompt.trim()}
-                  >
-                    Сгенерировать
-                  </Button>
-
-                  <Button
-                      onClick={handleClear}
-                      variant="light"
-                      color="gray"
-                      size="md"
-                      disabled={loading}
-                  >
-                    Очистить
-                  </Button>
+                  <IconBrain size={32} color="var(--mantine-color-blue-6)" />
+                  <Title order={2} c="blue.6">
+                    Qryleth 3D Generator
+                  </Title>
                 </Group>
 
-                <Text size="sm" c="dimmed">
-                  Опишите объект на русском языке, и ИИ создаст его 3D-модель в реальном времени.
-                </Text>
-              </Stack>
-            </Paper>
+                <Group>
+                  <Badge
+                      color={getStatusColor()}
+                      variant="light"
+                      size="lg"
+                  >
+                    {getStatusText()}
+                  </Badge>
 
-            <Paper
-                shadow="sm"
-                radius="md"
-                style={{
-                  flex: 1,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  minHeight: 400,
-                }}
+                  <Tooltip label="Настройки">
+                    <ActionIcon variant="subtle" size="lg" onClick={() => setSettingsOpened(true)}>
+                      <IconSettings size="1.2rem" />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip label="Информация">
+                    <ActionIcon variant="subtle" size="lg">
+                      <IconInfoCircle size="1.2rem" />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </Group>
+            </Container>
+          </AppShell.Header>
+
+          <AppShell.Main>
+            <Container
+                size="xl"
+                fluid
+                h="100%"
+                style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-md)' }}
             >
-              <LoadingOverlay
-                  visible={loading}
-                  zIndex={1000}
-                  overlayProps={{ radius: 'md', blur: 2 }}
-                  loaderProps={{
-                    color: 'blue',
-                    type: 'dots'
-                  }}
-              />
+              <Paper shadow="sm" radius="md" p="md" style={{ width: 360 }}>
+                <Stack gap="md">
+                  <Textarea
+                      placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
+                      value={prompt}
+                      autosize
+                      minRows={3}
+                      maxRows={10}
+                      onChange={(event) => setPrompt(event.currentTarget.value)}
+                      onKeyDown={(event) => {
+                        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !loading) {
+                          handleGenerate()
+                        }
+                      }}
+                      style={{ flex: 1 }}
+                      size="md"
+                      disabled={loading}
+                  />
+                  <Group>
 
-              <Box
-                  ref={canvasRef}
+                    <Button
+                        onClick={handleGenerate}
+                        loading={loading}
+                        leftSection={<IconWand size="1rem" />}
+                        size="md"
+                        disabled={!prompt.trim()}
+                    >
+                      Сгенерировать
+                    </Button>
+
+                    <Button
+                        onClick={handleClear}
+                        variant="light"
+                        color="gray"
+                        size="md"
+                        disabled={loading}
+                    >
+                      Очистить
+                    </Button>
+                  </Group>
+
+                  <Text size="sm" c="dimmed">
+                    Опишите объект на русском языке, и ИИ создаст его 3D-модель в реальном времени.
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper
+                  shadow="sm"
+                  radius="md"
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: 'var(--mantine-radius-md)'
+                    flex: 1,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    minHeight: 400,
                   }}
+              >
+                <LoadingOverlay
+                    visible={loading}
+                    zIndex={1000}
+                    overlayProps={{ radius: 'md', blur: 2 }}
+                    loaderProps={{
+                      color: 'blue',
+                      type: 'dots'
+                    }}
+                />
+
+                <Box
+                    ref={canvasRef}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 'var(--mantine-radius-md)'
+                    }}
+                />
+              </Paper>
+
+              <ObjectManager
+                  objects={objectsInfo}
+                  onToggleVisibility={toggleObjectVisibility}
+                  onRemoveObject={removeObjectFromScene}
               />
-            </Paper>
-          </Container>
-        </AppShell.Main>
-      </AppShell>
-      <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+            </Container>
+          </AppShell.Main>
+        </AppShell>
+        <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
       </>
   )
 }
