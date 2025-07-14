@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons-react'
 import { ThreeJSCanvas } from './components/ThreeJSCanvas'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
-import { fetchSceneJSON } from './utils/openRouterAPI'
+import { fetchSceneJSON } from './utils/openAIAPI.ts'
 
 function App() {
   const [prompt, setPrompt] = useState('')

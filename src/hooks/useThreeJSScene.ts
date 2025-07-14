@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import type {LightingSettings} from '../utils/openRouterAPI'
+import type {LightingSettings} from '../utils/openAIAPI.ts'
 
 export interface SceneObject {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid'

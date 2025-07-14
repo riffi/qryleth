@@ -1,6 +1,7 @@
-const OPENROUTER_API_KEY = ""
-//const OPENROUTER_MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
-const OPENROUTER_MODEL = "anthropic/claude-sonnet-4"
+const OPENAI_API_KEY = ""
+const OPENAI_MODEL = "anthropic/claude-sonnet-4"
+
+const OPENAI_URL =  "https://api.polza.ai/api/v1/chat/completions"
 
 function buildSystemPrompt(): string {
   return `Ты генератор JSON-сцен для Three.js.
@@ -66,7 +67,7 @@ export interface SceneResponse {
 
 export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse> {
   const body = {
-    model: OPENROUTER_MODEL,
+    model: OPENAI_MODEL,
     messages: [
       { role: "system", content: buildSystemPrompt() },
       { role: "user", content: userPrompt }
@@ -77,11 +78,11 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
     response_format: { type: "json_object" }
   }
 
-  const response = await fetch("https://api.polza.ai/api/v1/chat/completions", {
+  const response = await fetch(OPENAI_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify(body)
   })
