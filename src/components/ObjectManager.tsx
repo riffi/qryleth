@@ -269,16 +269,19 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                             <>
                                 <Divider />
                                 <Text size="xs" c="dimmed" ta="center">
-                                    Выбран объект для перемещения
+                                    Выбран объект для управления
                                 </Text>
                                 <Text size="xs" c="dimmed" ta="center">
-                                    ←→↑↓ для перемещения по XZ
+                                    ←→↑↓ перемещение по XZ
                                 </Text>
                                 <Text size="xs" c="dimmed" ta="center">
-                                    Num8/Num2 для перемещения по Y
+                                    Num8/Num2 перемещение по Y
                                 </Text>
                                 <Text size="xs" c="dimmed" ta="center">
-                                    Esc для отмены выбора
+                                    +/- изменение размера
+                                </Text>
+                                <Text size="xs" c="dimmed" ta="center">
+                                    Esc отмена выбора
                                 </Text>
                             </>
                         )}

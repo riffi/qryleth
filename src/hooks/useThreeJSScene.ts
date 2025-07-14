@@ -213,6 +213,22 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
             moved = true
           }
           break
+        case '+':
+        case '=':
+          if (event.code === 'NumpadAdd' || event.code === 'Equal') {
+            event.preventDefault()
+            scaleSelectedObject('up')
+            moved = true
+          }
+          break
+        case '-':
+        case '_':
+          if (event.code === 'NumpadSubtract' || event.code === 'Minus') {
+            event.preventDefault()
+            scaleSelectedObject('down')
+            moved = true
+          }
+          break
         case 'Escape':
           clearSelection()
           break
@@ -525,6 +541,72 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     if (selectedOutlinePassRef.current) {
       selectedOutlinePassRef.current.selectedObjects = []
     }
+  }
+
+  const scaleSelectedObject = (scaleDirection: 'up' | 'down') => {
+    if (!selectedObjectRef.current || !sceneRef.current) return
+
+    const scene = sceneRef.current
+    const scaleAmount = 0.1
+    const { objectIndex, instanceId } = selectedObjectRef.current
+    
+    const scaleMultiplier = scaleDirection === 'up' ? (1 + scaleAmount) : (1 - scaleAmount)
+    
+    if (instanceId) {
+      // Scale specific instance
+      const [, placementIndex] = instanceId.split('-').map(Number)
+      scene.children.forEach(child => {
+        if (child.userData.generated && 
+            child.userData.objectIndex === objectIndex && 
+            child.userData.placementIndex === placementIndex) {
+          // Apply scale change
+          child.scale.multiplyScalar(scaleMultiplier)
+          
+          // Ensure minimum scale
+          const minScale = 0.1
+          if (child.scale.x < minScale) {
+            child.scale.setScalar(minScale)
+          }
+          
+          // Update placement data
+          if (placementsRef.current[placementIndex]) {
+            placementsRef.current[placementIndex].scale = [
+              child.scale.x,
+              child.scale.y,
+              child.scale.z
+            ]
+          }
+        }
+      })
+    } else {
+      // Scale all instances of this object type
+      scene.children.forEach(child => {
+        if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+          // Apply scale change
+          child.scale.multiplyScalar(scaleMultiplier)
+          
+          // Ensure minimum scale
+          const minScale = 0.1
+          if (child.scale.x < minScale) {
+            child.scale.setScalar(minScale)
+          }
+          
+          // Update placement data
+          const placementIndex = child.userData.placementIndex
+          if (placementsRef.current[placementIndex]) {
+            placementsRef.current[placementIndex].scale = [
+              child.scale.x,
+              child.scale.y,
+              child.scale.z
+            ]
+          }
+        }
+      })
+    }
+    
+    // Update objects info to reflect new scale
+    const currentObjects = getObjectsFromScene()
+    updateObjectsInfo(currentObjects, placementsRef.current)
   }
 
   const moveSelectedObject = (direction: 'left' | 'right' | 'forward' | 'backward' | 'up' | 'down') => {
