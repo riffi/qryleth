@@ -247,6 +247,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
             4
         )
         mesh = new THREE.Mesh(geometry, material)
+
+        // Автоматически поворачиваем пирамиду на 45 градусов по Y-оси
+        // чтобы ребро смотрело вперед, а не грань
+        mesh.rotation.y = Math.PI / 4
         break
       }
       default:
@@ -260,7 +264,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     if (primitive.rotation) {
-      mesh.rotation.set(...primitive.rotation)
+      // Для пирамиды добавляем заданный поворот к автоматическому
+      if (primitive.type === 'pyramid') {
+        mesh.rotation.x += primitive.rotation[0]
+        mesh.rotation.y += primitive.rotation[1]
+        mesh.rotation.z += primitive.rotation[2]
+      } else {
+        mesh.rotation.set(...primitive.rotation)
+      }
     }
 
     mesh.castShadow = true
