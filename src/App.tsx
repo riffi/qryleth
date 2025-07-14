@@ -39,7 +39,7 @@ function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -284,6 +284,8 @@ function App() {
                   onRemoveInstance={removeInstance}
                   onHighlightObject={highlightObjects}
                   onClearHighlight={clearHighlight}
+                  onSelectObject={selectObject}
+                  selectedObject={selectedObject}
               />
             </Container>
           </AppShell.Main>

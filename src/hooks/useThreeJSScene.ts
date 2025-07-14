@@ -41,6 +41,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const clockRef = useRef<THREE.Clock>(new THREE.Clock())
   const composerRef = useRef<EffectComposer | null>(null)
   const outlinePassRef = useRef<OutlinePass | null>(null)
+  const selectedOutlinePassRef = useRef<OutlinePass | null>(null)
+  const [selectedObject, setSelectedObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
+  const selectedObjectRef = useRef<{objectIndex: number, instanceId?: string} | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
@@ -89,7 +92,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const renderPass = new RenderPass(scene, camera)
     composer.addPass(renderPass)
     
-    // Outline pass
+    // Hover outline pass (green)
     const outlinePass = new OutlinePass(new THREE.Vector2(container.clientWidth, container.clientHeight), scene, camera)
     outlinePass.edgeStrength = 3
     outlinePass.edgeGlow = 0.5
@@ -99,12 +102,23 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     outlinePass.hiddenEdgeColor.set('#00ff00')
     composer.addPass(outlinePass)
     
+    // Selection outline pass (orange)
+    const selectedOutlinePass = new OutlinePass(new THREE.Vector2(container.clientWidth, container.clientHeight), scene, camera)
+    selectedOutlinePass.edgeStrength = 4
+    selectedOutlinePass.edgeGlow = 0.8
+    selectedOutlinePass.edgeThickness = 3
+    selectedOutlinePass.pulsePeriod = 2
+    selectedOutlinePass.visibleEdgeColor.set('#ff6600')
+    selectedOutlinePass.hiddenEdgeColor.set('#ff6600')
+    composer.addPass(selectedOutlinePass)
+    
     // Output pass for proper tone mapping and gamma correction
     const outputPass = new OutputPass()
     composer.addPass(outputPass)
     
     composerRef.current = composer
     outlinePassRef.current = outlinePass
+    selectedOutlinePassRef.current = selectedOutlinePass
 
     // Controls setup - default to orbit mode
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -146,9 +160,65 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       if (outlinePassRef.current) {
         outlinePassRef.current.setSize(clientWidth, clientHeight)
       }
+      if (selectedOutlinePassRef.current) {
+        selectedOutlinePassRef.current.setSize(clientWidth, clientHeight)
+      }
     }
 
     window.addEventListener('resize', handleResize)
+    
+    // Keyboard event handler for object movement
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!selectedObjectRef.current) {
+        return
+      }
+      
+      let moved = false
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          moveSelectedObject('left')
+          moved = true
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          moveSelectedObject('right')
+          moved = true
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          moveSelectedObject('forward')
+          moved = true
+          break
+        case 'ArrowDown':
+          event.preventDefault()
+          moveSelectedObject('backward')
+          moved = true
+          break
+        case '8':
+          if (event.code === 'Numpad8' || event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
+            event.preventDefault()
+            moveSelectedObject('up')
+            moved = true
+          }
+          break
+        case '2':
+          if (event.code === 'Numpad2' || event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
+            event.preventDefault()
+            moveSelectedObject('down')
+            moved = true
+          }
+          break
+        case 'Escape':
+          clearSelection()
+          break
+      }
+    }
+    
+    // Add keyboard event listener to the container
+    container.addEventListener('keydown', handleKeyDown)
+    container.tabIndex = 0
+    container.style.outline = 'none'
 
     // Animation loop
     const animate = () => {
@@ -177,6 +247,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         cancelAnimationFrame(animationFrameRef.current)
       }
       window.removeEventListener('resize', handleResize)
+      container.removeEventListener('keydown', handleKeyDown)
 
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement)
@@ -193,11 +264,38 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }, [containerRef])
 
+  const getObjectsFromScene = (): { [key: number]: SceneObject } => {
+    if (!sceneRef.current) return {}
+    
+    const scene = sceneRef.current
+    const objectMap: { [key: number]: SceneObject } = {}
+    
+    // Extract unique objects from scene
+    scene.children.forEach(child => {
+      if (child.userData.generated && child.userData.objectIndex !== undefined) {
+        const objectIndex = child.userData.objectIndex
+        if (!objectMap[objectIndex]) {
+          objectMap[objectIndex] = {
+            name: child.name,
+            primitives: [] // We don't need primitives for object manager
+          }
+        }
+      }
+    })
+    
+    return objectMap
+  }
+
   const updateObjectsInfo = (
-    objects: SceneObject[] = sceneObjects,
+    objects: { [key: number]: SceneObject } | SceneObject[] = getObjectsFromScene(),
     placements: ScenePlacement[] = placementsRef.current
   ) => {
-    if (!objects.length || !placements.length) {
+    // Convert objects to array if it's an object map
+    const objectsArray = Array.isArray(objects) ? objects : Object.values(objects)
+    const objectsMap = Array.isArray(objects) ? 
+      objects.reduce((map, obj, index) => ({ ...map, [index]: obj }), {}) : objects
+    
+    if (!objectsArray.length || !placements.length) {
       setObjectsInfo([])
       return
     }
@@ -226,7 +324,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Создаем информацию об объектах
     const info: ObjectInfo[] = []
     objectCounts.forEach((count, objectIndex) => {
-      const sceneObject = objects[objectIndex]
+      const sceneObject = objectsMap[objectIndex]
       if (sceneObject) {
         info.push({
           name: sceneObject.name,
@@ -338,6 +436,156 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     if (outlinePassRef.current) {
       outlinePassRef.current.selectedObjects = []
     }
+  }
+
+  const selectObject = (objectIndex: number, instanceId?: string) => {
+    const selection = { objectIndex, instanceId }
+    setSelectedObject(selection)
+    selectedObjectRef.current = selection
+    
+    // Focus the container to ensure keyboard events are received
+    if (containerRef.current) {
+      containerRef.current.focus()
+    }
+    
+    if (!sceneRef.current || !selectedOutlinePassRef.current) return
+
+    const scene = sceneRef.current
+    const objectsToSelect: THREE.Object3D[] = []
+
+    if (instanceId) {
+      // Select specific instance
+      const [, placementIndex] = instanceId.split('-').map(Number)
+      scene.children.forEach(child => {
+        if (child.userData.generated && 
+            child.userData.objectIndex === objectIndex && 
+            child.userData.placementIndex === placementIndex) {
+          objectsToSelect.push(child)
+        }
+      })
+    } else {
+      // Select all instances of this object type
+      scene.children.forEach(child => {
+        if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+          objectsToSelect.push(child)
+        }
+      })
+    }
+
+    selectedOutlinePassRef.current.selectedObjects = objectsToSelect
+  }
+
+  const clearSelection = () => {
+    setSelectedObject(null)
+    selectedObjectRef.current = null
+    if (selectedOutlinePassRef.current) {
+      selectedOutlinePassRef.current.selectedObjects = []
+    }
+  }
+
+  const moveSelectedObject = (direction: 'left' | 'right' | 'forward' | 'backward' | 'up' | 'down') => {
+    if (!selectedObjectRef.current || !sceneRef.current) return
+
+
+    const scene = sceneRef.current
+    const moveAmount = 0.5
+    const { objectIndex, instanceId } = selectedObjectRef.current
+    
+    // Debug: log all objects in scene
+    console.log('All objects in scene:')
+    scene.children.forEach((child, index) => {
+      console.log(`Child ${index}:`, child.name, 'userData:', child.userData)
+    })
+
+    if (instanceId) {
+      // Move specific instance
+      const [, placementIndex] = instanceId.split('-').map(Number)
+      console.log('Looking for specific instance:', objectIndex, placementIndex)
+      let foundObjects = 0
+      scene.children.forEach(child => {
+        if (child.userData.generated && 
+            child.userData.objectIndex === objectIndex && 
+            child.userData.placementIndex === placementIndex) {
+          foundObjects++
+          console.log('Found object to move:', child.name, 'Position before:', child.position.x, child.position.y, child.position.z)
+          switch (direction) {
+            case 'left':
+              child.position.x -= moveAmount
+              break
+            case 'right':
+              child.position.x += moveAmount
+              break
+            case 'forward':
+              child.position.z -= moveAmount
+              break
+            case 'backward':
+              child.position.z += moveAmount
+              break
+            case 'up':
+              child.position.y += moveAmount
+              break
+            case 'down':
+              child.position.y -= moveAmount
+              break
+          }
+          
+          // Update placement data
+          if (placementsRef.current[placementIndex]) {
+            placementsRef.current[placementIndex].position = [
+              child.position.x,
+              child.position.y,
+              child.position.z
+            ]
+          }
+        }
+      })
+      console.log('Found', foundObjects, 'objects to move')
+    } else {
+      // Move all instances of this object type
+      console.log('Looking for all instances of object:', objectIndex)
+      let foundObjects = 0
+      scene.children.forEach(child => {
+        if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+          foundObjects++
+          console.log('Found object to move:', child.name, 'Position before:', child.position.x, child.position.y, child.position.z)
+          switch (direction) {
+            case 'left':
+              child.position.x -= moveAmount
+              break
+            case 'right':
+              child.position.x += moveAmount
+              break
+            case 'forward':
+              child.position.z -= moveAmount
+              break
+            case 'backward':
+              child.position.z += moveAmount
+              break
+            case 'up':
+              child.position.y += moveAmount
+              break
+            case 'down':
+              child.position.y -= moveAmount
+              break
+          }
+          
+          // Update placement data
+          const placementIndex = child.userData.placementIndex
+          if (placementsRef.current[placementIndex]) {
+            placementsRef.current[placementIndex].position = [
+              child.position.x,
+              child.position.y,
+              child.position.z
+            ]
+          }
+        }
+      })
+      console.log('Found', foundObjects, 'objects to move')
+    }
+    
+    // Update objects info to reflect new positions
+    const currentObjects = getObjectsFromScene()
+    updateObjectsInfo(currentObjects, placementsRef.current)
   }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
@@ -648,6 +896,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     toggleInstanceVisibility,
     removeInstance,
     highlightObjects,
-    clearHighlight
+    clearHighlight,
+    selectObject,
+    clearSelection,
+    selectedObject
   }
 }

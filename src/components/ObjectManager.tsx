@@ -39,6 +39,8 @@ interface ObjectManagerProps {
     onRemoveInstance?: (objectIndex: number, instanceId: string) => void
     onHighlightObject?: (objectIndex: number, instanceId?: string) => void
     onClearHighlight?: () => void
+    onSelectObject?: (objectIndex: number, instanceId?: string) => void
+    selectedObject?: {objectIndex: number, instanceId?: string} | null
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
@@ -48,7 +50,9 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 onToggleInstanceVisibility,
                                                                 onRemoveInstance,
                                                                 onHighlightObject,
-                                                                onClearHighlight
+                                                                onClearHighlight,
+                                                                onSelectObject,
+                                                                selectedObject
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
@@ -88,6 +92,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         ) : (
                             objects.map((obj) => {
                                 const isExpanded = expandedItems.has(obj.objectIndex)
+                                const isSelected = selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId
                                 return (
                                     <Box key={`${obj.name}-${obj.objectIndex}`}>
                                         <Paper
@@ -96,10 +101,13 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             style={{
                                                 opacity: obj.visible ? 1 : 0.6,
                                                 transition: 'opacity 0.2s ease',
-                                                cursor: 'pointer'
+                                                cursor: 'pointer',
+                                                backgroundColor: isSelected ? 'var(--mantine-color-orange-1)' : undefined,
+                                                borderColor: isSelected ? 'var(--mantine-color-orange-4)' : undefined
                                             }}
                                             onMouseEnter={() => onHighlightObject?.(obj.objectIndex)}
                                             onMouseLeave={() => onClearHighlight?.()}
+                                            onClick={() => onSelectObject?.(obj.objectIndex)}
                                         >
                                             <Group justify="space-between" align="center">
                                                 <Group gap="sm" style={{ flex: 1 }}>
@@ -167,12 +175,17 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 withBorder
                                                                 style={{
                                                                     opacity: instance.visible ? 1 : 0.6,
-                                                                    backgroundColor: 'var(--mantine-color-gray-0)',
-                                                                    borderColor: 'var(--mantine-color-gray-3)',
+                                                                    backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id 
+                                                                        ? 'var(--mantine-color-orange-1)' 
+                                                                        : 'var(--mantine-color-gray-0)',
+                                                                    borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id 
+                                                                        ? 'var(--mantine-color-orange-4)' 
+                                                                        : 'var(--mantine-color-gray-3)',
                                                                     cursor: 'pointer'
                                                                 }}
                                                                 onMouseEnter={() => onHighlightObject?.(obj.objectIndex, instance.id)}
                                                                 onMouseLeave={() => onClearHighlight?.()}
+                                                                onClick={() => onSelectObject?.(obj.objectIndex, instance.id)}
                                                             >
                                                                 <Group justify="space-between" align="center">
                                                                     <Group gap="sm" style={{ flex: 1 }}>
@@ -238,6 +251,24 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         <Text size="xs" c="dimmed" ta="center">
                             Всего объектов: {totalObjects}
                         </Text>
+                        
+                        {selectedObject && (
+                            <>
+                                <Divider />
+                                <Text size="xs" c="dimmed" ta="center">
+                                    Выбран объект для перемещения
+                                </Text>
+                                <Text size="xs" c="dimmed" ta="center">
+                                    ←→↑↓ для перемещения по XZ
+                                </Text>
+                                <Text size="xs" c="dimmed" ta="center">
+                                    Num8/Num2 для перемещения по Y
+                                </Text>
+                                <Text size="xs" c="dimmed" ta="center">
+                                    Esc для отмены выбора
+                                </Text>
+                            </>
+                        )}
                     </>
                 )}
             </Stack>
