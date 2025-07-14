@@ -1,7 +1,4 @@
-const OPENAI_API_KEY = ""
-const OPENAI_MODEL = "anthropic/claude-sonnet-4"
-
-const OPENAI_URL =  "https://api.polza.ai/api/v1/chat/completions"
+import { getActiveGroup } from './openAISettings'
 
 function buildSystemPrompt(): string {
   return `Ты генератор JSON-сцен для Three.js.
@@ -61,13 +58,15 @@ export interface  LightingSettings {
 }
 
 export interface SceneResponse {
-  objects: any[];
+  objects: unknown[];
   lighting?: LightingSettings;
 }
 
 export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse> {
+  const { url, model, apiKey } = getActiveGroup()
+
   const body = {
-    model: OPENAI_MODEL,
+    model,
     messages: [
       { role: "system", content: buildSystemPrompt() },
       { role: "user", content: userPrompt }
@@ -78,11 +77,11 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
     response_format: { type: "json_object" }
   }
 
-  const response = await fetch(OPENAI_URL, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`
+      "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(body)
   })
@@ -121,12 +120,12 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
       // Проверка на другие форматы ответа (для обратной совместимости)
       const arrays = Object.values(parsed).filter(Array.isArray)
       if (arrays.length > 0) {
-        return { objects: arrays[0] as any[] }
+        return { objects: arrays[0] as unknown[] }
       }
     }
 
     return { objects: Array.isArray(parsed) ? parsed : [] }
-  } catch (error) {
+  } catch {
     // Try to extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
     if (jsonMatch) {

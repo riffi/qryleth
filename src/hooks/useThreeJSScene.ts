@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type {LightingSettings} from '../utils/openAIAPI.ts'
 
 export interface SceneObject {
@@ -26,13 +26,13 @@ export interface SceneLights {
   directional: THREE.DirectionalLight;
 }
 
-export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement>) => {
-  const sceneRef = useRef<THREE.Scene>()
-  const rendererRef = useRef<THREE.WebGLRenderer>()
-  const cameraRef = useRef<THREE.PerspectiveCamera>()
-  const controlsRef = useRef<OrbitControls>()
-  const animationFrameRef = useRef<number>()
-  const lightsRef = useRef<SceneLights>()
+export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | null>) => {
+  const sceneRef = useRef<THREE.Scene | null>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const lightsRef = useRef<SceneLights | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement>) =
     }
   }, [containerRef])
 
-  const buildSceneFromDescription = (description: SceneObject[] | any) => {
+  const buildSceneFromDescription = (description: SceneObject[] | unknown) => {
     if (!sceneRef.current || !isInitialized) return
 
     const scene = sceneRef.current
@@ -156,17 +156,18 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement>) =
     objectsToRemove.forEach(obj => scene.remove(obj))
 
     // Обработка нового формата ответа
-    let objects = description
-    let lighting = null
+    let objects: unknown = description
+    let lighting: LightingSettings | null = null
 
     // Если пришел объект с полями objects и lighting
     if (description && typeof description === 'object' && !Array.isArray(description)) {
-      if (description.objects && Array.isArray(description.objects)) {
-        objects = description.objects
-        lighting = description.lighting
+      const descObj = description as Record<string, unknown>
+      if (descObj.objects && Array.isArray(descObj.objects)) {
+        objects = descObj.objects
+        lighting = descObj.lighting as LightingSettings | null
       } else {
         // Обратная совместимость - пытаемся найти массив в объекте
-        const possibleArrays = Object.values(description).filter(Array.isArray)
+        const possibleArrays = Object.values(descObj).filter(Array.isArray)
         if (possibleArrays.length > 0) {
           objects = possibleArrays[0]
         }

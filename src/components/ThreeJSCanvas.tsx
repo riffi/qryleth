@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 interface ThreeJSCanvasProps {
   containerRef: React.RefObject<HTMLDivElement>
@@ -8,11 +8,11 @@ interface ThreeJSCanvasProps {
 }
 
 export const ThreeJSCanvas: React.FC<ThreeJSCanvasProps> = ({ containerRef, onSceneReady }) => {
-  const sceneRef = useRef<THREE.Scene>()
-  const rendererRef = useRef<THREE.WebGLRenderer>()
-  const cameraRef = useRef<THREE.PerspectiveCamera>()
-  const controlsRef = useRef<OrbitControls>()
-  const animationFrameRef = useRef<number>()
+  const sceneRef = useRef<THREE.Scene | null>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return

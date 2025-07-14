@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import {
   AppShell,
   Container,
@@ -24,7 +24,7 @@ import {
   IconX,
   IconBrain
 } from '@tabler/icons-react'
-import { ThreeJSCanvas } from './components/ThreeJSCanvas'
+import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
 
@@ -32,6 +32,7 @@ function App() {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
+  const [settingsOpened, setSettingsOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
   const { buildSceneFromDescription, clearScene } = useThreeJSScene(canvasRef)
@@ -101,6 +102,7 @@ function App() {
   }
 
   return (
+      <>
       <AppShell
           header={{ height: 70 }}
           padding="md"
@@ -132,7 +134,7 @@ function App() {
                 </Badge>
 
                 <Tooltip label="Настройки">
-                  <ActionIcon variant="subtle" size="lg">
+                  <ActionIcon variant="subtle" size="lg" onClick={() => setSettingsOpened(true)}>
                     <IconSettings size="1.2rem" />
                   </ActionIcon>
                 </Tooltip>
@@ -225,6 +227,8 @@ function App() {
           </Container>
         </AppShell.Main>
       </AppShell>
+      <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+      </>
   )
 }
 
