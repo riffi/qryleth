@@ -7,6 +7,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../utils/openAIAPI.ts'
+import { db } from '../utils/database'
+import { notifications } from '@mantine/notifications'
 
 export interface SceneLights {
   ambient: THREE.AmbientLight;
@@ -44,6 +46,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const selectedOutlinePassRef = useRef<OutlinePass | null>(null)
   const [selectedObject, setSelectedObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const selectedObjectRef = useRef<{objectIndex: number, instanceId?: string} | null>(null)
+  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
+  const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
@@ -219,6 +223,45 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     container.addEventListener('keydown', handleKeyDown)
     container.tabIndex = 0
     container.style.outline = 'none'
+    
+    // Mouse click handler for object selection
+    const handleMouseClick = (event: MouseEvent) => {
+      if (!sceneRef.current || !cameraRef.current) return
+      
+      // Calculate mouse position in normalized device coordinates (-1 to +1)
+      const rect = container.getBoundingClientRect()
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+      
+      // Update raycaster
+      raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current)
+      
+      // Find intersected objects
+      const generatedObjects = sceneRef.current.children.filter(child => child.userData.generated)
+      const intersects = raycasterRef.current.intersectObjects(generatedObjects, true)
+      
+      if (intersects.length > 0) {
+        // Find the top-level generated object (group)
+        let clickedObject = intersects[0].object
+        while (clickedObject.parent && !clickedObject.userData.generated) {
+          clickedObject = clickedObject.parent
+        }
+        
+        if (clickedObject.userData.generated) {
+          const objectIndex = clickedObject.userData.objectIndex
+          const placementIndex = clickedObject.userData.placementIndex
+          const instanceId = `${objectIndex}-${placementIndex}`
+          
+          // Select the clicked object
+          selectObject(objectIndex, instanceId)
+        }
+      } else {
+        // Clear selection if clicked on empty space
+        clearSelection()
+      }
+    }
+    
+    container.addEventListener('click', handleMouseClick)
 
     // Animation loop
     const animate = () => {
@@ -248,6 +291,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
       window.removeEventListener('resize', handleResize)
       container.removeEventListener('keydown', handleKeyDown)
+      container.removeEventListener('click', handleMouseClick)
 
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement)
@@ -900,6 +944,104 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }
 
+  const saveObjectToLibrary = async (objectIndex: number) => {
+    try {
+      const sceneObject = sceneObjects[objectIndex]
+      if (!sceneObject) {
+        throw new Error('Объект не найден')
+      }
+
+      await db.saveObject(sceneObject.name, sceneObject)
+      notifications.show({
+        title: 'Успешно!',
+        message: `Объект "${sceneObject.name}" сохранен в библиотеку`,
+        color: 'green'
+      })
+    } catch (error) {
+      console.error('Error saving object to library:', error)
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Не удалось сохранить объект в библиотеку',
+        color: 'red'
+      })
+    }
+  }
+
+  const findOptimalPlacement = (): [number, number, number] => {
+    if (!sceneRef.current) return [0, 0, 0]
+    
+    const scene = sceneRef.current
+    const existingPositions: THREE.Vector3[] = []
+    
+    // Collect existing object positions
+    scene.children.forEach(child => {
+      if (child.userData.generated) {
+        existingPositions.push(child.position.clone())
+      }
+    })
+    
+    // Try to find empty spot in a grid pattern
+    const gridSize = 3
+    const minDistance = 4
+    
+    for (let x = -gridSize; x <= gridSize; x++) {
+      for (let z = -gridSize; z <= gridSize; z++) {
+        const testPosition = new THREE.Vector3(x * minDistance, 0, z * minDistance)
+        
+        // Check if this position is far enough from existing objects
+        const isFarEnough = existingPositions.every(pos => 
+          pos.distanceTo(testPosition) >= minDistance
+        )
+        
+        if (isFarEnough) {
+          return [testPosition.x, testPosition.y, testPosition.z]
+        }
+      }
+    }
+    
+    // If no optimal spot found, place randomly around the scene
+    const angle = Math.random() * Math.PI * 2
+    const radius = 8 + Math.random() * 4
+    return [
+      Math.cos(angle) * radius,
+      0,
+      Math.sin(angle) * radius
+    ]
+  }
+
+  const addObjectToScene = (objectData: SceneObject) => {
+    if (!sceneRef.current || !isInitialized) return
+    
+    // Find optimal placement
+    const position = findOptimalPlacement()
+    
+    // Add to scene objects
+    const newObjectIndex = sceneObjects.length
+    const updatedObjects = [...sceneObjects, objectData]
+    setSceneObjects(updatedObjects)
+    
+    // Add to placements
+    const newPlacement: ScenePlacement = {
+      objectIndex: newObjectIndex,
+      position: position as [number, number, number],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1]
+    }
+    placementsRef.current = [...placementsRef.current, newPlacement]
+    
+    // Create and add the object to the scene
+    const compositeObject = createCompositeObject(objectData)
+    compositeObject.position.set(...position)
+    compositeObject.userData.generated = true
+    compositeObject.userData.objectIndex = newObjectIndex
+    compositeObject.userData.placementIndex = placementsRef.current.length - 1
+    
+    sceneRef.current.add(compositeObject)
+    
+    // Update objects info
+    updateObjectsInfo(updatedObjects, placementsRef.current)
+  }
+
   return {
     buildSceneFromDescription,
     clearScene,
@@ -921,6 +1063,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     clearSelection,
     selectedObject,
     getCurrentSceneData,
-    loadSceneData
+    loadSceneData,
+    saveObjectToLibrary,
+    addObjectToScene
   }
 }

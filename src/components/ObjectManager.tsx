@@ -13,7 +13,7 @@ import {
     Tooltip,
     Collapse
 } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
+import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark } from '@tabler/icons-react'
 
 export interface ObjectInstance {
     id: string
@@ -41,6 +41,7 @@ interface ObjectManagerProps {
     onClearHighlight?: () => void
     onSelectObject?: (objectIndex: number, instanceId?: string) => void
     selectedObject?: {objectIndex: number, instanceId?: string} | null
+    onSaveObjectToLibrary?: (objectIndex: number) => void
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
@@ -52,7 +53,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 onHighlightObject,
                                                                 onClearHighlight,
                                                                 onSelectObject,
-                                                                selectedObject
+                                                                selectedObject,
+                                                                onSaveObjectToLibrary
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
@@ -135,6 +137,17 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                 </Group>
 
                                                 <Group gap="xs">
+                                                    <Tooltip label="Сохранить в библиотеку">
+                                                        <ActionIcon
+                                                            size="sm"
+                                                            variant="subtle"
+                                                            color="green"
+                                                            onClick={() => onSaveObjectToLibrary?.(obj.objectIndex)}
+                                                        >
+                                                            <IconBookmark size={14} />
+                                                        </ActionIcon>
+                                                    </Tooltip>
+
                                                     <Tooltip label={obj.visible ? 'Скрыть' : 'Показать'}>
                                                         <ActionIcon
                                                             size="sm"

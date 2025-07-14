@@ -42,7 +42,7 @@ function App() {
   const [libraryOpened, setLibraryOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -295,6 +295,7 @@ function App() {
                   onClearHighlight={clearHighlight}
                   onSelectObject={selectObject}
                   selectedObject={selectedObject}
+                  onSaveObjectToLibrary={saveObjectToLibrary}
               />
             </Container>
           </AppShell.Main>
@@ -305,6 +306,7 @@ function App() {
           onClose={() => setLibraryOpened(false)}
           onLoadScene={loadSceneData}
           onSaveCurrentScene={getCurrentSceneData}
+          onAddObjectToScene={addObjectToScene}
         />
       </>
   )
