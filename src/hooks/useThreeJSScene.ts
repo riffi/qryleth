@@ -25,6 +25,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const controlsRef = useRef<OrbitControls | FirstPersonControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
+  const clockRef = useRef<THREE.Clock>(new THREE.Clock())
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
@@ -105,7 +106,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate)
       if (controlsRef.current) {
-        controlsRef.current.update()
+        if (controlsRef.current instanceof FirstPersonControls) {
+          controlsRef.current.update(clockRef.current.getDelta())
+        } else {
+          controlsRef.current.update()
+        }
       }
       renderer.render(scene, camera)
     }
@@ -451,6 +456,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     
     // Create new controls based on mode
     if (mode === 'orbit') {
+      // Reset camera position for orbit mode
+      camera.position.set(5, 5, 8)
+      camera.lookAt(0, 0, 0)
+      
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
@@ -458,6 +467,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.enablePan = true
       controlsRef.current = controls
     } else if (mode === 'walk') {
+      // Reset camera position for walk mode
+      camera.position.set(0, 2, 5)
+      camera.lookAt(0, 0, 0)
+      
       const controls = new FirstPersonControls(camera, renderer.domElement)
       controls.lookSpeed = 0.1
       controls.movementSpeed = 10
@@ -465,6 +478,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.constrainVertical = true
       controls.verticalMin = 0.1
       controls.verticalMax = Math.PI - 0.1
+      controls.activeLook = true
+      controls.heightSpeed = false
+      controls.heightCoef = 1
+      controls.heightMin = 0
+      controls.heightMax = 1
       controlsRef.current = controls
     }
     
