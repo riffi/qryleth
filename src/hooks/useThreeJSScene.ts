@@ -1,25 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type { LightingSettings, ScenePlacement, SceneResponse } from '../utils/openAIAPI.ts'
-
-export interface SceneObject {
-  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid'
-  width?: number
-  height?: number
-  depth?: number
-  radius?: number
-  radiusTop?: number
-  radiusBottom?: number
-  radialSegments?: number
-  baseSize?: number
-  color?: string
-  position?: [number, number, number]
-  rotation?: [number, number, number]
-  opacity?: number
-  emissive?: string
-  emissiveIntensity?: number
-}
+import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../utils/openAIAPI.ts'
 
 export interface SceneLights {
   ambient: THREE.AmbientLight;
@@ -92,7 +74,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       directional: directionalLight
     }
 
-
     // Resize handler
     const handleResize = () => {
       if (!container) return
@@ -132,7 +113,104 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }, [containerRef])
 
-  const buildSceneFromDescription = (description: SceneResponse | SceneObject[] | Record<string, unknown>) => {
+  const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
+    const color = new THREE.Color(primitive.color || '#cccccc')
+    const materialOptions: THREE.MeshStandardMaterialParameters = { color }
+
+    // Обработка прозрачности
+    if (primitive.opacity !== undefined && primitive.opacity < 1) {
+      materialOptions.transparent = true
+      materialOptions.opacity = Math.max(0, Math.min(1, primitive.opacity))
+    }
+
+    // Обработка свечения
+    if (primitive.emissive) {
+      materialOptions.emissive = new THREE.Color(primitive.emissive)
+      if (primitive.emissiveIntensity !== undefined) {
+        materialOptions.emissiveIntensity = Math.max(0, primitive.emissiveIntensity)
+      }
+    }
+
+    const material = new THREE.MeshStandardMaterial(materialOptions)
+    let mesh: THREE.Mesh
+
+    switch (primitive.type) {
+      case 'box': {
+        const geometry = new THREE.BoxGeometry(
+            primitive.width || 1,
+            primitive.height || 1,
+            primitive.depth || 1
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
+      case 'sphere': {
+        const geometry = new THREE.SphereGeometry(primitive.radius || 1, 32, 16)
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
+      case 'cylinder': {
+        const geometry = new THREE.CylinderGeometry(
+            primitive.radiusTop || 1,
+            primitive.radiusBottom || 1,
+            primitive.height || 2,
+            primitive.radialSegments || 16
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
+      case 'cone': {
+        const geometry = new THREE.ConeGeometry(
+            primitive.radius || 1,
+            primitive.height || 2,
+            primitive.radialSegments || 16
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
+      case 'pyramid': {
+        const geometry = new THREE.ConeGeometry(
+            (primitive.baseSize || 1) / 2,
+            primitive.height || 2,
+            4
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
+      default:
+        console.warn('Unknown primitive type:', primitive.type)
+        return new THREE.Mesh()
+    }
+
+    // Устанавливаем позицию и поворот примитива относительно центра составного объекта
+    if (primitive.position) {
+      mesh.position.set(...primitive.position)
+    }
+
+    if (primitive.rotation) {
+      mesh.rotation.set(...primitive.rotation)
+    }
+
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+
+    return mesh
+  }
+
+  const createCompositeObject = (sceneObject: SceneObject): THREE.Group => {
+    const group = new THREE.Group()
+    group.name = sceneObject.name
+
+    // Создаем все примитивы и добавляем их в группу
+    sceneObject.primitives.forEach(primitive => {
+      const mesh = createPrimitiveMesh(primitive)
+      group.add(mesh)
+    })
+
+    return group
+  }
+
+  const buildSceneFromDescription = (description: SceneResponse | any) => {
     if (!sceneRef.current || !isInitialized) return
 
     const scene = sceneRef.current
@@ -158,14 +236,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         placements = descObj.placements as ScenePlacement[]
       }
       lighting = descObj.lighting as LightingSettings | null
-      if (objects.length === 0) {
-        const possibleArrays = Object.values(descObj).filter(Array.isArray)
-        if (possibleArrays.length > 0) {
-          objects = possibleArrays[0] as SceneObject[]
-        }
-      }
     } else if (Array.isArray(description)) {
-      objects = description as SceneObject[]
+      // Старый формат - массив примитивов, конвертируем в новый
+      objects = description.map((primitive: any, index: number) => ({
+        name: `Object_${index}`,
+        primitives: [primitive]
+      }))
+      placements = objects.map((_, index) => ({ objectIndex: index }))
     }
 
     // Применяем настройки освещения, если они есть
@@ -178,99 +255,36 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       return
     }
 
+    // Если нет расстановки, создаем по умолчанию
     if (placements.length === 0) {
-      placements = objects.map((obj, idx) => ({
+      placements = objects.map((_, idx) => ({
         objectIndex: idx,
-        position: obj.position,
-        rotation: obj.rotation
+        position: [0, 0, 0] as [number, number, number]
       }))
     }
+
+    // Создаем и размещаем составные объекты
     placements.forEach((placement: ScenePlacement) => {
-      const base = objects[placement.objectIndex]
-      if (!base) return
-      const item: SceneObject = { ...base }
-      if (placement.position) item.position = placement.position
-      if (placement.rotation) item.rotation = placement.rotation
-      let mesh: THREE.Mesh
-      const color = new THREE.Color(item.color || '#cccccc')
-      const materialOptions: THREE.MeshStandardMaterialParameters = { color }
+      const sceneObject = objects[placement.objectIndex]
+      if (!sceneObject) return
 
-      // Обработка прозрачности
-      if (item.opacity !== undefined && item.opacity < 1) {
-        materialOptions.transparent = true
-        materialOptions.opacity = Math.max(0, Math.min(1, item.opacity))
+      const compositeObject = createCompositeObject(sceneObject)
+
+      // Применяем трансформации к группе
+      if (placement.position) {
+        compositeObject.position.set(...placement.position)
       }
 
-      // Обработка свечения
-      if (item.emissive) {
-        materialOptions.emissive = new THREE.Color(item.emissive)
-        if (item.emissiveIntensity !== undefined) {
-          materialOptions.emissiveIntensity = Math.max(0, item.emissiveIntensity)
-        }
+      if (placement.rotation) {
+        compositeObject.rotation.set(...placement.rotation)
       }
 
-      const material = new THREE.MeshStandardMaterial(materialOptions)
-
-      switch (item.type) {
-        case 'box': {
-          const geometry = new THREE.BoxGeometry(
-              item.width || 1,
-              item.height || 1,
-              item.depth || 1
-          )
-          mesh = new THREE.Mesh(geometry, material)
-          break
-        }
-        case 'sphere': {
-          const geometry = new THREE.SphereGeometry(item.radius || 1, 32, 16)
-          mesh = new THREE.Mesh(geometry, material)
-          break
-        }
-        case 'cylinder': {
-          const geometry = new THREE.CylinderGeometry(
-              item.radiusTop || 1,
-              item.radiusBottom || 1,
-              item.height || 2,
-              item.radialSegments || 16
-          )
-          mesh = new THREE.Mesh(geometry, material)
-          break
-        }
-        case 'cone': {
-          const geometry = new THREE.ConeGeometry(
-              item.radius || 1,
-              item.height || 2,
-              item.radialSegments || 16
-          )
-          mesh = new THREE.Mesh(geometry, material)
-          break
-        }
-        case 'pyramid': {
-          const geometry = new THREE.ConeGeometry(
-              (item.baseSize || 1) / 2,
-              item.height || 2,
-              4
-          )
-          mesh = new THREE.Mesh(geometry, material)
-          break
-        }
-        default:
-          console.warn('Unknown object type:', item.type)
-          return
+      if (placement.scale) {
+        compositeObject.scale.set(...placement.scale)
       }
 
-      if (item.position) {
-        mesh.position.set(...item.position)
-      }
-
-      if (item.rotation) {
-        mesh.rotation.set(...item.rotation)
-      }
-
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      mesh.userData.generated = true
-      scene.add(mesh)
+      compositeObject.userData.generated = true
+      scene.add(compositeObject)
     })
   }
 

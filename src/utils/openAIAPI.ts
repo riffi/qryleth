@@ -1,9 +1,7 @@
 import { getActiveGroup } from './openAISettings'
 import {buildSystemPrompt} from "./systemPrompt.ts";
 
-
-
-export interface  LightingSettings {
+export interface LightingSettings {
   ambientColor?: string;
   ambientIntensity?: number;
   directionalColor?: string;
@@ -11,14 +9,38 @@ export interface  LightingSettings {
   backgroundColor?: string;
 }
 
-export interface ScenePlacement {
-  objectIndex: number;
+export interface ScenePrimitive {
+  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid';
+  width?: number;
+  height?: number;
+  depth?: number;
+  radius?: number;
+  radiusTop?: number;
+  radiusBottom?: number;
+  radialSegments?: number;
+  baseSize?: number;
+  color?: string;
+  opacity?: number;
+  emissive?: string;
+  emissiveIntensity?: number;
   position?: [number, number, number];
   rotation?: [number, number, number];
 }
 
+export interface SceneObject {
+  name: string;
+  primitives: ScenePrimitive[];
+}
+
+export interface ScenePlacement {
+  objectIndex: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+}
+
 export interface SceneResponse {
-  objects: unknown[];
+  objects: SceneObject[];
   placements: ScenePlacement[];
   lighting?: LightingSettings;
 }
@@ -64,7 +86,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
     const parsed = JSON.parse(raw)
 
     if (parsed && typeof parsed === 'object') {
-      // Новый формат с объектами, расстановкой и освещением
+      // Новый формат с составными объектами
       if (Array.isArray(parsed.objects) && Array.isArray(parsed.placements)) {
         return {
           objects: parsed.objects,
@@ -82,25 +104,47 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }
       }
 
-      // Старый формат – просто массив объектов
+      // Старый формат – просто массив объектов (конвертируем в новый)
       if (Array.isArray(parsed)) {
-        return { objects: parsed, placements: [] }
+        const convertedObjects = parsed.map((primitive: any, index: number) => ({
+          name: `Object_${index}`,
+          primitives: [primitive]
+        }))
+        return {
+          objects: convertedObjects,
+          placements: convertedObjects.map((_: any, index: number) => ({ objectIndex: index }))
+        }
       }
 
       // Другие возможные форматы
       const arrays = Object.values(parsed).filter(Array.isArray)
       if (arrays.length > 0) {
-        return { objects: arrays[0] as unknown[], placements: [] }
+        const convertedObjects = (arrays[0] as any[]).map((primitive: any, index: number) => ({
+          name: `Object_${index}`,
+          primitives: [primitive]
+        }))
+        return {
+          objects: convertedObjects,
+          placements: convertedObjects.map((_: any, index: number) => ({ objectIndex: index }))
+        }
       }
     }
 
-    return { objects: Array.isArray(parsed) ? parsed : [], placements: [] }
+    return { objects: [], placements: [] }
   } catch {
     // Try to extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       try {
-        return { objects: JSON.parse(jsonMatch[0]), placements: [] }
+        const parsedArray = JSON.parse(jsonMatch[0])
+        const convertedObjects = parsedArray.map((primitive: any, index: number) => ({
+          name: `Object_${index}`,
+          primitives: [primitive]
+        }))
+        return {
+          objects: convertedObjects,
+          placements: convertedObjects.map((_: any, index: number) => ({ objectIndex: index }))
+        }
       } catch (e) {
         console.error('Failed to parse extracted JSON:', e)
       }
