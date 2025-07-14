@@ -37,6 +37,8 @@ interface ObjectManagerProps {
     onRemoveObject?: (objectIndex: number) => void
     onToggleInstanceVisibility?: (objectIndex: number, instanceId: string) => void
     onRemoveInstance?: (objectIndex: number, instanceId: string) => void
+    onHighlightObject?: (objectIndex: number, instanceId?: string) => void
+    onClearHighlight?: () => void
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
@@ -44,7 +46,9 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 onToggleVisibility,
                                                                 onRemoveObject,
                                                                 onToggleInstanceVisibility,
-                                                                onRemoveInstance
+                                                                onRemoveInstance,
+                                                                onHighlightObject,
+                                                                onClearHighlight
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
@@ -91,8 +95,11 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             withBorder
                                             style={{
                                                 opacity: obj.visible ? 1 : 0.6,
-                                                transition: 'opacity 0.2s ease'
+                                                transition: 'opacity 0.2s ease',
+                                                cursor: 'pointer'
                                             }}
+                                            onMouseEnter={() => onHighlightObject?.(obj.objectIndex)}
+                                            onMouseLeave={() => onClearHighlight?.()}
                                         >
                                             <Group justify="space-between" align="center">
                                                 <Group gap="sm" style={{ flex: 1 }}>
@@ -161,8 +168,11 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 style={{
                                                                     opacity: instance.visible ? 1 : 0.6,
                                                                     backgroundColor: 'var(--mantine-color-gray-0)',
-                                                                    borderColor: 'var(--mantine-color-gray-3)'
+                                                                    borderColor: 'var(--mantine-color-gray-3)',
+                                                                    cursor: 'pointer'
                                                                 }}
+                                                                onMouseEnter={() => onHighlightObject?.(obj.objectIndex, instance.id)}
+                                                                onMouseLeave={() => onClearHighlight?.()}
                                                             >
                                                                 <Group justify="space-between" align="center">
                                                                     <Group gap="sm" style={{ flex: 1 }}>

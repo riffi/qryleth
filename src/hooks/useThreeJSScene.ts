@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../utils/openAIAPI.ts'
 
 export interface SceneLights {
@@ -35,6 +39,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const clockRef = useRef<THREE.Clock>(new THREE.Clock())
+  const composerRef = useRef<EffectComposer | null>(null)
+  const outlinePassRef = useRef<OutlinePass | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
@@ -71,8 +77,34 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.0
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
+
+    // Setup post-processing for outline effect
+    const composer = new EffectComposer(renderer)
+    
+    // Main render pass
+    const renderPass = new RenderPass(scene, camera)
+    composer.addPass(renderPass)
+    
+    // Outline pass
+    const outlinePass = new OutlinePass(new THREE.Vector2(container.clientWidth, container.clientHeight), scene, camera)
+    outlinePass.edgeStrength = 3
+    outlinePass.edgeGlow = 0.5
+    outlinePass.edgeThickness = 2
+    outlinePass.pulsePeriod = 0
+    outlinePass.visibleEdgeColor.set('#00ff00')
+    outlinePass.hiddenEdgeColor.set('#00ff00')
+    composer.addPass(outlinePass)
+    
+    // Output pass for proper tone mapping and gamma correction
+    const outputPass = new OutputPass()
+    composer.addPass(outputPass)
+    
+    composerRef.current = composer
+    outlinePassRef.current = outlinePass
 
     // Controls setup - default to orbit mode
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -107,6 +139,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       camera.aspect = clientWidth / clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(clientWidth, clientHeight)
+      
+      if (composerRef.current) {
+        composerRef.current.setSize(clientWidth, clientHeight)
+      }
+      if (outlinePassRef.current) {
+        outlinePassRef.current.setSize(clientWidth, clientHeight)
+      }
     }
 
     window.addEventListener('resize', handleResize)
@@ -121,7 +160,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           controlsRef.current.update()
         }
       }
-      renderer.render(scene, camera)
+      
+      if (composerRef.current) {
+        composerRef.current.render()
+      } else {
+        renderer.render(scene, camera)
+      }
     }
     animate()
 
@@ -141,6 +185,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       renderer.dispose()
       if (controlsRef.current) {
         controlsRef.current.dispose()
+      }
+      if (composerRef.current) {
+        composerRef.current.dispose()
       }
       setIsInitialized(false)
     }
@@ -257,6 +304,40 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     placementsRef.current = placementsRef.current.filter((_, index) => index !== placementIndex)
     
     updateObjectsInfo()
+  }
+
+  const highlightObjects = (objectIndex: number, instanceId?: string) => {
+    if (!sceneRef.current || !outlinePassRef.current) return
+
+    const scene = sceneRef.current
+    const objectsToHighlight: THREE.Object3D[] = []
+
+    if (instanceId) {
+      // Highlight specific instance
+      const [, placementIndex] = instanceId.split('-').map(Number)
+      scene.children.forEach(child => {
+        if (child.userData.generated && 
+            child.userData.objectIndex === objectIndex && 
+            child.userData.placementIndex === placementIndex) {
+          objectsToHighlight.push(child)
+        }
+      })
+    } else {
+      // Highlight all instances of this object type
+      scene.children.forEach(child => {
+        if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+          objectsToHighlight.push(child)
+        }
+      })
+    }
+
+    outlinePassRef.current.selectedObjects = objectsToHighlight
+  }
+
+  const clearHighlight = () => {
+    if (outlinePassRef.current) {
+      outlinePassRef.current.selectedObjects = []
+    }
   }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
@@ -565,6 +646,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     viewMode,
     switchViewMode,
     toggleInstanceVisibility,
-    removeInstance
+    removeInstance,
+    highlightObjects,
+    clearHighlight
   }
 }
