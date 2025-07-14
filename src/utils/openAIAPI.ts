@@ -11,8 +11,15 @@ export interface  LightingSettings {
   backgroundColor?: string;
 }
 
+export interface ScenePlacement {
+  objectIndex: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+}
+
 export interface SceneResponse {
   objects: unknown[];
+  placements: ScenePlacement[];
   lighting?: LightingSettings;
 }
 
@@ -56,35 +63,44 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
   try {
     const parsed = JSON.parse(raw)
 
-    // Обработка нового формата ответа с объектами и настройками освещения
     if (parsed && typeof parsed === 'object') {
-      // Проверяем, содержит ли ответ новый формат с объектами и освещением
-      if (parsed.objects && Array.isArray(parsed.objects)) {
+      // Новый формат с объектами, расстановкой и освещением
+      if (Array.isArray(parsed.objects) && Array.isArray(parsed.placements)) {
         return {
           objects: parsed.objects,
+          placements: parsed.placements,
           lighting: parsed.lighting || {}
         }
       }
 
-      // Обратная совместимость - если в ответе только массив объектов
-      if (Array.isArray(parsed)) {
-        return { objects: parsed }
+      // Формат без расстановки (обратная совместимость)
+      if (parsed.objects && Array.isArray(parsed.objects)) {
+        return {
+          objects: parsed.objects,
+          placements: [],
+          lighting: parsed.lighting || {}
+        }
       }
 
-      // Проверка на другие форматы ответа (для обратной совместимости)
+      // Старый формат – просто массив объектов
+      if (Array.isArray(parsed)) {
+        return { objects: parsed, placements: [] }
+      }
+
+      // Другие возможные форматы
       const arrays = Object.values(parsed).filter(Array.isArray)
       if (arrays.length > 0) {
-        return { objects: arrays[0] as unknown[] }
+        return { objects: arrays[0] as unknown[], placements: [] }
       }
     }
 
-    return { objects: Array.isArray(parsed) ? parsed : [] }
+    return { objects: Array.isArray(parsed) ? parsed : [], placements: [] }
   } catch {
     // Try to extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       try {
-        return { objects: JSON.parse(jsonMatch[0]) }
+        return { objects: JSON.parse(jsonMatch[0]), placements: [] }
       } catch (e) {
         console.error('Failed to parse extracted JSON:', e)
       }

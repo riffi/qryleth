@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type {LightingSettings} from '../utils/openAIAPI.ts'
+import type { LightingSettings, ScenePlacement, SceneResponse } from '../utils/openAIAPI.ts'
 
 export interface SceneObject {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid'
@@ -132,7 +132,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }, [containerRef])
 
-  const buildSceneFromDescription = (description: SceneObject[] | unknown) => {
+  const buildSceneFromDescription = (description: SceneResponse | SceneObject[] | Record<string, unknown>) => {
     if (!sceneRef.current || !isInitialized) return
 
     const scene = sceneRef.current
@@ -144,22 +144,28 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     objectsToRemove.forEach(obj => scene.remove(obj))
 
     // Обработка нового формата ответа
-    let objects: unknown = description
+    let objects: SceneObject[] = []
+    let placements: ScenePlacement[] = []
     let lighting: LightingSettings | null = null
 
     // Если пришел объект с полями objects и lighting
     if (description && typeof description === 'object' && !Array.isArray(description)) {
       const descObj = description as Record<string, unknown>
-      if (descObj.objects && Array.isArray(descObj.objects)) {
-        objects = descObj.objects
-        lighting = descObj.lighting as LightingSettings | null
-      } else {
-        // Обратная совместимость - пытаемся найти массив в объекте
+      if (Array.isArray(descObj.objects)) {
+        objects = descObj.objects as SceneObject[]
+      }
+      if (Array.isArray(descObj.placements)) {
+        placements = descObj.placements as ScenePlacement[]
+      }
+      lighting = descObj.lighting as LightingSettings | null
+      if (objects.length === 0) {
         const possibleArrays = Object.values(descObj).filter(Array.isArray)
         if (possibleArrays.length > 0) {
-          objects = possibleArrays[0]
+          objects = possibleArrays[0] as SceneObject[]
         }
       }
+    } else if (Array.isArray(description)) {
+      objects = description as SceneObject[]
     }
 
     // Применяем настройки освещения, если они есть
@@ -172,7 +178,19 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       return
     }
 
-    objects.forEach((item: SceneObject) => {
+    if (placements.length === 0) {
+      placements = objects.map((obj, idx) => ({
+        objectIndex: idx,
+        position: obj.position,
+        rotation: obj.rotation
+      }))
+    }
+    placements.forEach((placement: ScenePlacement) => {
+      const base = objects[placement.objectIndex]
+      if (!base) return
+      const item: SceneObject = { ...base }
+      if (placement.position) item.position = placement.position
+      if (placement.rotation) item.rotation = placement.rotation
       let mesh: THREE.Mesh
       const color = new THREE.Color(item.color || '#cccccc')
       const materialOptions: THREE.MeshStandardMaterialParameters = { color }
