@@ -1,4 +1,4 @@
-const OPENROUTER_API_KEY = "ak_VKf5xFP2fQhJenavtYN6OR5UY8K04ZZju4l2w3CYK2g"
+const OPENROUTER_API_KEY = ""
 //const OPENROUTER_MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
 const OPENROUTER_MODEL = "anthropic/claude-sonnet-4"
 
