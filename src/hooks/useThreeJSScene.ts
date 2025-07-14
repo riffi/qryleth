@@ -484,50 +484,73 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const moveSelectedObject = (direction: 'left' | 'right' | 'forward' | 'backward' | 'up' | 'down') => {
-    if (!selectedObjectRef.current || !sceneRef.current) return
-
+    if (!selectedObjectRef.current || !sceneRef.current || !cameraRef.current) return
 
     const scene = sceneRef.current
+    const camera = cameraRef.current
     const moveAmount = 0.5
     const { objectIndex, instanceId } = selectedObjectRef.current
     
-    // Debug: log all objects in scene
-    console.log('All objects in scene:')
-    scene.children.forEach((child, index) => {
-      console.log(`Child ${index}:`, child.name, 'userData:', child.userData)
-    })
+    // Calculate camera-relative movement vectors
+    const forward = new THREE.Vector3()
+    const right = new THREE.Vector3()
+    const up = new THREE.Vector3(0, 1, 0)
+    
+    // For OrbitControls, we need to calculate direction based on camera position relative to target
+    if (controlsRef.current instanceof OrbitControls) {
+      // In orbit mode, calculate direction from camera to target
+      const target = controlsRef.current.target
+      forward.subVectors(target, camera.position)
+      forward.y = 0 // Keep movement on XZ plane
+      forward.normalize()
+      
+      // Calculate right direction (cross product of up and forward)
+      right.crossVectors(up, forward)
+      right.normalize()
+    } else {
+      // For other controls (FirstPerson, etc.), use camera's world direction
+      camera.getWorldDirection(forward)
+      forward.y = 0 // Keep movement on XZ plane for forward/backward
+      forward.normalize()
+      
+      // Calculate right direction (cross product of up and forward)
+      right.crossVectors(up, forward)
+      right.normalize()
+    }
+    
+    
+    // Calculate movement vector based on direction
+    let movementVector = new THREE.Vector3()
+    switch (direction) {
+      case 'left':
+        movementVector.copy(right).multiplyScalar(moveAmount)
+        break
+      case 'right':
+        movementVector.copy(right).multiplyScalar(-moveAmount)
+        break
+      case 'forward':
+        movementVector.copy(forward).multiplyScalar(moveAmount)
+        break
+      case 'backward':
+        movementVector.copy(forward).multiplyScalar(-moveAmount)
+        break
+      case 'up':
+        movementVector.set(0, moveAmount, 0)
+        break
+      case 'down':
+        movementVector.set(0, -moveAmount, 0)
+        break
+    }
 
     if (instanceId) {
       // Move specific instance
       const [, placementIndex] = instanceId.split('-').map(Number)
-      console.log('Looking for specific instance:', objectIndex, placementIndex)
-      let foundObjects = 0
       scene.children.forEach(child => {
         if (child.userData.generated && 
             child.userData.objectIndex === objectIndex && 
             child.userData.placementIndex === placementIndex) {
-          foundObjects++
-          console.log('Found object to move:', child.name, 'Position before:', child.position.x, child.position.y, child.position.z)
-          switch (direction) {
-            case 'left':
-              child.position.x -= moveAmount
-              break
-            case 'right':
-              child.position.x += moveAmount
-              break
-            case 'forward':
-              child.position.z -= moveAmount
-              break
-            case 'backward':
-              child.position.z += moveAmount
-              break
-            case 'up':
-              child.position.y += moveAmount
-              break
-            case 'down':
-              child.position.y -= moveAmount
-              break
-          }
+          // Apply camera-relative movement
+          child.position.add(movementVector)
           
           // Update placement data
           if (placementsRef.current[placementIndex]) {
@@ -539,35 +562,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           }
         }
       })
-      console.log('Found', foundObjects, 'objects to move')
     } else {
       // Move all instances of this object type
-      console.log('Looking for all instances of object:', objectIndex)
-      let foundObjects = 0
       scene.children.forEach(child => {
         if (child.userData.generated && child.userData.objectIndex === objectIndex) {
-          foundObjects++
-          console.log('Found object to move:', child.name, 'Position before:', child.position.x, child.position.y, child.position.z)
-          switch (direction) {
-            case 'left':
-              child.position.x -= moveAmount
-              break
-            case 'right':
-              child.position.x += moveAmount
-              break
-            case 'forward':
-              child.position.z -= moveAmount
-              break
-            case 'backward':
-              child.position.z += moveAmount
-              break
-            case 'up':
-              child.position.y += moveAmount
-              break
-            case 'down':
-              child.position.y -= moveAmount
-              break
-          }
+          // Apply camera-relative movement
+          child.position.add(movementVector)
           
           // Update placement data
           const placementIndex = child.userData.placementIndex
@@ -580,7 +580,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           }
         }
       })
-      console.log('Found', foundObjects, 'objects to move')
     }
     
     // Update objects info to reflect new positions
@@ -880,6 +879,27 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     setViewMode(mode)
   }
 
+  const getCurrentSceneData = () => {
+    return {
+      objects: sceneObjects,
+      placements: placementsRef.current,
+      lighting: {
+        // Extract current lighting settings if needed
+        ambientColor: lightsRef.current?.ambient.color.getHex(),
+        ambientIntensity: lightsRef.current?.ambient.intensity,
+        directionalColor: lightsRef.current?.directional.color.getHex(),
+        directionalIntensity: lightsRef.current?.directional.intensity,
+        backgroundColor: sceneRef.current?.background && (sceneRef.current.background as THREE.Color).getHex ? (sceneRef.current.background as THREE.Color).getHex() : undefined
+      }
+    }
+  }
+
+  const loadSceneData = (sceneData: any) => {
+    if (sceneData && typeof sceneData === 'object') {
+      buildSceneFromDescription(sceneData)
+    }
+  }
+
   return {
     buildSceneFromDescription,
     clearScene,
@@ -899,6 +919,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     clearHighlight,
     selectObject,
     clearSelection,
-    selectedObject
+    selectedObject,
+    getCurrentSceneData,
+    loadSceneData
   }
 }

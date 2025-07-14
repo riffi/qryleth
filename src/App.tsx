@@ -25,10 +25,12 @@ import {
   IconX,
   IconBrain,
   IconEye,
-  IconRun
+  IconRun,
+  IconBooks
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager'
+import { SceneLibraryModal } from './components/SceneLibraryModal'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
 
@@ -37,9 +39,10 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
   const [settingsOpened, setSettingsOpened] = useState(false)
+  const [libraryOpened, setLibraryOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -136,6 +139,12 @@ function App() {
                   >
                     {getStatusText()}
                   </Badge>
+
+                  <Tooltip label="Библиотека сцен">
+                    <ActionIcon variant="subtle" size="lg" onClick={() => setLibraryOpened(true)}>
+                      <IconBooks size="1.2rem" />
+                    </ActionIcon>
+                  </Tooltip>
 
                   <Tooltip label="Настройки">
                     <ActionIcon variant="subtle" size="lg" onClick={() => setSettingsOpened(true)}>
@@ -291,6 +300,12 @@ function App() {
           </AppShell.Main>
         </AppShell>
         <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+        <SceneLibraryModal 
+          opened={libraryOpened} 
+          onClose={() => setLibraryOpened(false)}
+          onLoadScene={loadSceneData}
+          onSaveCurrentScene={getCurrentSceneData}
+        />
       </>
   )
 }
