@@ -9,11 +9,20 @@ export interface SceneLights {
   directional: THREE.DirectionalLight;
 }
 
+export interface ObjectInstance {
+  id: string
+  position: [number, number, number]
+  rotation: [number, number, number]
+  scale: [number, number, number]
+  visible: boolean
+}
+
 export interface ObjectInfo {
   name: string
   count: number
   visible: boolean
   objectIndex: number
+  instances?: ObjectInstance[]
 }
 
 export type ViewMode = 'orbit' | 'walk'
@@ -147,10 +156,24 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     const objectCounts = new Map<number, number>()
+    const objectInstances = new Map<number, ObjectInstance[]>()
 
-    // Подсчитываем количество размещений для каждого объекта
-    placements.forEach(placement => {
+    // Подсчитываем количество размещений и создаем информацию об экземплярах
+    placements.forEach((placement, index) => {
       objectCounts.set(placement.objectIndex, (objectCounts.get(placement.objectIndex) || 0) + 1)
+      
+      if (!objectInstances.has(placement.objectIndex)) {
+        objectInstances.set(placement.objectIndex, [])
+      }
+      
+      const instances = objectInstances.get(placement.objectIndex)!
+      instances.push({
+        id: `${placement.objectIndex}-${index}`,
+        position: placement.position || [0, 0, 0],
+        rotation: placement.rotation || [0, 0, 0],
+        scale: placement.scale || [1, 1, 1],
+        visible: objectVisibilityRef.current.get(placement.objectIndex) !== false
+      })
     })
 
     // Создаем информацию об объектах
@@ -162,7 +185,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           name: sceneObject.name,
           count,
           visible: objectVisibilityRef.current.get(objectIndex) !== false,
-          objectIndex
+          objectIndex,
+          instances: objectInstances.get(objectIndex) || []
         })
       }
     })
@@ -195,6 +219,43 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Удаляем информацию о видимости
     objectVisibilityRef.current.delete(objectIndex)
 
+    updateObjectsInfo()
+  }
+
+  const toggleInstanceVisibility = (objectIndex: number, instanceId: string) => {
+    if (!sceneRef.current) return
+
+    const scene = sceneRef.current
+    const [, placementIndex] = instanceId.split('-').map(Number)
+    
+    scene.children.forEach((child, index) => {
+      if (child.userData.generated && 
+          child.userData.objectIndex === objectIndex && 
+          child.userData.placementIndex === placementIndex) {
+        child.visible = !child.visible
+      }
+    })
+
+    updateObjectsInfo()
+  }
+
+  const removeInstance = (objectIndex: number, instanceId: string) => {
+    if (!sceneRef.current) return
+
+    const scene = sceneRef.current
+    const [, placementIndex] = instanceId.split('-').map(Number)
+    
+    const objectsToRemove = scene.children.filter(child => 
+      child.userData.generated && 
+      child.userData.objectIndex === objectIndex && 
+      child.userData.placementIndex === placementIndex
+    )
+    
+    objectsToRemove.forEach(obj => scene.remove(obj))
+    
+    // Удаляем из массива размещений
+    placementsRef.current = placementsRef.current.filter((_, index) => index !== placementIndex)
+    
     updateObjectsInfo()
   }
 
@@ -368,7 +429,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     // Создаем и размещаем составные объекты
-    placements.forEach((placement: ScenePlacement) => {
+    placements.forEach((placement: ScenePlacement, placementIndex: number) => {
       const sceneObject = objects[placement.objectIndex]
       if (!sceneObject) return
 
@@ -389,6 +450,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
       compositeObject.userData.generated = true
       compositeObject.userData.objectIndex = placement.objectIndex
+      compositeObject.userData.placementIndex = placementIndex
       scene.add(compositeObject)
     })
 
@@ -501,6 +563,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     isInitialized,
     objectsInfo,
     viewMode,
-    switchViewMode
+    switchViewMode,
+    toggleInstanceVisibility,
+    removeInstance
   }
 }

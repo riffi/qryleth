@@ -39,7 +39,7 @@ function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -280,6 +280,8 @@ function App() {
                   objects={objectsInfo}
                   onToggleVisibility={toggleObjectVisibility}
                   onRemoveObject={removeObjectFromScene}
+                  onToggleInstanceVisibility={toggleInstanceVisibility}
+                  onRemoveInstance={removeInstance}
               />
             </Container>
           </AppShell.Main>
