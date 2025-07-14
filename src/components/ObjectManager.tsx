@@ -55,7 +55,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                 Нет объектов на сцене
                             </Text>
                         ) : (
-                            objects.map((obj, index) => (
+                            objects.map((obj) => (
                                 <Paper
                                     key={`${obj.name}-${obj.objectIndex}`}
                                     p="sm"

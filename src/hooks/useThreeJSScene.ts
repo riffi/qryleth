@@ -124,8 +124,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }, [containerRef])
 
-  const updateObjectsInfo = () => {
-    if (!sceneObjects.length || !placementsRef.current.length) {
+  const updateObjectsInfo = (
+    objects: SceneObject[] = sceneObjects,
+    placements: ScenePlacement[] = placementsRef.current
+  ) => {
+    if (!objects.length || !placements.length) {
       setObjectsInfo([])
       return
     }
@@ -133,14 +136,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const objectCounts = new Map<number, number>()
 
     // Подсчитываем количество размещений для каждого объекта
-    placementsRef.current.forEach(placement => {
+    placements.forEach(placement => {
       objectCounts.set(placement.objectIndex, (objectCounts.get(placement.objectIndex) || 0) + 1)
     })
 
     // Создаем информацию об объектах
     const info: ObjectInfo[] = []
     objectCounts.forEach((count, objectIndex) => {
-      const sceneObject = sceneObjects[objectIndex]
+      const sceneObject = objects[objectIndex]
       if (sceneObject) {
         info.push({
           name: sceneObject.name,
@@ -175,8 +178,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   const removeObjectFromScene = (objectIndex: number) => {
     if (!sceneRef.current) return
-
-    const scene = sceneRef.current
 
     // Удаляем информацию о видимости
     objectVisibilityRef.current.delete(objectIndex)
@@ -281,7 +282,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     return group
   }
 
-  const buildSceneFromDescription = (description: SceneResponse | any) => {
+  const buildSceneFromDescription = (description: SceneResponse | unknown) => {
     if (!sceneRef.current || !isInitialized) return
 
     const scene = sceneRef.current
@@ -309,7 +310,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       lighting = descObj.lighting as LightingSettings | null
     } else if (Array.isArray(description)) {
       // Старый формат - массив примитивов, конвертируем в новый
-      objects = description.map((primitive: any, index: number) => ({
+      objects = description.map((primitive: ScenePrimitive, index: number) => ({
         name: `Object_${index}`,
         primitives: [primitive]
       }))
@@ -368,7 +369,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     })
 
     // Обновляем информацию об объектах
-    updateObjectsInfo()
+    updateObjectsInfo(objects, placements)
   }
 
   const clearScene = () => {
