@@ -120,7 +120,7 @@ function App() {
               <Group>
                 <IconBrain size={32} color="var(--mantine-color-blue-6)" />
                 <Title order={2} c="blue.6">
-                  Three.js AI Generator
+                  Qryleth 3D Generator
                 </Title>
               </Group>
 

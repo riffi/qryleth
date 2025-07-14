@@ -92,18 +92,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       directional: directionalLight
     }
 
-    // Ground plane
-    const groundGeometry = new THREE.PlaneGeometry(50, 50)
-    const groundMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.8
-    })
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = -0.01
-    ground.receiveShadow = true
-    scene.add(ground)
 
     // Resize handler
     const handleResize = () => {
