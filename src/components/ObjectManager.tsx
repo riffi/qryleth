@@ -13,7 +13,7 @@ import {
     Tooltip,
     Collapse
 } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark } from '@tabler/icons-react'
+import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText } from '@tabler/icons-react'
 
 export interface ObjectInstance {
     id: string
@@ -31,6 +31,14 @@ export interface ObjectInfo {
     instances?: ObjectInstance[]
 }
 
+export type SceneStatus = 'draft' | 'saved' | 'modified'
+
+export interface CurrentScene {
+    uuid?: string
+    name: string
+    status: SceneStatus
+}
+
 interface ObjectManagerProps {
     objects: ObjectInfo[]
     onToggleVisibility?: (objectIndex: number) => void
@@ -42,6 +50,8 @@ interface ObjectManagerProps {
     onSelectObject?: (objectIndex: number, instanceId?: string) => void
     selectedObject?: {objectIndex: number, instanceId?: string} | null
     onSaveObjectToLibrary?: (objectIndex: number) => void
+    currentScene?: CurrentScene
+    onSaveSceneToLibrary?: () => void
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
@@ -54,7 +64,9 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 onClearHighlight,
                                                                 onSelectObject,
                                                                 selectedObject,
-                                                                onSaveObjectToLibrary
+                                                                onSaveObjectToLibrary,
+                                                                currentScene,
+                                                                onSaveSceneToLibrary
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
@@ -71,14 +83,69 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         })
     }
 
+    const getStatusColor = () => {
+        switch (currentScene?.status) {
+            case 'draft': return 'orange'
+            case 'modified': return 'yellow'
+            case 'saved': return 'green'
+            default: return 'gray'
+        }
+    }
+
+    const getStatusText = () => {
+        switch (currentScene?.status) {
+            case 'draft': return 'Черновик'
+            case 'modified': return 'Есть изменения'
+            case 'saved': return 'Сохранена'
+            default: return 'Неизвестно'
+        }
+    }
+
     return (
-        <Paper shadow="sm" radius="md" p="md" style={{ width: 300, height: '100%' }}>
-            <Stack gap="md" style={{ height: '100%' }}>
+        <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
+            <Stack gap="sm" style={{ height: '100%' }}>
+                {/* Main Scene Header */}
+                <Title order={4} c="blue.6" size="md">
+                    Сцена
+                </Title>
+
+                {/* Current Scene Header */}
+                {currentScene && (
+                    <>
+                        <Group justify="space-between" align="center">
+                            <Group gap="xs" style={{ flex: 1 }}>
+                                <IconFileText size={14} color="var(--mantine-color-blue-6)" />
+                                <Text size="xs" fw={500} lineClamp={1} style={{ flex: 1 }}>
+                                    {currentScene.name}
+                                </Text>
+                            </Group>
+                            <Group gap="xs">
+                                <Badge variant="light" color={getStatusColor()} size="xs">
+                                    {getStatusText()}
+                                </Badge>
+                                {(currentScene.status === 'draft' || currentScene.status === 'modified') && (
+                                    <Tooltip label="Сохранить сцену в библиотеку">
+                                        <ActionIcon
+                                            size="xs"
+                                            variant="light"
+                                            color="green"
+                                            onClick={onSaveSceneToLibrary}
+                                        >
+                                            <IconDeviceFloppy size={12} />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                )}
+                            </Group>
+                        </Group>
+                        <Divider />
+                    </>
+                )}
+
                 <Group justify="space-between" align="center">
-                    <Title order={4} c="blue.6">
-                        Менеджер объектов
-                    </Title>
-                    <Badge variant="light" color="blue">
+                    <Text size="xs" fw={500} c="dimmed">
+                        Объекты
+                    </Text>
+                    <Badge variant="light" color="blue" size="xs">
                         {totalObjects}
                     </Badge>
                 </Group>

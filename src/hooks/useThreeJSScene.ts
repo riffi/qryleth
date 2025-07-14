@@ -33,6 +33,14 @@ export interface ObjectInfo {
 
 export type ViewMode = 'orbit' | 'walk'
 
+export type SceneStatus = 'draft' | 'saved' | 'modified'
+
+export interface CurrentScene {
+  uuid?: string
+  name: string
+  status: SceneStatus
+}
+
 export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | null>) => {
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -52,8 +60,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('orbit')
+  const [currentScene, setCurrentScene] = useState<CurrentScene>({ name: 'Новая сцена', status: 'draft' })
   const placementsRef = useRef<ScenePlacement[]>([])
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
+  const lastSavedDataRef = useRef<string>('')
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -607,6 +617,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Update objects info to reflect new scale
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
+    
+    // Mark scene as modified
+    markSceneAsModified()
   }
 
   const moveSelectedObject = (direction: 'left' | 'right' | 'forward' | 'backward' | 'up' | 'down') => {
@@ -711,6 +724,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Update objects info to reflect new positions
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
+    
+    // Mark scene as modified
+    markSceneAsModified()
   }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
@@ -821,7 +837,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     return group
   }
 
-  const buildSceneFromDescription = (description: SceneResponse | unknown) => {
+  const buildSceneFromDescription = (description: SceneResponse | unknown, sceneName?: string, sceneUuid?: string) => {
     if (!sceneRef.current || !isInitialized) return
 
     const scene = sceneRef.current
@@ -910,6 +926,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Обновляем информацию об объектах
     updateObjectsInfo(objects, placements)
+    
+    // Set scene state based on parameters
+    if (sceneName && sceneUuid) {
+      // Loading from library - set as saved scene
+      setCurrentScene({
+        uuid: sceneUuid,
+        name: sceneName,
+        status: 'saved'
+      })
+      lastSavedDataRef.current = JSON.stringify(description)
+    } else {
+      // Loading from API generation - set as new draft
+      setCurrentScene({ name: 'Новая сцена', status: 'draft' })
+      lastSavedDataRef.current = ''
+    }
   }
 
   const clearScene = () => {
@@ -1020,9 +1051,60 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }
 
-  const loadSceneData = (sceneData: any) => {
+  const checkSceneModified = () => {
+    const currentData = JSON.stringify(getCurrentSceneData())
+    const isModified = currentData !== lastSavedDataRef.current
+    
+    if (currentScene.status === 'saved' && isModified) {
+      setCurrentScene(prev => ({ ...prev, status: 'modified' }))
+    } else if (currentScene.status === 'draft' && lastSavedDataRef.current && !isModified) {
+      setCurrentScene(prev => ({ ...prev, status: 'saved' }))
+    }
+  }
+
+  const markSceneAsModified = () => {
+    if (currentScene.status === 'saved') {
+      setCurrentScene(prev => ({ ...prev, status: 'modified' }))
+    }
+  }
+
+  const loadSceneData = (sceneData: any, sceneName?: string, sceneUuid?: string) => {
     if (sceneData && typeof sceneData === 'object') {
-      buildSceneFromDescription(sceneData)
+      buildSceneFromDescription(sceneData, sceneName, sceneUuid)
+    }
+  }
+
+  const saveCurrentSceneToLibrary = async (name: string, description?: string): Promise<string> => {
+    try {
+      const sceneData = getCurrentSceneData()
+      let sceneUuid: string
+      
+      if (currentScene.uuid && currentScene.status === 'modified') {
+        // Update existing scene if it's modified
+        await db.updateScene(currentScene.uuid, name, sceneData, description)
+        sceneUuid = currentScene.uuid
+      } else if (!currentScene.uuid || currentScene.status === 'draft') {
+        // Save as new scene if it's a draft or has no UUID
+        sceneUuid = await db.saveScene(name, sceneData, description)
+      } else {
+        // For already saved scenes, always create a new one to avoid overwriting
+        sceneUuid = await db.saveScene(name, sceneData, description)
+      }
+      
+      // Update current scene state
+      setCurrentScene({
+        uuid: sceneUuid,
+        name: name,
+        status: 'saved'
+      })
+      
+      // Store as last saved data
+      lastSavedDataRef.current = JSON.stringify(sceneData)
+      
+      return sceneUuid
+    } catch (error) {
+      console.error('Error saving scene to library:', error)
+      throw error
     }
   }
 
@@ -1122,6 +1204,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     
     // Update objects info
     updateObjectsInfo(updatedObjects, placementsRef.current)
+    
+    // Mark scene as modified
+    markSceneAsModified()
   }
 
   return {
@@ -1147,6 +1232,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     getCurrentSceneData,
     loadSceneData,
     saveObjectToLibrary,
-    addObjectToScene
+    addObjectToScene,
+    currentScene,
+    saveCurrentSceneToLibrary,
+    checkSceneModified
   }
 }

@@ -35,8 +35,8 @@ import { db, type SceneRecord, type ObjectRecord } from '../utils/database'
 interface SceneLibraryModalProps {
     opened: boolean
     onClose: () => void
-    onLoadScene?: (sceneData: any) => void
-    onSaveCurrentScene?: () => { objects: any[], placements: any[], lighting?: any }
+    onLoadScene?: (sceneData: any, sceneName?: string, sceneUuid?: string) => void
+    onSaveCurrentScene?: (name: string, description?: string) => Promise<string>
     onAddObjectToScene?: (objectData: any) => void
 }
 
@@ -102,7 +102,7 @@ export const SceneLibraryModal: React.FC<SceneLibraryModalProps> = ({
     const handleLoadScene = async (scene: SceneRecord) => {
         try {
             setIsLoading(true)
-            onLoadScene?.(scene.sceneData)
+            onLoadScene?.(scene.sceneData, scene.name, scene.uuid)
             onClose()
             notifications.show({
                 title: 'Успешно!',
@@ -153,12 +153,7 @@ export const SceneLibraryModal: React.FC<SceneLibraryModalProps> = ({
         }
 
         try {
-            const currentSceneData = onSaveCurrentScene?.()
-            if (!currentSceneData) {
-                throw new Error('Нет данных для сохранения')
-            }
-
-            await db.saveScene(sceneName.trim(), currentSceneData, sceneDescription.trim())
+            await onSaveCurrentScene?.(sceneName.trim(), sceneDescription.trim())
             await loadScenes()
             setSaveModalOpened(false)
             setSceneName('')

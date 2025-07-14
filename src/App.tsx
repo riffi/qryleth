@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   AppShell,
   Container,
@@ -15,6 +15,8 @@ import {
   Stack,
   Box,
   SegmentedControl,
+  Modal,
+  TextInput,
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import {
@@ -40,9 +42,10 @@ function App() {
   const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [libraryOpened, setLibraryOpened] = useState(false)
+  const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -108,11 +111,35 @@ function App() {
     }
   }
 
+  const handleSaveSceneToLibrary = () => {
+    setSaveSceneModalOpened(true)
+  }
+
+  const handleSaveScene = async (name: string, description?: string) => {
+    try {
+      await saveCurrentSceneToLibrary(name, description)
+      setSaveSceneModalOpened(false)
+      notifications.show({
+        title: 'Успешно!',
+        message: `Сцена "${name}" сохранена в библиотеку`,
+        color: 'green',
+        icon: <IconCheck size="1rem" />,
+      })
+    } catch (error) {
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Не удалось сохранить сцену',
+        color: 'red',
+        icon: <IconX size="1rem" />,
+      })
+    }
+  }
+
   return (
       <>
         <AppShell
-            header={{ height: 70 }}
-            padding="md"
+            header={{ height: 60 }}
+            padding="sm"
             styles={{
               main: {
                 display: 'flex',
@@ -124,37 +151,37 @@ function App() {
           <AppShell.Header>
             <Container size="xl" h="100%">
               <Group h="100%" justify="space-between">
-                <Group>
-                  <IconBrain size={32} color="var(--mantine-color-blue-6)" />
-                  <Title order={2} c="blue.6">
-                    Qryleth 3D Generator
+                <Group gap="sm">
+                  <IconBrain size={24} color="var(--mantine-color-blue-6)" />
+                  <Title order={3} c="blue.6">
+                    Qryleth 3D
                   </Title>
                 </Group>
 
-                <Group>
+                <Group gap="xs">
                   <Badge
                       color={getStatusColor()}
                       variant="light"
-                      size="lg"
+                      size="sm"
                   >
                     {getStatusText()}
                   </Badge>
 
-                  <Tooltip label="Библиотека сцен">
-                    <ActionIcon variant="subtle" size="lg" onClick={() => setLibraryOpened(true)}>
-                      <IconBooks size="1.2rem" />
+                  <Tooltip label="Библиотека">
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)}>
+                      <IconBooks size="1rem" />
                     </ActionIcon>
                   </Tooltip>
 
                   <Tooltip label="Настройки">
-                    <ActionIcon variant="subtle" size="lg" onClick={() => setSettingsOpened(true)}>
-                      <IconSettings size="1.2rem" />
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setSettingsOpened(true)}>
+                      <IconSettings size="1rem" />
                     </ActionIcon>
                   </Tooltip>
 
-                  <Tooltip label="Информация">
-                    <ActionIcon variant="subtle" size="lg">
-                      <IconInfoCircle size="1.2rem" />
+                  <Tooltip label="Справка">
+                    <ActionIcon variant="subtle" size="sm">
+                      <IconInfoCircle size="1rem" />
                     </ActionIcon>
                   </Tooltip>
                 </Group>
@@ -167,16 +194,16 @@ function App() {
                 size="xl"
                 fluid
                 h="100%"
-                style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-md)' }}
+                style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
             >
-              <Paper shadow="sm" radius="md" p="md" style={{ width: 360 }}>
-                <Stack gap="md">
+              <Paper shadow="sm" radius="md" p="sm" style={{ width: 320 }}>
+                <Stack gap="sm">
                   <Textarea
                       placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
                       value={prompt}
                       autosize
-                      minRows={3}
-                      maxRows={10}
+                      minRows={2}
+                      maxRows={8}
                       onChange={(event) => setPrompt(event.currentTarget.value)}
                       onKeyDown={(event) => {
                         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !loading) {
@@ -184,34 +211,34 @@ function App() {
                         }
                       }}
                       style={{ flex: 1 }}
-                      size="md"
+                      size="sm"
                       disabled={loading}
                   />
-                  <Group>
-
+                  <Group gap="xs">
                     <Button
                         onClick={handleGenerate}
                         loading={loading}
-                        leftSection={<IconWand size="1rem" />}
-                        size="md"
+                        leftSection={<IconWand size="0.9rem" />}
+                        size="sm"
                         disabled={!prompt.trim()}
+                        style={{ flex: 1 }}
                     >
-                      Сгенерировать
+                      Создать
                     </Button>
 
                     <Button
                         onClick={handleClear}
                         variant="light"
                         color="gray"
-                        size="md"
+                        size="sm"
                         disabled={loading}
                     >
                       Очистить
                     </Button>
                   </Group>
 
-                  <Text size="sm" c="dimmed">
-                    Опишите объект на русском языке, и ИИ создаст его 3D-модель в реальном времени.
+                  <Text size="xs" c="dimmed">
+                    Опишите объект на русском языке для создания 3D-модели
                   </Text>
                 </Stack>
               </Paper>
@@ -239,13 +266,13 @@ function App() {
                 <Box
                     style={{
                       position: 'absolute',
-                      top: 10,
-                      right: 10,
+                      top: 8,
+                      right: 8,
                       zIndex: 10,
                       backgroundColor: 'var(--mantine-color-white)',
-                      borderRadius: 'var(--mantine-radius-md)',
-                      padding: 8,
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                      borderRadius: 'var(--mantine-radius-sm)',
+                      padding: 6,
+                      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)'
                     }}
                 >
                   <SegmentedControl
@@ -255,8 +282,8 @@ function App() {
                         {
                           value: 'orbit',
                           label: (
-                            <Group gap={8}>
-                              <IconEye size={16} />
+                            <Group gap={4}>
+                              <IconEye size={14} />
                               <span>Orbit</span>
                             </Group>
                           )
@@ -264,14 +291,14 @@ function App() {
                         {
                           value: 'walk',
                           label: (
-                            <Group gap={8}>
-                              <IconRun size={16} />
+                            <Group gap={4}>
+                              <IconRun size={14} />
                               <span>Walk</span>
                             </Group>
                           )
                         }
                       ]}
-                      size="sm"
+                      size="xs"
                   />
                 </Box>
 
@@ -296,6 +323,8 @@ function App() {
                   onSelectObject={selectObject}
                   selectedObject={selectedObject}
                   onSaveObjectToLibrary={saveObjectToLibrary}
+                  currentScene={currentScene}
+                  onSaveSceneToLibrary={handleSaveSceneToLibrary}
               />
             </Container>
           </AppShell.Main>
@@ -305,10 +334,93 @@ function App() {
           opened={libraryOpened} 
           onClose={() => setLibraryOpened(false)}
           onLoadScene={loadSceneData}
-          onSaveCurrentScene={getCurrentSceneData}
+          onSaveCurrentScene={saveCurrentSceneToLibrary}
           onAddObjectToScene={addObjectToScene}
         />
+        
+        {/* Quick Save Scene Modal */}
+        <SaveSceneModal 
+          opened={saveSceneModalOpened}
+          onClose={() => setSaveSceneModalOpened(false)}
+          onSave={handleSaveScene}
+          currentSceneName={currentScene?.name}
+        />
       </>
+  )
+}
+
+interface SaveSceneModalProps {
+  opened: boolean
+  onClose: () => void
+  onSave: (name: string, description?: string) => void
+  currentSceneName?: string
+}
+
+const SaveSceneModal: React.FC<SaveSceneModalProps> = ({ opened, onClose, onSave, currentSceneName }) => {
+  const [sceneName, setSceneName] = useState('')
+  const [sceneDescription, setSceneDescription] = useState('')
+
+  const handleSave = () => {
+    if (!sceneName.trim()) {
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Введите название сцены',
+        color: 'red',
+        icon: <IconX size="1rem" />,
+      })
+      return
+    }
+    
+    onSave(sceneName.trim(), sceneDescription.trim() || undefined)
+    setSceneName('')
+    setSceneDescription('')
+  }
+
+  const handleClose = () => {
+    setSceneName('')
+    setSceneDescription('')
+    onClose()
+  }
+
+  // Set default name when modal opens
+  React.useEffect(() => {
+    if (opened && currentSceneName && !sceneName) {
+      setSceneName(currentSceneName)
+    }
+  }, [opened, currentSceneName])
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="Сохранить сцену"
+      size="md"
+    >
+      <Stack gap="md">
+        <TextInput
+          label="Название сцены"
+          placeholder="Введите название..."
+          value={sceneName}
+          onChange={(e) => setSceneName(e.currentTarget.value)}
+          required
+        />
+        <Textarea
+          label="Описание (необязательно)"
+          placeholder="Краткое описание сцены..."
+          value={sceneDescription}
+          onChange={(e) => setSceneDescription(e.currentTarget.value)}
+          minRows={3}
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="subtle" onClick={handleClose}>
+            Отмена
+          </Button>
+          <Button onClick={handleSave}>
+            Сохранить
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
 
