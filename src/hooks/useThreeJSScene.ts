@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../utils/openAIAPI.ts'
 
 export interface SceneLights {
@@ -15,16 +16,19 @@ export interface ObjectInfo {
   objectIndex: number
 }
 
+export type ViewMode = 'orbit' | 'walk'
+
 export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | null>) => {
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<OrbitControls | null>(null)
+  const controlsRef = useRef<OrbitControls | FirstPersonControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>('orbit')
   const placementsRef = useRef<ScenePlacement[]>([])
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
 
@@ -60,7 +64,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
-    // Controls setup
+    // Controls setup - default to orbit mode
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.dampingFactor = 0.05
@@ -100,7 +104,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Animation loop
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate)
-      controls.update()
+      if (controlsRef.current) {
+        controlsRef.current.update()
+      }
       renderer.render(scene, camera)
     }
     animate()
@@ -119,7 +125,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
 
       renderer.dispose()
-      controls.dispose()
+      if (controlsRef.current) {
+        controlsRef.current.dispose()
+      }
       setIsInitialized(false)
     }
   }, [containerRef])
@@ -429,6 +437,40 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
   }
 
+  const switchViewMode = (mode: ViewMode) => {
+    if (!cameraRef.current || !rendererRef.current || !containerRef.current) return
+    
+    const camera = cameraRef.current
+    const renderer = rendererRef.current
+    const container = containerRef.current
+    
+    // Dispose current controls
+    if (controlsRef.current) {
+      controlsRef.current.dispose()
+    }
+    
+    // Create new controls based on mode
+    if (mode === 'orbit') {
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.enableZoom = true
+      controls.enablePan = true
+      controlsRef.current = controls
+    } else if (mode === 'walk') {
+      const controls = new FirstPersonControls(camera, renderer.domElement)
+      controls.lookSpeed = 0.1
+      controls.movementSpeed = 10
+      controls.lookVertical = true
+      controls.constrainVertical = true
+      controls.verticalMin = 0.1
+      controls.verticalMax = Math.PI - 0.1
+      controlsRef.current = controls
+    }
+    
+    setViewMode(mode)
+  }
+
   return {
     buildSceneFromDescription,
     clearScene,
@@ -439,6 +481,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     renderer: rendererRef.current,
     camera: cameraRef.current,
     isInitialized,
-    objectsInfo
+    objectsInfo,
+    viewMode,
+    switchViewMode
   }
 }

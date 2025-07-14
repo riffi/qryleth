@@ -14,6 +14,7 @@ import {
   LoadingOverlay,
   Stack,
   Box,
+  SegmentedControl,
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import {
@@ -22,7 +23,9 @@ import {
   IconInfoCircle,
   IconCheck,
   IconX,
-  IconBrain
+  IconBrain,
+  IconEye,
+  IconRun
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager'
@@ -36,7 +39,7 @@ function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -223,6 +226,45 @@ function App() {
                       type: 'dots'
                     }}
                 />
+
+                <Box
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      zIndex: 10,
+                      backgroundColor: 'var(--mantine-color-white)',
+                      borderRadius: 'var(--mantine-radius-md)',
+                      padding: 8,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                    }}
+                >
+                  <SegmentedControl
+                      value={viewMode}
+                      onChange={(value) => switchViewMode(value as 'orbit' | 'walk')}
+                      data={[
+                        {
+                          value: 'orbit',
+                          label: (
+                            <Group gap={8}>
+                              <IconEye size={16} />
+                              <span>Orbit</span>
+                            </Group>
+                          )
+                        },
+                        {
+                          value: 'walk',
+                          label: (
+                            <Group gap={8}>
+                              <IconRun size={16} />
+                              <span>Walk</span>
+                            </Group>
+                          )
+                        }
+                      ]}
+                      size="sm"
+                  />
+                </Box>
 
                 <Box
                     ref={canvasRef}
