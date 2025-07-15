@@ -36,6 +36,8 @@ export interface ObjectInfo {
 
 export type ViewMode = 'orbit' | 'walk' | 'fly'
 
+export type RenderMode = 'solid' | 'wireframe'
+
 export type SceneStatus = 'draft' | 'saved' | 'modified'
 
 export interface CurrentScene {
@@ -63,6 +65,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('orbit')
+  const [renderMode, setRenderMode] = useState<RenderMode>('solid')
   const [currentScene, setCurrentScene] = useState<CurrentScene>({ name: 'Новая сцена', status: 'draft' })
   const placementsRef = useRef<ScenePlacement[]>([])
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
@@ -799,6 +802,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     const material = new THREE.MeshStandardMaterial(materialOptions)
+    material.wireframe = renderMode === 'wireframe'
     let mesh: THREE.Mesh
 
     switch (primitive.type) {
@@ -1139,6 +1143,27 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
     
     setViewMode(mode)
+  }
+
+  const switchRenderMode = (mode: RenderMode) => {
+    if (!sceneRef.current) return
+
+    sceneRef.current.traverse(obj => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const mesh = obj as THREE.Mesh
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach(m => {
+            ;(m as THREE.Material).wireframe = mode === 'wireframe'
+            ;(m as THREE.Material).needsUpdate = true
+          })
+        } else {
+          ;(mesh.material as THREE.Material).wireframe = mode === 'wireframe'
+          ;(mesh.material as THREE.Material).needsUpdate = true
+        }
+      }
+    })
+
+    setRenderMode(mode)
   }
 
   const getCurrentSceneData = () => {
@@ -1561,6 +1586,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     objectsInfo,
     viewMode,
     switchViewMode,
+    renderMode,
+    switchRenderMode,
     toggleInstanceVisibility,
     removeInstance,
     highlightObjects,
