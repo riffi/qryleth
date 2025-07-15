@@ -151,7 +151,29 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     directionalLight.castShadow = true
     directionalLight.shadow.mapSize.width = 2048
     directionalLight.shadow.mapSize.height = 2048
+    
+    // Настройка теневой камеры
+    directionalLight.shadow.camera.near = 0.1
+    directionalLight.shadow.camera.far = 100
+    directionalLight.shadow.camera.left = -50
+    directionalLight.shadow.camera.right = 50
+    directionalLight.shadow.camera.top = 50
+    directionalLight.shadow.camera.bottom = -50
+    
+    // Устранение артефактов теней
+    directionalLight.shadow.bias = -0.001
+    directionalLight.shadow.normalBias = 0.01
+    
     scene.add(directionalLight)
+
+    // Добавляем плоскость для приема теней
+    const groundGeometry = new THREE.PlaneGeometry(100, 100)
+    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xcccccc, transparent: true, opacity: 0.3 })
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+    ground.rotation.x = -Math.PI / 2
+    ground.position.y = -0.01
+    ground.receiveShadow = true
+    scene.add(ground)
 
     // Сохраняем ссылки на источники света
     lightsRef.current = {

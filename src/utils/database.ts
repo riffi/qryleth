@@ -1,6 +1,6 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
-import { BaseObject, Vector3, Transform } from '../types/common'
+import type {BaseObject, Vector3, Transform} from '../types/common'
 
 // Database interfaces
 export interface SceneRecord extends BaseObject {

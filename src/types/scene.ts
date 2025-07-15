@@ -1,4 +1,4 @@
-import { Vector3 } from './common'
+import type {Vector3} from './common';
 
 export interface ScenePrimitive {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid';

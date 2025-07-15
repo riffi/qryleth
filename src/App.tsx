@@ -36,6 +36,7 @@ import { SceneLibraryModal } from './components/SceneLibraryModal'
 import { ObjectEditor } from './components/ObjectEditor'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
+import type {LightingSettings} from './types/scene'
 
 function App() {
   const [prompt, setPrompt] = useState('')
@@ -46,9 +47,16 @@ function App() {
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
+  const [currentLighting, setCurrentLighting] = useState<LightingSettings>({
+    ambientColor: '#404040',
+    ambientIntensity: 0.6,
+    directionalColor: '#ffffff',
+    directionalIntensity: 1.0,
+    backgroundColor: '#f8f9fa'
+  })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -94,6 +102,11 @@ function App() {
     clearScene()
     setStatus('idle')
     setPrompt('')
+  }
+
+  const handleLightingChange = (newLighting: LightingSettings) => {
+    setCurrentLighting(newLighting)
+    updateLighting(newLighting)
   }
 
   const getStatusColor = () => {
@@ -357,6 +370,8 @@ function App() {
                   currentScene={currentScene}
                   onSaveSceneToLibrary={handleSaveSceneToLibrary}
                   onEditObject={handleEditObject}
+                  lighting={currentLighting}
+                  onLightingChange={handleLightingChange}
               />
             </Container>
           </AppShell.Main>
