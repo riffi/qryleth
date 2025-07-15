@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js'
+import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
@@ -31,7 +32,7 @@ export interface ObjectInfo {
   instances?: ObjectInstance[]
 }
 
-export type ViewMode = 'orbit' | 'walk'
+export type ViewMode = 'orbit' | 'walk' | 'fly'
 
 export type SceneStatus = 'draft' | 'saved' | 'modified'
 
@@ -45,7 +46,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<OrbitControls | FirstPersonControls | null>(null)
+  const controlsRef = useRef<OrbitControls | FirstPersonControls | FlyControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const clockRef = useRef<THREE.Clock>(new THREE.Clock())
@@ -323,7 +324,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate)
       if (controlsRef.current) {
-        if (controlsRef.current instanceof FirstPersonControls) {
+        if (controlsRef.current instanceof FirstPersonControls || controlsRef.current instanceof FlyControls) {
           controlsRef.current.update(clockRef.current.getDelta())
         } else {
           controlsRef.current.update()
@@ -1081,6 +1082,17 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.heightCoef = 1
       controls.heightMin = 0
       controls.heightMax = 1
+      controlsRef.current = controls
+    } else if (mode === 'fly') {
+      // Reset camera position for fly mode
+      camera.position.set(0, 5, 10)
+      camera.lookAt(0, 0, 0)
+      
+      const controls = new FlyControls(camera, renderer.domElement)
+      controls.movementSpeed = 15
+      controls.rollSpeed = 1
+      controls.autoForward = false
+      controls.dragToLook = true
       controlsRef.current = controls
     }
     

@@ -28,6 +28,7 @@ import {
   IconBrain,
   IconEye,
   IconRun,
+  IconPlaneTilt,
   IconBooks,
   IconArrowBack,
   IconArrowForward
@@ -384,7 +385,7 @@ function App() {
                 >
                   <SegmentedControl
                       value={viewMode}
-                      onChange={(value) => switchViewMode(value as 'orbit' | 'walk')}
+                      onChange={(value) => switchViewMode(value as 'orbit' | 'walk' | 'fly')}
                       data={[
                         {
                           value: 'orbit',
@@ -398,9 +399,18 @@ function App() {
                         {
                           value: 'walk',
                           label: (
-                            <Group gap={4}>
+                            <Group gap={4} wrap={"nowrap"}>
                               <IconRun size={14} />
                               <span>Walk</span>
+                            </Group>
+                          )
+                        },
+                        {
+                          value: 'fly',
+                          label: (
+                            <Group gap={4} wrap={"nowrap"}>
+                              <IconPlaneTilt size={14} />
+                              <span>Fly</span>
                             </Group>
                           )
                         }
