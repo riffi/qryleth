@@ -74,6 +74,9 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 setPrimitiveStates({})
             }
             setIsModified(false)
+        } else if (!opened) {
+            // Clear primitive states when editor closes
+            setPrimitiveStates({})
         }
     }, [opened, objectInfo, instanceId])
 
@@ -116,13 +119,43 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
 
     // Initialize primitive states when primitives are loaded
     useEffect(() => {
-        if (isInitialized) {
+        if (isInitialized && objectData) {
             const primitivesList = getPrimitivesList()
             const newStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}} = {}
             
             primitivesList.forEach((_, index) => {
                 if (!primitiveStates[index]) {
-                    newStates[index] = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+                    const primitive = objectData.primitives[index]
+                    if (primitive) {
+                        // Calculate current scale based on current dimensions vs original dimensions
+                        let scaleX = 1, scaleY = 1, scaleZ = 1
+                        
+                        if (primitive.type === 'box') {
+                            scaleX = primitive.originalWidth ? (primitive.width || 1) / primitive.originalWidth : 1
+                            scaleY = primitive.originalHeight ? (primitive.height || 1) / primitive.originalHeight : 1
+                            scaleZ = primitive.originalDepth ? (primitive.depth || 1) / primitive.originalDepth : 1
+                        } else if (primitive.type === 'sphere') {
+                            scaleX = primitive.originalRadius ? (primitive.radius || 1) / primitive.originalRadius : 1
+                            scaleY = scaleX
+                            scaleZ = scaleX
+                        } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                            scaleX = primitive.originalRadius ? (primitive.radius || 1) / primitive.originalRadius : 1
+                            scaleY = primitive.originalHeight ? (primitive.height || 2) / primitive.originalHeight : 1
+                            scaleZ = scaleX
+                        } else if (primitive.type === 'pyramid') {
+                            scaleX = primitive.originalBaseSize ? (primitive.baseSize || 1) / primitive.originalBaseSize : 1
+                            scaleY = primitive.originalHeight ? (primitive.height || 2) / primitive.originalHeight : 1
+                            scaleZ = scaleX
+                        }
+                        
+                        newStates[index] = { 
+                            position: [0, 0, 0], 
+                            rotation: [0, 0, 0], 
+                            scale: [scaleX, scaleY, scaleZ] 
+                        }
+                    } else {
+                        newStates[index] = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+                    }
                 }
             })
             
@@ -130,7 +163,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 setPrimitiveStates(prev => ({ ...prev, ...newStates }))
             }
         }
-    }, [isInitialized, getPrimitivesList])
+    }, [isInitialized, getPrimitivesList, objectData])
 
     useEffect(() => {
         if (!opened) return
