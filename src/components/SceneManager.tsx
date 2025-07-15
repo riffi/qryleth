@@ -230,7 +230,7 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                     <Text size="xs" fw={500} mb="xs">Фон сцены</Text>
                                     <ColorInput
                                         size="xs"
-                                        value={lighting.backgroundColor || '#f8f9fa'}
+                                        value={lighting.backgroundColor || '#1a1b1e'}
                                         onChange={(value) => handleLightingChange('backgroundColor', value)}
                                         withEyeDropper={false}
                                     />
@@ -261,8 +261,12 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                                 opacity: obj.visible ? 1 : 0.6,
                                                 transition: 'opacity 0.2s ease',
                                                 cursor: 'pointer',
-                                                backgroundColor: isSelected ? 'var(--mantine-color-orange-1)' : undefined,
-                                                borderColor: isSelected ? 'var(--mantine-color-orange-4)' : undefined
+                                                backgroundColor: isSelected
+                                                    ? 'var(--mantine-color-dark-5)'
+                                                    : 'var(--mantine-color-dark-6)',
+                                                borderColor: isSelected
+                                                    ? 'var(--mantine-color-orange-4)'
+                                                    : 'var(--mantine-color-dark-4)'
                                             }}
                                             onMouseEnter={() => onHighlightObject?.(obj.objectIndex)}
                                             onMouseLeave={() => onClearHighlight?.()}
@@ -356,12 +360,12 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                                                 withBorder
                                                                 style={{
                                                                     opacity: instance.visible ? 1 : 0.6,
-                                                                    backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id 
-                                                                        ? 'var(--mantine-color-orange-1)' 
-                                                                        : 'var(--mantine-color-gray-0)',
-                                                                    borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id 
-                                                                        ? 'var(--mantine-color-orange-4)' 
-                                                                        : 'var(--mantine-color-gray-3)',
+                                                                    backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
+                                                                        ? 'var(--mantine-color-dark-5)'
+                                                                        : 'var(--mantine-color-dark-6)',
+                                                                    borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
+                                                                        ? 'var(--mantine-color-orange-4)'
+                                                                        : 'var(--mantine-color-dark-4)',
                                                                     cursor: 'pointer'
                                                                 }}
                                                                 onMouseEnter={() => onHighlightObject?.(obj.objectIndex, instance.id)}
