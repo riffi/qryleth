@@ -519,6 +519,65 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     return [movement.x, movement.y, movement.z]
   }, [])
 
+  const cloneSelectedPrimitive = useCallback(() => {
+    if (!selectedPrimitive || !editObjectRef.current) return null
+
+    const primitiveData = selectedPrimitive.userData.primitiveData
+    if (!primitiveData) return null
+
+    // Create a copy of the primitive data
+    const clonedPrimitiveData = {
+      ...primitiveData,
+      position: [
+        (primitiveData.position?.[0] || 0) + 0.5, // Offset slightly
+        (primitiveData.position?.[1] || 0),
+        (primitiveData.position?.[2] || 0)
+      ]
+    }
+
+    // Create the mesh for the cloned primitive
+    const clonedMesh = createPrimitiveMesh(clonedPrimitiveData)
+    const newIndex = primitivesRef.current.length
+    
+    // Set up userData for the cloned primitive
+    clonedMesh.userData.primitiveIndex = newIndex
+    clonedMesh.userData.primitiveData = clonedPrimitiveData
+    
+    // Store initial transform
+    clonedMesh.userData.initialPosition = new THREE.Vector3(
+      clonedPrimitiveData.position[0],
+      clonedPrimitiveData.position[1],
+      clonedPrimitiveData.position[2]
+    )
+    
+    let initialRotationX = clonedPrimitiveData.rotation?.[0] || 0
+    let initialRotationY = clonedPrimitiveData.rotation?.[1] || 0
+    let initialRotationZ = clonedPrimitiveData.rotation?.[2] || 0
+    
+    if (clonedPrimitiveData.type === 'pyramid') {
+      initialRotationY += Math.PI / 4 // Add the automatic rotation
+    }
+    
+    clonedMesh.userData.initialRotation = new THREE.Euler(
+      initialRotationX,
+      initialRotationY,
+      initialRotationZ
+    )
+    clonedMesh.userData.initialScale = new THREE.Vector3(1, 1, 1)
+    clonedMesh.userData.hasBeenModified = false
+
+    // Add to the scene and primitives array
+    editObjectRef.current.add(clonedMesh)
+    primitivesRef.current.push(clonedMesh)
+
+    // Select the new primitive
+    setSelectedPrimitive(clonedMesh)
+    setSelectedPrimitiveIndex(newIndex)
+    updatePrimitiveHighlight(clonedMesh)
+
+    return clonedPrimitiveData
+  }, [selectedPrimitive])
+
   const createObjectFromData = useCallback((objectData: SceneObject) => {
     if (!sceneRef.current) return
 
@@ -569,6 +628,7 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     selectedPrimitiveIndex,
     selectPrimitiveByIndex,
     getPrimitivesList,
-    getCameraRelativeMovement
+    getCameraRelativeMovement,
+    cloneSelectedPrimitive
   }
 }

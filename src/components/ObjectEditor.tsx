@@ -40,7 +40,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
     const [primitiveStates, setPrimitiveStates] = useState<{[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}>({})
     const [isModified, setIsModified] = useState(false)
     
-    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList, getCameraRelativeMovement } = useObjectEditor(canvasRef, opened)
+    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList, getCameraRelativeMovement, cloneSelectedPrimitive } = useObjectEditor(canvasRef, opened)
 
     // Helper functions for primitive states
     const getCurrentPrimitiveState = () => {
@@ -404,6 +404,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 event.preventDefault()
                 onClose()
             }
+            
+            if (event.key === 'd' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault()
+                handleClonePrimitive()
+            }
         }
 
         window.addEventListener('keydown', handleKeyDown)
@@ -426,6 +431,37 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
             if (!confirmed) return
         }
         onClose()
+    }
+
+    const handleClonePrimitive = () => {
+        if (!selectedPrimitive) return
+        
+        const clonedData = cloneSelectedPrimitive()
+        if (clonedData) {
+            // Update object data to include the new primitive
+            if (objectData) {
+                objectData.primitives.push(clonedData)
+            }
+            
+            // Initialize state for the new primitive
+            const newIndex = getPrimitivesList().length - 1
+            setPrimitiveStates(prev => ({
+                ...prev,
+                [newIndex]: {
+                    position: [0, 0, 0],
+                    rotation: [0, 0, 0],
+                    dimensions: {
+                        width: clonedData.width || 1,
+                        height: clonedData.height || 1,
+                        depth: clonedData.depth || 1,
+                        radius: clonedData.radius || 1,
+                        baseSize: clonedData.baseSize || 1
+                    }
+                }
+            }))
+            
+            setIsModified(true)
+        }
     }
 
     if (!objectInfo) return null
@@ -494,6 +530,18 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                     Выбран: {getPrimitivesList()[selectedPrimitiveIndex]?.name || 'Неизвестно'} {selectedPrimitiveIndex + 1}
                                 </Text>
                             </Paper>
+                        )}
+                        
+                        {selectedPrimitive && (
+                            <Button
+                                size="xs"
+                                variant="light"
+                                color="green"
+                                onClick={handleClonePrimitive}
+                                fullWidth
+                            >
+                                Клонировать примитив
+                            </Button>
                         )}
                         
                         <Divider />
@@ -660,6 +708,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 </>
                             )}
                             <Text size="xs" c="dimmed">Esc - закрыть редактор</Text>
+                            <Text size="xs" c="dimmed">Ctrl+D - клонировать примитив</Text>
                         </Stack>
 
                         {/* Action Buttons */}
