@@ -8,7 +8,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { GridHelper } from 'three'
-import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../types/scene'
+import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive, SceneLayer } from '../types/scene'
 import { db } from '../utils/database'
 import { notifications } from '@mantine/notifications'
 
@@ -31,6 +31,7 @@ export interface ObjectInfo {
   visible: boolean
   objectIndex: number
   instances?: ObjectInstance[]
+  layerId?: string
 }
 
 export type ViewMode = 'orbit' | 'walk' | 'fly'
@@ -68,6 +69,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const lastSavedDataRef = useRef<string>('')
   const gridHelperRef = useRef<THREE.GridHelper | null>(null)
   const [gridVisible, setGridVisible] = useState<boolean>(true)
+  const [layers, setLayers] = useState<SceneLayer[]>([
+    { id: 'objects', name: 'Объекты', visible: true, position: 0 }
+  ])
   
   // История изменений для undo/redo
   const historyRef = useRef<string[]>([])
@@ -437,14 +441,15 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Создаем информацию об объектах
     const info: ObjectInfo[] = []
     objectCounts.forEach((count, objectIndex) => {
-      const sceneObject = objectsMap[objectIndex]
+      const sceneObject = objectsArray[objectIndex]
       if (sceneObject) {
         info.push({
           name: sceneObject.name,
           count,
           visible: objectVisibilityRef.current.get(objectIndex) !== false,
           objectIndex,
-          instances: objectInstances.get(objectIndex) || []
+          instances: objectInstances.get(objectIndex) || [],
+          layerId: sceneObject.layerId
         })
       }
     })
@@ -899,6 +904,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     let objects: SceneObject[] = []
     let placements: ScenePlacement[] = []
     let lighting: LightingSettings | null = null
+    let sceneLayers: SceneLayer[] = []
 
     // Если пришел объект с полями objects и lighting
     if (description && typeof description === 'object' && !Array.isArray(description)) {
@@ -910,6 +916,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         placements = descObj.placements as ScenePlacement[]
       }
       lighting = descObj.lighting as LightingSettings | null
+      if (Array.isArray(descObj.layers)) {
+        sceneLayers = descObj.layers as SceneLayer[]
+      }
     } else if (Array.isArray(description)) {
       // Старый формат - массив примитивов, конвертируем в новый
       objects = description.map((primitive: ScenePrimitive, index: number) => ({
@@ -918,6 +927,20 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }))
       placements = objects.map((_, index) => ({ objectIndex: index }))
     }
+
+    // Автоматически добавляем объекты в слой "Объекты" если layerId не указан
+    objects = objects.map(obj => ({
+      ...obj,
+      layerId: obj.layerId || 'objects'
+    }))
+
+    // Если слои не были переданы, создаем слой "Объекты"
+    if (sceneLayers.length === 0) {
+      sceneLayers = [{ id: 'objects', name: 'Объекты', visible: true, position: 0 }]
+    }
+
+    // Обновляем слои
+    setLayers(sceneLayers)
 
 
     // Сохраняем данные в состояние
@@ -1125,6 +1148,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     return {
       objects: currentObjects,
       placements: placementsRef.current,
+      layers: layers,
       lighting: {
         ambientColor: lightsRef.current?.ambient.color.getHex(),
         ambientIntensity: lightsRef.current?.ambient.intensity,
@@ -1226,14 +1250,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       
       if (currentScene.uuid && currentScene.status === 'modified') {
         // Update existing scene if it's modified
-        await db.updateScene(currentScene.uuid, name, sceneData, description)
+        await db.updateScene(currentScene.uuid, name, sceneData, description, undefined, layers)
         sceneUuid = currentScene.uuid
       } else if (!currentScene.uuid || currentScene.status === 'draft') {
         // Save as new scene if it's a draft or has no UUID
-        sceneUuid = await db.saveScene(name, sceneData, description)
+        sceneUuid = await db.saveScene(name, sceneData, description, undefined, layers)
       } else {
         // For already saved scenes, always create a new one to avoid overwriting
-        sceneUuid = await db.saveScene(name, sceneData, description)
+        sceneUuid = await db.saveScene(name, sceneData, description, undefined, layers)
       }
       
       // Update current scene state
@@ -1432,6 +1456,62 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     markSceneAsModified()
   }
 
+  // Функции для работы со слоями
+  const createLayer = (name: string): SceneLayer => {
+    const newLayer: SceneLayer = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      visible: true,
+      position: layers.length
+    }
+    setLayers([...layers, newLayer])
+    markSceneAsModified()
+    return newLayer
+  }
+
+  const updateLayer = (layerId: string, updates: Partial<SceneLayer>) => {
+    setLayers(layers.map(layer => 
+      layer.id === layerId ? { ...layer, ...updates } : layer
+    ))
+    markSceneAsModified()
+  }
+
+  const deleteLayer = (layerId: string) => {
+    if (layerId === 'objects') return // Нельзя удалить слой "Объекты"
+    
+    // Перенести все объекты из удаляемого слоя в слой "Объекты"
+    const updatedObjects = sceneObjects.map(obj => 
+      obj.layerId === layerId ? { ...obj, layerId: 'objects' } : obj
+    )
+    setSceneObjects(updatedObjects)
+    
+    // Удалить слой
+    setLayers(layers.filter(layer => layer.id !== layerId))
+    markSceneAsModified()
+  }
+
+  const moveObjectToLayer = (objectIndex: number, layerId: string) => {
+    const updatedObjects = sceneObjects.map((obj, index) => 
+      index === objectIndex ? { ...obj, layerId } : obj
+    )
+    setSceneObjects(updatedObjects)
+    markSceneAsModified()
+  }
+
+  const toggleLayerVisibility = (layerId: string) => {
+    const layer = layers.find(l => l.id === layerId)
+    if (!layer) return
+    
+    updateLayer(layerId, { visible: !layer.visible })
+    
+    // Обновить видимость всех объектов в слое
+    sceneObjects.forEach((obj, index) => {
+      if (obj.layerId === layerId) {
+        toggleObjectVisibility(index)
+      }
+    })
+  }
+
   return {
     buildSceneFromDescription,
     clearScene,
@@ -1466,6 +1546,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     canUndo,
     canRedo,
     toggleGridVisibility,
-    gridVisible
+    gridVisible,
+    layers,
+    createLayer,
+    updateLayer,
+    deleteLayer,
+    moveObjectToLayer,
+    toggleLayerVisibility
   }
 }

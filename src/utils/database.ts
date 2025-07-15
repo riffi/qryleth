@@ -1,16 +1,19 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
 import type {BaseObject, Vector3, Transform} from '../types/common'
+import type {SceneLayer} from '../types/scene'
 
 // Database interfaces
 export interface SceneRecord extends BaseObject {
   id?: number
   sceneData: any // JSON data of the scene
+  layers?: SceneLayer[]
 }
 
 export interface ObjectRecord extends BaseObject {
   id?: number
   objectData: any // JSON data of the object
+  layerId?: string
 }
 
 export interface SceneObjectRelation extends Transform {
@@ -37,7 +40,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Scene methods
-  async saveScene(name: string, sceneData: any, description?: string, thumbnail?: string): Promise<string> {
+  async saveScene(name: string, sceneData: any, description?: string, thumbnail?: string, layers?: SceneLayer[]): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
     
@@ -47,6 +50,7 @@ export class SceneLibraryDB extends Dexie {
       description,
       thumbnail,
       sceneData,
+      layers,
       createdAt: now,
       updatedAt: now
     })
@@ -54,12 +58,13 @@ export class SceneLibraryDB extends Dexie {
     return uuid
   }
 
-  async updateScene(uuid: string, name: string, sceneData: any, description?: string, thumbnail?: string): Promise<void> {
+  async updateScene(uuid: string, name: string, sceneData: any, description?: string, thumbnail?: string, layers?: SceneLayer[]): Promise<void> {
     await this.scenes.where('uuid').equals(uuid).modify({
       name,
       description,
       thumbnail,
       sceneData,
+      layers,
       updatedAt: new Date()
     })
   }
@@ -79,7 +84,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Object methods
-  async saveObject(name: string, objectData: any, description?: string, thumbnail?: string): Promise<string> {
+  async saveObject(name: string, objectData: any, description?: string, thumbnail?: string, layerId?: string): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
     
@@ -89,6 +94,7 @@ export class SceneLibraryDB extends Dexie {
       description,
       thumbnail,
       objectData,
+      layerId,
       createdAt: now,
       updatedAt: now
     })
@@ -124,6 +130,22 @@ export class SceneLibraryDB extends Dexie {
 
   async getSceneObjects(sceneUuid: string): Promise<SceneObjectRelation[]> {
     return await this.sceneObjects.where('sceneUuid').equals(sceneUuid).toArray()
+  }
+
+  // Layer methods
+  async updateObjectLayer(uuid: string, layerId: string): Promise<void> {
+    await this.objects.where('uuid').equals(uuid).modify({
+      layerId,
+      updatedAt: new Date()
+    })
+  }
+
+  async getObjectsByLayer(layerId: string): Promise<ObjectRecord[]> {
+    return await this.objects.where('layerId').equals(layerId).toArray()
+  }
+
+  async getObjectsWithoutLayer(): Promise<ObjectRecord[]> {
+    return await this.objects.where('layerId').equals('').toArray()
   }
 }
 

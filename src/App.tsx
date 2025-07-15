@@ -61,7 +61,7 @@ function App() {
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -460,6 +460,12 @@ function App() {
                   onEditObject={handleEditObject}
                   lighting={currentLighting}
                   onLightingChange={handleLightingChange}
+                  layers={layers}
+                  onCreateLayer={createLayer}
+                  onUpdateLayer={updateLayer}
+                  onDeleteLayer={deleteLayer}
+                  onToggleLayerVisibility={toggleLayerVisibility}
+                  onMoveObjectToLayer={moveObjectToLayer}
               />
             </Container>
           </AppShell.Main>

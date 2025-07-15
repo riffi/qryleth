@@ -14,17 +14,21 @@ import {
     Collapse,
     ColorInput,
     Slider,
-    NumberInput
+    NumberInput,
+    Modal,
+    TextInput,
+    Button
 } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText, IconBulb, IconColorPicker } from '@tabler/icons-react'
+import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText, IconBulb, IconColorPicker, IconPlus, IconLayersLinked } from '@tabler/icons-react'
 import type {ObjectInstance, SceneReference, Visible} from '../types/common'
-import type {LightingSettings} from '../types/scene'
+import type {LightingSettings, SceneLayer} from '../types/scene'
 
 export interface ObjectInfo extends Visible {
     name: string
     count: number
     objectIndex: number
     instances?: ObjectInstance[]
+    layerId?: string
 }
 
 interface SceneManagerProps {
@@ -43,6 +47,12 @@ interface SceneManagerProps {
     onEditObject?: (objectIndex: number, instanceId?: string) => void
     lighting?: LightingSettings
     onLightingChange?: (lighting: LightingSettings) => void
+    layers?: SceneLayer[]
+    onCreateLayer?: (name: string) => void
+    onUpdateLayer?: (layerId: string, updates: Partial<SceneLayer>) => void
+    onDeleteLayer?: (layerId: string) => void
+    onToggleLayerVisibility?: (layerId: string) => void
+    onMoveObjectToLayer?: (objectIndex: number, layerId: string) => void
 }
 
 export const SceneManager: React.FC<SceneManagerProps> = ({
@@ -60,12 +70,65 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                                                 onSaveSceneToLibrary,
                                                                 onEditObject,
                                                                 lighting,
-                                                                onLightingChange
+                                                                onLightingChange,
+                                                                layers,
+                                                                onCreateLayer,
+                                                                onUpdateLayer,
+                                                                onDeleteLayer,
+                                                                onToggleLayerVisibility,
+                                                                onMoveObjectToLayer
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const [lightingExpanded, setLightingExpanded] = useState(false)
+    const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
+    const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
+    const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
+    const [newLayerName, setNewLayerName] = useState('')
+    const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
     
+    const toggleLayerExpanded = (layerId: string) => {
+        setExpandedLayers(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(layerId)) {
+                newSet.delete(layerId)
+            } else {
+                newSet.add(layerId)
+            }
+            return newSet
+        })
+    }
+
+    const handleCreateLayer = () => {
+        if (newLayerName.trim() && onCreateLayer) {
+            onCreateLayer(newLayerName.trim())
+            setNewLayerName('')
+            setCreateLayerModalOpened(false)
+        }
+    }
+
+    const handleUpdateLayer = () => {
+        if (newLayerName.trim() && onUpdateLayer && editingLayerId) {
+            onUpdateLayer(editingLayerId, { name: newLayerName.trim() })
+            setNewLayerName('')
+            setEditingLayerId(null)
+            setEditLayerModalOpened(false)
+        }
+    }
+
+    const openEditLayerModal = (layerId: string, currentName: string) => {
+        setEditingLayerId(layerId)
+        setNewLayerName(currentName)
+        setEditLayerModalOpened(true)
+    }
+
+    const getObjectsByLayer = (layerId: string) => {
+        return objects.filter((obj) => {
+            const sceneObject = obj as any
+            return sceneObject.layerId === layerId || (!sceneObject.layerId && layerId === 'objects')
+        })
+    }
+
     const toggleExpanded = (objectIndex: number) => {
         setExpandedItems(prev => {
             const newSet = new Set(prev)
@@ -96,6 +159,196 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
         }
     }
 
+    // Компонент для отображения объекта
+    const ObjectItem = ({ obj, isExpanded, isSelected, onToggleExpanded, onHighlight, onClearHighlight, 
+                          onSelect, onToggleVisibility, onRemove, onSaveToLibrary, onEdit, 
+                          onToggleInstanceVisibility, onRemoveInstance, selectedObject }: any) => {
+        return (
+            <Box>
+                <Paper
+                    p="sm"
+                    withBorder
+                    style={{
+                        opacity: obj.visible ? 1 : 0.6,
+                        transition: 'opacity 0.2s ease',
+                        cursor: 'pointer',
+                        backgroundColor: isSelected
+                            ? 'var(--mantine-color-dark-5)'
+                            : 'var(--mantine-color-dark-6)',
+                        borderColor: isSelected
+                            ? 'var(--mantine-color-orange-4)'
+                            : 'var(--mantine-color-dark-4)'
+                    }}
+                    onMouseEnter={onHighlight}
+                    onMouseLeave={onClearHighlight}
+                    onClick={onSelect}
+                >
+                    <Group justify="space-between" align="center">
+                        <Group gap="sm" style={{ flex: 1 }}>
+                            <ActionIcon
+                                size="sm"
+                                variant="subtle"
+                                color="gray"
+                                onClick={onToggleExpanded}
+                            >
+                                {isExpanded ? (
+                                    <IconChevronDown size={14} />
+                                ) : (
+                                    <IconChevronRight size={14} />
+                                )}
+                            </ActionIcon>
+                            <IconCube size={16} color="var(--mantine-color-blue-6)" />
+                            <Box style={{ flex: 1 }}>
+                                <Text size="sm" fw={500} lineClamp={1}>
+                                    {obj.name}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Всего: {obj.count}
+                                </Text>
+                            </Box>
+                        </Group>
+
+                        <Group gap="xs">
+                            <Tooltip label="Редактировать">
+                                <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="orange"
+                                    onClick={() => onEdit()}
+                                >
+                                    <IconEdit size={14} />
+                                </ActionIcon>
+                            </Tooltip>
+
+                            <Tooltip label="Сохранить в библиотеку">
+                                <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="green"
+                                    onClick={() => onSaveToLibrary()}
+                                >
+                                    <IconBookmark size={14} />
+                                </ActionIcon>
+                            </Tooltip>
+
+                            <Tooltip label={obj.visible ? 'Скрыть' : 'Показать'}>
+                                <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color={obj.visible ? 'blue' : 'gray'}
+                                    onClick={() => onToggleVisibility()}
+                                >
+                                    {obj.visible ? (
+                                        <IconEye size={14} />
+                                    ) : (
+                                        <IconEyeOff size={14} />
+                                    )}
+                                </ActionIcon>
+                            </Tooltip>
+
+                            <Tooltip label="Удалить все копии">
+                                <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="red"
+                                    onClick={() => onRemove()}
+                                >
+                                    <IconTrash size={14} />
+                                </ActionIcon>
+                            </Tooltip>
+                        </Group>
+                    </Group>
+                </Paper>
+                
+                <Collapse in={isExpanded}>
+                    <Box ml="md" mt="xs">
+                        <Stack gap="xs">
+                            {obj.instances && obj.instances.length > 0 ? (
+                                obj.instances.map((instance: any) => (
+                                    <Paper
+                                        key={instance.id}
+                                        p="xs"
+                                        withBorder
+                                        style={{
+                                            opacity: instance.visible ? 1 : 0.6,
+                                            backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
+                                                ? 'var(--mantine-color-dark-5)'
+                                                : 'var(--mantine-color-dark-6)',
+                                            borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
+                                                ? 'var(--mantine-color-orange-4)'
+                                                : 'var(--mantine-color-dark-4)',
+                                            cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={() => onHighlight(instance.id)}
+                                        onMouseLeave={() => onClearHighlight()}
+                                        onClick={() => onSelect(instance.id)}
+                                    >
+                                        <Group justify="space-between" align="center">
+                                            <Group gap="sm" style={{ flex: 1 }}>
+                                                <Box w={4} h={4} style={{ backgroundColor: 'var(--mantine-color-blue-6)', borderRadius: '50%' }} />
+                                                <Box style={{ flex: 1 }}>
+                                                    <Text size="xs" fw={500}>
+                                                        Экземпляр {instance.id}
+                                                    </Text>
+                                                    <Text size="xs" c="dimmed">
+                                                        x:{instance.position[0].toFixed(1)} y:{instance.position[1].toFixed(1)} z:{instance.position[2].toFixed(1)}
+                                                    </Text>
+                                                </Box>
+                                            </Group>
+                                            
+                                            <Group gap="xs">
+                                                <Tooltip label="Редактировать экземпляр">
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color="orange"
+                                                        onClick={() => onEdit(instance.id)}
+                                                    >
+                                                        <IconEdit size={12} />
+                                                    </ActionIcon>
+                                                </Tooltip>
+
+                                                <Tooltip label={instance.visible ? 'Скрыть' : 'Показать'}>
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color={instance.visible ? 'blue' : 'gray'}
+                                                        onClick={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
+                                                    >
+                                                        {instance.visible ? (
+                                                            <IconEye size={12} />
+                                                        ) : (
+                                                            <IconEyeOff size={12} />
+                                                        )}
+                                                    </ActionIcon>
+                                                </Tooltip>
+
+                                                <Tooltip label="Удалить экземпляр">
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color="red"
+                                                        onClick={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
+                                                    >
+                                                        <IconTrash size={12} />
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                            </Group>
+                                        </Group>
+                                    </Paper>
+                                ))
+                            ) : (
+                                <Text size="xs" c="dimmed" ta="center">
+                                    Нет экземпляров
+                                </Text>
+                            )}
+                        </Stack>
+                    </Box>
+                </Collapse>
+            </Box>
+        )
+    }
+
     const handleLightingChange = (key: keyof LightingSettings, value: any) => {
         if (onLightingChange && lighting) {
             onLightingChange({
@@ -106,6 +359,7 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
     }
 
     return (
+        <>
         <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
             <Stack gap="sm" style={{ height: '100%' }}>
                 {/* Main Scene Header */}
@@ -149,9 +403,21 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                     <Text size="xs" fw={500} c="dimmed">
                         Объекты
                     </Text>
-                    <Badge variant="light" color="blue" size="xs">
-                        {totalObjects}
-                    </Badge>
+                    <Group gap="xs">
+                        <Tooltip label="Создать новый слой">
+                            <ActionIcon 
+                                size="sm" 
+                                variant="light" 
+                                color="purple"
+                                onClick={() => setCreateLayerModalOpened(true)}
+                            >
+                                <IconPlus size={14} />
+                            </ActionIcon>
+                        </Tooltip>
+                        <Badge variant="light" color="blue" size="xs">
+                            {totalObjects}
+                        </Badge>
+                    </Group>
                 </Group>
 
                 <Divider />
@@ -242,13 +508,102 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                     </>
                 )}
 
+
                 <ScrollArea style={{ flex: 1 }}>
                     <Stack gap="xs">
                         {objects.length === 0 ? (
                             <Text size="sm" c="dimmed" ta="center" py="xl">
                                 Нет объектов на сцене
                             </Text>
+                        ) : layers && layers.length > 0 ? (
+                            // Группируем объекты по слоям
+                            layers.map((layer) => {
+                                const layerObjects = getObjectsByLayer(layer.id)
+                                const isLayerExpanded = expandedLayers.has(layer.id)
+                                
+                                return (
+                                    <div key={layer.id}>
+                                        <Paper p="xs" withBorder style={{ backgroundColor: 'var(--mantine-color-dark-6)', marginBottom: '8px' }}>
+                                            <Group justify="space-between" align="center">
+                                                <Group gap="xs">
+                                                    <ActionIcon
+                                                        size="sm"
+                                                        variant="transparent"
+                                                        onClick={() => toggleLayerExpanded(layer.id)}
+                                                    >
+                                                        {isLayerExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                                                    </ActionIcon>
+                                                    <IconLayersLinked size={14} />
+                                                    <Text size="xs" fw={500}>
+                                                        {layer.name}
+                                                    </Text>
+                                                </Group>
+                                                <Group gap="xs">
+                                                    <Badge variant="light" color="purple" size="xs">
+                                                        {layerObjects.length}
+                                                    </Badge>
+                                                    <ActionIcon
+                                                        size="sm"
+                                                        variant="transparent"
+                                                        onClick={() => onToggleLayerVisibility && onToggleLayerVisibility(layer.id)}
+                                                    >
+                                                        {layer.visible ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        size="sm"
+                                                        variant="transparent"
+                                                        onClick={() => openEditLayerModal(layer.id, layer.name)}
+                                                    >
+                                                        <IconEdit size={14} />
+                                                    </ActionIcon>
+                                                    {layer.id !== 'objects' && (
+                                                        <ActionIcon
+                                                            size="sm"
+                                                            variant="transparent"
+                                                            color="red"
+                                                            onClick={() => onDeleteLayer && onDeleteLayer(layer.id)}
+                                                        >
+                                                            <IconTrash size={14} />
+                                                        </ActionIcon>
+                                                    )}
+                                                </Group>
+                                            </Group>
+                                        </Paper>
+                                        
+                                        <Collapse in={isLayerExpanded}>
+                                            <Stack gap="xs" pl="md">
+                                                {layerObjects.length === 0 ? (
+                                                    <Text size="xs" c="dimmed" ta="center" py="sm">
+                                                        Пустой слой
+                                                    </Text>
+                                                ) : (
+                                                    layerObjects.map((obj) => (
+                                                        <ObjectItem
+                                                            key={`${obj.name}-${obj.objectIndex}`}
+                                                            obj={obj}
+                                                            isExpanded={expandedItems.has(obj.objectIndex)}
+                                                            isSelected={selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId}
+                                                            onToggleExpanded={() => toggleExpanded(obj.objectIndex)}
+                                                            onHighlight={() => onHighlightObject?.(obj.objectIndex)}
+                                                            onClearHighlight={() => onClearHighlight?.()}
+                                                            onSelect={() => onSelectObject?.(obj.objectIndex)}
+                                                            onToggleVisibility={() => onToggleVisibility?.(obj.objectIndex)}
+                                                            onRemove={() => onRemoveObject?.(obj.objectIndex)}
+                                                            onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectIndex)}
+                                                            onEdit={() => onEditObject?.(obj.objectIndex)}
+                                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
+                                                            onRemoveInstance={onRemoveInstance}
+                                                            selectedObject={selectedObject}
+                                                        />
+                                                    ))
+                                                )}
+                                            </Stack>
+                                        </Collapse>
+                                    </div>
+                                )
+                            })
                         ) : (
+                            // Fallback для случая без слоев
                             objects.map((obj) => {
                                 const isExpanded = expandedItems.has(obj.objectIndex)
                                 const isSelected = selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId
@@ -472,5 +827,93 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                 )}
             </Stack>
         </Paper>
+        
+        {/* Модальные окна */}
+        <Modal
+            opened={createLayerModalOpened}
+            onClose={() => {
+                setCreateLayerModalOpened(false)
+                setNewLayerName('')
+            }}
+            title="Создать новый слой"
+            size="sm"
+        >
+            <Stack gap="md">
+                <TextInput
+                    label="Название слоя"
+                    placeholder="Введите название слоя"
+                    value={newLayerName}
+                    onChange={(e) => setNewLayerName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleCreateLayer()
+                        }
+                    }}
+                    autoFocus
+                />
+                <Group justify="flex-end" gap="sm">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setCreateLayerModalOpened(false)
+                            setNewLayerName('')
+                        }}
+                    >
+                        Отмена
+                    </Button>
+                    <Button
+                        onClick={handleCreateLayer}
+                        disabled={!newLayerName.trim()}
+                    >
+                        Создать
+                    </Button>
+                </Group>
+            </Stack>
+        </Modal>
+
+        <Modal
+            opened={editLayerModalOpened}
+            onClose={() => {
+                setEditLayerModalOpened(false)
+                setNewLayerName('')
+                setEditingLayerId(null)
+            }}
+            title="Редактировать слой"
+            size="sm"
+        >
+            <Stack gap="md">
+                <TextInput
+                    label="Название слоя"
+                    placeholder="Введите название слоя"
+                    value={newLayerName}
+                    onChange={(e) => setNewLayerName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleUpdateLayer()
+                        }
+                    }}
+                    autoFocus
+                />
+                <Group justify="flex-end" gap="sm">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setEditLayerModalOpened(false)
+                            setNewLayerName('')
+                            setEditingLayerId(null)
+                        }}
+                    >
+                        Отмена
+                    </Button>
+                    <Button
+                        onClick={handleUpdateLayer}
+                        disabled={!newLayerName.trim()}
+                    >
+                        Сохранить
+                    </Button>
+                </Group>
+            </Stack>
+        </Modal>
+        </>
     )
 }

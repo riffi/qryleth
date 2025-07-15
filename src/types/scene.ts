@@ -21,6 +21,7 @@ export interface ScenePrimitive {
 export interface SceneObject {
   name: string;
   primitives: ScenePrimitive[];
+  layerId?: string;
 }
 
 export interface LightingSettings {
@@ -38,8 +39,16 @@ export interface ScenePlacement {
   scale?: Vector3;
 }
 
+export interface SceneLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  position: number;
+}
+
 export interface SceneResponse {
   objects: SceneObject[];
   placements: ScenePlacement[];
+  layers?: SceneLayer[];
   lighting?: LightingSettings;
 }
