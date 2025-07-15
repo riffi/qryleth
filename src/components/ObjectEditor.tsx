@@ -15,7 +15,7 @@ import {
     Divider
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
-import type {ObjectInfo, ObjectInstance} from './SceneManager.tsx'
+import type {ObjectInfo, ObjectInstance} from './ObjectManager.tsx'
 import { useObjectEditor } from '../hooks/useObjectEditor'
 
 interface ObjectEditorProps {

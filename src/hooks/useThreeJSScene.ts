@@ -394,7 +394,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           const originalObject = originalObjectsRef.current[objectIndex]
           objectMap[objectIndex] = {
             name: child.name,
-            primitives: originalObject?.primitives || [] // Берем примитивы из исходных объектов
+            primitives: originalObject?.primitives || [], // Берем примитивы из исходных объектов
+            layerId: child.userData.layerId || 'objects' // Берем layerId из userData
           }
         }
       }
@@ -449,7 +450,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           visible: objectVisibilityRef.current.get(objectIndex) !== false,
           objectIndex,
           instances: objectInstances.get(objectIndex) || [],
-          layerId: sceneObject.layerId
+          layerId: sceneObject.layerId || 'objects' // Устанавливаем 'objects' по умолчанию если layerId не определен
         })
       }
     })
@@ -993,6 +994,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       compositeObject.userData.generated = true
       compositeObject.userData.objectIndex = placement.objectIndex
       compositeObject.userData.placementIndex = placementIndex
+      compositeObject.userData.layerId = sceneObject.layerId || 'objects'
       console.log('Adding composite object to scene:', compositeObject)
       scene.add(compositeObject)
     })
@@ -1369,6 +1371,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     compositeObject.userData.generated = true
     compositeObject.userData.objectIndex = newObjectIndex
     compositeObject.userData.placementIndex = placementsRef.current.length - 1
+    compositeObject.userData.layerId = objectData.layerId || 'objects'
     
     sceneRef.current.add(compositeObject)
     
@@ -1485,8 +1488,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     )
     setSceneObjects(updatedObjects)
     
+    // Обновляем layerId в userData объектов в сцене
+    if (sceneRef.current) {
+      sceneRef.current.children.forEach(child => {
+        if (child.userData.generated && child.userData.layerId === layerId) {
+          child.userData.layerId = 'objects'
+        }
+      })
+    }
+    
     // Удалить слой
     setLayers(layers.filter(layer => layer.id !== layerId))
+    
+    // Обновляем информацию об объектах
+    updateObjectsInfo(updatedObjects, placementsRef.current)
+    
     markSceneAsModified()
   }
 
@@ -1495,6 +1511,15 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       index === objectIndex ? { ...obj, layerId } : obj
     )
     setSceneObjects(updatedObjects)
+    
+    // Обновляем layerId в userData объектов в сцене
+    if (sceneRef.current) {
+      sceneRef.current.children.forEach(child => {
+        if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+          child.userData.layerId = layerId
+        }
+      })
+    }
     
     // Обновляем информацию об объектах
     updateObjectsInfo(updatedObjects, placementsRef.current)
@@ -1506,14 +1531,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const layer = layers.find(l => l.id === layerId)
     if (!layer) return
     
-    updateLayer(layerId, { visible: !layer.visible })
+    const newVisibility = !layer.visible
+    updateLayer(layerId, { visible: newVisibility })
     
-    // Обновить видимость всех объектов в слое
-    sceneObjects.forEach((obj, index) => {
-      if (obj.layerId === layerId) {
-        toggleObjectVisibility(index)
-      }
-    })
+    // Обновить видимость всех объектов в слое в сцене
+    if (sceneRef.current) {
+      sceneRef.current.children.forEach(child => {
+        if (child.userData.generated && child.userData.layerId === layerId) {
+          child.visible = newVisibility
+        }
+      })
+    }
+    
+    // Обновить информацию об объектах без изменения их layerId
+    // Используем текущий sceneObjects и принудительно обновляем информацию
+    updateObjectsInfo(sceneObjects, placementsRef.current)
   }
 
   return {

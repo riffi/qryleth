@@ -36,7 +36,7 @@ import {
   IconTableOff
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
-import { SceneManager } from './components/SceneManager.tsx'
+import { ObjectManager } from './components/ObjectManager.tsx'
 import { SceneLibraryModal } from './components/SceneLibraryModal'
 import { ObjectEditor } from './components/ObjectEditor'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
@@ -444,7 +444,7 @@ function App() {
                 />
               </Paper>
 
-              <SceneManager
+              <ObjectManager
                   objects={objectsInfo}
                   onToggleVisibility={toggleObjectVisibility}
                   onRemoveObject={removeObjectFromScene}

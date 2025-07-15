@@ -32,7 +32,7 @@ export interface ObjectInfo extends Visible {
     layerId?: string
 }
 
-interface SceneManagerProps {
+interface ObjectManagerProps {
     objects: ObjectInfo[]
     onToggleVisibility?: (objectIndex: number) => void
     onRemoveObject?: (objectIndex: number) => void
@@ -56,7 +56,7 @@ interface SceneManagerProps {
     onMoveObjectToLayer?: (objectIndex: number, layerId: string) => void
 }
 
-export const SceneManager: React.FC<SceneManagerProps> = ({
+export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 objects,
                                                                 onToggleVisibility,
                                                                 onRemoveObject,
@@ -175,6 +175,8 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
     const getObjectsByLayer = (layerId: string) => {
         return objects.filter((obj) => {
             const sceneObject = obj as any
+            // Убедимся, что объект принадлежит именно этому слою
+            // Для слоя "objects" также принимаем объекты без layerId (для совместимости)
             return sceneObject.layerId === layerId || (!sceneObject.layerId && layerId === 'objects')
         })
     }
@@ -215,20 +217,21 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                           onToggleInstanceVisibility, onRemoveInstance, selectedObject }: any) => {
         return (
             <Box>
-                <Paper
-                    p="sm"
-                    withBorder
+                <Box
+                    p="4"
                     draggable
                     style={{
                         opacity: obj.visible ? 1 : 0.6,
-                        transition: 'opacity 0.2s ease',
+                        transition: 'all 0.1s ease',
                         cursor: draggedObjectIndex === obj.objectIndex ? 'grabbing' : 'grab',
                         backgroundColor: isSelected
-                            ? 'var(--mantine-color-dark-5)'
-                            : 'var(--mantine-color-dark-6)',
-                        borderColor: isSelected
-                            ? 'var(--mantine-color-orange-4)'
-                            : 'var(--mantine-color-dark-4)'
+                            ? 'var(--mantine-color-blue-9)'
+                            : 'transparent',
+                        borderRadius: '4px',
+                        border: isSelected
+                            ? '1px solid var(--mantine-color-blue-6)'
+                            : '1px solid transparent',
+                        marginBottom: '1px'
                     }}
                     onMouseEnter={onHighlight}
                     onMouseLeave={onClearHighlight}
@@ -236,159 +239,180 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                     onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
                     onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
                 >
-                    <Group justify="space-between" align="center">
-                        <Group gap="sm" style={{ flex: 1 }}>
+                    <Group justify="space-between" align="center" gap="xs">
+                        <Group gap="xs" style={{ flex: 1 }}>
                             <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="gray"
+                                size="xs"
+                                variant="transparent"
                                 onClick={onToggleExpanded}
+                                style={{ 
+                                    width: '16px', 
+                                    height: '16px', 
+                                    minWidth: '16px' 
+                                }}
                             >
                                 {isExpanded ? (
-                                    <IconChevronDown size={14} />
+                                    <IconChevronDown size={12} />
                                 ) : (
-                                    <IconChevronRight size={14} />
+                                    <IconChevronRight size={12} />
                                 )}
                             </ActionIcon>
-                            <IconCube size={16} color="var(--mantine-color-blue-6)" />
-                            <Box style={{ flex: 1 }}>
-                                <Text size="sm" fw={500} lineClamp={1}>
-                                    {obj.name}
-                                </Text>
-                                <Text size="xs" c="dimmed">
-                                    Всего: {obj.count}
-                                </Text>
-                            </Box>
+                            <IconCube size={12} color="var(--mantine-color-blue-4)" />
+                            <Text size="xs" fw={500} lineClamp={1} style={{ userSelect: 'none' }}>
+                                {obj.name}
+                            </Text>
+                            <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
+                                ({obj.count})
+                            </Text>
                         </Group>
 
                         <Group gap="xs">
-                            <Tooltip label="Редактировать">
-                                <ActionIcon
-                                    size="sm"
-                                    variant="subtle"
-                                    color="orange"
-                                    onClick={() => onEdit()}
-                                >
-                                    <IconEdit size={14} />
-                                </ActionIcon>
-                            </Tooltip>
-
-                            <Tooltip label="Сохранить в библиотеку">
-                                <ActionIcon
-                                    size="sm"
-                                    variant="subtle"
-                                    color="green"
-                                    onClick={() => onSaveToLibrary()}
-                                >
-                                    <IconBookmark size={14} />
-                                </ActionIcon>
-                            </Tooltip>
-
-                            <Tooltip label={obj.visible ? 'Скрыть' : 'Показать'}>
-                                <ActionIcon
-                                    size="sm"
-                                    variant="subtle"
-                                    color={obj.visible ? 'blue' : 'gray'}
-                                    onClick={() => onToggleVisibility()}
-                                >
-                                    {obj.visible ? (
-                                        <IconEye size={14} />
-                                    ) : (
-                                        <IconEyeOff size={14} />
-                                    )}
-                                </ActionIcon>
-                            </Tooltip>
-
-                            <Tooltip label="Удалить все копии">
-                                <ActionIcon
-                                    size="sm"
-                                    variant="subtle"
-                                    color="red"
-                                    onClick={() => onRemove()}
-                                >
-                                    <IconTrash size={14} />
-                                </ActionIcon>
-                            </Tooltip>
+                            <ActionIcon
+                                size="xs"
+                                variant="transparent"
+                                onClick={() => onToggleVisibility()}
+                                style={{ 
+                                    width: '16px', 
+                                    height: '16px', 
+                                    minWidth: '16px' 
+                                }}
+                            >
+                                {obj.visible ? (
+                                    <IconEye size={12} />
+                                ) : (
+                                    <IconEyeOff size={12} />
+                                )}
+                            </ActionIcon>
+                            <Menu shadow="md" width={200}>
+                                <Menu.Target>
+                                    <ActionIcon
+                                        size="xs"
+                                        variant="transparent"
+                                        style={{ 
+                                            width: '16px', 
+                                            height: '16px', 
+                                            minWidth: '16px' 
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <Text size="xs" fw={700}>⋮</Text>
+                                    </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    <Menu.Item
+                                        leftSection={<IconEdit size={14} />}
+                                        onClick={() => onEdit()}
+                                    >
+                                        Редактировать
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconBookmark size={14} />}
+                                        onClick={() => onSaveToLibrary()}
+                                    >
+                                        Сохранить в библиотеку
+                                    </Menu.Item>
+                                    <Menu.Divider />
+                                    <Menu.Item
+                                        leftSection={<IconTrash size={14} />}
+                                        color="red"
+                                        onClick={() => onRemove()}
+                                    >
+                                        Удалить объект
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
                         </Group>
                     </Group>
-                </Paper>
+                </Box>
                 
                 <Collapse in={isExpanded}>
-                    <Box ml="md" mt="xs">
-                        <Stack gap="xs">
+                    <Box ml="lg" mt="2px">
+                        <Stack gap="2px">
                             {obj.instances && obj.instances.length > 0 ? (
                                 obj.instances.map((instance: any) => (
-                                    <Paper
+                                    <Box
                                         key={instance.id}
                                         p="xs"
-                                        withBorder
                                         style={{
                                             opacity: instance.visible ? 1 : 0.6,
                                             backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                ? 'var(--mantine-color-dark-5)'
-                                                : 'var(--mantine-color-dark-6)',
-                                            borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                ? 'var(--mantine-color-orange-4)'
-                                                : 'var(--mantine-color-dark-4)',
-                                            cursor: 'pointer'
+                                                ? 'var(--mantine-color-blue-9)'
+                                                : 'transparent',
+                                            borderRadius: '4px',
+                                            border: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
+                                                ? '1px solid var(--mantine-color-blue-6)'
+                                                : '1px solid transparent',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.1s ease',
+                                            marginBottom: '1px'
                                         }}
                                         onMouseEnter={() => onHighlight(instance.id)}
                                         onMouseLeave={() => onClearHighlight()}
                                         onClick={() => onSelect(instance.id)}
                                     >
-                                        <Group justify="space-between" align="center">
-                                            <Group gap="sm" style={{ flex: 1 }}>
-                                                <Box w={4} h={4} style={{ backgroundColor: 'var(--mantine-color-blue-6)', borderRadius: '50%' }} />
-                                                <Box style={{ flex: 1 }}>
-                                                    <Text size="xs" fw={500}>
-                                                        Экземпляр {instance.id}
-                                                    </Text>
-                                                    <Text size="xs" c="dimmed">
-                                                        x:{instance.position[0].toFixed(1)} y:{instance.position[1].toFixed(1)} z:{instance.position[2].toFixed(1)}
-                                                    </Text>
-                                                </Box>
+                                        <Group justify="space-between" align="center" gap="xs">
+                                            <Group gap="xs" style={{ flex: 1 }}>
+                                                <Box w={6} h={6} style={{ backgroundColor: 'var(--mantine-color-blue-5)', borderRadius: '50%' }} />
+                                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
+                                                    {instance.id}
+                                                </Text>
+                                                <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
+                                                    ({instance.position[0].toFixed(1)}, {instance.position[1].toFixed(1)}, {instance.position[2].toFixed(1)})
+                                                </Text>
                                             </Group>
                                             
                                             <Group gap="xs">
-                                                <Tooltip label="Редактировать экземпляр">
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="subtle"
-                                                        color="orange"
-                                                        onClick={() => onEdit(instance.id)}
-                                                    >
-                                                        <IconEdit size={12} />
-                                                    </ActionIcon>
-                                                </Tooltip>
-
-                                                <Tooltip label={instance.visible ? 'Скрыть' : 'Показать'}>
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="subtle"
-                                                        color={instance.visible ? 'blue' : 'gray'}
-                                                        onClick={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
-                                                    >
-                                                        {instance.visible ? (
-                                                            <IconEye size={12} />
-                                                        ) : (
-                                                            <IconEyeOff size={12} />
-                                                        )}
-                                                    </ActionIcon>
-                                                </Tooltip>
-
-                                                <Tooltip label="Удалить экземпляр">
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="subtle"
-                                                        color="red"
-                                                        onClick={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
-                                                    >
-                                                        <IconTrash size={12} />
-                                                    </ActionIcon>
-                                                </Tooltip>
+                                                <ActionIcon
+                                                    size="xs"
+                                                    variant="transparent"
+                                                    onClick={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
+                                                    style={{ 
+                                                        width: '16px', 
+                                                        height: '16px', 
+                                                        minWidth: '16px' 
+                                                    }}
+                                                >
+                                                    {instance.visible ? (
+                                                        <IconEye size={12} />
+                                                    ) : (
+                                                        <IconEyeOff size={12} />
+                                                    )}
+                                                </ActionIcon>
+                                                <Menu shadow="md" width={200}>
+                                                    <Menu.Target>
+                                                        <ActionIcon
+                                                            size="xs"
+                                                            variant="transparent"
+                                                            style={{ 
+                                                                width: '16px', 
+                                                                height: '16px', 
+                                                                minWidth: '16px' 
+                                                            }}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <Text size="xs" fw={700}>⋮</Text>
+                                                        </ActionIcon>
+                                                    </Menu.Target>
+                                                    <Menu.Dropdown>
+                                                        <Menu.Item
+                                                            leftSection={<IconEdit size={14} />}
+                                                            onClick={() => onEdit(instance.id)}
+                                                        >
+                                                            Редактировать
+                                                        </Menu.Item>
+                                                        <Menu.Divider />
+                                                        <Menu.Item
+                                                            leftSection={<IconTrash size={14} />}
+                                                            color="red"
+                                                            onClick={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
+                                                        >
+                                                            Удалить экземпляр
+                                                        </Menu.Item>
+                                                    </Menu.Dropdown>
+                                                </Menu>
                                             </Group>
                                         </Group>
-                                    </Paper>
+                                    </Box>
                                 ))
                             ) : (
                                 <Text size="xs" c="dimmed" ta="center">
@@ -579,70 +603,98 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                 
                                 return (
                                     <div key={layer.id}>
-                                        <Paper 
+                                        <Box 
                                             p="xs" 
-                                            withBorder 
                                             style={{ 
                                                 backgroundColor: dragOverLayerId === layer.id 
-                                                    ? 'var(--mantine-color-blue-7)' 
-                                                    : 'var(--mantine-color-dark-6)', 
-                                                marginBottom: '8px',
+                                                    ? 'var(--mantine-color-blue-8)' 
+                                                    : 'transparent', 
+                                                marginBottom: '2px',
+                                                borderRadius: '4px',
                                                 border: dragOverLayerId === layer.id 
-                                                    ? '2px dashed var(--mantine-color-blue-4)' 
-                                                    : '1px solid var(--mantine-color-dark-4)'
+                                                    ? '1px dashed var(--mantine-color-blue-4)' 
+                                                    : '1px solid transparent',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.1s ease'
                                             }}
                                             onDragOver={(e) => handleDragOver(e, layer.id)}
                                             onDragLeave={handleDragLeave}
                                             onDrop={(e) => handleDrop(e, layer.id)}
                                         >
-                                            <Group justify="space-between" align="center">
-                                                <Group gap="xs">
+                                            <Group justify="space-between" align="center" gap="xs">
+                                                <Group gap="xs" style={{ flex: 1 }}>
                                                     <ActionIcon
-                                                        size="sm"
+                                                        size="xs"
                                                         variant="transparent"
                                                         onClick={() => toggleLayerExpanded(layer.id)}
+                                                        style={{ 
+                                                            width: '16px', 
+                                                            height: '16px', 
+                                                            minWidth: '16px' 
+                                                        }}
                                                     >
-                                                        {isLayerExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                                                        {isLayerExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
                                                     </ActionIcon>
-                                                    <IconLayersLinked size={14} />
-                                                    <Text size="xs" fw={500}>
+                                                    <IconLayersLinked size={14} color="var(--mantine-color-blue-4)" />
+                                                    <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
                                                         {layer.name}
+                                                    </Text>
+                                                    <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
+                                                        ({layerObjects.length})
                                                     </Text>
                                                 </Group>
                                                 <Group gap="xs">
-                                                    <Badge variant="light" color="purple" size="xs">
-                                                        {layerObjects.length}
-                                                    </Badge>
                                                     <ActionIcon
-                                                        size="sm"
+                                                        size="xs"
                                                         variant="transparent"
                                                         onClick={() => onToggleLayerVisibility && onToggleLayerVisibility(layer.id)}
+                                                        style={{ 
+                                                            width: '16px', 
+                                                            height: '16px', 
+                                                            minWidth: '16px' 
+                                                        }}
                                                     >
-                                                        {layer.visible ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+                                                        {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
                                                     </ActionIcon>
-                                                    <ActionIcon
-                                                        size="sm"
-                                                        variant="transparent"
-                                                        onClick={() => openEditLayerModal(layer.id, layer.name)}
-                                                    >
-                                                        <IconEdit size={14} />
-                                                    </ActionIcon>
-                                                    {layer.id !== 'objects' && (
-                                                        <ActionIcon
-                                                            size="sm"
-                                                            variant="transparent"
-                                                            color="red"
-                                                            onClick={() => onDeleteLayer && onDeleteLayer(layer.id)}
-                                                        >
-                                                            <IconTrash size={14} />
-                                                        </ActionIcon>
-                                                    )}
+                                                    <Menu shadow="md" width={200}>
+                                                        <Menu.Target>
+                                                            <ActionIcon
+                                                                size="xs"
+                                                                variant="transparent"
+                                                                style={{ 
+                                                                    width: '16px', 
+                                                                    height: '16px', 
+                                                                    minWidth: '16px' 
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <Text size="xs" fw={700}>⋮</Text>
+                                                            </ActionIcon>
+                                                        </Menu.Target>
+                                                        <Menu.Dropdown>
+                                                            <Menu.Item
+                                                                leftSection={<IconEdit size={14} />}
+                                                                onClick={() => openEditLayerModal(layer.id, layer.name)}
+                                                            >
+                                                                Переименовать
+                                                            </Menu.Item>
+                                                            {layer.id !== 'objects' && (
+                                                                <Menu.Item
+                                                                    leftSection={<IconTrash size={14} />}
+                                                                    color="red"
+                                                                    onClick={() => onDeleteLayer && onDeleteLayer(layer.id)}
+                                                                >
+                                                                    Удалить слой
+                                                                </Menu.Item>
+                                                            )}
+                                                        </Menu.Dropdown>
+                                                    </Menu>
                                                 </Group>
                                             </Group>
-                                        </Paper>
+                                        </Box>
                                         
                                         <Collapse in={isLayerExpanded}>
-                                            <Stack gap="xs" pl="md">
+                                            <Stack gap="0px" pl="lg">
                                                 {layerObjects.length === 0 ? (
                                                     <Text size="xs" c="dimmed" ta="center" py="sm">
                                                         Пустой слой
