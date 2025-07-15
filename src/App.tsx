@@ -33,6 +33,7 @@ import {
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager'
 import { SceneLibraryModal } from './components/SceneLibraryModal'
+import { ObjectEditor } from './components/ObjectEditor'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
 
@@ -43,9 +44,11 @@ function App() {
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [libraryOpened, setLibraryOpened] = useState(false)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
+  const [editorOpened, setEditorOpened] = useState(false)
+  const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -135,6 +138,21 @@ function App() {
     }
   }
 
+  const handleEditObject = (objectIndex: number, instanceId?: string) => {
+    setEditingObject({ objectIndex, instanceId })
+    setEditorOpened(true)
+  }
+
+  const handleSaveObjectEdit = (objectIndex: number, instanceId: string | undefined, position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]) => {
+    console.log('Saving object edit:', { objectIndex, instanceId, position, rotation, scale })
+    notifications.show({
+      title: 'Успешно!',
+      message: 'Изменения объекта сохранены',
+      color: 'green',
+      icon: <IconCheck size="1rem" />,
+    })
+  }
+
   return (
       <>
         <AppShell
@@ -198,6 +216,9 @@ function App() {
             >
               <Paper shadow="sm" radius="md" p="sm" style={{ width: 320 }}>
                 <Stack gap="sm">
+                  <Title order={4} c="blue.6" size="md">
+                    Чат
+                  </Title>
                   <Textarea
                       placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
                       value={prompt}
@@ -269,10 +290,9 @@ function App() {
                       top: 8,
                       right: 8,
                       zIndex: 10,
-                      backgroundColor: 'var(--mantine-color-white)',
+                      backgroundColor: 'transparent',
                       borderRadius: 'var(--mantine-radius-sm)',
                       padding: 6,
-                      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)'
                     }}
                 >
                   <SegmentedControl
@@ -282,7 +302,7 @@ function App() {
                         {
                           value: 'orbit',
                           label: (
-                            <Group gap={4}>
+                            <Group gap={4} wrap={"nowrap"}>
                               <IconEye size={14} />
                               <span>Orbit</span>
                             </Group>
@@ -325,6 +345,7 @@ function App() {
                   onSaveObjectToLibrary={saveObjectToLibrary}
                   currentScene={currentScene}
                   onSaveSceneToLibrary={handleSaveSceneToLibrary}
+                  onEditObject={handleEditObject}
               />
             </Container>
           </AppShell.Main>
@@ -344,6 +365,16 @@ function App() {
           onClose={() => setSaveSceneModalOpened(false)}
           onSave={handleSaveScene}
           currentSceneName={currentScene?.name}
+        />
+
+        {/* Object Editor Modal */}
+        <ObjectEditor
+          opened={editorOpened}
+          onClose={() => setEditorOpened(false)}
+          objectInfo={editingObject ? objectsInfo.find(obj => obj.objectIndex === editingObject.objectIndex) : undefined}
+          instanceId={editingObject?.instanceId}
+          objectData={editingObject ? getSceneObjects()[editingObject.objectIndex] : undefined}
+          onSave={handleSaveObjectEdit}
         />
       </>
   )

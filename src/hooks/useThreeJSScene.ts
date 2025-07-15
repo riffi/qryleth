@@ -1235,6 +1235,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     addObjectToScene,
     currentScene,
     saveCurrentSceneToLibrary,
-    checkSceneModified
+    checkSceneModified,
+    getSceneObjects: () => sceneObjects
   }
 }

@@ -52,6 +52,7 @@ interface ObjectManagerProps {
     onSaveObjectToLibrary?: (objectIndex: number) => void
     currentScene?: CurrentScene
     onSaveSceneToLibrary?: () => void
+    onEditObject?: (objectIndex: number, instanceId?: string) => void
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
@@ -66,7 +67,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                 selectedObject,
                                                                 onSaveObjectToLibrary,
                                                                 currentScene,
-                                                                onSaveSceneToLibrary
+                                                                onSaveSceneToLibrary,
+                                                                onEditObject
                                                             }) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
@@ -204,6 +206,17 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                 </Group>
 
                                                 <Group gap="xs">
+                                                    <Tooltip label="Редактировать">
+                                                        <ActionIcon
+                                                            size="sm"
+                                                            variant="subtle"
+                                                            color="orange"
+                                                            onClick={() => onEditObject?.(obj.objectIndex)}
+                                                        >
+                                                            <IconEdit size={14} />
+                                                        </ActionIcon>
+                                                    </Tooltip>
+
                                                     <Tooltip label="Сохранить в библиотеку">
                                                         <ActionIcon
                                                             size="sm"
@@ -281,6 +294,17 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                                                     </Group>
                                                                     
                                                                     <Group gap="xs">
+                                                                        <Tooltip label="Редактировать экземпляр">
+                                                                            <ActionIcon
+                                                                                size="xs"
+                                                                                variant="subtle"
+                                                                                color="orange"
+                                                                                onClick={() => onEditObject?.(obj.objectIndex, instance.id)}
+                                                                            >
+                                                                                <IconEdit size={12} />
+                                                                            </ActionIcon>
+                                                                        </Tooltip>
+
                                                                         <Tooltip label={instance.visible ? 'Скрыть' : 'Показать'}>
                                                                             <ActionIcon
                                                                                 size="xs"
