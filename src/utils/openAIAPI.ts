@@ -25,12 +25,6 @@ export interface ScenePrimitive {
   emissiveIntensity?: number;
   position?: [number, number, number];
   rotation?: [number, number, number];
-  // Original dimensions for scale calculations
-  originalWidth?: number;
-  originalHeight?: number;
-  originalDepth?: number;
-  originalRadius?: number;
-  originalBaseSize?: number;
 }
 
 export interface SceneObject {

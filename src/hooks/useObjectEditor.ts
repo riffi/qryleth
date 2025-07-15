@@ -113,20 +113,6 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
         if (intersects.length > 0) {
           const clickedPrimitive = intersects[0].object as THREE.Mesh
           
-          // Don't reset if primitive has been modified
-          if (!clickedPrimitive.userData.hasBeenModified) {
-            // Reset to initial state only if not modified
-            if (clickedPrimitive.userData.initialPosition) {
-              clickedPrimitive.position.copy(clickedPrimitive.userData.initialPosition)
-            }
-            if (clickedPrimitive.userData.initialRotation) {
-              clickedPrimitive.rotation.copy(clickedPrimitive.userData.initialRotation)
-            }
-            if (clickedPrimitive.userData.initialScale) {
-              clickedPrimitive.scale.copy(clickedPrimitive.userData.initialScale)
-            }
-          }
-          
           setSelectedPrimitive(clickedPrimitive)
           
           // Find index of selected primitive
@@ -352,19 +338,11 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
   const updateObjectTransform = useCallback((
     position: [number, number, number],
     rotation: [number, number, number],
-    scale: [number, number, number]
+    dimensions: any
   ) => {
     if (!selectedPrimitive) {
-      console.log('No selected primitive to update')
       return
     }
-
-    // Mark as modified if any value is not zero/default
-    const hasChanges = position[0] !== 0 || position[1] !== 0 || position[2] !== 0 ||
-                      rotation[0] !== 0 || rotation[1] !== 0 || rotation[2] !== 0 ||
-                      scale[0] !== 1 || scale[1] !== 1 || scale[2] !== 1
-    
-    selectedPrimitive.userData.hasBeenModified = hasChanges
 
     // Apply relative position to initial position
     const initialPosition = selectedPrimitive.userData.initialPosition
@@ -390,16 +368,50 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       selectedPrimitive.rotation.set(...rotation)
     }
 
-    // Apply relative scale to initial scale
-    const initialScale = selectedPrimitive.userData.initialScale
-    if (initialScale) {
-      selectedPrimitive.scale.set(
-        initialScale.x * scale[0],
-        initialScale.y * scale[1],
-        initialScale.z * scale[2]
-      )
-    } else {
-      selectedPrimitive.scale.set(...scale)
+    // Update geometry with new dimensions
+    const primitive = selectedPrimitive.userData.primitiveData
+    if (primitive && dimensions) {
+      let newGeometry: THREE.BufferGeometry | null = null
+      
+      switch (primitive.type) {
+        case 'box':
+          newGeometry = new THREE.BoxGeometry(
+            dimensions.width || 1,
+            dimensions.height || 1,
+            dimensions.depth || 1
+          )
+          break
+        case 'sphere':
+          newGeometry = new THREE.SphereGeometry(dimensions.radius || 1, 32, 16)
+          break
+        case 'cylinder':
+          newGeometry = new THREE.CylinderGeometry(
+            dimensions.radius || 1,
+            dimensions.radius || 1,
+            dimensions.height || 2,
+            16
+          )
+          break
+        case 'cone':
+          newGeometry = new THREE.ConeGeometry(
+            dimensions.radius || 1,
+            dimensions.height || 2,
+            16
+          )
+          break
+        case 'pyramid':
+          newGeometry = new THREE.ConeGeometry(
+            (dimensions.baseSize || 1) / 2,
+            dimensions.height || 2,
+            4
+          )
+          break
+      }
+      
+      if (newGeometry) {
+        selectedPrimitive.geometry.dispose()
+        selectedPrimitive.geometry = newGeometry
+      }
     }
 
     // Force update matrix and mark for re-render
@@ -457,20 +469,6 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     if (index >= 0 && index < primitivesRef.current.length) {
       const primitive = primitivesRef.current[index]
       
-      // Don't reset if primitive has been modified
-      if (!primitive.userData.hasBeenModified) {
-        // Reset to initial state only if not modified
-        if (primitive.userData.initialPosition) {
-          primitive.position.copy(primitive.userData.initialPosition)
-        }
-        if (primitive.userData.initialRotation) {
-          primitive.rotation.copy(primitive.userData.initialRotation)
-        }
-        if (primitive.userData.initialScale) {
-          primitive.scale.copy(primitive.userData.initialScale)
-        }
-      }
-      
       setSelectedPrimitive(primitive)
       setSelectedPrimitiveIndex(index)
       updatePrimitiveHighlight(primitive)
@@ -483,6 +481,42 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       name: primitive.userData.primitiveData?.type || 'Unknown',
       mesh: primitive
     }))
+  }, [])
+
+  const getCameraRelativeMovement = useCallback((direction: 'forward' | 'backward' | 'left' | 'right', distance: number): [number, number, number] => {
+    if (!cameraRef.current) return [0, 0, 0]
+
+    const camera = cameraRef.current
+    const forward = new THREE.Vector3()
+    const right = new THREE.Vector3()
+
+    // Get forward direction (negative Z in camera space)
+    camera.getWorldDirection(forward)
+    forward.y = 0 // Remove vertical component for XZ movement
+    forward.normalize()
+
+    // Get right direction (cross product of forward and up)
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0))
+    right.normalize()
+
+    let movement = new THREE.Vector3()
+    
+    switch (direction) {
+      case 'forward':
+        movement = forward.clone().multiplyScalar(-distance) // Negative because camera looks down negative Z
+        break
+      case 'backward':
+        movement = forward.clone().multiplyScalar(distance)
+        break
+      case 'left':
+        movement = right.clone().multiplyScalar(-distance)
+        break
+      case 'right':
+        movement = right.clone().multiplyScalar(distance)
+        break
+    }
+
+    return [movement.x, movement.y, movement.z]
   }, [])
 
   const createObjectFromData = useCallback((objectData: SceneObject) => {
@@ -534,6 +568,7 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     selectedPrimitive,
     selectedPrimitiveIndex,
     selectPrimitiveByIndex,
-    getPrimitivesList
+    getPrimitivesList,
+    getCameraRelativeMovement
   }
 }

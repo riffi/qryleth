@@ -872,16 +872,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       placements = objects.map((_, index) => ({ objectIndex: index }))
     }
 
-    // Initialize original dimensions for all primitives
-    objects.forEach(obj => {
-      obj.primitives.forEach(primitive => {
-        if (primitive.width && !primitive.originalWidth) primitive.originalWidth = primitive.width
-        if (primitive.height && !primitive.originalHeight) primitive.originalHeight = primitive.height
-        if (primitive.depth && !primitive.originalDepth) primitive.originalDepth = primitive.depth
-        if (primitive.radius && !primitive.originalRadius) primitive.originalRadius = primitive.radius
-        if (primitive.baseSize && !primitive.originalBaseSize) primitive.originalBaseSize = primitive.baseSize
-      })
-    })
 
     // Сохраняем данные в состояние
     setSceneObjects(objects)
@@ -1187,14 +1177,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const addObjectToScene = (objectData: SceneObject) => {
     if (!sceneRef.current || !isInitialized) return
     
-    // Initialize original dimensions for the new object
-    objectData.primitives.forEach(primitive => {
-      if (primitive.width && !primitive.originalWidth) primitive.originalWidth = primitive.width
-      if (primitive.height && !primitive.originalHeight) primitive.originalHeight = primitive.height
-      if (primitive.depth && !primitive.originalDepth) primitive.originalDepth = primitive.depth
-      if (primitive.radius && !primitive.originalRadius) primitive.originalRadius = primitive.radius
-      if (primitive.baseSize && !primitive.originalBaseSize) primitive.originalBaseSize = primitive.baseSize
-    })
     
     // Find optimal placement
     const position = findOptimalPlacement()
@@ -1229,7 +1211,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     markSceneAsModified()
   }
 
-  const updateObjectPrimitives = (objectIndex: number, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => {
+  const updateObjectPrimitives = (objectIndex: number, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}) => {
     if (!sceneRef.current) return
 
     // Find the object in sceneObjects array
@@ -1254,20 +1236,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           (primitive.rotation?.[2] || 0) + state.rotation[2]
         ]
         
-        // Update primitive scale by modifying the geometry dimensions
-        // Use original dimensions (stored at object creation) for scale calculations
-        if (primitive.type === 'box') {
-          primitive.width = (primitive.originalWidth || 1) * state.scale[0]
-          primitive.height = (primitive.originalHeight || 1) * state.scale[1]
-          primitive.depth = (primitive.originalDepth || 1) * state.scale[2]
-        } else if (primitive.type === 'sphere') {
-          primitive.radius = (primitive.originalRadius || 1) * state.scale[0]
-        } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
-          primitive.radius = (primitive.originalRadius || 1) * state.scale[0]
-          primitive.height = (primitive.originalHeight || 2) * state.scale[1]
-        } else if (primitive.type === 'pyramid') {
-          primitive.baseSize = (primitive.originalBaseSize || 1) * state.scale[0]
-          primitive.height = (primitive.originalHeight || 2) * state.scale[1]
+        // Update primitive dimensions directly
+        if (state.dimensions) {
+          if (primitive.type === 'box') {
+            primitive.width = state.dimensions.width || 1
+            primitive.height = state.dimensions.height || 1
+            primitive.depth = state.dimensions.depth || 1
+          } else if (primitive.type === 'sphere') {
+            primitive.radius = state.dimensions.radius || 1
+          } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+            primitive.radius = state.dimensions.radius || 1
+            primitive.height = state.dimensions.height || 2
+          } else if (primitive.type === 'pyramid') {
+            primitive.baseSize = state.dimensions.baseSize || 1
+            primitive.height = state.dimensions.height || 2
+          }
         }
       }
     })

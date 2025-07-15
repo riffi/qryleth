@@ -24,7 +24,7 @@ interface ObjectEditorProps {
     objectInfo?: ObjectInfo
     instanceId?: string
     objectData?: any // SceneObject data from the main scene
-    onSave: (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => void
+    onSave: (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}) => void
 }
 
 export const ObjectEditor: React.FC<ObjectEditorProps> = ({
@@ -37,20 +37,37 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null)
     const [editMode, setEditMode] = useState<'move' | 'rotate' | 'scale'>('move')
-    const [primitiveStates, setPrimitiveStates] = useState<{[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}>({})
+    const [primitiveStates, setPrimitiveStates] = useState<{[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}>({})
     const [isModified, setIsModified] = useState(false)
     
-    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList } = useObjectEditor(canvasRef, opened)
+    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList, getCameraRelativeMovement } = useObjectEditor(canvasRef, opened)
 
     // Helper functions for primitive states
     const getCurrentPrimitiveState = () => {
-        return primitiveStates[selectedPrimitiveIndex] || { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+        if (!objectData?.primitives[selectedPrimitiveIndex]) {
+            return { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: {} }
+        }
+        
+        const primitive = objectData.primitives[selectedPrimitiveIndex]
+        const storedState = primitiveStates[selectedPrimitiveIndex]
+        
+        return storedState || { 
+            position: [0, 0, 0], 
+            rotation: [0, 0, 0], 
+            dimensions: {
+                width: primitive.width || 1,
+                height: primitive.height || 1,
+                depth: primitive.depth || 1,
+                radius: primitive.radius || 1,
+                baseSize: primitive.baseSize || 1
+            }
+        }
     }
 
-    const updateCurrentPrimitiveState = (position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]) => {
+    const updateCurrentPrimitiveState = (position: [number, number, number], rotation: [number, number, number], dimensions: any) => {
         setPrimitiveStates(prev => ({
             ...prev,
-            [selectedPrimitiveIndex]: { position, rotation, scale }
+            [selectedPrimitiveIndex]: { position, rotation, dimensions }
         }))
     }
 
@@ -113,7 +130,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
     useEffect(() => {
         if (isInitialized && selectedPrimitive) {
             const state = getCurrentPrimitiveState()
-            updateObjectTransform(state.position, state.rotation, state.scale)
+            updateObjectTransform(state.position, state.rotation, state.dimensions)
         }
     }, [primitiveStates, selectedPrimitiveIndex, isInitialized, selectedPrimitive])
 
@@ -121,40 +138,35 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
     useEffect(() => {
         if (isInitialized && objectData) {
             const primitivesList = getPrimitivesList()
-            const newStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}} = {}
+            const newStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}} = {}
             
             primitivesList.forEach((_, index) => {
                 if (!primitiveStates[index]) {
                     const primitive = objectData.primitives[index]
                     if (primitive) {
-                        // Calculate current scale based on current dimensions vs original dimensions
-                        let scaleX = 1, scaleY = 1, scaleZ = 1
-                        
-                        if (primitive.type === 'box') {
-                            scaleX = primitive.originalWidth ? (primitive.width || 1) / primitive.originalWidth : 1
-                            scaleY = primitive.originalHeight ? (primitive.height || 1) / primitive.originalHeight : 1
-                            scaleZ = primitive.originalDepth ? (primitive.depth || 1) / primitive.originalDepth : 1
-                        } else if (primitive.type === 'sphere') {
-                            scaleX = primitive.originalRadius ? (primitive.radius || 1) / primitive.originalRadius : 1
-                            scaleY = scaleX
-                            scaleZ = scaleX
-                        } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
-                            scaleX = primitive.originalRadius ? (primitive.radius || 1) / primitive.originalRadius : 1
-                            scaleY = primitive.originalHeight ? (primitive.height || 2) / primitive.originalHeight : 1
-                            scaleZ = scaleX
-                        } else if (primitive.type === 'pyramid') {
-                            scaleX = primitive.originalBaseSize ? (primitive.baseSize || 1) / primitive.originalBaseSize : 1
-                            scaleY = primitive.originalHeight ? (primitive.height || 2) / primitive.originalHeight : 1
-                            scaleZ = scaleX
-                        }
-                        
                         newStates[index] = { 
                             position: [0, 0, 0], 
                             rotation: [0, 0, 0], 
-                            scale: [scaleX, scaleY, scaleZ] 
+                            dimensions: {
+                                width: primitive.width || 1,
+                                height: primitive.height || 1,
+                                depth: primitive.depth || 1,
+                                radius: primitive.radius || 1,
+                                baseSize: primitive.baseSize || 1
+                            }
                         }
                     } else {
-                        newStates[index] = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+                        newStates[index] = { 
+                            position: [0, 0, 0], 
+                            rotation: [0, 0, 0], 
+                            dimensions: {
+                                width: 1,
+                                height: 1,
+                                depth: 1,
+                                radius: 1,
+                                baseSize: 1
+                            }
+                        }
                     }
                 }
             })
@@ -179,23 +191,35 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                     switch (event.key) {
                         case 'ArrowLeft':
                             event.preventDefault()
-                            newState.position = [currentState.position[0] - step, currentState.position[1], currentState.position[2]]
-                            hasChanged = true
+                            {
+                                const [dx, dy, dz] = getCameraRelativeMovement('left', step)
+                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
+                                hasChanged = true
+                            }
                             break
                         case 'ArrowRight':
                             event.preventDefault()
-                            newState.position = [currentState.position[0] + step, currentState.position[1], currentState.position[2]]
-                            hasChanged = true
+                            {
+                                const [dx, dy, dz] = getCameraRelativeMovement('right', step)
+                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
+                                hasChanged = true
+                            }
                             break
                         case 'ArrowUp':
                             event.preventDefault()
-                            newState.position = [currentState.position[0], currentState.position[1], currentState.position[2] - step]
-                            hasChanged = true
+                            {
+                                const [dx, dy, dz] = getCameraRelativeMovement('backward', step)
+                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
+                                hasChanged = true
+                            }
                             break
                         case 'ArrowDown':
                             event.preventDefault()
-                            newState.position = [currentState.position[0], currentState.position[1], currentState.position[2] + step]
-                            hasChanged = true
+                            {
+                                const [dx, dy, dz] = getCameraRelativeMovement('forward', step)
+                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
+                                hasChanged = true
+                            }
                             break
                         case 'Numpad8':
                         case '8':
@@ -258,44 +282,101 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                     break
 
                 case 'scale':
+                    if (!objectData?.primitives[selectedPrimitiveIndex]) break
+                    
+                    const primitive = objectData.primitives[selectedPrimitiveIndex]
+                    const newDimensions = { ...currentState.dimensions }
+                    
                     switch (event.key) {
                         case '=':
                         case '+':
                             event.preventDefault()
-                            newState.scale = [currentState.scale[0] + step, currentState.scale[1] + step, currentState.scale[2] + step]
+                            if (primitive.type === 'box') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                                newDimensions.depth = Math.max(0.01, newDimensions.depth + step)
+                            } else if (primitive.type === 'sphere') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
+                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            } else if (primitive.type === 'pyramid') {
+                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case '-':
                             event.preventDefault()
-                            const factor = Math.max(0.01, currentState.scale[0] - step)
-                            newState.scale = [factor, factor, factor]
+                            if (primitive.type === 'box') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                                newDimensions.depth = Math.max(0.01, newDimensions.depth - step)
+                            } else if (primitive.type === 'sphere') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
+                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            } else if (primitive.type === 'pyramid') {
+                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case 'ArrowLeft':
                             event.preventDefault()
-                            newState.scale = [Math.max(0.01, currentState.scale[0] - step), currentState.scale[1], currentState.scale[2]]
+                            if (primitive.type === 'box') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
+                            } else if (primitive.type === 'sphere' || primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
+                            } else if (primitive.type === 'pyramid') {
+                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case 'ArrowRight':
                             event.preventDefault()
-                            newState.scale = [currentState.scale[0] + step, currentState.scale[1], currentState.scale[2]]
+                            if (primitive.type === 'box') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
+                            } else if (primitive.type === 'sphere' || primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
+                            } else if (primitive.type === 'pyramid') {
+                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case 'ArrowUp':
                             event.preventDefault()
-                            newState.scale = [currentState.scale[0], currentState.scale[1] + step, currentState.scale[2]]
+                            if (primitive.type === 'box') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case 'ArrowDown':
                             event.preventDefault()
-                            newState.scale = [currentState.scale[0], Math.max(0.01, currentState.scale[1] - step), currentState.scale[2]]
+                            if (primitive.type === 'box') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            }
+                            newState.dimensions = newDimensions
                             hasChanged = true
                             break
                         case 'Numpad8':
                         case '8':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                newState.scale = [currentState.scale[0], currentState.scale[1], currentState.scale[2] + step]
+                                if (primitive.type === 'box') {
+                                    newDimensions.depth = Math.max(0.01, newDimensions.depth + step)
+                                }
+                                newState.dimensions = newDimensions
                                 hasChanged = true
                             }
                             break
@@ -303,7 +384,10 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                         case '2':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                newState.scale = [currentState.scale[0], currentState.scale[1], Math.max(0.01, currentState.scale[2] - step)]
+                                if (primitive.type === 'box') {
+                                    newDimensions.depth = Math.max(0.01, newDimensions.depth - step)
+                                }
+                                newState.dimensions = newDimensions
                                 hasChanged = true
                             }
                             break
@@ -312,7 +396,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
             }
 
             if (hasChanged) {
-                updateCurrentPrimitiveState(newState.position, newState.rotation, newState.scale)
+                updateCurrentPrimitiveState(newState.position, newState.rotation, newState.dimensions)
                 setIsModified(true)
             }
 
@@ -485,21 +569,66 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             </Group>
                         </Stack>
 
-                        {/* Scale */}
+                        {/* Dimensions */}
                         <Stack gap="xs">
-                            <Text fw={500}>Масштаб</Text>
-                            <Group gap="xs" align="center">
-                                <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[0].toFixed(3)}</Text>
-                            </Group>
-                            <Group gap="xs" align="center">
-                                <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[1].toFixed(3)}</Text>
-                            </Group>
-                            <Group gap="xs" align="center">
-                                <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[2].toFixed(3)}</Text>
-                            </Group>
+                            <Text fw={500}>Размеры</Text>
+                            {objectData?.primitives[selectedPrimitiveIndex] && (() => {
+                                const primitive = objectData.primitives[selectedPrimitiveIndex]
+                                const dimensions = getCurrentPrimitiveState().dimensions
+                                
+                                if (primitive.type === 'box') {
+                                    return (
+                                        <>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Ширина:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.width?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Высота:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Глубина:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.depth?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                        </>
+                                    )
+                                } else if (primitive.type === 'sphere') {
+                                    return (
+                                        <Group gap="xs" align="center">
+                                            <Text size="xs" c="dimmed" w={40}>Радиус:</Text>
+                                            <Text size="sm" fw={500}>{dimensions.radius?.toFixed(3) || '1.000'}</Text>
+                                        </Group>
+                                    )
+                                } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                    return (
+                                        <>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Радиус:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.radius?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Высота:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '2.000'}</Text>
+                                            </Group>
+                                        </>
+                                    )
+                                } else if (primitive.type === 'pyramid') {
+                                    return (
+                                        <>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Основание:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.baseSize?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Высота:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '2.000'}</Text>
+                                            </Group>
+                                        </>
+                                    )
+                                }
+                                return null
+                            })()}
                         </Stack>
 
                         {/* Controls Help */}
@@ -507,7 +636,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500} size="sm">Управление</Text>
                             {editMode === 'move' && (
                                 <>
-                                    <Text size="xs" c="dimmed">←→↑↓ - перемещение по XZ</Text>
+                                    <Text size="xs" c="dimmed">←→ - влево/вправо относительно камеры</Text>
+                                    <Text size="xs" c="dimmed">↑↓ - назад/вперед относительно камеры</Text>
                                     <Text size="xs" c="dimmed">Num8/Num2 или Ctrl+8/2 - по Y</Text>
                                     <Text size="xs" c="dimmed">Shift - точное движение</Text>
                                 </>
@@ -522,10 +652,10 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             )}
                             {editMode === 'scale' && (
                                 <>
-                                    <Text size="xs" c="dimmed">+/- - равномерный масштаб</Text>
-                                    <Text size="xs" c="dimmed">←→ - масштаб по X</Text>
-                                    <Text size="xs" c="dimmed">↑↓ - масштаб по Y</Text>
-                                    <Text size="xs" c="dimmed">Num8/Num2 - масштаб по Z</Text>
+                                    <Text size="xs" c="dimmed">+/- - равномерное изменение размера</Text>
+                                    <Text size="xs" c="dimmed">←→ - ширина/радиус</Text>
+                                    <Text size="xs" c="dimmed">↑↓ - высота</Text>
+                                    <Text size="xs" c="dimmed">Num8/Num2 - глубина (для box)</Text>
                                     <Text size="xs" c="dimmed">Shift - точное изменение</Text>
                                 </>
                             )}

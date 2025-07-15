@@ -143,7 +143,7 @@ function App() {
     setEditorOpened(true)
   }
 
-  const handleSaveObjectEdit = (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => {
+  const handleSaveObjectEdit = (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}) => {
     console.log('Saving object edit:', { objectIndex, instanceId, primitiveStates })
     
     // Apply the changes to the actual scene
