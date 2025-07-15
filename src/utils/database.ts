@@ -1,36 +1,22 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
+import { BaseObject, Vector3, Transform } from '../types/common'
 
 // Database interfaces
-export interface SceneRecord {
+export interface SceneRecord extends BaseObject {
   id?: number
-  uuid: string
-  name: string
-  description?: string
-  thumbnail?: string
   sceneData: any // JSON data of the scene
-  createdAt: Date
-  updatedAt: Date
 }
 
-export interface ObjectRecord {
+export interface ObjectRecord extends BaseObject {
   id?: number
-  uuid: string
-  name: string
-  description?: string
-  thumbnail?: string
   objectData: any // JSON data of the object
-  createdAt: Date
-  updatedAt: Date
 }
 
-export interface SceneObjectRelation {
+export interface SceneObjectRelation extends Transform {
   id?: number
   sceneUuid: string
   objectUuid: string
-  position: [number, number, number]
-  rotation: [number, number, number]
-  scale: [number, number, number]
   createdAt: Date
 }
 
@@ -125,7 +111,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Scene-Object relation methods
-  async addObjectToScene(sceneUuid: string, objectUuid: string, position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]): Promise<void> {
+  async addObjectToScene(sceneUuid: string, objectUuid: string, position: Vector3, rotation: Vector3, scale: Vector3): Promise<void> {
     await this.sceneObjects.add({
       sceneUuid,
       objectUuid,

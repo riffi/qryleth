@@ -1,3 +1,5 @@
+import { Vector3 } from './common'
+
 export interface ScenePrimitive {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid';
   width?: number;
@@ -12,8 +14,8 @@ export interface ScenePrimitive {
   opacity?: number;
   emissive?: string;
   emissiveIntensity?: number;
-  position?: [number, number, number];
-  rotation?: [number, number, number];
+  position?: Vector3;
+  rotation?: Vector3;
 }
 
 export interface SceneObject {
@@ -31,9 +33,9 @@ export interface LightingSettings {
 
 export interface ScenePlacement {
   objectIndex: number;
-  position?: [number, number, number];
-  rotation?: [number, number, number];
-  scale?: [number, number, number];
+  position?: Vector3;
+  rotation?: Vector3;
+  scale?: Vector3;
 }
 
 export interface SceneResponse {

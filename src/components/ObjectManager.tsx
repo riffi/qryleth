@@ -14,29 +14,13 @@ import {
     Collapse
 } from '@mantine/core'
 import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText } from '@tabler/icons-react'
+import { ObjectInstance, SceneReference, Visible } from '../types/common'
 
-export interface ObjectInstance {
-    id: string
-    position: [number, number, number]
-    rotation: [number, number, number]
-    scale: [number, number, number]
-    visible: boolean
-}
-
-export interface ObjectInfo {
+export interface ObjectInfo extends Visible {
     name: string
     count: number
-    visible: boolean
     objectIndex: number
     instances?: ObjectInstance[]
-}
-
-export type SceneStatus = 'draft' | 'saved' | 'modified'
-
-export interface CurrentScene {
-    uuid?: string
-    name: string
-    status: SceneStatus
 }
 
 interface ObjectManagerProps {
@@ -50,7 +34,7 @@ interface ObjectManagerProps {
     onSelectObject?: (objectIndex: number, instanceId?: string) => void
     selectedObject?: {objectIndex: number, instanceId?: string} | null
     onSaveObjectToLibrary?: (objectIndex: number) => void
-    currentScene?: CurrentScene
+    currentScene?: SceneReference
     onSaveSceneToLibrary?: () => void
     onEditObject?: (objectIndex: number, instanceId?: string) => void
 }
