@@ -1070,7 +1070,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       camera.lookAt(0, 0, 0)
       
       const controls = new FirstPersonControls(camera, renderer.domElement)
-      controls.lookSpeed = 0.1
+      controls.lookSpeed = 0.5
       controls.movementSpeed = 10
       controls.lookVertical = true
       controls.constrainVertical = true
