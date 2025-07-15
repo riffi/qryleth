@@ -17,7 +17,8 @@ import {
     NumberInput,
     Modal,
     TextInput,
-    Button
+    Button,
+    Menu
 } from '@mantine/core'
 import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText, IconBulb, IconColorPicker, IconPlus, IconLayersLinked } from '@tabler/icons-react'
 import type {ObjectInstance, SceneReference, Visible} from '../types/common'
@@ -85,6 +86,11 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
     const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
     const [newLayerName, setNewLayerName] = useState('')
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
+    const [draggedObjectIndex, setDraggedObjectIndex] = useState<number | null>(null)
+    const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
+    const [contextMenuOpened, setContextMenuOpened] = useState(false)
+    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
+    const [contextMenuObjectIndex, setContextMenuObjectIndex] = useState<number | null>(null)
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
     
     const toggleLayerExpanded = (layerId: string) => {
@@ -120,6 +126,50 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
         setEditingLayerId(layerId)
         setNewLayerName(currentName)
         setEditLayerModalOpened(true)
+    }
+
+    // Drag & Drop handlers
+    const handleDragStart = (e: React.DragEvent, objectIndex: number) => {
+        setDraggedObjectIndex(objectIndex)
+        e.dataTransfer.setData('text/plain', objectIndex.toString())
+    }
+
+    const handleDragOver = (e: React.DragEvent, layerId: string) => {
+        e.preventDefault()
+        setDragOverLayerId(layerId)
+    }
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault()
+        setDragOverLayerId(null)
+    }
+
+    const handleDrop = (e: React.DragEvent, layerId: string) => {
+        e.preventDefault()
+        const objectIndex = parseInt(e.dataTransfer.getData('text/plain'))
+        
+        if (objectIndex !== null && onMoveObjectToLayer) {
+            onMoveObjectToLayer(objectIndex, layerId)
+        }
+        
+        setDraggedObjectIndex(null)
+        setDragOverLayerId(null)
+    }
+
+    // Context Menu handlers
+    const handleContextMenu = (e: React.MouseEvent, objectIndex: number) => {
+        e.preventDefault()
+        setContextMenuPosition({ x: e.clientX, y: e.clientY })
+        setContextMenuObjectIndex(objectIndex)
+        setContextMenuOpened(true)
+    }
+
+    const handleMoveToLayer = (layerId: string) => {
+        if (contextMenuObjectIndex !== null && onMoveObjectToLayer) {
+            onMoveObjectToLayer(contextMenuObjectIndex, layerId)
+        }
+        setContextMenuOpened(false)
+        setContextMenuObjectIndex(null)
     }
 
     const getObjectsByLayer = (layerId: string) => {
@@ -168,10 +218,11 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                 <Paper
                     p="sm"
                     withBorder
+                    draggable
                     style={{
                         opacity: obj.visible ? 1 : 0.6,
                         transition: 'opacity 0.2s ease',
-                        cursor: 'pointer',
+                        cursor: draggedObjectIndex === obj.objectIndex ? 'grabbing' : 'grab',
                         backgroundColor: isSelected
                             ? 'var(--mantine-color-dark-5)'
                             : 'var(--mantine-color-dark-6)',
@@ -182,6 +233,8 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                     onMouseEnter={onHighlight}
                     onMouseLeave={onClearHighlight}
                     onClick={onSelect}
+                    onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
+                    onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
                 >
                     <Group justify="space-between" align="center">
                         <Group gap="sm" style={{ flex: 1 }}>
@@ -509,7 +562,10 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                 )}
 
 
-                <ScrollArea style={{ flex: 1 }}>
+                <ScrollArea 
+                    style={{ flex: 1 }}
+                    onClick={() => setContextMenuOpened(false)}
+                >
                     <Stack gap="xs">
                         {objects.length === 0 ? (
                             <Text size="sm" c="dimmed" ta="center" py="xl">
@@ -523,7 +579,22 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                                 
                                 return (
                                     <div key={layer.id}>
-                                        <Paper p="xs" withBorder style={{ backgroundColor: 'var(--mantine-color-dark-6)', marginBottom: '8px' }}>
+                                        <Paper 
+                                            p="xs" 
+                                            withBorder 
+                                            style={{ 
+                                                backgroundColor: dragOverLayerId === layer.id 
+                                                    ? 'var(--mantine-color-blue-7)' 
+                                                    : 'var(--mantine-color-dark-6)', 
+                                                marginBottom: '8px',
+                                                border: dragOverLayerId === layer.id 
+                                                    ? '2px dashed var(--mantine-color-blue-4)' 
+                                                    : '1px solid var(--mantine-color-dark-4)'
+                                            }}
+                                            onDragOver={(e) => handleDragOver(e, layer.id)}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={(e) => handleDrop(e, layer.id)}
+                                        >
                                             <Group justify="space-between" align="center">
                                                 <Group gap="xs">
                                                     <ActionIcon
@@ -802,6 +873,9 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                         <Text size="xs" c="dimmed" ta="center">
                             Всего объектов: {totalObjects}
                         </Text>
+                        <Text size="xs" c="dimmed" ta="center">
+                            Перетащите объект в слой или ПКМ для выбора слоя
+                        </Text>
                         
                         {selectedObject && (
                             <>
@@ -914,6 +988,40 @@ export const SceneManager: React.FC<SceneManagerProps> = ({
                 </Group>
             </Stack>
         </Modal>
+        
+        {/* Контекстное меню для перемещения объектов */}
+        <Menu
+            opened={contextMenuOpened}
+            onClose={() => setContextMenuOpened(false)}
+            position="bottom-start"
+            shadow="md"
+            width={200}
+        >
+            <Menu.Target>
+                <div 
+                    style={{
+                        position: 'fixed',
+                        left: contextMenuPosition.x,
+                        top: contextMenuPosition.y,
+                        width: 1,
+                        height: 1,
+                        pointerEvents: 'none'
+                    }}
+                />
+            </Menu.Target>
+            <Menu.Dropdown>
+                <Menu.Label>Переместить в слой</Menu.Label>
+                {layers?.map((layer) => (
+                    <Menu.Item
+                        key={layer.id}
+                        leftSection={<IconLayersLinked size={16} />}
+                        onClick={() => handleMoveToLayer(layer.id)}
+                    >
+                        {layer.name}
+                    </Menu.Item>
+                ))}
+            </Menu.Dropdown>
+        </Menu>
         </>
     )
 }

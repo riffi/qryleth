@@ -1495,6 +1495,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       index === objectIndex ? { ...obj, layerId } : obj
     )
     setSceneObjects(updatedObjects)
+    
+    // Обновляем информацию об объектах
+    updateObjectsInfo(updatedObjects, placementsRef.current)
+    
     markSceneAsModified()
   }
 
