@@ -10,7 +10,9 @@ import {
     Badge,
     ActionIcon,
     Tooltip,
-    Paper
+    Paper,
+    Select,
+    Divider
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type {ObjectInfo, ObjectInstance} from './ObjectManager'
@@ -22,7 +24,7 @@ interface ObjectEditorProps {
     objectInfo?: ObjectInfo
     instanceId?: string
     objectData?: any // SceneObject data from the main scene
-    onSave: (objectIndex: number, instanceId: string | undefined, position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]) => void
+    onSave: (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => void
 }
 
 export const ObjectEditor: React.FC<ObjectEditorProps> = ({
@@ -35,26 +37,41 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null)
     const [editMode, setEditMode] = useState<'move' | 'rotate' | 'scale'>('move')
-    const [position, setPosition] = useState<[number, number, number]>([0, 0, 0])
-    const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0])
-    const [scale, setScale] = useState<[number, number, number]>([1, 1, 1])
+    const [primitiveStates, setPrimitiveStates] = useState<{[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}>({})
     const [isModified, setIsModified] = useState(false)
     
-    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform } = useObjectEditor(canvasRef, opened)
+    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList } = useObjectEditor(canvasRef, opened)
+
+    // Helper functions for primitive states
+    const getCurrentPrimitiveState = () => {
+        return primitiveStates[selectedPrimitiveIndex] || { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+    }
+
+    const updateCurrentPrimitiveState = (position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]) => {
+        setPrimitiveStates(prev => ({
+            ...prev,
+            [selectedPrimitiveIndex]: { position, rotation, scale }
+        }))
+    }
 
     useEffect(() => {
         if (opened && objectInfo) {
             if (instanceId && objectInfo.instances) {
                 const instance = objectInfo.instances.find(inst => inst.id === instanceId)
                 if (instance) {
-                    setPosition([...instance.position])
-                    setRotation([...instance.rotation])
-                    setScale([...instance.scale])
+                    // Initialize primitive states for instance editing
+                    setPrimitiveStates(prev => ({
+                        ...prev,
+                        0: {
+                            position: [...instance.position],
+                            rotation: [...instance.rotation],
+                            scale: [...instance.scale]
+                        }
+                    }))
                 }
             } else {
-                setPosition([0, 0, 0])
-                setRotation([0, 0, 0])
-                setScale([1, 1, 1])
+                // Reset primitive states for new object editing
+                setPrimitiveStates({})
             }
             setIsModified(false)
         }
@@ -70,7 +87,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 createSampleObject()
             }
         }
-    }, [opened, isInitialized, createSampleObject, createObjectFromData, objectData])
+    }, [opened, isInitialized, objectData, createObjectFromData, createSampleObject]) // Возвращаем, но теперь это стабильные функции
 
     // Force re-check when modal opens
     useEffect(() => {
@@ -89,74 +106,78 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         }
     }, [opened, isInitialized])
 
-    // Update 3D object when transform values change
+    // Update 3D object when primitive state changes
+    useEffect(() => {
+        if (isInitialized && selectedPrimitive) {
+            const state = getCurrentPrimitiveState()
+            updateObjectTransform(state.position, state.rotation, state.scale)
+        }
+    }, [primitiveStates, selectedPrimitiveIndex, isInitialized, selectedPrimitive])
+
+    // Initialize primitive states when primitives are loaded
     useEffect(() => {
         if (isInitialized) {
-            updateObjectTransform(position, rotation, scale)
+            const primitivesList = getPrimitivesList()
+            const newStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}} = {}
+            
+            primitivesList.forEach((_, index) => {
+                if (!primitiveStates[index]) {
+                    newStates[index] = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
+                }
+            })
+            
+            if (Object.keys(newStates).length > 0) {
+                setPrimitiveStates(prev => ({ ...prev, ...newStates }))
+            }
         }
-    }, [position, rotation, scale, isInitialized, updateObjectTransform])
+    }, [isInitialized, getPrimitivesList])
 
     useEffect(() => {
         if (!opened) return
 
         const handleKeyDown = (event: KeyboardEvent) => {
             const step = event.shiftKey ? 0.1 : 0.01
+            const currentState = getCurrentPrimitiveState()
+            let newState = { ...currentState }
+            let hasChanged = false
 
             switch (editMode) {
                 case 'move':
                     switch (event.key) {
                         case 'ArrowLeft':
                             event.preventDefault()
-                            setPosition(prev => {
-                                const newPos: [number, number, number] = [prev[0] - step, prev[1], prev[2]]
-                                setIsModified(true)
-                                return newPos
-                            })
+                            newState.position = [currentState.position[0] - step, currentState.position[1], currentState.position[2]]
+                            hasChanged = true
                             break
                         case 'ArrowRight':
                             event.preventDefault()
-                            setPosition(prev => {
-                                const newPos: [number, number, number] = [prev[0] + step, prev[1], prev[2]]
-                                setIsModified(true)
-                                return newPos
-                            })
+                            newState.position = [currentState.position[0] + step, currentState.position[1], currentState.position[2]]
+                            hasChanged = true
                             break
                         case 'ArrowUp':
                             event.preventDefault()
-                            setPosition(prev => {
-                                const newPos: [number, number, number] = [prev[0], prev[1], prev[2] - step]
-                                setIsModified(true)
-                                return newPos
-                            })
+                            newState.position = [currentState.position[0], currentState.position[1], currentState.position[2] - step]
+                            hasChanged = true
                             break
                         case 'ArrowDown':
                             event.preventDefault()
-                            setPosition(prev => {
-                                const newPos: [number, number, number] = [prev[0], prev[1], prev[2] + step]
-                                setIsModified(true)
-                                return newPos
-                            })
+                            newState.position = [currentState.position[0], currentState.position[1], currentState.position[2] + step]
+                            hasChanged = true
                             break
                         case 'Numpad8':
                         case '8':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setPosition(prev => {
-                                    const newPos: [number, number, number] = [prev[0], prev[1] + step, prev[2]]
-                                    setIsModified(true)
-                                    return newPos
-                                })
+                                newState.position = [currentState.position[0], currentState.position[1] + step, currentState.position[2]]
+                                hasChanged = true
                             }
                             break
                         case 'Numpad2':
                         case '2':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setPosition(prev => {
-                                    const newPos: [number, number, number] = [prev[0], prev[1] - step, prev[2]]
-                                    setIsModified(true)
-                                    return newPos
-                                })
+                                newState.position = [currentState.position[0], currentState.position[1] - step, currentState.position[2]]
+                                hasChanged = true
                             }
                             break
                     }
@@ -166,56 +187,38 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                     switch (event.key) {
                         case 'ArrowLeft':
                             event.preventDefault()
-                            setRotation(prev => {
-                                const newRot: [number, number, number] = [prev[0], prev[1] - step, prev[2]]
-                                setIsModified(true)
-                                return newRot
-                            })
+                            newState.rotation = [currentState.rotation[0], currentState.rotation[1] - step, currentState.rotation[2]]
+                            hasChanged = true
                             break
                         case 'ArrowRight':
                             event.preventDefault()
-                            setRotation(prev => {
-                                const newRot: [number, number, number] = [prev[0], prev[1] + step, prev[2]]
-                                setIsModified(true)
-                                return newRot
-                            })
+                            newState.rotation = [currentState.rotation[0], currentState.rotation[1] + step, currentState.rotation[2]]
+                            hasChanged = true
                             break
                         case 'ArrowUp':
                             event.preventDefault()
-                            setRotation(prev => {
-                                const newRot: [number, number, number] = [prev[0] - step, prev[1], prev[2]]
-                                setIsModified(true)
-                                return newRot
-                            })
+                            newState.rotation = [currentState.rotation[0] - step, currentState.rotation[1], currentState.rotation[2]]
+                            hasChanged = true
                             break
                         case 'ArrowDown':
                             event.preventDefault()
-                            setRotation(prev => {
-                                const newRot: [number, number, number] = [prev[0] + step, prev[1], prev[2]]
-                                setIsModified(true)
-                                return newRot
-                            })
+                            newState.rotation = [currentState.rotation[0] + step, currentState.rotation[1], currentState.rotation[2]]
+                            hasChanged = true
                             break
                         case 'Numpad8':
                         case '8':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setRotation(prev => {
-                                    const newRot: [number, number, number] = [prev[0], prev[1], prev[2] + step]
-                                    setIsModified(true)
-                                    return newRot
-                                })
+                                newState.rotation = [currentState.rotation[0], currentState.rotation[1], currentState.rotation[2] + step]
+                                hasChanged = true
                             }
                             break
                         case 'Numpad2':
                         case '2':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setRotation(prev => {
-                                    const newRot: [number, number, number] = [prev[0], prev[1], prev[2] - step]
-                                    setIsModified(true)
-                                    return newRot
-                                })
+                                newState.rotation = [currentState.rotation[0], currentState.rotation[1], currentState.rotation[2] - step]
+                                hasChanged = true
                             }
                             break
                     }
@@ -226,77 +229,58 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                         case '=':
                         case '+':
                             event.preventDefault()
-                            setScale(prev => {
-                                const newScale: [number, number, number] = [prev[0] + step, prev[1] + step, prev[2] + step]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            newState.scale = [currentState.scale[0] + step, currentState.scale[1] + step, currentState.scale[2] + step]
+                            hasChanged = true
                             break
                         case '-':
                             event.preventDefault()
-                            setScale(prev => {
-                                const factor = Math.max(0.01, prev[0] - step)
-                                const newScale: [number, number, number] = [factor, factor, factor]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            const factor = Math.max(0.01, currentState.scale[0] - step)
+                            newState.scale = [factor, factor, factor]
+                            hasChanged = true
                             break
                         case 'ArrowLeft':
                             event.preventDefault()
-                            setScale(prev => {
-                                const newScale: [number, number, number] = [Math.max(0.01, prev[0] - step), prev[1], prev[2]]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            newState.scale = [Math.max(0.01, currentState.scale[0] - step), currentState.scale[1], currentState.scale[2]]
+                            hasChanged = true
                             break
                         case 'ArrowRight':
                             event.preventDefault()
-                            setScale(prev => {
-                                const newScale: [number, number, number] = [prev[0] + step, prev[1], prev[2]]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            newState.scale = [currentState.scale[0] + step, currentState.scale[1], currentState.scale[2]]
+                            hasChanged = true
                             break
                         case 'ArrowUp':
                             event.preventDefault()
-                            setScale(prev => {
-                                const newScale: [number, number, number] = [prev[0], prev[1] + step, prev[2]]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            newState.scale = [currentState.scale[0], currentState.scale[1] + step, currentState.scale[2]]
+                            hasChanged = true
                             break
                         case 'ArrowDown':
                             event.preventDefault()
-                            setScale(prev => {
-                                const newScale: [number, number, number] = [prev[0], Math.max(0.01, prev[1] - step), prev[2]]
-                                setIsModified(true)
-                                return newScale
-                            })
+                            newState.scale = [currentState.scale[0], Math.max(0.01, currentState.scale[1] - step), currentState.scale[2]]
+                            hasChanged = true
                             break
                         case 'Numpad8':
                         case '8':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setScale(prev => {
-                                    const newScale: [number, number, number] = [prev[0], prev[1], prev[2] + step]
-                                    setIsModified(true)
-                                    return newScale
-                                })
+                                newState.scale = [currentState.scale[0], currentState.scale[1], currentState.scale[2] + step]
+                                hasChanged = true
                             }
                             break
                         case 'Numpad2':
                         case '2':
                             if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
                                 event.preventDefault()
-                                setScale(prev => {
-                                    const newScale: [number, number, number] = [prev[0], prev[1], Math.max(0.01, prev[2] - step)]
-                                    setIsModified(true)
-                                    return newScale
-                                })
+                                newState.scale = [currentState.scale[0], currentState.scale[1], Math.max(0.01, currentState.scale[2] - step)]
+                                hasChanged = true
                             }
                             break
                     }
                     break
+            }
+
+            if (hasChanged) {
+                updateCurrentPrimitiveState(newState.position, newState.rotation, newState.scale)
+                setIsModified(true)
             }
 
             if (event.key === 'Escape') {
@@ -309,11 +293,12 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         return () => {
             window.removeEventListener('keydown', handleKeyDown)
         }
-    }, [opened, editMode, onClose])
+    }, [opened, editMode, onClose, selectedPrimitiveIndex, primitiveStates])
 
     const handleSave = () => {
         if (objectInfo) {
-            onSave(objectInfo.objectIndex, instanceId, position, rotation, scale)
+            // Pass all primitive states to the save function
+            onSave(objectInfo.objectIndex, instanceId, primitiveStates)
             onClose()
         }
     }
@@ -365,6 +350,37 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                     }}
                 >
                     <Stack gap="md">
+                        <Title order={4}>Выбор примитива</Title>
+                        
+                        <Select
+                            value={selectedPrimitiveIndex.toString()}
+                            onChange={(value) => {
+                                if (value !== null) {
+                                    selectPrimitiveByIndex(parseInt(value))
+                                }
+                            }}
+                            data={getPrimitivesList().map((primitive, index) => ({
+                                value: index.toString(),
+                                label: `${primitive.name} ${index + 1}`
+                            }))}
+                            placeholder="Выберите примитив"
+                            size="sm"
+                        />
+                        
+                        <Text size="xs" c="dimmed">
+                            Кликните на объект в сцене или выберите из списка
+                        </Text>
+                        
+                        {selectedPrimitive && (
+                            <Paper p="xs" bg="blue.0" radius="sm">
+                                <Text size="sm" fw={500} c="blue.7">
+                                    Выбран: {getPrimitivesList()[selectedPrimitiveIndex]?.name || 'Неизвестно'} {selectedPrimitiveIndex + 1}
+                                </Text>
+                            </Paper>
+                        )}
+                        
+                        <Divider />
+                        
                         <Title order={4}>Режим редактирования</Title>
                         
                         <Group gap="xs">
@@ -407,15 +423,15 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500}>Позиция</Text>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{position[0].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[0].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{position[1].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[1].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{position[2].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[2].toFixed(3)}</Text>
                             </Group>
                         </Stack>
 
@@ -424,15 +440,15 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500}>Поворот (рад)</Text>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{rotation[0].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[0].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{rotation[1].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[1].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{rotation[2].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[2].toFixed(3)}</Text>
                             </Group>
                         </Stack>
 
@@ -441,15 +457,15 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500}>Масштаб</Text>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{scale[0].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[0].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{scale[1].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[1].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{scale[2].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().scale[2].toFixed(3)}</Text>
                             </Group>
                         </Stack>
 
@@ -548,6 +564,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text size="sm" fw={500}>
                                 Режим: {editMode === 'move' ? 'Перемещение' : editMode === 'rotate' ? 'Поворот' : 'Масштаб'}
                             </Text>
+                            {selectedPrimitive && (
+                                <Text size="xs" c="dimmed">
+                                    Примитив: {getPrimitivesList()[selectedPrimitiveIndex]?.name || 'Неизвестно'} {selectedPrimitiveIndex + 1}
+                                </Text>
+                            )}
                         </Box>
                     )}
                 </Box>

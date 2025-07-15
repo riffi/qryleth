@@ -1209,6 +1209,79 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     markSceneAsModified()
   }
 
+  const updateObjectPrimitives = (objectIndex: number, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => {
+    if (!sceneRef.current) return
+
+    // Find the object in sceneObjects array
+    const objectToUpdate = sceneObjects[objectIndex]
+    if (!objectToUpdate) return
+
+    // Update the primitive data in sceneObjects
+    objectToUpdate.primitives.forEach((primitive, index) => {
+      const state = primitiveStates[index]
+      if (state) {
+        // Update primitive position (relative to object center)
+        primitive.position = [
+          (primitive.position?.[0] || 0) + state.position[0],
+          (primitive.position?.[1] || 0) + state.position[1], 
+          (primitive.position?.[2] || 0) + state.position[2]
+        ]
+        
+        // Update primitive rotation
+        primitive.rotation = [
+          (primitive.rotation?.[0] || 0) + state.rotation[0],
+          (primitive.rotation?.[1] || 0) + state.rotation[1],
+          (primitive.rotation?.[2] || 0) + state.rotation[2]
+        ]
+        
+        // Update primitive scale (multiplicative)
+        if (state.scale[0] !== 1 || state.scale[1] !== 1 || state.scale[2] !== 1) {
+          // For scale, we need to modify the geometry dimensions
+          if (primitive.type === 'box') {
+            primitive.width = (primitive.width || 1) * state.scale[0]
+            primitive.height = (primitive.height || 1) * state.scale[1]
+            primitive.depth = (primitive.depth || 1) * state.scale[2]
+          } else if (primitive.type === 'sphere') {
+            primitive.radius = (primitive.radius || 1) * state.scale[0]
+          } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+            primitive.radius = (primitive.radius || 1) * state.scale[0]
+            primitive.height = (primitive.height || 2) * state.scale[1]
+          }
+        }
+      }
+    })
+
+    // Regenerate all instances of this object type in the scene
+    sceneRef.current.children.forEach(child => {
+      if (child.userData.generated && child.userData.objectIndex === objectIndex) {
+        // Store the current world position and rotation of the object
+        const currentPosition = child.position.clone()
+        const currentRotation = child.rotation.clone()
+        const currentScale = child.scale.clone()
+        
+        // Remove the old object
+        sceneRef.current!.remove(child)
+        
+        // Create new object with updated primitive data
+        const newCompositeObject = createCompositeObject(objectToUpdate)
+        
+        // Restore the object's world position and rotation
+        newCompositeObject.position.copy(currentPosition)
+        newCompositeObject.rotation.copy(currentRotation)
+        newCompositeObject.scale.copy(currentScale)
+        
+        // Copy over the metadata
+        newCompositeObject.userData = child.userData
+        
+        // Add the new object to the scene
+        sceneRef.current!.add(newCompositeObject)
+      }
+    })
+    
+    // Mark scene as modified
+    markSceneAsModified()
+  }
+
   return {
     buildSceneFromDescription,
     clearScene,
@@ -1236,6 +1309,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     currentScene,
     saveCurrentSceneToLibrary,
     checkSceneModified,
-    getSceneObjects: () => sceneObjects
+    getSceneObjects: () => sceneObjects,
+    updateObjectPrimitives
   }
 }

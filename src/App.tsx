@@ -48,7 +48,7 @@ function App() {
   const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -143,8 +143,19 @@ function App() {
     setEditorOpened(true)
   }
 
-  const handleSaveObjectEdit = (objectIndex: number, instanceId: string | undefined, position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]) => {
-    console.log('Saving object edit:', { objectIndex, instanceId, position, rotation, scale })
+  const handleSaveObjectEdit = (objectIndex: number, instanceId: string | undefined, primitiveStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], scale: [number, number, number]}}) => {
+    console.log('Saving object edit:', { objectIndex, instanceId, primitiveStates })
+    
+    // Apply the changes to the actual scene
+    if (instanceId) {
+      // For instance editing, update the specific instance
+      // TODO: Need to add updateInstanceTransform method to useThreeJSScene
+      console.log('Instance editing not fully implemented yet')
+    } else {
+      // For object editing, update the object's primitive data
+      updateObjectPrimitives(objectIndex, primitiveStates)
+    }
+    
     notifications.show({
       title: 'Успешно!',
       message: 'Изменения объекта сохранены',

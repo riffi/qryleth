@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneObject, ScenePrimitive } from '../utils/openAIAPI'
@@ -10,11 +10,15 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
   const controlsRef = useRef<OrbitControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const editObjectRef = useRef<THREE.Object3D | null>(null)
+  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
+  const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
+  const primitivesRef = useRef<THREE.Mesh[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
+  const [selectedPrimitive, setSelectedPrimitive] = useState<THREE.Mesh | null>(null)
+  const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number>(0)
 
   useEffect(() => {
     if (!isOpen) {
-      console.log('Editor not open, skipping initialization')
       setIsInitialized(false)
       return
     }
@@ -22,26 +26,23 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     // Wait for container to be ready
     const initializeWhenReady = () => {
       if (!containerRef.current) {
-        console.log('Container not ready, waiting...')
-        setTimeout(initializeWhenReady, 50)
+        setTimeout(initializeWhenReady, 100)
         return
       }
 
       const container = containerRef.current
-      console.log('Container found, checking dimensions:', container.clientWidth, 'x', container.clientHeight)
 
       // Check if container has dimensions
       if (container.clientWidth === 0 || container.clientHeight === 0) {
-        console.log('Container has no dimensions, waiting...')
-        setTimeout(initializeWhenReady, 50)
+        setTimeout(initializeWhenReady, 100)
         return
       }
 
-      console.log('Starting 3D editor initialization...')
       initializeThreeJS(container)
     }
 
-    initializeWhenReady()
+    // Add a small delay to ensure modal is fully rendered
+    setTimeout(initializeWhenReady, 200)
   }, [containerRef, isOpen])
 
   const initializeThreeJS = (container: HTMLDivElement) => {
@@ -100,6 +101,46 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       const axesHelper = new THREE.AxesHelper(2)
       scene.add(axesHelper)
 
+      // Mouse event handlers
+      const onMouseClick = (event: MouseEvent) => {
+        const rect = container.getBoundingClientRect()
+        mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+        mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycasterRef.current.setFromCamera(mouseRef.current, camera)
+        const intersects = raycasterRef.current.intersectObjects(primitivesRef.current)
+
+        if (intersects.length > 0) {
+          const clickedPrimitive = intersects[0].object as THREE.Mesh
+          
+          // Don't reset if primitive has been modified
+          if (!clickedPrimitive.userData.hasBeenModified) {
+            // Reset to initial state only if not modified
+            if (clickedPrimitive.userData.initialPosition) {
+              clickedPrimitive.position.copy(clickedPrimitive.userData.initialPosition)
+            }
+            if (clickedPrimitive.userData.initialRotation) {
+              clickedPrimitive.rotation.copy(clickedPrimitive.userData.initialRotation)
+            }
+            if (clickedPrimitive.userData.initialScale) {
+              clickedPrimitive.scale.copy(clickedPrimitive.userData.initialScale)
+            }
+          }
+          
+          setSelectedPrimitive(clickedPrimitive)
+          
+          // Find index of selected primitive
+          const index = primitivesRef.current.findIndex(p => p === clickedPrimitive)
+          if (index !== -1) {
+            setSelectedPrimitiveIndex(index)
+          }
+          
+          updatePrimitiveHighlight(clickedPrimitive)
+        }
+      }
+
+      renderer.domElement.addEventListener('click', onMouseClick)
+
       // Render loop
       const animate = () => {
         if (controlsRef.current) {
@@ -124,7 +165,6 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       }
 
       window.addEventListener('resize', handleResize)
-      console.log('3D editor initialized successfully')
       setIsInitialized(true)
 
     } catch (error) {
@@ -147,6 +187,22 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       controlsRef.current?.dispose()
     }
   }, [containerRef, isOpen])
+
+  const updatePrimitiveHighlight = (selectedMesh: THREE.Mesh | null) => {
+    // Remove highlight from all primitives
+    primitivesRef.current.forEach(primitive => {
+      if (primitive.material instanceof THREE.MeshStandardMaterial) {
+        primitive.material.emissive.setHex(0x000000)
+        primitive.material.emissiveIntensity = 0
+      }
+    })
+
+    // Add highlight to selected primitive
+    if (selectedMesh && selectedMesh.material instanceof THREE.MeshStandardMaterial) {
+      selectedMesh.material.emissive.setHex(0x444444)
+      selectedMesh.material.emissiveIntensity = 0.3
+    }
+  }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
     const color = new THREE.Color(primitive.color || '#cccccc')
@@ -246,15 +302,190 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     const group = new THREE.Group()
     group.name = sceneObject.name
 
-    sceneObject.primitives.forEach(primitive => {
+    // Clear previous primitives
+    primitivesRef.current = []
+
+    sceneObject.primitives.forEach((primitive, index) => {
       const mesh = createPrimitiveMesh(primitive)
+      mesh.userData.primitiveIndex = index
+      mesh.userData.primitiveData = primitive
+      
+      // Store initial transform from primitive data (before mesh creation)
+      mesh.userData.initialPosition = new THREE.Vector3(
+        primitive.position?.[0] || 0,
+        primitive.position?.[1] || 0,
+        primitive.position?.[2] || 0
+      )
+      
+      // For pyramid, account for the automatic rotation
+      let initialRotationX = primitive.rotation?.[0] || 0
+      let initialRotationY = primitive.rotation?.[1] || 0
+      let initialRotationZ = primitive.rotation?.[2] || 0
+      
+      if (primitive.type === 'pyramid') {
+        initialRotationY += Math.PI / 4 // Add the automatic rotation
+      }
+      
+      mesh.userData.initialRotation = new THREE.Euler(
+        initialRotationX,
+        initialRotationY,
+        initialRotationZ
+      )
+      mesh.userData.initialScale = new THREE.Vector3(1, 1, 1) // Scale is always 1 initially
+      mesh.userData.hasBeenModified = false // Track if primitive was modified
+      
       group.add(mesh)
+      primitivesRef.current.push(mesh)
     })
+
+    // Select first primitive by default
+    if (primitivesRef.current.length > 0) {
+      setSelectedPrimitive(primitivesRef.current[0])
+      setSelectedPrimitiveIndex(0)
+      updatePrimitiveHighlight(primitivesRef.current[0])
+    }
 
     return group
   }
 
-  const createObjectFromData = (objectData: SceneObject) => {
+
+  const updateObjectTransform = useCallback((
+    position: [number, number, number],
+    rotation: [number, number, number],
+    scale: [number, number, number]
+  ) => {
+    if (!selectedPrimitive) {
+      console.log('No selected primitive to update')
+      return
+    }
+
+    // Mark as modified if any value is not zero/default
+    const hasChanges = position[0] !== 0 || position[1] !== 0 || position[2] !== 0 ||
+                      rotation[0] !== 0 || rotation[1] !== 0 || rotation[2] !== 0 ||
+                      scale[0] !== 1 || scale[1] !== 1 || scale[2] !== 1
+    
+    selectedPrimitive.userData.hasBeenModified = hasChanges
+
+    // Apply relative position to initial position
+    const initialPosition = selectedPrimitive.userData.initialPosition
+    if (initialPosition) {
+      selectedPrimitive.position.set(
+        initialPosition.x + position[0],
+        initialPosition.y + position[1],
+        initialPosition.z + position[2]
+      )
+    } else {
+      selectedPrimitive.position.set(...position)
+    }
+
+    // Apply relative rotation to initial rotation
+    const initialRotation = selectedPrimitive.userData.initialRotation
+    if (initialRotation) {
+      selectedPrimitive.rotation.set(
+        initialRotation.x + rotation[0],
+        initialRotation.y + rotation[1],
+        initialRotation.z + rotation[2]
+      )
+    } else {
+      selectedPrimitive.rotation.set(...rotation)
+    }
+
+    // Apply relative scale to initial scale
+    const initialScale = selectedPrimitive.userData.initialScale
+    if (initialScale) {
+      selectedPrimitive.scale.set(
+        initialScale.x * scale[0],
+        initialScale.y * scale[1],
+        initialScale.z * scale[2]
+      )
+    } else {
+      selectedPrimitive.scale.set(...scale)
+    }
+
+    // Force update matrix and mark for re-render
+    selectedPrimitive.updateMatrix()
+    selectedPrimitive.updateMatrixWorld(true)
+    
+    // Also update the parent group's matrix if it exists
+    if (selectedPrimitive.parent) {
+      selectedPrimitive.parent.updateMatrix()
+      selectedPrimitive.parent.updateMatrixWorld(true)
+    }
+  }, [selectedPrimitive])
+
+  const getObjectTransform = useCallback(() => {
+    if (!selectedPrimitive) return null
+
+    const initial = selectedPrimitive.userData.initialPosition
+    const current = selectedPrimitive.position
+    
+    // Calculate relative position from initial position
+    const relativePosition = initial ? [
+      current.x - initial.x,
+      current.y - initial.y,
+      current.z - initial.z
+    ] : [current.x, current.y, current.z]
+
+    // Get relative rotation from initial rotation
+    const initialRotation = selectedPrimitive.userData.initialRotation
+    const currentRotation = selectedPrimitive.rotation
+    
+    const relativeRotation = initialRotation ? [
+      currentRotation.x - initialRotation.x,
+      currentRotation.y - initialRotation.y,
+      currentRotation.z - initialRotation.z
+    ] : [currentRotation.x, currentRotation.y, currentRotation.z]
+
+    // Get relative scale from initial scale
+    const initialScale = selectedPrimitive.userData.initialScale
+    const currentScale = selectedPrimitive.scale
+    
+    const relativeScale = initialScale ? [
+      currentScale.x / initialScale.x,
+      currentScale.y / initialScale.y,
+      currentScale.z / initialScale.z
+    ] : [currentScale.x, currentScale.y, currentScale.z]
+
+    return {
+      position: relativePosition as [number, number, number],
+      rotation: relativeRotation as [number, number, number],
+      scale: relativeScale as [number, number, number]
+    }
+  }, [selectedPrimitive])
+
+  const selectPrimitiveByIndex = useCallback((index: number) => {
+    if (index >= 0 && index < primitivesRef.current.length) {
+      const primitive = primitivesRef.current[index]
+      
+      // Don't reset if primitive has been modified
+      if (!primitive.userData.hasBeenModified) {
+        // Reset to initial state only if not modified
+        if (primitive.userData.initialPosition) {
+          primitive.position.copy(primitive.userData.initialPosition)
+        }
+        if (primitive.userData.initialRotation) {
+          primitive.rotation.copy(primitive.userData.initialRotation)
+        }
+        if (primitive.userData.initialScale) {
+          primitive.scale.copy(primitive.userData.initialScale)
+        }
+      }
+      
+      setSelectedPrimitive(primitive)
+      setSelectedPrimitiveIndex(index)
+      updatePrimitiveHighlight(primitive)
+    }
+  }, [])
+
+  const getPrimitivesList = useCallback(() => {
+    return primitivesRef.current.map((primitive, index) => ({
+      index,
+      name: primitive.userData.primitiveData?.type || 'Unknown',
+      mesh: primitive
+    }))
+  }, [])
+
+  const createObjectFromData = useCallback((objectData: SceneObject) => {
     if (!sceneRef.current) return
 
     // Remove existing edit object
@@ -267,9 +498,9 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     editObjectRef.current = compositeObject
 
     return compositeObject
-  }
+  }, [])
 
-  const createSampleObject = () => {
+  const createSampleObject = useCallback(() => {
     if (!sceneRef.current) return
 
     // Remove existing edit object
@@ -292,35 +523,17 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     editObjectRef.current = cube
 
     return cube
-  }
-
-  const updateObjectTransform = (
-    position: [number, number, number],
-    rotation: [number, number, number],
-    scale: [number, number, number]
-  ) => {
-    if (!editObjectRef.current) return
-
-    editObjectRef.current.position.set(...position)
-    editObjectRef.current.rotation.set(...rotation)
-    editObjectRef.current.scale.set(...scale)
-  }
-
-  const getObjectTransform = () => {
-    if (!editObjectRef.current) return null
-
-    return {
-      position: editObjectRef.current.position.toArray() as [number, number, number],
-      rotation: editObjectRef.current.rotation.toArray().slice(0, 3) as [number, number, number],
-      scale: editObjectRef.current.scale.toArray() as [number, number, number]
-    }
-  }
+  }, [])
 
   return {
     isInitialized,
     createSampleObject,
     createObjectFromData,
     updateObjectTransform,
-    getObjectTransform
+    getObjectTransform,
+    selectedPrimitive,
+    selectedPrimitiveIndex,
+    selectPrimitiveByIndex,
+    getPrimitivesList
   }
 }
