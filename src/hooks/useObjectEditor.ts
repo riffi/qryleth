@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type { SceneObject, ScenePrimitive } from '../utils/openAIAPI'
+import type { SceneObject, ScenePrimitive } from '../types/scene'
 
 export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | null>, isOpen: boolean = true) => {
   const sceneRef = useRef<THREE.Scene | null>(null)
