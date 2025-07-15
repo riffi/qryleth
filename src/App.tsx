@@ -127,8 +127,29 @@ function App() {
     }
   }
 
-  const handleSaveSceneToLibrary = () => {
-    setSaveSceneModalOpened(true)
+  const handleSaveSceneToLibrary = async () => {
+    // Если сцена уже существует (имеет UUID), сохраняем напрямую
+    if (currentScene?.uuid) {
+      try {
+        await saveCurrentSceneToLibrary(currentScene.name)
+        notifications.show({
+          title: 'Успешно!',
+          message: `Сцена "${currentScene.name}" сохранена`,
+          color: 'green',
+          icon: <IconCheck size="1rem" />,
+        })
+      } catch (error) {
+        notifications.show({
+          title: 'Ошибка',
+          message: 'Не удалось сохранить сцену',
+          color: 'red',
+          icon: <IconX size="1rem" />,
+        })
+      }
+    } else {
+      // Для новых сцен показываем модальное окно
+      setSaveSceneModalOpened(true)
+    }
   }
 
   const handleSaveScene = async (name: string, description?: string) => {

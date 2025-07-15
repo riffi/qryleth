@@ -1010,6 +1010,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     if (settings.backgroundColor && scene) {
       scene.background = new THREE.Color(settings.backgroundColor)
     }
+    
+    // Отметить сцену как измененную
+    markSceneAsModified()
   }
 
   const switchViewMode = (mode: ViewMode) => {
@@ -1086,8 +1089,15 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const markSceneAsModified = () => {
+    console.log('markSceneAsModified called, current status:', currentScene.status)
     if (currentScene.status === 'saved') {
+      console.log('Changing status from saved to modified')
       setCurrentScene(prev => ({ ...prev, status: 'modified' }))
+    } else if (currentScene.status === 'draft') {
+      console.log('Changing status from draft to modified')
+      setCurrentScene(prev => ({ ...prev, status: 'modified' }))
+    } else {
+      console.log('Status not changed, current status is:', currentScene.status)
     }
   }
 
