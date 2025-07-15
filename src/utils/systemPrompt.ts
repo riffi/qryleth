@@ -14,7 +14,7 @@ export function buildSystemPrompt(): string {
      "primitives": [массив графических примитивов]
    }
 
-4. Разрешённые графические примитивы:
+4. Разрешённые графические примитивы (все параметры кроме type опциональны):
    • "box": {"width","height","depth","color","opacity","emissive","emissiveIntensity","position","rotation"}
    • "sphere": {"radius","color","opacity","emissive","emissiveIntensity","position","rotation"}
    • "cylinder": {"radiusTop","radiusBottom","height","radialSegments","color","opacity","emissive","emissiveIntensity","position","rotation"}
@@ -43,18 +43,18 @@ export function buildSystemPrompt(): string {
       ],
       "placements": [
         {
-          "objectIndex": число,
-          "position": [x,y,z],
-          "rotation": [x,y,z],
-          "scale": [x,y,z]
+          "objectIndex": число (обязательно),
+          "position": [x,y,z] (опционально),
+          "rotation": [x,y,z] (опционально),
+          "scale": [x,y,z] (опционально)
         }
       ],
       "lighting": {
-        "ambientColor": "#цвет",
-        "ambientIntensity": число от 0 до 1,
-        "directionalColor": "#цвет",
-        "directionalIntensity": число от 0 до 1,
-        "backgroundColor": "#цвет"
+        "ambientColor": "#цвет" (опционально),
+        "ambientIntensity": число от 0 до 1 (опционально),
+        "directionalColor": "#цвет" (опционально),
+        "directionalIntensity": число от 0 до 1 (опционально),
+        "backgroundColor": "#цвет" (опционально)
       }
     }
 
@@ -121,7 +121,8 @@ export function buildSystemPrompt(): string {
     {
       "objectIndex": 0,
       "position": [0, 1.5, 0],
-      "rotation": [0.1, 0, 0]
+      "rotation": [0.1, 0, 0],
+      "scale": [1, 1, 1]
     },
     {
       "objectIndex": 1,
