@@ -31,7 +31,9 @@ import {
   IconPlaneTilt,
   IconBooks,
   IconArrowBack,
-  IconArrowForward
+  IconArrowForward,
+  IconGridDots,
+  IconGridOff
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { SceneManager } from './components/SceneManager.tsx'
@@ -59,7 +61,7 @@ function App() {
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -383,40 +385,53 @@ function App() {
                       padding: 6,
                     }}
                 >
-                  <SegmentedControl
-                      value={viewMode}
-                      onChange={(value) => switchViewMode(value as 'orbit' | 'walk' | 'fly')}
-                      data={[
-                        {
-                          value: 'orbit',
-                          label: (
-                            <Group gap={4} wrap={"nowrap"}>
-                              <IconEye size={14} />
-                              <span>Orbit</span>
-                            </Group>
-                          )
-                        },
-                        {
-                          value: 'walk',
-                          label: (
-                            <Group gap={4} wrap={"nowrap"}>
-                              <IconRun size={14} />
-                              <span>Walk</span>
-                            </Group>
-                          )
-                        },
-                        {
-                          value: 'fly',
-                          label: (
-                            <Group gap={4} wrap={"nowrap"}>
-                              <IconPlaneTilt size={14} />
-                              <span>Fly</span>
-                            </Group>
-                          )
-                        }
-                      ]}
-                      size="xs"
-                  />
+                  <Group gap="xs">
+                    <Tooltip label={gridVisible ? "Скрыть сетку" : "Показать сетку"}>
+                      <ActionIcon
+                        variant="light"
+                        color={gridVisible ? "blue" : "gray"}
+                        onClick={toggleGridVisibility}
+                        size="md"
+                      >
+                        {gridVisible ? <IconGridDots size={18} /> : <IconGridOff size={18} />}
+                      </ActionIcon>
+                    </Tooltip>
+                    
+                    <SegmentedControl
+                        value={viewMode}
+                        onChange={(value) => switchViewMode(value as 'orbit' | 'walk' | 'fly')}
+                        data={[
+                          {
+                            value: 'orbit',
+                            label: (
+                              <Group gap={4} wrap={"nowrap"}>
+                                <IconEye size={14} />
+                                <span>Orbit</span>
+                              </Group>
+                            )
+                          },
+                          {
+                            value: 'walk',
+                            label: (
+                              <Group gap={4} wrap={"nowrap"}>
+                                <IconRun size={14} />
+                                <span>Walk</span>
+                              </Group>
+                            )
+                          },
+                          {
+                            value: 'fly',
+                            label: (
+                              <Group gap={4} wrap={"nowrap"}>
+                                <IconPlaneTilt size={14} />
+                                <span>Fly</span>
+                              </Group>
+                            )
+                          }
+                        ]}
+                        size="xs"
+                    />
+                  </Group>
                 </Box>
 
                 <Box
