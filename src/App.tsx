@@ -33,7 +33,7 @@ import {
   IconArrowBack,
   IconArrowForward,
   IconGridDots,
-  IconGridOff
+  IconTableOff
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { SceneManager } from './components/SceneManager.tsx'
@@ -378,7 +378,7 @@ function App() {
                     style={{
                       position: 'absolute',
                       top: 8,
-                      right: 8,
+                      left: 8,
                       zIndex: 10,
                       backgroundColor: 'transparent',
                       borderRadius: 'var(--mantine-radius-sm)',
@@ -388,12 +388,12 @@ function App() {
                   <Group gap="xs">
                     <Tooltip label={gridVisible ? "Скрыть сетку" : "Показать сетку"}>
                       <ActionIcon
-                        variant="light"
-                        color={gridVisible ? "blue" : "gray"}
+                        variant={gridVisible ? "filled" : "light"}
+                        c={gridVisible ? "white" : "gray"}
                         onClick={toggleGridVisibility}
                         size="md"
                       >
-                        {gridVisible ? <IconGridDots size={18} /> : <IconGridOff size={18} />}
+                        {gridVisible ? <IconGridDots size={18} /> : <IconGridDots size={18} />}
                       </ActionIcon>
                     </Tooltip>
                     
