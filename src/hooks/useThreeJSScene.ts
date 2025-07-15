@@ -7,6 +7,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { GridHelper } from 'three'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive } from '../types/scene'
 import { db } from '../utils/database'
 import { notifications } from '@mantine/notifications'
@@ -65,6 +66,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const placementsRef = useRef<ScenePlacement[]>([])
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
   const lastSavedDataRef = useRef<string>('')
+  const gridHelperRef = useRef<THREE.GridHelper | null>(null)
+  const [gridVisible, setGridVisible] = useState<boolean>(true)
   
   // История изменений для undo/redo
   const historyRef = useRef<string[]>([])
@@ -183,6 +186,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     ground.position.y = -0.01
     ground.receiveShadow = true
     scene.add(ground)
+    
+    // Добавляем сетку на уровне z=0
+    const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x888888)
+    gridHelper.position.set(0, 0, 0)
+    gridHelper.visible = gridVisible
+    scene.add(gridHelper)
+    gridHelperRef.current = gridHelper
 
     // Сохраняем ссылки на источники света
     lightsRef.current = {
@@ -1041,6 +1051,15 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     markSceneAsModified()
   }
 
+  // Функция для переключения видимости сетки
+  const toggleGridVisibility = () => {
+    if (!gridHelperRef.current) return
+    
+    const newVisibility = !gridVisible
+    gridHelperRef.current.visible = newVisibility
+    setGridVisible(newVisibility)
+  }
+
   const switchViewMode = (mode: ViewMode) => {
     if (!cameraRef.current || !rendererRef.current || !containerRef.current) return
     
@@ -1445,6 +1464,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    toggleGridVisibility,
+    gridVisible
   }
 }
