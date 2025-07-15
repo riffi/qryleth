@@ -33,7 +33,7 @@ import {
   IconArrowForward
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
-import { ObjectManager } from './components/ObjectManager'
+import { SceneManager } from './components/SceneManager.tsx'
 import { SceneLibraryModal } from './components/SceneLibraryModal'
 import { ObjectEditor } from './components/ObjectEditor'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
@@ -235,8 +235,8 @@ function App() {
             <Container size="xl" h="100%">
               <Group h="100%" justify="space-between">
                 <Group gap="sm">
-                  <IconBrain size={24} color="var(--mantine-color-blue-6)" />
-                  <Title order={3} c="blue.6">
+                  <IconBrain size={24} color="var(--mantine-color-gray-6)" />
+                  <Title order={3} c="gray.5">
                     Qryleth 3D
                   </Title>
                 </Group>
@@ -273,19 +273,19 @@ function App() {
                   </Tooltip>
 
                   <Tooltip label="Библиотека">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)}>
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)} c={"gray.4"}>
                       <IconBooks size="1rem" />
                     </ActionIcon>
                   </Tooltip>
 
                   <Tooltip label="Настройки">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setSettingsOpened(true)}>
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setSettingsOpened(true)} c={"gray.4"}>
                       <IconSettings size="1rem" />
                     </ActionIcon>
                   </Tooltip>
 
                   <Tooltip label="Справка">
-                    <ActionIcon variant="subtle" size="sm">
+                    <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
                       <IconInfoCircle size="1rem" />
                     </ActionIcon>
                   </Tooltip>
@@ -303,7 +303,7 @@ function App() {
             >
               <Paper shadow="sm" radius="md" p="sm" style={{ width: 320 }}>
                 <Stack gap="sm">
-                  <Title order={4} c="blue.6" size="md">
+                  <Title order={4} c="gray.6" size="md">
                     Чат
                   </Title>
                   <Textarea
@@ -419,7 +419,7 @@ function App() {
                 />
               </Paper>
 
-              <ObjectManager
+              <SceneManager
                   objects={objectsInfo}
                   onToggleVisibility={toggleObjectVisibility}
                   onRemoveObject={removeObjectFromScene}

@@ -27,7 +27,7 @@ export interface ObjectInfo extends Visible {
     instances?: ObjectInstance[]
 }
 
-interface ObjectManagerProps {
+interface SceneManagerProps {
     objects: ObjectInfo[]
     onToggleVisibility?: (objectIndex: number) => void
     onRemoveObject?: (objectIndex: number) => void
@@ -45,7 +45,7 @@ interface ObjectManagerProps {
     onLightingChange?: (lighting: LightingSettings) => void
 }
 
-export const ObjectManager: React.FC<ObjectManagerProps> = ({
+export const SceneManager: React.FC<SceneManagerProps> = ({
                                                                 objects,
                                                                 onToggleVisibility,
                                                                 onRemoveObject,
@@ -109,7 +109,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
             <Stack gap="sm" style={{ height: '100%' }}>
                 {/* Main Scene Header */}
-                <Title order={4} c="blue.6" size="md">
+                <Title order={4} c="gray.6" size="md">
                     Сцена
                 </Title>
 

@@ -80,7 +80,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Scene setup
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0xf8f9fa)
+    scene.background = new THREE.Color(0x222)
     sceneRef.current = scene
 
     // Camera setup
