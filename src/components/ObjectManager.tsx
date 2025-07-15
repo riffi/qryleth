@@ -7,30 +7,19 @@ import {
     Group,
     Badge,
     ScrollArea,
-    Box,
-    Divider,
     ActionIcon,
     Tooltip,
-    Collapse,
-    ColorInput,
-    Slider,
-    NumberInput,
-    Modal,
-    TextInput,
-    Button,
-    Menu
+    Divider
 } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconTrash, IconChevronDown, IconChevronRight, IconBookmark, IconDeviceFloppy, IconEdit, IconFileText, IconBulb, IconColorPicker, IconPlus, IconLayersLinked } from '@tabler/icons-react'
-import type {ObjectInstance, SceneReference, Visible} from '../types/common'
-import type {LightingSettings, SceneLayer} from '../types/scene'
-
-export interface ObjectInfo extends Visible {
-    name: string
-    count: number
-    objectIndex: number
-    instances?: ObjectInstance[]
-    layerId?: string
-}
+import { IconPlus } from '@tabler/icons-react'
+import type { SceneReference } from '../types/common'
+import type { LightingSettings, SceneLayer } from '../types/scene'
+import { SceneHeader } from './SceneHeader'
+import { LightingControls } from './LightingControls'
+import { LayerItem } from './LayerItem'
+import { LayerModals } from './LayerModals'
+import { ObjectItem } from './ObjectItem'
+import type { ObjectInfo } from './ObjectItem'
 
 interface ObjectManagerProps {
     objects: ObjectInfo[]
@@ -57,40 +46,39 @@ interface ObjectManagerProps {
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
-                                                                objects,
-                                                                onToggleVisibility,
-                                                                onRemoveObject,
-                                                                onToggleInstanceVisibility,
-                                                                onRemoveInstance,
-                                                                onHighlightObject,
-                                                                onClearHighlight,
-                                                                onSelectObject,
-                                                                selectedObject,
-                                                                onSaveObjectToLibrary,
-                                                                currentScene,
-                                                                onSaveSceneToLibrary,
-                                                                onEditObject,
-                                                                lighting,
-                                                                onLightingChange,
-                                                                layers,
-                                                                onCreateLayer,
-                                                                onUpdateLayer,
-                                                                onDeleteLayer,
-                                                                onToggleLayerVisibility,
-                                                                onMoveObjectToLayer
-                                                            }) => {
+    objects,
+    onToggleVisibility,
+    onRemoveObject,
+    onToggleInstanceVisibility,
+    onRemoveInstance,
+    onHighlightObject,
+    onClearHighlight,
+    onSelectObject,
+    selectedObject,
+    onSaveObjectToLibrary,
+    currentScene,
+    onSaveSceneToLibrary,
+    onEditObject,
+    lighting,
+    onLightingChange,
+    layers,
+    onCreateLayer,
+    onUpdateLayer,
+    onDeleteLayer,
+    onToggleLayerVisibility,
+    onMoveObjectToLayer
+}) => {
     const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
-    const [lightingExpanded, setLightingExpanded] = useState(false)
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
     const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
     const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
     const [newLayerName, setNewLayerName] = useState('')
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
-    const [draggedObjectIndex, setDraggedObjectIndex] = useState<number | null>(null)
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
     const [contextMenuObjectIndex, setContextMenuObjectIndex] = useState<number | null>(null)
+
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
     
     const toggleLayerExpanded = (layerId: string) => {
@@ -100,6 +88,18 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 newSet.delete(layerId)
             } else {
                 newSet.add(layerId)
+            }
+            return newSet
+        })
+    }
+
+    const toggleObjectExpanded = (objectIndex: number) => {
+        setExpandedItems(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(objectIndex)) {
+                newSet.delete(objectIndex)
+            } else {
+                newSet.add(objectIndex)
             }
             return newSet
         })
@@ -130,7 +130,6 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     // Drag & Drop handlers
     const handleDragStart = (e: React.DragEvent, objectIndex: number) => {
-        setDraggedObjectIndex(objectIndex)
         e.dataTransfer.setData('text/plain', objectIndex.toString())
     }
 
@@ -152,7 +151,6 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
             onMoveObjectToLayer(objectIndex, layerId)
         }
         
-        setDraggedObjectIndex(null)
         setDragOverLayerId(null)
     }
 
@@ -175,905 +173,180 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const getObjectsByLayer = (layerId: string) => {
         return objects.filter((obj) => {
             const sceneObject = obj as any
-            // Убедимся, что объект принадлежит именно этому слою
-            // Для слоя "objects" также принимаем объекты без layerId (для совместимости)
             return sceneObject.layerId === layerId || (!sceneObject.layerId && layerId === 'objects')
         })
     }
 
-    const toggleExpanded = (objectIndex: number) => {
-        setExpandedItems(prev => {
-            const newSet = new Set(prev)
-            if (newSet.has(objectIndex)) {
-                newSet.delete(objectIndex)
-            } else {
-                newSet.add(objectIndex)
-            }
-            return newSet
-        })
-    }
-
-    const getStatusColor = () => {
-        switch (currentScene?.status) {
-            case 'draft': return 'orange'
-            case 'modified': return 'yellow'
-            case 'saved': return 'green'
-            default: return 'gray'
-        }
-    }
-
-    const getStatusText = () => {
-        switch (currentScene?.status) {
-            case 'draft': return 'Черновик'
-            case 'modified': return 'Есть изменения'
-            case 'saved': return 'Сохранена'
-            default: return 'Неизвестно'
-        }
-    }
-
-    // Компонент для отображения объекта
-    const ObjectItem = ({ obj, isExpanded, isSelected, onToggleExpanded, onHighlight, onClearHighlight, 
-                          onSelect, onToggleVisibility, onRemove, onSaveToLibrary, onEdit, 
-                          onToggleInstanceVisibility, onRemoveInstance, selectedObject }: any) => {
-        return (
-            <Box>
-                <Box
-                    p="4"
-                    draggable
-                    style={{
-                        opacity: obj.visible ? 1 : 0.6,
-                        transition: 'all 0.1s ease',
-                        cursor: draggedObjectIndex === obj.objectIndex ? 'grabbing' : 'grab',
-                        backgroundColor: isSelected
-                            ? 'var(--mantine-color-blue-9)'
-                            : 'transparent',
-                        borderRadius: '4px',
-                        border: isSelected
-                            ? '1px solid var(--mantine-color-blue-6)'
-                            : '1px solid transparent',
-                        marginBottom: '1px'
-                    }}
-                    onMouseEnter={onHighlight}
-                    onMouseLeave={onClearHighlight}
-                    onClick={onSelect}
-                    onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
-                    onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
-                >
-                    <Group justify="space-between" align="center" gap="xs">
-                        <Group gap="xs" style={{ flex: 1 }}>
-                            <ActionIcon
-                                size="xs"
-                                variant="transparent"
-                                onClick={onToggleExpanded}
-                                style={{ 
-                                    width: '16px', 
-                                    height: '16px', 
-                                    minWidth: '16px' 
-                                }}
-                            >
-                                {isExpanded ? (
-                                    <IconChevronDown size={12} />
-                                ) : (
-                                    <IconChevronRight size={12} />
-                                )}
-                            </ActionIcon>
-                            <IconCube size={12} color="var(--mantine-color-blue-4)" />
-                            <Text size="xs" fw={500} lineClamp={1} style={{ userSelect: 'none' }}>
-                                {obj.name}
-                            </Text>
-                            <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
-                                ({obj.count})
-                            </Text>
-                        </Group>
-
-                        <Group gap="xs">
-                            <ActionIcon
-                                size="xs"
-                                variant="transparent"
-                                onClick={() => onToggleVisibility()}
-                                style={{ 
-                                    width: '16px', 
-                                    height: '16px', 
-                                    minWidth: '16px' 
-                                }}
-                            >
-                                {obj.visible ? (
-                                    <IconEye size={12} />
-                                ) : (
-                                    <IconEyeOff size={12} />
-                                )}
-                            </ActionIcon>
-                            <Menu shadow="md" width={200}>
-                                <Menu.Target>
-                                    <ActionIcon
-                                        size="xs"
-                                        variant="transparent"
-                                        style={{ 
-                                            width: '16px', 
-                                            height: '16px', 
-                                            minWidth: '16px' 
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <Text size="xs" fw={700}>⋮</Text>
-                                    </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                    <Menu.Item
-                                        leftSection={<IconEdit size={14} />}
-                                        onClick={() => onEdit()}
-                                    >
-                                        Редактировать
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        leftSection={<IconBookmark size={14} />}
-                                        onClick={() => onSaveToLibrary()}
-                                    >
-                                        Сохранить в библиотеку
-                                    </Menu.Item>
-                                    <Menu.Divider />
-                                    <Menu.Item
-                                        leftSection={<IconTrash size={14} />}
-                                        color="red"
-                                        onClick={() => onRemove()}
-                                    >
-                                        Удалить объект
-                                    </Menu.Item>
-                                </Menu.Dropdown>
-                            </Menu>
-                        </Group>
-                    </Group>
-                </Box>
-                
-                <Collapse in={isExpanded}>
-                    <Box ml="lg" mt="2px">
-                        <Stack gap="2px">
-                            {obj.instances && obj.instances.length > 0 ? (
-                                obj.instances.map((instance: any) => (
-                                    <Box
-                                        key={instance.id}
-                                        p="xs"
-                                        style={{
-                                            opacity: instance.visible ? 1 : 0.6,
-                                            backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                ? 'var(--mantine-color-blue-9)'
-                                                : 'transparent',
-                                            borderRadius: '4px',
-                                            border: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                ? '1px solid var(--mantine-color-blue-6)'
-                                                : '1px solid transparent',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.1s ease',
-                                            marginBottom: '1px'
-                                        }}
-                                        onMouseEnter={() => onHighlight(instance.id)}
-                                        onMouseLeave={() => onClearHighlight()}
-                                        onClick={() => onSelect(instance.id)}
-                                    >
-                                        <Group justify="space-between" align="center" gap="xs">
-                                            <Group gap="xs" style={{ flex: 1 }}>
-                                                <Box w={6} h={6} style={{ backgroundColor: 'var(--mantine-color-blue-5)', borderRadius: '50%' }} />
-                                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
-                                                    {instance.id}
-                                                </Text>
-                                                <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
-                                                    ({instance.position[0].toFixed(1)}, {instance.position[1].toFixed(1)}, {instance.position[2].toFixed(1)})
-                                                </Text>
-                                            </Group>
-                                            
-                                            <Group gap="xs">
-                                                <ActionIcon
-                                                    size="xs"
-                                                    variant="transparent"
-                                                    onClick={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
-                                                    style={{ 
-                                                        width: '16px', 
-                                                        height: '16px', 
-                                                        minWidth: '16px' 
-                                                    }}
-                                                >
-                                                    {instance.visible ? (
-                                                        <IconEye size={12} />
-                                                    ) : (
-                                                        <IconEyeOff size={12} />
-                                                    )}
-                                                </ActionIcon>
-                                                <Menu shadow="md" width={200}>
-                                                    <Menu.Target>
-                                                        <ActionIcon
-                                                            size="xs"
-                                                            variant="transparent"
-                                                            style={{ 
-                                                                width: '16px', 
-                                                                height: '16px', 
-                                                                minWidth: '16px' 
-                                                            }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <Text size="xs" fw={700}>⋮</Text>
-                                                        </ActionIcon>
-                                                    </Menu.Target>
-                                                    <Menu.Dropdown>
-                                                        <Menu.Item
-                                                            leftSection={<IconEdit size={14} />}
-                                                            onClick={() => onEdit(instance.id)}
-                                                        >
-                                                            Редактировать
-                                                        </Menu.Item>
-                                                        <Menu.Divider />
-                                                        <Menu.Item
-                                                            leftSection={<IconTrash size={14} />}
-                                                            color="red"
-                                                            onClick={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
-                                                        >
-                                                            Удалить экземпляр
-                                                        </Menu.Item>
-                                                    </Menu.Dropdown>
-                                                </Menu>
-                                            </Group>
-                                        </Group>
-                                    </Box>
-                                ))
-                            ) : (
-                                <Text size="xs" c="dimmed" ta="center">
-                                    Нет экземпляров
-                                </Text>
-                            )}
-                        </Stack>
-                    </Box>
-                </Collapse>
-            </Box>
-        )
-    }
-
-    const handleLightingChange = (key: keyof LightingSettings, value: any) => {
-        if (onLightingChange && lighting) {
-            onLightingChange({
-                ...lighting,
-                [key]: value
-            })
-        }
-    }
-
     return (
         <>
-        <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
-            <Stack gap="sm" style={{ height: '100%' }}>
-                {/* Main Scene Header */}
-                <Title order={4} c="gray.6" size="md">
-                    Сцена
-                </Title>
+            <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
+                <Stack gap="sm" style={{ height: '100%' }}>
+                    <Title order={4} c="gray.6" size="md">
+                        Сцена
+                    </Title>
 
-                {/* Current Scene Header */}
-                {currentScene && (
-                    <>
-                        <Group justify="space-between" align="center">
-                            <Group gap="xs" style={{ flex: 1 }}>
-                                <IconFileText size={14} color="var(--mantine-color-blue-6)" />
-                                <Text size="xs" fw={500} lineClamp={1} style={{ flex: 1 }}>
-                                    {currentScene.name}
-                                </Text>
-                            </Group>
-                            <Group gap="xs">
-                                <Badge variant="light" color={getStatusColor()} size="xs">
-                                    {getStatusText()}
-                                </Badge>
-                                {(currentScene.status === 'draft' || currentScene.status === 'modified') && (
-                                    <Tooltip label="Сохранить сцену в библиотеку">
-                                        <ActionIcon
-                                            size="xs"
-                                            variant="light"
-                                            color="green"
-                                            onClick={onSaveSceneToLibrary}
-                                        >
-                                            <IconDeviceFloppy size={12} />
-                                        </ActionIcon>
-                                    </Tooltip>
-                                )}
-                            </Group>
-                        </Group>
-                        <Divider />
-                    </>
-                )}
+                    <SceneHeader
+                        currentScene={currentScene}
+                        onSaveSceneToLibrary={onSaveSceneToLibrary}
+                    />
 
-                <Group justify="space-between" align="center">
-                    <Text size="xs" fw={500} c="dimmed">
-                        Объекты
-                    </Text>
-                    <Group gap="xs">
-                        <Tooltip label="Создать новый слой">
-                            <ActionIcon 
-                                size="sm" 
-                                variant="light" 
-                                color="purple"
-                                onClick={() => setCreateLayerModalOpened(true)}
-                            >
-                                <IconPlus size={14} />
-                            </ActionIcon>
-                        </Tooltip>
-                        <Badge variant="light" color="blue" size="xs">
-                            {totalObjects}
-                        </Badge>
-                    </Group>
-                </Group>
-
-                <Divider />
-
-                {/* Lighting Controls */}
-                {lighting && onLightingChange && (
-                    <>
-                        <Group justify="space-between" align="center">
-                            <Group gap="sm">
-                                <ActionIcon
-                                    size="sm"
-                                    variant="subtle"
-                                    color="gray"
-                                    onClick={() => setLightingExpanded(prev => !prev)}
+                    <Group justify="space-between" align="center">
+                        <Text size="xs" fw={500} c="dimmed">
+                            Объекты
+                        </Text>
+                        <Group gap="xs">
+                            <Tooltip label="Создать новый слой">
+                                <ActionIcon 
+                                    size="sm" 
+                                    variant="light" 
+                                    color="purple"
+                                    onClick={() => setCreateLayerModalOpened(true)}
                                 >
-                                    {lightingExpanded ? (
-                                        <IconChevronDown size={14} />
-                                    ) : (
-                                        <IconChevronRight size={14} />
-                                    )}
+                                    <IconPlus size={14} />
                                 </ActionIcon>
-                                <IconBulb size={16} color="var(--mantine-color-yellow-6)" />
-                                <Text size="xs" fw={500} c="dimmed">
-                                    Освещение
-                                </Text>
-                            </Group>
+                            </Tooltip>
+                            <Badge variant="light" color="blue" size="xs">
+                                {totalObjects}
+                            </Badge>
                         </Group>
+                    </Group>
 
-                        <Collapse in={lightingExpanded}>
-                            <Stack gap="xs" ml="md">
-                                <Box>
-                                    <Text size="xs" fw={500} mb="xs">Фоновое освещение</Text>
-                                    <Group gap="xs">
-                                        <ColorInput
-                                            size="xs"
-                                            value={lighting.ambientColor || '#6b7280'}
-                                            onChange={(value) => handleLightingChange('ambientColor', value)}
-                                            withEyeDropper={false}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <NumberInput
-                                            size="xs"
-                                            value={lighting.ambientIntensity || 0.4}
-                                            onChange={(value) => handleLightingChange('ambientIntensity', value)}
-                                            min={0}
-                                            max={1}
-                                            step={0.1}
-                                            style={{ width: 60 }}
-                                        />
-                                    </Group>
-                                </Box>
+                    <Divider />
 
-                                <Box>
-                                    <Text size="xs" fw={500} mb="xs">Направленный свет</Text>
-                                    <Group gap="xs">
-                                        <ColorInput
-                                            size="xs"
-                                            value={lighting.directionalColor || '#ffffff'}
-                                            onChange={(value) => handleLightingChange('directionalColor', value)}
-                                            withEyeDropper={false}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <NumberInput
-                                            size="xs"
-                                            value={lighting.directionalIntensity || 0.8}
-                                            onChange={(value) => handleLightingChange('directionalIntensity', value)}
-                                            min={0}
-                                            max={1}
-                                            step={0.1}
-                                            style={{ width: 60 }}
-                                        />
-                                    </Group>
-                                </Box>
+                    <LightingControls
+                        lighting={lighting}
+                        onLightingChange={onLightingChange}
+                    />
 
-                                <Box>
-                                    <Text size="xs" fw={500} mb="xs">Фон сцены</Text>
-                                    <ColorInput
-                                        size="xs"
-                                        value={lighting.backgroundColor || '#1a1b1e'}
-                                        onChange={(value) => handleLightingChange('backgroundColor', value)}
-                                        withEyeDropper={false}
-                                    />
-                                </Box>
-                            </Stack>
-                        </Collapse>
-
-                        <Divider />
-                    </>
-                )}
-
-
-                <ScrollArea 
-                    style={{ flex: 1 }}
-                    onClick={() => setContextMenuOpened(false)}
-                >
-                    <Stack gap="xs">
-                        {objects.length === 0 ? (
-                            <Text size="sm" c="dimmed" ta="center" py="xl">
-                                Нет объектов на сцене
-                            </Text>
-                        ) : layers && layers.length > 0 ? (
-                            // Группируем объекты по слоям
-                            layers.map((layer) => {
-                                const layerObjects = getObjectsByLayer(layer.id)
-                                const isLayerExpanded = expandedLayers.has(layer.id)
-                                
-                                return (
-                                    <div key={layer.id}>
-                                        <Box 
-                                            p="xs" 
-                                            style={{ 
-                                                backgroundColor: dragOverLayerId === layer.id 
-                                                    ? 'var(--mantine-color-blue-8)' 
-                                                    : 'transparent', 
-                                                marginBottom: '2px',
-                                                borderRadius: '4px',
-                                                border: dragOverLayerId === layer.id 
-                                                    ? '1px dashed var(--mantine-color-blue-4)' 
-                                                    : '1px solid transparent',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.1s ease'
-                                            }}
-                                            onDragOver={(e) => handleDragOver(e, layer.id)}
+                    <ScrollArea 
+                        style={{ flex: 1 }}
+                        onClick={() => setContextMenuOpened(false)}
+                    >
+                        <Stack gap="xs">
+                            {objects.length === 0 ? (
+                                <Text size="sm" c="dimmed" ta="center" py="xl">
+                                    Нет объектов на сцене
+                                </Text>
+                            ) : layers && layers.length > 0 ? (
+                                layers.map((layer) => {
+                                    const layerObjects = getObjectsByLayer(layer.id)
+                                    const isLayerExpanded = expandedLayers.has(layer.id)
+                                    
+                                    return (
+                                        <LayerItem
+                                            key={layer.id}
+                                            layer={layer}
+                                            layerObjects={layerObjects}
+                                            isExpanded={isLayerExpanded}
+                                            expandedItems={expandedItems}
+                                            selectedObject={selectedObject}
+                                            dragOverLayerId={dragOverLayerId}
+                                            onToggleExpanded={toggleLayerExpanded}
+                                            onToggleVisibility={onToggleLayerVisibility || (() => {})}
+                                            onEdit={openEditLayerModal}
+                                            onDelete={onDeleteLayer || (() => {})}
+                                            onToggleObjectExpanded={toggleObjectExpanded}
+                                            onHighlightObject={onHighlightObject}
+                                            onClearHighlight={onClearHighlight}
+                                            onSelectObject={onSelectObject}
+                                            onToggleObjectVisibility={onToggleVisibility}
+                                            onRemoveObject={onRemoveObject}
+                                            onSaveObjectToLibrary={onSaveObjectToLibrary}
+                                            onEditObject={onEditObject}
+                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
+                                            onRemoveInstance={onRemoveInstance}
+                                            onDragStart={handleDragStart}
+                                            onContextMenu={handleContextMenu}
+                                            onDragOver={handleDragOver}
                                             onDragLeave={handleDragLeave}
-                                            onDrop={(e) => handleDrop(e, layer.id)}
-                                        >
-                                            <Group justify="space-between" align="center" gap="xs">
-                                                <Group gap="xs" style={{ flex: 1 }}>
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="transparent"
-                                                        onClick={() => toggleLayerExpanded(layer.id)}
-                                                        style={{ 
-                                                            width: '16px', 
-                                                            height: '16px', 
-                                                            minWidth: '16px' 
-                                                        }}
-                                                    >
-                                                        {isLayerExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
-                                                    </ActionIcon>
-                                                    <IconLayersLinked size={14} color="var(--mantine-color-blue-4)" />
-                                                    <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
-                                                        {layer.name}
-                                                    </Text>
-                                                    <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
-                                                        ({layerObjects.length})
-                                                    </Text>
-                                                </Group>
-                                                <Group gap="xs">
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="transparent"
-                                                        onClick={() => onToggleLayerVisibility && onToggleLayerVisibility(layer.id)}
-                                                        style={{ 
-                                                            width: '16px', 
-                                                            height: '16px', 
-                                                            minWidth: '16px' 
-                                                        }}
-                                                    >
-                                                        {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-                                                    </ActionIcon>
-                                                    <Menu shadow="md" width={200}>
-                                                        <Menu.Target>
-                                                            <ActionIcon
-                                                                size="xs"
-                                                                variant="transparent"
-                                                                style={{ 
-                                                                    width: '16px', 
-                                                                    height: '16px', 
-                                                                    minWidth: '16px' 
-                                                                }}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                                <Text size="xs" fw={700}>⋮</Text>
-                                                            </ActionIcon>
-                                                        </Menu.Target>
-                                                        <Menu.Dropdown>
-                                                            <Menu.Item
-                                                                leftSection={<IconEdit size={14} />}
-                                                                onClick={() => openEditLayerModal(layer.id, layer.name)}
-                                                            >
-                                                                Переименовать
-                                                            </Menu.Item>
-                                                            {layer.id !== 'objects' && (
-                                                                <Menu.Item
-                                                                    leftSection={<IconTrash size={14} />}
-                                                                    color="red"
-                                                                    onClick={() => onDeleteLayer && onDeleteLayer(layer.id)}
-                                                                >
-                                                                    Удалить слой
-                                                                </Menu.Item>
-                                                            )}
-                                                        </Menu.Dropdown>
-                                                    </Menu>
-                                                </Group>
-                                            </Group>
-                                        </Box>
-                                        
-                                        <Collapse in={isLayerExpanded}>
-                                            <Stack gap="0px" pl="lg">
-                                                {layerObjects.length === 0 ? (
-                                                    <Text size="xs" c="dimmed" ta="center" py="sm">
-                                                        Пустой слой
-                                                    </Text>
-                                                ) : (
-                                                    layerObjects.map((obj) => (
-                                                        <ObjectItem
-                                                            key={`${obj.name}-${obj.objectIndex}`}
-                                                            obj={obj}
-                                                            isExpanded={expandedItems.has(obj.objectIndex)}
-                                                            isSelected={selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId}
-                                                            onToggleExpanded={() => toggleExpanded(obj.objectIndex)}
-                                                            onHighlight={() => onHighlightObject?.(obj.objectIndex)}
-                                                            onClearHighlight={() => onClearHighlight?.()}
-                                                            onSelect={() => onSelectObject?.(obj.objectIndex)}
-                                                            onToggleVisibility={() => onToggleVisibility?.(obj.objectIndex)}
-                                                            onRemove={() => onRemoveObject?.(obj.objectIndex)}
-                                                            onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectIndex)}
-                                                            onEdit={() => onEditObject?.(obj.objectIndex)}
-                                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
-                                                            onRemoveInstance={onRemoveInstance}
-                                                            selectedObject={selectedObject}
-                                                        />
-                                                    ))
-                                                )}
-                                            </Stack>
-                                        </Collapse>
-                                    </div>
-                                )
-                            })
-                        ) : (
-                            // Fallback для случая без слоев
-                            objects.map((obj) => {
-                                const isExpanded = expandedItems.has(obj.objectIndex)
-                                const isSelected = selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId
-                                return (
-                                    <Box key={`${obj.name}-${obj.objectIndex}`}>
-                                        <Paper
-                                            p="sm"
-                                            withBorder
-                                            style={{
-                                                opacity: obj.visible ? 1 : 0.6,
-                                                transition: 'opacity 0.2s ease',
-                                                cursor: 'pointer',
-                                                backgroundColor: isSelected
-                                                    ? 'var(--mantine-color-dark-5)'
-                                                    : 'var(--mantine-color-dark-6)',
-                                                borderColor: isSelected
-                                                    ? 'var(--mantine-color-orange-4)'
-                                                    : 'var(--mantine-color-dark-4)'
-                                            }}
-                                            onMouseEnter={() => onHighlightObject?.(obj.objectIndex)}
-                                            onMouseLeave={() => onClearHighlight?.()}
-                                            onClick={() => onSelectObject?.(obj.objectIndex)}
-                                        >
-                                            <Group justify="space-between" align="center">
-                                                <Group gap="sm" style={{ flex: 1 }}>
-                                                    <ActionIcon
-                                                        size="sm"
-                                                        variant="subtle"
-                                                        color="gray"
-                                                        onClick={() => toggleExpanded(obj.objectIndex)}
-                                                    >
-                                                        {isExpanded ? (
-                                                            <IconChevronDown size={14} />
-                                                        ) : (
-                                                            <IconChevronRight size={14} />
-                                                        )}
-                                                    </ActionIcon>
-                                                    <IconCube size={16} color="var(--mantine-color-blue-6)" />
-                                                    <Box style={{ flex: 1 }}>
-                                                        <Text size="sm" fw={500} lineClamp={1}>
-                                                            {obj.name}
-                                                        </Text>
-                                                        <Text size="xs" c="dimmed">
-                                                            Всего: {obj.count}
-                                                        </Text>
-                                                    </Box>
-                                                </Group>
+                                            onDrop={handleDrop}
+                                        />
+                                    )
+                                })
+                            ) : (
+                                // Fallback для случая без слоев
+                                objects.map((obj) => {
+                                    const isExpanded = expandedItems.has(obj.objectIndex)
+                                    const isSelected = selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId
+                                    return (
+                                        <ObjectItem
+                                            key={`${obj.name}-${obj.objectIndex}`}
+                                            obj={obj}
+                                            isExpanded={isExpanded}
+                                            isSelected={isSelected}
+                                            selectedObject={selectedObject}
+                                            onToggleExpanded={() => toggleObjectExpanded(obj.objectIndex)}
+                                            onHighlight={() => onHighlightObject?.(obj.objectIndex)}
+                                            onClearHighlight={() => onClearHighlight?.()}
+                                            onSelect={() => onSelectObject?.(obj.objectIndex)}
+                                            onToggleVisibility={() => onToggleVisibility?.(obj.objectIndex)}
+                                            onRemove={() => onRemoveObject?.(obj.objectIndex)}
+                                            onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectIndex)}
+                                            onEdit={() => onEditObject?.(obj.objectIndex)}
+                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
+                                            onRemoveInstance={onRemoveInstance}
+                                            onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
+                                            onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
+                                        />
+                                    )
+                                })
+                            )}
+                        </Stack>
+                    </ScrollArea>
 
-                                                <Group gap="xs">
-                                                    <Tooltip label="Редактировать">
-                                                        <ActionIcon
-                                                            size="sm"
-                                                            variant="subtle"
-                                                            color="orange"
-                                                            onClick={() => onEditObject?.(obj.objectIndex)}
-                                                        >
-                                                            <IconEdit size={14} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-
-                                                    <Tooltip label="Сохранить в библиотеку">
-                                                        <ActionIcon
-                                                            size="sm"
-                                                            variant="subtle"
-                                                            color="green"
-                                                            onClick={() => onSaveObjectToLibrary?.(obj.objectIndex)}
-                                                        >
-                                                            <IconBookmark size={14} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-
-                                                    <Tooltip label={obj.visible ? 'Скрыть' : 'Показать'}>
-                                                        <ActionIcon
-                                                            size="sm"
-                                                            variant="subtle"
-                                                            color={obj.visible ? 'blue' : 'gray'}
-                                                            onClick={() => onToggleVisibility?.(obj.objectIndex)}
-                                                        >
-                                                            {obj.visible ? (
-                                                                <IconEye size={14} />
-                                                            ) : (
-                                                                <IconEyeOff size={14} />
-                                                            )}
-                                                        </ActionIcon>
-                                                    </Tooltip>
-
-                                                    <Tooltip label="Удалить все копии">
-                                                        <ActionIcon
-                                                            size="sm"
-                                                            variant="subtle"
-                                                            color="red"
-                                                            onClick={() => onRemoveObject?.(obj.objectIndex)}
-                                                        >
-                                                            <IconTrash size={14} />
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                </Group>
-                                            </Group>
-                                        </Paper>
-                                        
-                                        <Collapse in={isExpanded}>
-                                            <Box ml="md" mt="xs">
-                                                <Stack gap="xs">
-                                                    {obj.instances && obj.instances.length > 0 ? (
-                                                        obj.instances.map((instance) => (
-                                                            <Paper
-                                                                key={instance.id}
-                                                                p="xs"
-                                                                withBorder
-                                                                style={{
-                                                                    opacity: instance.visible ? 1 : 0.6,
-                                                                    backgroundColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                                        ? 'var(--mantine-color-dark-5)'
-                                                                        : 'var(--mantine-color-dark-6)',
-                                                                    borderColor: selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id
-                                                                        ? 'var(--mantine-color-orange-4)'
-                                                                        : 'var(--mantine-color-dark-4)',
-                                                                    cursor: 'pointer'
-                                                                }}
-                                                                onMouseEnter={() => onHighlightObject?.(obj.objectIndex, instance.id)}
-                                                                onMouseLeave={() => onClearHighlight?.()}
-                                                                onClick={() => onSelectObject?.(obj.objectIndex, instance.id)}
-                                                            >
-                                                                <Group justify="space-between" align="center">
-                                                                    <Group gap="sm" style={{ flex: 1 }}>
-                                                                        <Box w={4} h={4} style={{ backgroundColor: 'var(--mantine-color-blue-6)', borderRadius: '50%' }} />
-                                                                        <Box style={{ flex: 1 }}>
-                                                                            <Text size="xs" fw={500}>
-                                                                                Экземпляр {instance.id}
-                                                                            </Text>
-                                                                            <Text size="xs" c="dimmed">
-                                                                                x:{instance.position[0].toFixed(1)} y:{instance.position[1].toFixed(1)} z:{instance.position[2].toFixed(1)}
-                                                                            </Text>
-                                                                        </Box>
-                                                                    </Group>
-                                                                    
-                                                                    <Group gap="xs">
-                                                                        <Tooltip label="Редактировать экземпляр">
-                                                                            <ActionIcon
-                                                                                size="xs"
-                                                                                variant="subtle"
-                                                                                color="orange"
-                                                                                onClick={() => onEditObject?.(obj.objectIndex, instance.id)}
-                                                                            >
-                                                                                <IconEdit size={12} />
-                                                                            </ActionIcon>
-                                                                        </Tooltip>
-
-                                                                        <Tooltip label={instance.visible ? 'Скрыть' : 'Показать'}>
-                                                                            <ActionIcon
-                                                                                size="xs"
-                                                                                variant="subtle"
-                                                                                color={instance.visible ? 'blue' : 'gray'}
-                                                                                onClick={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
-                                                                            >
-                                                                                {instance.visible ? (
-                                                                                    <IconEye size={12} />
-                                                                                ) : (
-                                                                                    <IconEyeOff size={12} />
-                                                                                )}
-                                                                            </ActionIcon>
-                                                                        </Tooltip>
-                                                                        
-                                                                        <Tooltip label="Удалить экземпляр">
-                                                                            <ActionIcon
-                                                                                size="xs"
-                                                                                variant="subtle"
-                                                                                color="red"
-                                                                                onClick={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
-                                                                            >
-                                                                                <IconTrash size={12} />
-                                                                            </ActionIcon>
-                                                                        </Tooltip>
-                                                                    </Group>
-                                                                </Group>
-                                                            </Paper>
-                                                        ))
-                                                    ) : (
-                                                        <Text size="xs" c="dimmed" ta="center" py="sm">
-                                                            Нет экземпляров
-                                                        </Text>
-                                                    )}
-                                                </Stack>
-                                            </Box>
-                                        </Collapse>
-                                    </Box>
-                                )
-                            })
-                        )}
-                    </Stack>
-                </ScrollArea>
-
-                {objects.length > 0 && (
-                    <>
-                        <Divider />
-                        <Text size="xs" c="dimmed" ta="center">
-                            Всего объектов: {totalObjects}
-                        </Text>
-                        <Text size="xs" c="dimmed" ta="center">
-                            Перетащите объект в слой или ПКМ для выбора слоя
-                        </Text>
-                        
-                        {selectedObject && (
-                            <>
-                                <Divider />
-                                <Text size="xs" c="dimmed" ta="center">
-                                    Выбран объект для управления
-                                </Text>
-                                <Text size="xs" c="dimmed" ta="center">
-                                    ←→↑↓ перемещение по XZ
-                                </Text>
-                                <Text size="xs" c="dimmed" ta="center">
-                                    Num8/Num2 перемещение по Y
-                                </Text>
-                                <Text size="xs" c="dimmed" ta="center">
-                                    +/- изменение размера
-                                </Text>
-                                <Text size="xs" c="dimmed" ta="center">
-                                    Esc отмена выбора
-                                </Text>
-                            </>
-                        )}
-                    </>
-                )}
-            </Stack>
-        </Paper>
-        
-        {/* Модальные окна */}
-        <Modal
-            opened={createLayerModalOpened}
-            onClose={() => {
-                setCreateLayerModalOpened(false)
-                setNewLayerName('')
-            }}
-            title="Создать новый слой"
-            size="sm"
-        >
-            <Stack gap="md">
-                <TextInput
-                    label="Название слоя"
-                    placeholder="Введите название слоя"
-                    value={newLayerName}
-                    onChange={(e) => setNewLayerName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            handleCreateLayer()
-                        }
-                    }}
-                    autoFocus
-                />
-                <Group justify="flex-end" gap="sm">
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setCreateLayerModalOpened(false)
-                            setNewLayerName('')
-                        }}
-                    >
-                        Отмена
-                    </Button>
-                    <Button
-                        onClick={handleCreateLayer}
-                        disabled={!newLayerName.trim()}
-                    >
-                        Создать
-                    </Button>
-                </Group>
-            </Stack>
-        </Modal>
-
-        <Modal
-            opened={editLayerModalOpened}
-            onClose={() => {
-                setEditLayerModalOpened(false)
-                setNewLayerName('')
-                setEditingLayerId(null)
-            }}
-            title="Редактировать слой"
-            size="sm"
-        >
-            <Stack gap="md">
-                <TextInput
-                    label="Название слоя"
-                    placeholder="Введите название слоя"
-                    value={newLayerName}
-                    onChange={(e) => setNewLayerName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            handleUpdateLayer()
-                        }
-                    }}
-                    autoFocus
-                />
-                <Group justify="flex-end" gap="sm">
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setEditLayerModalOpened(false)
-                            setNewLayerName('')
-                            setEditingLayerId(null)
-                        }}
-                    >
-                        Отмена
-                    </Button>
-                    <Button
-                        onClick={handleUpdateLayer}
-                        disabled={!newLayerName.trim()}
-                    >
-                        Сохранить
-                    </Button>
-                </Group>
-            </Stack>
-        </Modal>
-        
-        {/* Контекстное меню для перемещения объектов */}
-        <Menu
-            opened={contextMenuOpened}
-            onClose={() => setContextMenuOpened(false)}
-            position="bottom-start"
-            shadow="md"
-            width={200}
-        >
-            <Menu.Target>
-                <div 
-                    style={{
-                        position: 'fixed',
-                        left: contextMenuPosition.x,
-                        top: contextMenuPosition.y,
-                        width: 1,
-                        height: 1,
-                        pointerEvents: 'none'
-                    }}
-                />
-            </Menu.Target>
-            <Menu.Dropdown>
-                <Menu.Label>Переместить в слой</Menu.Label>
-                {layers?.map((layer) => (
-                    <Menu.Item
-                        key={layer.id}
-                        leftSection={<IconLayersLinked size={16} />}
-                        onClick={() => handleMoveToLayer(layer.id)}
-                    >
-                        {layer.name}
-                    </Menu.Item>
-                ))}
-            </Menu.Dropdown>
-        </Menu>
+                    {objects.length > 0 && (
+                        <>
+                            <Divider />
+                            <Text size="xs" c="dimmed" ta="center">
+                                Всего объектов: {totalObjects}
+                            </Text>
+                            <Text size="xs" c="dimmed" ta="center">
+                                Перетащите объект в слой или ПКМ для выбора слоя
+                            </Text>
+                            
+                            {selectedObject && (
+                                <>
+                                    <Divider />
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        Выбран объект для управления
+                                    </Text>
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        ←→↑↓ перемещение по XZ
+                                    </Text>
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        Num8/Num2 перемещение по Y
+                                    </Text>
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        +/- изменение размера
+                                    </Text>
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        Esc отмена выбора
+                                    </Text>
+                                </>
+                            )}
+                        </>
+                    )}
+                </Stack>
+            </Paper>
+            
+            <LayerModals
+                createLayerModalOpened={createLayerModalOpened}
+                setCreateLayerModalOpened={setCreateLayerModalOpened}
+                newLayerName={newLayerName}
+                setNewLayerName={setNewLayerName}
+                onCreateLayer={handleCreateLayer}
+                editLayerModalOpened={editLayerModalOpened}
+                setEditLayerModalOpened={setEditLayerModalOpened}
+                onUpdateLayer={handleUpdateLayer}
+                contextMenuOpened={contextMenuOpened}
+                setContextMenuOpened={setContextMenuOpened}
+                contextMenuPosition={contextMenuPosition}
+                layers={layers}
+                onMoveToLayer={handleMoveToLayer}
+            />
         </>
     )
 }
+
+// Экспортируем интерфейс для использования в других компонентах
+export { type ObjectInfo }

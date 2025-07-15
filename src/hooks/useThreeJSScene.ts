@@ -183,13 +183,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     scene.add(directionalLight)
 
     // Добавляем плоскость для приема теней
-    const groundGeometry = new THREE.PlaneGeometry(100, 100)
-    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xcccccc, transparent: true, opacity: 0.3 })
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = -0.01
-    ground.receiveShadow = true
-    scene.add(ground)
+    // const groundGeometry = new THREE.PlaneGeometry(100, 100)
+    // const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xcccccc, transparent: true, opacity: 0.3 })
+    // const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+    // ground.rotation.x = -Math.PI / 2
+    // ground.position.y = -0.01
+    // ground.receiveShadow = true
+    // scene.add(ground)
     
     // Добавляем сетку на уровне z=0
     const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x888888)
