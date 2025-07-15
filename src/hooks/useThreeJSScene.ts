@@ -1066,22 +1066,20 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.enablePan = true
       controlsRef.current = controls
     } else if (mode === 'walk') {
-      // Reset camera position for walk mode
-      camera.position.set(0, 2, 5)
-      camera.lookAt(0, 0, 0)
+      // Reset camera position for walk mode (FPS style)
+      camera.position.set(0, 1.8, 5)
+      camera.lookAt(0, 1.8, 0)
       
       const controls = new FirstPersonControls(camera, renderer.domElement)
-      controls.lookSpeed = 0.5
-      controls.movementSpeed = 10
+      controls.lookSpeed = 0.8
+      controls.movementSpeed = 15
       controls.lookVertical = true
-      controls.constrainVertical = true
-      controls.verticalMin = 0.1
-      controls.verticalMax = Math.PI - 0.1
+      controls.constrainVertical = false
       controls.activeLook = true
       controls.heightSpeed = false
       controls.heightCoef = 1
       controls.heightMin = 0
-      controls.heightMax = 1
+      controls.heightMax = 1000
       controlsRef.current = controls
     } else if (mode === 'fly') {
       // Reset camera position for fly mode
