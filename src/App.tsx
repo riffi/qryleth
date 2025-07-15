@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   AppShell,
   Container,
@@ -28,7 +28,9 @@ import {
   IconBrain,
   IconEye,
   IconRun,
-  IconBooks
+  IconBooks,
+  IconArrowBack,
+  IconArrowForward
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager'
@@ -56,7 +58,7 @@ function App() {
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo } = useThreeJSScene(canvasRef)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -108,6 +110,24 @@ function App() {
     setCurrentLighting(newLighting)
     updateLighting(newLighting)
   }
+
+  // Обработка горячих клавиш для undo/redo
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault()
+          undo()
+        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault()
+          redo()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
 
   const getStatusColor = () => {
     switch (status) {
@@ -229,6 +249,28 @@ function App() {
                   >
                     {getStatusText()}
                   </Badge>
+
+                  <Tooltip label="Отменить (Ctrl+Z)">
+                    <ActionIcon 
+                      variant="subtle" 
+                      size="sm" 
+                      onClick={undo}
+                      disabled={!canUndo()}
+                    >
+                      <IconArrowBack size="1rem" />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip label="Вернуть (Ctrl+Y)">
+                    <ActionIcon 
+                      variant="subtle" 
+                      size="sm" 
+                      onClick={redo}
+                      disabled={!canRedo()}
+                    >
+                      <IconArrowForward size="1rem" />
+                    </ActionIcon>
+                  </Tooltip>
 
                   <Tooltip label="Библиотека">
                     <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)}>

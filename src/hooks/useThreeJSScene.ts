@@ -64,6 +64,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const placementsRef = useRef<ScenePlacement[]>([])
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
   const lastSavedDataRef = useRef<string>('')
+  
+  // История изменений для undo/redo
+  const historyRef = useRef<string[]>([])
+  const historyIndexRef = useRef<number>(-1)
+  const maxHistorySize = 50
+  
+  // Сохраняем исходные объекты для восстановления
+  const originalObjectsRef = useRef<SceneObject[]>([])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -367,9 +375,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       if (child.userData.generated && child.userData.objectIndex !== undefined) {
         const objectIndex = child.userData.objectIndex
         if (!objectMap[objectIndex]) {
+          // Используем исходные объекты с примитивами
+          const originalObject = originalObjectsRef.current[objectIndex]
           objectMap[objectIndex] = {
             name: child.name,
-            primitives: [] // We don't need primitives for object manager
+            primitives: originalObject?.primitives || [] // Берем примитивы из исходных объектов
           }
         }
       }
@@ -640,7 +650,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
     
-    // Mark scene as modified
+    // Сохранить состояние в историю и отметить сцену как измененную
+    saveToHistory()
     markSceneAsModified()
   }
 
@@ -747,7 +758,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
     
-    // Mark scene as modified
+    // Сохранить состояние в историю и отметить сцену как измененную
+    saveToHistory()
     markSceneAsModified()
   }
 
@@ -860,7 +872,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const buildSceneFromDescription = (description: SceneResponse | unknown, sceneName?: string, sceneUuid?: string) => {
-    if (!sceneRef.current || !isInitialized) return
+    if (!sceneRef.current || !isInitialized) {
+      return
+    }
 
     const scene = sceneRef.current
 
@@ -897,6 +911,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Сохраняем данные в состояние
     setSceneObjects(objects)
+    originalObjectsRef.current = objects
     placementsRef.current = placements
 
     // Сбрасываем состояние видимости
@@ -944,11 +959,20 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       compositeObject.userData.generated = true
       compositeObject.userData.objectIndex = placement.objectIndex
       compositeObject.userData.placementIndex = placementIndex
+      console.log('Adding composite object to scene:', compositeObject)
       scene.add(compositeObject)
     })
+    
+    console.log('Scene children count after adding objects:', scene.children.length)
+    console.log('Generated objects count:', scene.children.filter(child => child.userData.generated === true).length)
 
     // Обновляем информацию об объектах
     updateObjectsInfo(objects, placements)
+    
+    // Сохраняем состояние в историю только если это не восстановление из истории
+    if (!isRestoringFromHistory.current) {
+      saveToHistory()
+    }
     
     // Set scene state based on parameters
     if (sceneName && sceneUuid) {
@@ -1011,7 +1035,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       scene.background = new THREE.Color(settings.backgroundColor)
     }
     
-    // Отметить сцену как измененную
+    // Сохранить состояние в историю и отметить сцену как измененную
+    saveToHistory()
     markSceneAsModified()
   }
 
@@ -1063,11 +1088,15 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const getCurrentSceneData = () => {
+    // Получаем объекты из сцены, если состояние пустое
+    const objectsFromScene = getObjectsFromScene()
+    const objectsArray = Array.isArray(objectsFromScene) ? objectsFromScene : Object.values(objectsFromScene)
+    const currentObjects = sceneObjects.length > 0 ? sceneObjects : objectsArray
+    
     return {
-      objects: sceneObjects,
+      objects: currentObjects,
       placements: placementsRef.current,
       lighting: {
-        // Extract current lighting settings if needed
         ambientColor: lightsRef.current?.ambient.color.getHex(),
         ambientIntensity: lightsRef.current?.ambient.intensity,
         directionalColor: lightsRef.current?.directional.color.getHex(),
@@ -1089,17 +1118,71 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const markSceneAsModified = () => {
-    console.log('markSceneAsModified called, current status:', currentScene.status)
+    // Не меняем статус если восстанавливаем из истории
+    if (isRestoringFromHistory.current) return
+    
     if (currentScene.status === 'saved') {
-      console.log('Changing status from saved to modified')
       setCurrentScene(prev => ({ ...prev, status: 'modified' }))
     } else if (currentScene.status === 'draft') {
-      console.log('Changing status from draft to modified')
       setCurrentScene(prev => ({ ...prev, status: 'modified' }))
-    } else {
-      console.log('Status not changed, current status is:', currentScene.status)
     }
   }
+
+  // Функции для работы с историей изменений
+  const isRestoringFromHistory = useRef(false)
+  
+  const saveToHistory = () => {
+    // Не сохраняем в историю если восстанавливаем из неё
+    if (isRestoringFromHistory.current) return
+    
+    const sceneData = getCurrentSceneData()
+    const currentState = JSON.stringify(sceneData)
+    
+    // Если текущее состояние отличается от последнего в истории
+    if (historyRef.current[historyIndexRef.current] !== currentState) {
+      // Удаляем все состояния после текущего индекса (для случая когда делали undo, а потом новое действие)
+      historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
+      
+      // Добавляем новое состояние
+      historyRef.current.push(currentState)
+      historyIndexRef.current++
+      
+      // Ограничиваем размер истории
+      if (historyRef.current.length > maxHistorySize) {
+        historyRef.current.shift()
+        historyIndexRef.current--
+      }
+    }
+  }
+
+  const undo = () => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current--
+      const previousState = historyRef.current[historyIndexRef.current]
+      if (previousState) {
+        const stateData = JSON.parse(previousState)
+        isRestoringFromHistory.current = true
+        loadSceneData(stateData, currentScene.name, currentScene.uuid)
+        isRestoringFromHistory.current = false
+      }
+    }
+  }
+
+  const redo = () => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current++
+      const nextState = historyRef.current[historyIndexRef.current]
+      if (nextState) {
+        const stateData = JSON.parse(nextState)
+        isRestoringFromHistory.current = true
+        loadSceneData(stateData, currentScene.name, currentScene.uuid)
+        isRestoringFromHistory.current = false
+      }
+    }
+  }
+
+  const canUndo = () => historyIndexRef.current > 0
+  const canRedo = () => historyIndexRef.current < historyRef.current.length - 1
 
   const loadSceneData = (sceneData: any, sceneName?: string, sceneUuid?: string) => {
     if (sceneData && typeof sceneData === 'object') {
@@ -1239,7 +1322,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Update objects info
     updateObjectsInfo(updatedObjects, placementsRef.current)
     
-    // Mark scene as modified
+    // Сохранить состояние в историю и отметить сцену как измененную
+    saveToHistory()
     markSceneAsModified()
   }
 
@@ -1314,7 +1398,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
     })
     
-    // Mark scene as modified
+    // Сохранить состояние в историю и отметить сцену как измененную
+    saveToHistory()
     markSceneAsModified()
   }
 
@@ -1346,6 +1431,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     saveCurrentSceneToLibrary,
     checkSceneModified,
     getSceneObjects: () => sceneObjects,
-    updateObjectPrimitives
+    updateObjectPrimitives,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   }
 }
