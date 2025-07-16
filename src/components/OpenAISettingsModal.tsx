@@ -3,11 +3,11 @@ import { Modal, Button, TextInput, Stack, Group, Paper, ActionIcon, Text, Select
 import { IconPlus, IconTrash, IconCheck, IconEdit } from '@tabler/icons-react'
 import { nanoid } from 'nanoid'
 import {
-  getAllGroups,
-  saveGroups,
-  setActiveGroup
+  getAllConnections,
+  saveConnections,
+  setActiveConnection
 } from '../utils/openAISettings'
-import type { OpenAISettingsGroup } from '../utils/openAISettings'
+import type { OpenAISettingsConnection } from '../utils/openAISettings'
 
 const PROVIDER_URLS = {
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
@@ -20,21 +20,22 @@ interface Props {
 }
 
 export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
-  const [groups, setGroups] = useState<OpenAISettingsGroup[]>([])
+  const [connections, setConnections] = useState<OpenAISettingsConnection[]>([])
   const [activeId, setActiveId] = useState<string | undefined>()
   const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (opened) {
-      const data = getAllGroups()
-      setGroups(data.groups)
-      setActiveId(data.activeId)
+      getAllConnections().then(data => {
+        setConnections(data.connections)
+        setActiveId(data.activeId)
+      })
     }
   }, [opened])
 
   const handleAdd = () => {
     const id = nanoid()
-    setGroups(prev => [
+    setConnections(prev => [
       ...prev,
       {
         id,
@@ -48,14 +49,14 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
     setEditingId(id)
   }
 
-  const handleSave = () => {
-    saveGroups(groups, activeId)
-    if (activeId) setActiveGroup(activeId)
+  const handleSave = async () => {
+    await saveConnections(connections, activeId)
+    if (activeId) await setActiveConnection(activeId)
     onClose()
   }
 
   const handleRemove = (id: string) => {
-    setGroups(prev => prev.filter(g => g.id !== id))
+    setConnections(prev => prev.filter(g => g.id !== id))
     if (activeId === id) {
       setActiveId(undefined)
     }
@@ -67,7 +68,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
   return (
     <Modal opened={opened} onClose={onClose} title="OpenAI API Settings" fullScreen>
       <Stack>
-        {groups.map(g => (
+        {connections.map(g => (
           <Paper key={g.id} withBorder p="md">
             <Group justify="space-between" align="center">
               <Group>
@@ -98,7 +99,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   value={g.name}
                   onChange={e => {
                     const val = e.currentTarget.value
-                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, name: val } : it))
+                    setConnections(prev => prev.map(it => it.id === g.id ? { ...it, name: val } : it))
                   }}
                 />
                 <Select
@@ -110,8 +111,8 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   ]}
                   value={g.provider}
                   onChange={(val) => {
-                    const provider = (val ?? 'openrouter') as OpenAISettingsGroup['provider']
-                    setGroups(prev => prev.map(it => it.id === g.id ? {
+                    const provider = (val ?? 'openrouter') as OpenAISettingsConnection['provider']
+                    setConnections(prev => prev.map(it => it.id === g.id ? {
                       ...it,
                       provider,
                       url: provider === 'compatible' ? it.url : PROVIDER_URLS[provider]
@@ -124,7 +125,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   disabled={g.provider !== 'compatible'}
                   onChange={e => {
                     const val = e.currentTarget.value
-                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, url: val } : it))
+                    setConnections(prev => prev.map(it => it.id === g.id ? { ...it, url: val } : it))
                   }}
                 />
                 <TextInput
@@ -132,7 +133,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   value={g.model}
                   onChange={e => {
                     const val = e.currentTarget.value
-                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, model: val } : it))
+                    setConnections(prev => prev.map(it => it.id === g.id ? { ...it, model: val } : it))
                   }}
                 />
                 <TextInput
@@ -140,7 +141,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   value={g.apiKey}
                   onChange={e => {
                     const val = e.currentTarget.value
-                    setGroups(prev => prev.map(it => it.id === g.id ? { ...it, apiKey: val } : it))
+                    setConnections(prev => prev.map(it => it.id === g.id ? { ...it, apiKey: val } : it))
                   }}
                 />
                 <Group justify="flex-end">

@@ -1,9 +1,9 @@
-import { getActiveGroup } from './openAISettings'
+import { getActiveConnection } from './openAISettings'
 import {buildSystemPrompt} from "./systemPrompt.ts";
 import type { SceneObject, ScenePrimitive, SceneResponse, LightingSettings } from '../types/scene'
 
 export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse> {
-  const { url, model, apiKey } = getActiveGroup()
+  const { url, model, apiKey } = await getActiveConnection()
 
   const body = {
     model,

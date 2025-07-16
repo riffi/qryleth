@@ -1,6 +1,8 @@
+import { db } from './database'
+
 export type LLMProvider = 'openrouter' | 'openai' | 'compatible'
 
-export interface OpenAISettingsGroup {
+export interface OpenAISettingsConnection {
   id: string;
   name: string;
   provider: LLMProvider;
@@ -9,14 +11,7 @@ export interface OpenAISettingsGroup {
   apiKey: string;
 }
 
-interface StoredSettings {
-  groups: OpenAISettingsGroup[];
-  activeId?: string;
-}
-
-const STORAGE_KEY = 'openai_settings';
-
-function getDefaultGroup(): OpenAISettingsGroup {
+function getDefaultConnection(): OpenAISettingsConnection {
   return {
     id: 'default',
     name: 'Default',
@@ -27,70 +22,112 @@ function getDefaultGroup(): OpenAISettingsGroup {
   }
 }
 
-function loadFromStorage(): StoredSettings {
+// Migration function to move data from localStorage to Dexie
+async function migrateFromLocalStorage(): Promise<void> {
+  const STORAGE_KEY = 'openai_settings';
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    const def = { groups: [getDefaultGroup()], activeId: 'default' };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(def));
-    return def;
-  }
+  
+  if (!raw) return;
+  
   try {
-    const parsed = JSON.parse(raw) as StoredSettings;
-    if (!parsed.groups || !Array.isArray(parsed.groups)) {
-      throw new Error('Invalid');
+    const parsed = JSON.parse(raw) as { connections: OpenAISettingsConnection[]; activeId?: string };
+    
+    if (parsed.connections && Array.isArray(parsed.connections)) {
+      // Save connections to Dexie
+      for (const connection of parsed.connections) {
+        const normalizedConnection = {
+          ...connection,
+          provider: connection.provider ?? 'openrouter'
+        };
+        await db.saveConnection(normalizedConnection);
+      }
+      
+      // Save active connection ID
+      if (parsed.activeId) {
+        await db.setActiveConnectionId(parsed.activeId);
+      }
+      
+      // Remove from localStorage after successful migration
+      localStorage.removeItem(STORAGE_KEY);
     }
-    parsed.groups = parsed.groups.map(g => ({
-      ...g,
-      provider: (g as Partial<OpenAISettingsGroup>).provider ?? 'openrouter'
-    }))
-    return parsed;
-  } catch {
-    const def = { groups: [getDefaultGroup()], activeId: 'default' };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(def));
-    return def;
+  } catch (error) {
+    console.error('Migration from localStorage failed:', error);
   }
 }
 
-function saveToStorage(data: StoredSettings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// Initialize default connection if no connections exist
+async function initializeDefaultConnection(): Promise<void> {
+  const connections = await db.getAllConnections();
+  if (connections.length === 0) {
+    const defaultConnection = getDefaultConnection();
+    await db.saveConnection(defaultConnection);
+    await db.setActiveConnectionId(defaultConnection.id);
+  }
 }
 
-export function getAllGroups(): { groups: OpenAISettingsGroup[]; activeId?: string } {
-  return loadFromStorage();
+export async function getAllConnections(): Promise<{ connections: OpenAISettingsConnection[]; activeId?: string }> {
+  await migrateFromLocalStorage();
+  await initializeDefaultConnection();
+  
+  const connections = await db.getAllConnections();
+  const activeId = await db.getActiveConnectionId();
+  
+  return { connections, activeId };
 }
 
-export function saveGroups(groups: OpenAISettingsGroup[], activeId?: string) {
-  saveToStorage({ groups, activeId });
+export async function saveConnections(connections: OpenAISettingsConnection[], activeId?: string): Promise<void> {
+  // Save all connections
+  for (const connection of connections) {
+    await db.saveConnection(connection);
+  }
+  
+  // Set active connection
+  if (activeId) {
+    await db.setActiveConnectionId(activeId);
+  }
 }
 
-export function setActiveGroup(id: string) {
-  const data = loadFromStorage();
-  data.activeId = id;
-  saveToStorage(data);
+export async function setActiveConnection(id: string): Promise<void> {
+  await db.setActiveConnectionId(id);
 }
 
-export function getActiveGroup(): OpenAISettingsGroup {
-  const data = loadFromStorage();
-  const found = data.groups.find(g => g.id === data.activeId);
-  return found || data.groups[0];
+export async function getActiveConnection(): Promise<OpenAISettingsConnection> {
+  await migrateFromLocalStorage();
+  await initializeDefaultConnection();
+  
+  const activeId = await db.getActiveConnectionId();
+  
+  if (activeId) {
+    const connection = await db.getConnection(activeId);
+    if (connection) {
+      return connection;
+    }
+  }
+  
+  // Fallback to first connection
+  const connections = await db.getAllConnections();
+  return connections[0] || getDefaultConnection();
 }
 
-export function upsertGroup(group: OpenAISettingsGroup) {
-  const data = loadFromStorage();
-  const idx = data.groups.findIndex(g => g.id === group.id);
-  if (idx >= 0) {
-    data.groups[idx] = group;
+export async function upsertConnection(connection: OpenAISettingsConnection): Promise<void> {
+  const existing = await db.getConnection(connection.id);
+  
+  if (existing) {
+    await db.updateConnection(connection);
   } else {
-    data.groups.push(group);
+    await db.saveConnection(connection);
   }
-  saveToStorage(data);
 }
 
-export function removeGroup(id: string) {
-  const data = loadFromStorage();
-  data.groups = data.groups.filter(g => g.id !== id);
-  if (data.activeId === id) {
-    data.activeId = data.groups[0]?.id;
+export async function removeConnection(id: string): Promise<void> {
+  await db.deleteConnection(id);
+  
+  // If this was the active connection, set a new active connection
+  const activeId = await db.getActiveConnectionId();
+  if (activeId === id) {
+    const connections = await db.getAllConnections();
+    if (connections.length > 0) {
+      await db.setActiveConnectionId(connections[0].id);
+    }
   }
-  saveToStorage(data);
 }
