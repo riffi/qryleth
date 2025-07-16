@@ -80,7 +80,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const [contextMenuObjectIndex, setContextMenuObjectIndex] = useState<number | null>(null)
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
-    
+
     const toggleLayerExpanded = (layerId: string) => {
         setExpandedLayers(prev => {
             const newSet = new Set(prev)
@@ -146,11 +146,11 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const handleDrop = (e: React.DragEvent, layerId: string) => {
         e.preventDefault()
         const objectIndex = parseInt(e.dataTransfer.getData('text/plain'))
-        
+
         if (objectIndex !== null && onMoveObjectToLayer) {
             onMoveObjectToLayer(objectIndex, layerId)
         }
-        
+
         setDragOverLayerId(null)
     }
 
@@ -190,15 +190,21 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         onSaveSceneToLibrary={onSaveSceneToLibrary}
                     />
 
+                    <LightingControls
+                        lighting={lighting}
+                        onLightingChange={onLightingChange}
+                    />
+
+
                     <Group justify="space-between" align="center">
                         <Text size="xs" fw={500} c="dimmed">
-                            Объекты
+                            Слои
                         </Text>
                         <Group gap="xs">
                             <Tooltip label="Создать новый слой">
-                                <ActionIcon 
-                                    size="sm" 
-                                    variant="light" 
+                                <ActionIcon
+                                    size="sm"
+                                    variant="light"
                                     color="purple"
                                     onClick={() => setCreateLayerModalOpened(true)}
                                 >
@@ -211,14 +217,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         </Group>
                     </Group>
 
-                    <Divider />
-
-                    <LightingControls
-                        lighting={lighting}
-                        onLightingChange={onLightingChange}
-                    />
-
-                    <ScrollArea 
+                    <ScrollArea
                         style={{ flex: 1 }}
                         onClick={() => setContextMenuOpened(false)}
                     >
@@ -231,7 +230,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                 layers.map((layer) => {
                                     const layerObjects = getObjectsByLayer(layer.id)
                                     const isLayerExpanded = expandedLayers.has(layer.id)
-                                    
+
                                     return (
                                         <LayerItem
                                             key={layer.id}
@@ -303,7 +302,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                             <Text size="xs" c="dimmed" ta="center">
                                 Перетащите объект в слой или ПКМ для выбора слоя
                             </Text>
-                            
+
                             {selectedObject && (
                                 <>
                                     <Divider />
@@ -328,7 +327,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                     )}
                 </Stack>
             </Paper>
-            
+
             <LayerModals
                 createLayerModalOpened={createLayerModalOpened}
                 setCreateLayerModalOpened={setCreateLayerModalOpened}

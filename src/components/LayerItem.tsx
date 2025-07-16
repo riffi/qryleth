@@ -62,16 +62,16 @@ export const LayerItem: React.FC<LayerItemProps> = ({
 }) => {
     return (
         <div>
-            <Box 
-                p="xs" 
-                style={{ 
-                    backgroundColor: dragOverLayerId === layer.id 
-                        ? 'var(--mantine-color-blue-8)' 
-                        : 'transparent', 
-                    marginBottom: '2px',
+            <Box
+                p="xs"
+                style={{
+                    backgroundColor: dragOverLayerId === layer.id
+                        ? 'var(--mantine-color-blue-8)'
+                        : 'transparent',
+                    marginBottom: '0px',
                     borderRadius: '4px',
-                    border: dragOverLayerId === layer.id 
-                        ? '1px dashed var(--mantine-color-blue-4)' 
+                    border: dragOverLayerId === layer.id
+                        ? '1px dashed var(--mantine-color-blue-4)'
                         : '1px solid transparent',
                     cursor: 'pointer',
                     transition: 'all 0.1s ease'
@@ -86,10 +86,10 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                             size="xs"
                             variant="transparent"
                             onClick={() => onToggleExpanded(layer.id)}
-                            style={{ 
-                                width: '16px', 
-                                height: '16px', 
-                                minWidth: '16px' 
+                            style={{
+                                width: '16px',
+                                height: '16px',
+                                minWidth: '16px'
                             }}
                         >
                             {isExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
@@ -107,10 +107,10 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                             size="xs"
                             variant="transparent"
                             onClick={() => onToggleVisibility(layer.id)}
-                            style={{ 
-                                width: '16px', 
-                                height: '16px', 
-                                minWidth: '16px' 
+                            style={{
+                                width: '16px',
+                                height: '16px',
+                                minWidth: '16px'
                             }}
                         >
                             {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
@@ -120,10 +120,10 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                                 <ActionIcon
                                     size="xs"
                                     variant="transparent"
-                                    style={{ 
-                                        width: '16px', 
-                                        height: '16px', 
-                                        minWidth: '16px' 
+                                    style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        minWidth: '16px'
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
@@ -151,7 +151,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                     </Group>
                 </Group>
             </Box>
-            
+
             <Collapse in={isExpanded}>
                 <Stack gap="0px" pl="lg">
                     {layerObjects.length === 0 ? (
