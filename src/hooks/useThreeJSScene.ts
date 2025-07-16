@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js'
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js'
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
@@ -51,7 +52,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<OrbitControls | FirstPersonControls | FlyControls | null>(null)
+  const controlsRef = useRef<OrbitControls | FirstPersonControls | FlyControls | PointerLockControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const clockRef = useRef<THREE.Clock>(new THREE.Clock())
@@ -66,6 +67,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
   const [objectsInfo, setObjectsInfo] = useState<ObjectInfo[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('orbit')
+  const viewModeRef = useRef<ViewMode>('orbit')
   const [renderMode, setRenderMode] = useState<RenderMode>('solid')
   const [currentScene, setCurrentScene] = useState<CurrentScene>({ name: 'Новая сцена', status: 'draft' })
   const placementsRef = useRef<ScenePlacement[]>([])
@@ -85,6 +87,70 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   // Сохраняем исходные объекты для восстановления
   const originalObjectsRef = useRef<SceneObject[]>([])
+
+  // ===== Fly mode movement state =====
+  const flyMoveForward = useRef(false)
+  const flyMoveBackward = useRef(false)
+  const flyMoveLeft = useRef(false)
+  const flyMoveRight = useRef(false)
+  const flyVelocity = useRef(new THREE.Vector3())
+  const flyDirection = useRef(new THREE.Vector3())
+  const flyLockHandlerRef = useRef<(() => void) | null>(null)
+
+  const handleFlyKeyDown = useCallback((event: KeyboardEvent) => {
+    switch (event.code) {
+      case 'KeyW':
+        flyMoveForward.current = true
+        break
+      case 'KeyS':
+        flyMoveBackward.current = true
+        break
+      case 'KeyA':
+        flyMoveLeft.current = true
+        break
+      case 'KeyD':
+        flyMoveRight.current = true
+        break
+    }
+  }, [])
+
+  const handleFlyKeyUp = useCallback((event: KeyboardEvent) => {
+    switch (event.code) {
+      case 'KeyW':
+        flyMoveForward.current = false
+        break
+      case 'KeyS':
+        flyMoveBackward.current = false
+        break
+      case 'KeyA':
+        flyMoveLeft.current = false
+        break
+      case 'KeyD':
+        flyMoveRight.current = false
+        break
+    }
+  }, [])
+
+  const updateFlyMovement = useCallback((delta: number) => {
+    if (!(controlsRef.current instanceof PointerLockControls)) return
+    if (!controlsRef.current.isLocked) return
+
+    flyVelocity.current.x -= flyVelocity.current.x * 10.0 * delta
+    flyVelocity.current.z -= flyVelocity.current.z * 10.0 * delta
+
+    flyDirection.current.z = Number(flyMoveForward.current) - Number(flyMoveBackward.current)
+    flyDirection.current.x = Number(flyMoveRight.current) - Number(flyMoveLeft.current)
+    flyDirection.current.normalize()
+
+    const speed = 100
+    if (flyMoveForward.current || flyMoveBackward.current)
+      flyVelocity.current.z -= flyDirection.current.z * speed * delta
+    if (flyMoveLeft.current || flyMoveRight.current)
+      flyVelocity.current.x -= flyDirection.current.x * speed * delta
+
+    controlsRef.current.moveRight(-flyVelocity.current.x * delta)
+    controlsRef.current.moveForward(-flyVelocity.current.z * delta)
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -302,6 +368,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Mouse click handler for object selection
     const handleMouseClick = (event: MouseEvent) => {
+      if (viewModeRef.current === 'fly' && controlsRef.current instanceof PointerLockControls) {
+        controlsRef.current.lock()
+        return
+      }
+
       if (!sceneRef.current || !cameraRef.current) return
 
       // Calculate mouse position in normalized device coordinates (-1 to +1)
@@ -342,9 +413,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Animation loop
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate)
+      const delta = clockRef.current.getDelta()
       if (controlsRef.current) {
         if (controlsRef.current instanceof FirstPersonControls || controlsRef.current instanceof FlyControls) {
-          controlsRef.current.update(clockRef.current.getDelta())
+          controlsRef.current.update(delta)
+        } else if (controlsRef.current instanceof PointerLockControls) {
+          updateFlyMovement(delta)
         } else {
           controlsRef.current.update()
         }
@@ -368,6 +442,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       window.removeEventListener('resize', handleResize)
       container.removeEventListener('keydown', handleKeyDown)
       container.removeEventListener('click', handleMouseClick)
+      document.removeEventListener('keydown', handleFlyKeyDown)
+      document.removeEventListener('keyup', handleFlyKeyUp)
+      if (flyLockHandlerRef.current && container) {
+        container.removeEventListener('click', flyLockHandlerRef.current)
+      }
 
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement)
@@ -1160,6 +1239,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Dispose current controls
     if (controlsRef.current) {
+      if (controlsRef.current instanceof PointerLockControls) {
+        document.removeEventListener('keydown', handleFlyKeyDown)
+        document.removeEventListener('keyup', handleFlyKeyUp)
+        if (flyLockHandlerRef.current) {
+          container.removeEventListener('click', flyLockHandlerRef.current)
+        }
+      }
       controlsRef.current.dispose()
     }
 
@@ -1196,15 +1282,23 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       camera.position.set(0, 5, 10)
       camera.lookAt(0, 0, 0)
 
-      const controls = new FlyControls(camera, renderer.domElement)
-      controls.movementSpeed = 15
-      controls.rollSpeed = 1
-      controls.autoForward = false
-      controls.dragToLook = true
+      const controls = new PointerLockControls(camera, renderer.domElement)
       controlsRef.current = controls
+
+      flyMoveForward.current = false
+      flyMoveBackward.current = false
+      flyMoveLeft.current = false
+      flyMoveRight.current = false
+
+      const handleLock = () => controls.lock()
+      flyLockHandlerRef.current = handleLock
+      container.addEventListener('click', handleLock)
+      document.addEventListener('keydown', handleFlyKeyDown)
+      document.addEventListener('keyup', handleFlyKeyUp)
     }
 
     setViewMode(mode)
+    viewModeRef.current = mode
   }
 
   const switchRenderMode = (mode: RenderMode) => {
