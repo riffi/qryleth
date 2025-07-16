@@ -71,16 +71,17 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const objectVisibilityRef = useRef<Map<number, boolean>>(new Map())
   const lastSavedDataRef = useRef<string>('')
   const gridHelperRef = useRef<THREE.GridHelper | null>(null)
+  const landscapeMeshesRef = useRef<Map<string, THREE.Mesh>>(new Map())
   const [gridVisible, setGridVisible] = useState<boolean>(true)
   const [layers, setLayers] = useState<SceneLayer[]>([
-    { id: 'objects', name: 'Объекты', visible: true, position: 0 }
+    { id: 'objects', name: 'Объекты', type: 'object', visible: true, position: 0 }
   ])
-  
+
   // История изменений для undo/redo
   const historyRef = useRef<string[]>([])
   const historyIndexRef = useRef<number>(-1)
   const maxHistorySize = 50
-  
+
   // Сохраняем исходные объекты для восстановления
   const originalObjectsRef = useRef<SceneObject[]>([])
 
@@ -120,11 +121,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Setup post-processing for outline effect
     const composer = new EffectComposer(renderer)
-    
+
     // Main render pass
     const renderPass = new RenderPass(scene, camera)
     composer.addPass(renderPass)
-    
+
     // Hover outline pass (green)
     const outlinePass = new OutlinePass(new THREE.Vector2(container.clientWidth, container.clientHeight), scene, camera)
     outlinePass.edgeStrength = 3
@@ -134,7 +135,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     outlinePass.visibleEdgeColor.set('#00ff00')
     outlinePass.hiddenEdgeColor.set('#00ff00')
     composer.addPass(outlinePass)
-    
+
     // Selection outline pass (orange)
     const selectedOutlinePass = new OutlinePass(new THREE.Vector2(container.clientWidth, container.clientHeight), scene, camera)
     selectedOutlinePass.edgeStrength = 4
@@ -144,11 +145,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     selectedOutlinePass.visibleEdgeColor.set('#ff6600')
     selectedOutlinePass.hiddenEdgeColor.set('#ff6600')
     composer.addPass(selectedOutlinePass)
-    
+
     // Output pass for proper tone mapping and gamma correction
     const outputPass = new OutputPass()
     composer.addPass(outputPass)
-    
+
     composerRef.current = composer
     outlinePassRef.current = outlinePass
     selectedOutlinePassRef.current = selectedOutlinePass
@@ -170,7 +171,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     directionalLight.castShadow = true
     directionalLight.shadow.mapSize.width = 2048
     directionalLight.shadow.mapSize.height = 2048
-    
+
     // Настройка теневой камеры
     directionalLight.shadow.camera.near = 0.1
     directionalLight.shadow.camera.far = 100
@@ -178,11 +179,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     directionalLight.shadow.camera.right = 50
     directionalLight.shadow.camera.top = 50
     directionalLight.shadow.camera.bottom = -50
-    
+
     // Устранение артефактов теней
     directionalLight.shadow.bias = -0.001
     directionalLight.shadow.normalBias = 0.01
-    
+
     scene.add(directionalLight)
 
     // Добавляем плоскость для приема теней
@@ -193,10 +194,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // ground.position.y = -0.01
     // ground.receiveShadow = true
     // scene.add(ground)
-    
+
     // Добавляем сетку на уровне z=0
     const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x888888)
-    gridHelper.position.set(0, 0, 0)
+    gridHelper.position.set(0, 0.01, 0)
     gridHelper.visible = gridVisible
     scene.add(gridHelper)
     gridHelperRef.current = gridHelper
@@ -215,7 +216,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       camera.aspect = clientWidth / clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(clientWidth, clientHeight)
-      
+
       if (composerRef.current) {
         composerRef.current.setSize(clientWidth, clientHeight)
       }
@@ -228,13 +229,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     window.addEventListener('resize', handleResize)
-    
+
     // Keyboard event handler for object movement
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!selectedObjectRef.current) {
         return
       }
-      
+
       let moved = false
       switch (event.key) {
         case 'ArrowLeft':
@@ -292,40 +293,40 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           break
       }
     }
-    
+
     // Add keyboard event listener to the container
     container.addEventListener('keydown', handleKeyDown)
     container.tabIndex = 0
     container.style.outline = 'none'
-    
+
     // Mouse click handler for object selection
     const handleMouseClick = (event: MouseEvent) => {
       if (!sceneRef.current || !cameraRef.current) return
-      
+
       // Calculate mouse position in normalized device coordinates (-1 to +1)
       const rect = container.getBoundingClientRect()
       mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-      
+
       // Update raycaster
       raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current)
-      
+
       // Find intersected objects
       const generatedObjects = sceneRef.current.children.filter(child => child.userData.generated)
       const intersects = raycasterRef.current.intersectObjects(generatedObjects, true)
-      
+
       if (intersects.length > 0) {
         // Find the top-level generated object (group)
         let clickedObject = intersects[0].object
         while (clickedObject.parent && !clickedObject.userData.generated) {
           clickedObject = clickedObject.parent
         }
-        
+
         if (clickedObject.userData.generated) {
           const objectIndex = clickedObject.userData.objectIndex
           const placementIndex = clickedObject.userData.placementIndex
           const instanceId = `${objectIndex}-${placementIndex}`
-          
+
           // Select the clicked object
           selectObject(objectIndex, instanceId)
         }
@@ -334,7 +335,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         clearSelection()
       }
     }
-    
+
     container.addEventListener('click', handleMouseClick)
 
     // Animation loop
@@ -347,7 +348,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           controlsRef.current.update()
         }
       }
-      
+
       if (composerRef.current) {
         composerRef.current.render()
       } else {
@@ -384,10 +385,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   const getObjectsFromScene = (): { [key: number]: SceneObject } => {
     if (!sceneRef.current) return {}
-    
+
     const scene = sceneRef.current
     const objectMap: { [key: number]: SceneObject } = {}
-    
+
     // Extract unique objects from scene
     scene.children.forEach(child => {
       if (child.userData.generated && child.userData.objectIndex !== undefined) {
@@ -403,7 +404,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         }
       }
     })
-    
+
     return objectMap
   }
 
@@ -413,9 +414,9 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   ) => {
     // Convert objects to array if it's an object map
     const objectsArray = Array.isArray(objects) ? objects : Object.values(objects)
-    const objectsMap = Array.isArray(objects) ? 
+    const objectsMap = Array.isArray(objects) ?
       objects.reduce((map, obj, index) => ({ ...map, [index]: obj }), {}) : objects
-    
+
     if (!objectsArray.length || !placements.length) {
       setObjectsInfo([])
       return
@@ -427,11 +428,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Подсчитываем количество размещений и создаем информацию об экземплярах
     placements.forEach((placement, index) => {
       objectCounts.set(placement.objectIndex, (objectCounts.get(placement.objectIndex) || 0) + 1)
-      
+
       if (!objectInstances.has(placement.objectIndex)) {
         objectInstances.set(placement.objectIndex, [])
       }
-      
+
       const instances = objectInstances.get(placement.objectIndex)!
       instances.push({
         id: `${placement.objectIndex}-${index}`,
@@ -494,10 +495,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     const scene = sceneRef.current
     const [, placementIndex] = instanceId.split('-').map(Number)
-    
+
     scene.children.forEach((child, index) => {
-      if (child.userData.generated && 
-          child.userData.objectIndex === objectIndex && 
+      if (child.userData.generated &&
+          child.userData.objectIndex === objectIndex &&
           child.userData.placementIndex === placementIndex) {
         child.visible = !child.visible
       }
@@ -511,18 +512,18 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     const scene = sceneRef.current
     const [, placementIndex] = instanceId.split('-').map(Number)
-    
-    const objectsToRemove = scene.children.filter(child => 
-      child.userData.generated && 
-      child.userData.objectIndex === objectIndex && 
+
+    const objectsToRemove = scene.children.filter(child =>
+      child.userData.generated &&
+      child.userData.objectIndex === objectIndex &&
       child.userData.placementIndex === placementIndex
     )
-    
+
     objectsToRemove.forEach(obj => scene.remove(obj))
-    
+
     // Удаляем из массива размещений
     placementsRef.current = placementsRef.current.filter((_, index) => index !== placementIndex)
-    
+
     updateObjectsInfo()
   }
 
@@ -536,8 +537,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       // Highlight specific instance
       const [, placementIndex] = instanceId.split('-').map(Number)
       scene.children.forEach(child => {
-        if (child.userData.generated && 
-            child.userData.objectIndex === objectIndex && 
+        if (child.userData.generated &&
+            child.userData.objectIndex === objectIndex &&
             child.userData.placementIndex === placementIndex) {
           objectsToHighlight.push(child)
         }
@@ -564,12 +565,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const selection = { objectIndex, instanceId }
     setSelectedObject(selection)
     selectedObjectRef.current = selection
-    
+
     // Focus the container to ensure keyboard events are received
     if (containerRef.current) {
       containerRef.current.focus()
     }
-    
+
     if (!sceneRef.current || !selectedOutlinePassRef.current) return
 
     const scene = sceneRef.current
@@ -579,8 +580,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       // Select specific instance
       const [, placementIndex] = instanceId.split('-').map(Number)
       scene.children.forEach(child => {
-        if (child.userData.generated && 
-            child.userData.objectIndex === objectIndex && 
+        if (child.userData.generated &&
+            child.userData.objectIndex === objectIndex &&
             child.userData.placementIndex === placementIndex) {
           objectsToSelect.push(child)
         }
@@ -611,25 +612,25 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const scene = sceneRef.current
     const scaleAmount = 0.1
     const { objectIndex, instanceId } = selectedObjectRef.current
-    
+
     const scaleMultiplier = scaleDirection === 'up' ? (1 + scaleAmount) : (1 - scaleAmount)
-    
+
     if (instanceId) {
       // Scale specific instance
       const [, placementIndex] = instanceId.split('-').map(Number)
       scene.children.forEach(child => {
-        if (child.userData.generated && 
-            child.userData.objectIndex === objectIndex && 
+        if (child.userData.generated &&
+            child.userData.objectIndex === objectIndex &&
             child.userData.placementIndex === placementIndex) {
           // Apply scale change
           child.scale.multiplyScalar(scaleMultiplier)
-          
+
           // Ensure minimum scale
           const minScale = 0.1
           if (child.scale.x < minScale) {
             child.scale.setScalar(minScale)
           }
-          
+
           // Update placement data
           if (placementsRef.current[placementIndex]) {
             placementsRef.current[placementIndex].scale = [
@@ -646,13 +647,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         if (child.userData.generated && child.userData.objectIndex === objectIndex) {
           // Apply scale change
           child.scale.multiplyScalar(scaleMultiplier)
-          
+
           // Ensure minimum scale
           const minScale = 0.1
           if (child.scale.x < minScale) {
             child.scale.setScalar(minScale)
           }
-          
+
           // Update placement data
           const placementIndex = child.userData.placementIndex
           if (placementsRef.current[placementIndex]) {
@@ -665,11 +666,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         }
       })
     }
-    
+
     // Update objects info to reflect new scale
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
-    
+
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
@@ -682,12 +683,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const camera = cameraRef.current
     const moveAmount = 0.5
     const { objectIndex, instanceId } = selectedObjectRef.current
-    
+
     // Calculate camera-relative movement vectors
     const forward = new THREE.Vector3()
     const right = new THREE.Vector3()
     const up = new THREE.Vector3(0, 1, 0)
-    
+
     // For OrbitControls, we need to calculate direction based on camera position relative to target
     if (controlsRef.current instanceof OrbitControls) {
       // In orbit mode, calculate direction from camera to target
@@ -695,7 +696,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       forward.subVectors(target, camera.position)
       forward.y = 0 // Keep movement on XZ plane
       forward.normalize()
-      
+
       // Calculate right direction (cross product of up and forward)
       right.crossVectors(up, forward)
       right.normalize()
@@ -704,13 +705,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       camera.getWorldDirection(forward)
       forward.y = 0 // Keep movement on XZ plane for forward/backward
       forward.normalize()
-      
+
       // Calculate right direction (cross product of up and forward)
       right.crossVectors(up, forward)
       right.normalize()
     }
-    
-    
+
+
     // Calculate movement vector based on direction
     let movementVector = new THREE.Vector3()
     switch (direction) {
@@ -738,12 +739,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       // Move specific instance
       const [, placementIndex] = instanceId.split('-').map(Number)
       scene.children.forEach(child => {
-        if (child.userData.generated && 
-            child.userData.objectIndex === objectIndex && 
+        if (child.userData.generated &&
+            child.userData.objectIndex === objectIndex &&
             child.userData.placementIndex === placementIndex) {
           // Apply camera-relative movement
           child.position.add(movementVector)
-          
+
           // Update placement data
           if (placementsRef.current[placementIndex]) {
             placementsRef.current[placementIndex].position = [
@@ -760,7 +761,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         if (child.userData.generated && child.userData.objectIndex === objectIndex) {
           // Apply camera-relative movement
           child.position.add(movementVector)
-          
+
           // Update placement data
           const placementIndex = child.userData.placementIndex
           if (placementsRef.current[placementIndex]) {
@@ -773,11 +774,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         }
       })
     }
-    
+
     // Update objects info to reflect new positions
     const currentObjects = getObjectsFromScene()
     updateObjectsInfo(currentObjects, placementsRef.current)
-    
+
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
@@ -858,7 +859,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
             primitive.height || 1
         )
         mesh = new THREE.Mesh(geometry, material)
-        
+
         // Автоматически поворачиваем плоскость на -90 градусов по X-оси
         // чтобы она была горизонтальной при нулевом rotation
         mesh.rotation.x = -Math.PI / 2
@@ -957,11 +958,34 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Если слои не были переданы, создаем слой "Объекты"
     if (sceneLayers.length === 0) {
-      sceneLayers = [{ id: 'objects', name: 'Объекты', visible: true, position: 0 }]
+      sceneLayers = [{ id: 'objects', name: 'Объекты', type: 'object', visible: true, position: 0 }]
     }
 
     // Обновляем слои
     setLayers(sceneLayers)
+
+    // Создаем плоскости для ландшафтных слоев
+    landscapeMeshesRef.current.forEach(mesh => {
+      scene.remove(mesh)
+      mesh.geometry.dispose()
+      ;(mesh.material as THREE.Material).dispose()
+    })
+    landscapeMeshesRef.current.clear()
+
+    sceneLayers.forEach(layer => {
+      if (layer.type === 'landscape' && scene) {
+        const geometry = new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+        const material = new THREE.MeshLambertMaterial({ color: 0x808080, side: THREE.DoubleSide })
+        const plane = new THREE.Mesh(geometry, material)
+        plane.rotation.x = -Math.PI / 2
+        plane.receiveShadow = true
+        plane.userData.generated = true
+        plane.userData.layerId = layer.id
+        plane.visible = layer.visible
+        scene.add(plane)
+        landscapeMeshesRef.current.set(layer.id, plane)
+      }
+    })
 
 
     // Сохраняем данные в состояние
@@ -1018,18 +1042,18 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       console.log('Adding composite object to scene:', compositeObject)
       scene.add(compositeObject)
     })
-    
+
     console.log('Scene children count after adding objects:', scene.children.length)
     console.log('Generated objects count:', scene.children.filter(child => child.userData.generated === true).length)
 
     // Обновляем информацию об объектах
     updateObjectsInfo(objects, placements)
-    
+
     // Сохраняем состояние в историю только если это не восстановление из истории
     if (!isRestoringFromHistory.current) {
       saveToHistory()
     }
-    
+
     // Set scene state based on parameters
     if (sceneName && sceneUuid) {
       // Loading from library - set as saved scene
@@ -1053,7 +1077,17 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const objectsToRemove = scene.children.filter(child =>
         child.userData.generated === true
     )
-    objectsToRemove.forEach(obj => scene.remove(obj))
+    objectsToRemove.forEach(obj => {
+      scene.remove(obj)
+      if ((obj as THREE.Mesh).geometry) {
+        ;((obj as THREE.Mesh).geometry as THREE.BufferGeometry).dispose()
+      }
+      if ((obj as THREE.Mesh).material) {
+        ;((obj as THREE.Mesh).material as THREE.Material).dispose()
+      }
+    })
+
+    landscapeMeshesRef.current.clear()
 
     // Очищаем состояние
     setSceneObjects([])
@@ -1090,7 +1124,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     if (settings.backgroundColor && scene) {
       scene.background = new THREE.Color(settings.backgroundColor)
     }
-    
+
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
@@ -1099,7 +1133,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   // Функция для переключения видимости сетки
   const toggleGridVisibility = () => {
     if (!gridHelperRef.current) return
-    
+
     const newVisibility = !gridVisible
     gridHelperRef.current.visible = newVisibility
     setGridVisible(newVisibility)
@@ -1107,22 +1141,22 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   const switchViewMode = (mode: ViewMode) => {
     if (!cameraRef.current || !rendererRef.current || !containerRef.current) return
-    
+
     const camera = cameraRef.current
     const renderer = rendererRef.current
     const container = containerRef.current
-    
+
     // Dispose current controls
     if (controlsRef.current) {
       controlsRef.current.dispose()
     }
-    
+
     // Create new controls based on mode
     if (mode === 'orbit') {
       // Reset camera position for orbit mode
       camera.position.set(5, 5, 8)
       camera.lookAt(0, 0, 0)
-      
+
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
@@ -1133,7 +1167,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       // Reset camera position for walk mode (FPS style)
       camera.position.set(0, 1.8, 5)
       camera.lookAt(0, 1.8, 0)
-      
+
       const controls = new FirstPersonControls(camera, renderer.domElement)
       controls.lookSpeed = 0.8
       controls.movementSpeed = 15
@@ -1149,7 +1183,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       // Reset camera position for fly mode
       camera.position.set(0, 5, 10)
       camera.lookAt(0, 0, 0)
-      
+
       const controls = new FlyControls(camera, renderer.domElement)
       controls.movementSpeed = 15
       controls.rollSpeed = 1
@@ -1157,7 +1191,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.dragToLook = true
       controlsRef.current = controls
     }
-    
+
     setViewMode(mode)
   }
 
@@ -1187,7 +1221,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const objectsFromScene = getObjectsFromScene()
     const objectsArray = Array.isArray(objectsFromScene) ? objectsFromScene : Object.values(objectsFromScene)
     const currentObjects = sceneObjects.length > 0 ? sceneObjects : objectsArray
-    
+
     return {
       objects: currentObjects,
       placements: placementsRef.current,
@@ -1205,7 +1239,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const checkSceneModified = () => {
     const currentData = JSON.stringify(getCurrentSceneData())
     const isModified = currentData !== lastSavedDataRef.current
-    
+
     if (currentScene.status === 'saved' && isModified) {
       setCurrentScene(prev => ({ ...prev, status: 'modified' }))
     } else if (currentScene.status === 'draft' && lastSavedDataRef.current && !isModified) {
@@ -1216,7 +1250,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const markSceneAsModified = () => {
     // Не меняем статус если восстанавливаем из истории
     if (isRestoringFromHistory.current) return
-    
+
     if (currentScene.status === 'saved') {
       setCurrentScene(prev => ({ ...prev, status: 'modified' }))
     } else if (currentScene.status === 'draft') {
@@ -1226,23 +1260,23 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   // Функции для работы с историей изменений
   const isRestoringFromHistory = useRef(false)
-  
+
   const saveToHistory = () => {
     // Не сохраняем в историю если восстанавливаем из неё
     if (isRestoringFromHistory.current) return
-    
+
     const sceneData = getCurrentSceneData()
     const currentState = JSON.stringify(sceneData)
-    
+
     // Если текущее состояние отличается от последнего в истории
     if (historyRef.current[historyIndexRef.current] !== currentState) {
       // Удаляем все состояния после текущего индекса (для случая когда делали undo, а потом новое действие)
       historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
-      
+
       // Добавляем новое состояние
       historyRef.current.push(currentState)
       historyIndexRef.current++
-      
+
       // Ограничиваем размер истории
       if (historyRef.current.length > maxHistorySize) {
         historyRef.current.shift()
@@ -1290,7 +1324,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     try {
       const sceneData = getCurrentSceneData()
       let sceneUuid: string
-      
+
       if (currentScene.uuid && currentScene.status === 'modified') {
         // Update existing scene if it's modified
         await db.updateScene(currentScene.uuid, name, sceneData, description, undefined)
@@ -1302,17 +1336,17 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         // For already saved scenes, always create a new one to avoid overwriting
         sceneUuid = await db.saveScene(name, sceneData, description, undefined)
       }
-      
+
       // Update current scene state
       setCurrentScene({
         uuid: sceneUuid,
         name: name,
         status: 'saved'
       })
-      
+
       // Store as last saved data
       lastSavedDataRef.current = JSON.stringify(sceneData)
-      
+
       return sceneUuid
     } catch (error) {
       console.error('Error saving scene to library:', error)
@@ -1345,36 +1379,36 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   const findOptimalPlacement = (): [number, number, number] => {
     if (!sceneRef.current) return [0, 0, 0]
-    
+
     const scene = sceneRef.current
     const existingPositions: THREE.Vector3[] = []
-    
+
     // Collect existing object positions
     scene.children.forEach(child => {
       if (child.userData.generated) {
         existingPositions.push(child.position.clone())
       }
     })
-    
+
     // Try to find empty spot in a grid pattern
     const gridSize = 3
     const minDistance = 4
-    
+
     for (let x = -gridSize; x <= gridSize; x++) {
       for (let z = -gridSize; z <= gridSize; z++) {
         const testPosition = new THREE.Vector3(x * minDistance, 0, z * minDistance)
-        
+
         // Check if this position is far enough from existing objects
-        const isFarEnough = existingPositions.every(pos => 
+        const isFarEnough = existingPositions.every(pos =>
           pos.distanceTo(testPosition) >= minDistance
         )
-        
+
         if (isFarEnough) {
           return [testPosition.x, testPosition.y, testPosition.z]
         }
       }
     }
-    
+
     // If no optimal spot found, place randomly around the scene
     const angle = Math.random() * Math.PI * 2
     const radius = 8 + Math.random() * 4
@@ -1387,16 +1421,16 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
   const addObjectToScene = (objectData: SceneObject) => {
     if (!sceneRef.current || !isInitialized) return
-    
-    
+
+
     // Find optimal placement
     const position = findOptimalPlacement()
-    
+
     // Add to scene objects
     const newObjectIndex = sceneObjects.length
     const updatedObjects = [...sceneObjects, objectData]
     setSceneObjects(updatedObjects)
-    
+
     // Add to placements
     const newPlacement: ScenePlacement = {
       objectIndex: newObjectIndex,
@@ -1405,7 +1439,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       scale: [1, 1, 1]
     }
     placementsRef.current = [...placementsRef.current, newPlacement]
-    
+
     // Create and add the object to the scene
     const compositeObject = createCompositeObject(objectData)
     compositeObject.position.set(...position)
@@ -1413,12 +1447,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     compositeObject.userData.objectIndex = newObjectIndex
     compositeObject.userData.placementIndex = placementsRef.current.length - 1
     compositeObject.userData.layerId = objectData.layerId || 'objects'
-    
+
     sceneRef.current.add(compositeObject)
-    
+
     // Update objects info
     updateObjectsInfo(updatedObjects, placementsRef.current)
-    
+
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
@@ -1438,17 +1472,17 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         // Update primitive position (relative to object center)
         primitive.position = [
           (primitive.position?.[0] || 0) + state.position[0],
-          (primitive.position?.[1] || 0) + state.position[1], 
+          (primitive.position?.[1] || 0) + state.position[1],
           (primitive.position?.[2] || 0) + state.position[2]
         ]
-        
+
         // Update primitive rotation
         primitive.rotation = [
           (primitive.rotation?.[0] || 0) + state.rotation[0],
           (primitive.rotation?.[1] || 0) + state.rotation[1],
           (primitive.rotation?.[2] || 0) + state.rotation[2]
         ]
-        
+
         // Update primitive dimensions directly
         if (state.dimensions) {
           if (primitive.type === 'box') {
@@ -1479,60 +1513,92 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         const currentPosition = child.position.clone()
         const currentRotation = child.rotation.clone()
         const currentScale = child.scale.clone()
-        
+
         // Remove the old object
         sceneRef.current!.remove(child)
-        
+
         // Create new object with updated primitive data
         const newCompositeObject = createCompositeObject(objectToUpdate)
-        
+
         // Restore the object's world position and rotation
         newCompositeObject.position.copy(currentPosition)
         newCompositeObject.rotation.copy(currentRotation)
         newCompositeObject.scale.copy(currentScale)
-        
+
         // Copy over the metadata
         newCompositeObject.userData = child.userData
-        
+
         // Add the new object to the scene
         sceneRef.current!.add(newCompositeObject)
       }
     })
-    
+
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
   }
 
   // Функции для работы со слоями
-  const createLayer = (name: string): SceneLayer => {
+  const createLayer = (
+    name: string,
+    type: 'object' | 'landscape' = 'object',
+    width?: number,
+    height?: number
+  ): SceneLayer => {
     const newLayer: SceneLayer = {
       id: Math.random().toString(36).substr(2, 9),
       name,
+      type,
+      width: type === 'landscape' ? width : undefined,
+      height: type === 'landscape' ? height : undefined,
       visible: true,
       position: layers.length
     }
     setLayers([...layers, newLayer])
+
+    if (type === 'landscape' && sceneRef.current) {
+      const geometry = new THREE.PlaneGeometry(width || 1, height || 1)
+      const material = new THREE.MeshLambertMaterial({ color: 0x808080, side: THREE.DoubleSide })
+      const plane = new THREE.Mesh(geometry, material)
+      plane.rotation.x = -Math.PI / 2
+      plane.receiveShadow = true
+      plane.userData.generated = true
+      plane.userData.layerId = newLayer.id
+      sceneRef.current.add(plane)
+      landscapeMeshesRef.current.set(newLayer.id, plane)
+    }
+
     markSceneAsModified()
     return newLayer
   }
 
   const updateLayer = (layerId: string, updates: Partial<SceneLayer>) => {
-    setLayers(layers.map(layer => 
+    setLayers(layers.map(layer =>
       layer.id === layerId ? { ...layer, ...updates } : layer
     ))
+
+    if (updates.width !== undefined || updates.height !== undefined) {
+      const mesh = landscapeMeshesRef.current.get(layerId)
+      if (mesh) {
+        const newWidth = updates.width ?? mesh.geometry.parameters.width
+        const newHeight = updates.height ?? mesh.geometry.parameters.height
+        mesh.geometry.dispose()
+        mesh.geometry = new THREE.PlaneGeometry(newWidth, newHeight)
+      }
+    }
+
     markSceneAsModified()
   }
 
   const deleteLayer = (layerId: string) => {
     if (layerId === 'objects') return // Нельзя удалить слой "Объекты"
-    
+
     // Перенести все объекты из удаляемого слоя в слой "Объекты"
-    const updatedObjects = sceneObjects.map(obj => 
+    const updatedObjects = sceneObjects.map(obj =>
       obj.layerId === layerId ? { ...obj, layerId: 'objects' } : obj
     )
     setSceneObjects(updatedObjects)
-    
+
     // Обновляем layerId в userData объектов в сцене
     if (sceneRef.current) {
       sceneRef.current.children.forEach(child => {
@@ -1541,22 +1607,30 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         }
       })
     }
-    
+
     // Удалить слой
     setLayers(layers.filter(layer => layer.id !== layerId))
-    
+
+    const mesh = landscapeMeshesRef.current.get(layerId)
+    if (mesh && sceneRef.current) {
+      sceneRef.current.remove(mesh)
+      mesh.geometry.dispose()
+      ;(mesh.material as THREE.Material).dispose()
+      landscapeMeshesRef.current.delete(layerId)
+    }
+
     // Обновляем информацию об объектах
     updateObjectsInfo(updatedObjects, placementsRef.current)
-    
+
     markSceneAsModified()
   }
 
   const moveObjectToLayer = (objectIndex: number, layerId: string) => {
-    const updatedObjects = sceneObjects.map((obj, index) => 
+    const updatedObjects = sceneObjects.map((obj, index) =>
       index === objectIndex ? { ...obj, layerId } : obj
     )
     setSceneObjects(updatedObjects)
-    
+
     // Обновляем layerId в userData объектов в сцене
     if (sceneRef.current) {
       sceneRef.current.children.forEach(child => {
@@ -1565,20 +1639,20 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         }
       })
     }
-    
+
     // Обновляем информацию об объектах
     updateObjectsInfo(updatedObjects, placementsRef.current)
-    
+
     markSceneAsModified()
   }
 
   const toggleLayerVisibility = (layerId: string) => {
     const layer = layers.find(l => l.id === layerId)
     if (!layer) return
-    
+
     const newVisibility = !layer.visible
     updateLayer(layerId, { visible: newVisibility })
-    
+
     // Обновить видимость всех объектов в слое в сцене
     if (sceneRef.current) {
       sceneRef.current.children.forEach(child => {
@@ -1586,8 +1660,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           child.visible = newVisibility
         }
       })
+
+      const plane = landscapeMeshesRef.current.get(layerId)
+      if (plane) plane.visible = newVisibility
     }
-    
+
     // Обновить информацию об объектах без изменения их layerId
     // Используем текущий sceneObjects и принудительно обновляем информацию
     updateObjectsInfo(sceneObjects, placementsRef.current)

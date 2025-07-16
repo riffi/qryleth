@@ -1,5 +1,5 @@
 import React from 'react'
-import { Modal, Stack, TextInput, Button, Group, Menu } from '@mantine/core'
+import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput } from '@mantine/core'
 import { IconLayersLinked } from '@tabler/icons-react'
 import type { SceneLayer } from '../types/scene'
 
@@ -9,11 +9,23 @@ interface LayerModalsProps {
     setCreateLayerModalOpened: (opened: boolean) => void
     newLayerName: string
     setNewLayerName: (name: string) => void
+    newLayerType: 'object' | 'landscape'
+    setNewLayerType: (t: 'object' | 'landscape') => void
+    newLayerWidth: number
+    setNewLayerWidth: (v: number) => void
+    newLayerHeight: number
+    setNewLayerHeight: (v: number) => void
     onCreateLayer: () => void
     
     // Edit Layer Modal
     editLayerModalOpened: boolean
     setEditLayerModalOpened: (opened: boolean) => void
+    editingLayerType: 'object' | 'landscape'
+    setEditingLayerType: (t: 'object' | 'landscape') => void
+    editingLayerWidth: number
+    setEditingLayerWidth: (v: number) => void
+    editingLayerHeight: number
+    setEditingLayerHeight: (v: number) => void
     onUpdateLayer: () => void
     
     // Context Menu
@@ -29,9 +41,21 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
     setCreateLayerModalOpened,
     newLayerName,
     setNewLayerName,
+    newLayerType,
+    setNewLayerType,
+    newLayerWidth,
+    setNewLayerWidth,
+    newLayerHeight,
+    setNewLayerHeight,
     onCreateLayer,
     editLayerModalOpened,
     setEditLayerModalOpened,
+    editingLayerType,
+    setEditingLayerType,
+    editingLayerWidth,
+    setEditingLayerWidth,
+    editingLayerHeight,
+    setEditingLayerHeight,
     onUpdateLayer,
     contextMenuOpened,
     setContextMenuOpened,
@@ -47,29 +71,60 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                 onClose={() => {
                     setCreateLayerModalOpened(false)
                     setNewLayerName('')
+                    setNewLayerType('object')
+                    setNewLayerWidth(10)
+                    setNewLayerHeight(10)
                 }}
                 title="Создать новый слой"
                 size="sm"
             >
                 <Stack gap="md">
-                    <TextInput
-                        label="Название слоя"
-                        placeholder="Введите название слоя"
-                        value={newLayerName}
-                        onChange={(e) => setNewLayerName(e.target.value)}
+                <TextInput
+                    label="Название слоя"
+                    placeholder="Введите название слоя"
+                    value={newLayerName}
+                    onChange={(e) => setNewLayerName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 onCreateLayer()
                             }
                         }}
-                        autoFocus
-                    />
-                    <Group justify="flex-end" gap="sm">
+                    autoFocus
+                />
+                <Select
+                    label="Тип слоя"
+                    data={[
+                        { value: 'object', label: 'Object Layer' },
+                        { value: 'landscape', label: 'Landscape' }
+                    ]}
+                    value={newLayerType}
+                    onChange={(v) => setNewLayerType(v as 'object' | 'landscape')}
+                />
+                {newLayerType === 'landscape' && (
+                    <Group gap="sm">
+                        <NumberInput
+                            label="Ширина, м"
+                            value={newLayerWidth}
+                            onChange={(val) => setNewLayerWidth(val || 1)}
+                            min={1}
+                        />
+                        <NumberInput
+                            label="Длина, м"
+                            value={newLayerHeight}
+                            onChange={(val) => setNewLayerHeight(val || 1)}
+                            min={1}
+                        />
+                    </Group>
+                )}
+                <Group justify="flex-end" gap="sm">
                         <Button
                             variant="outline"
                             onClick={() => {
                                 setCreateLayerModalOpened(false)
                                 setNewLayerName('')
+                                setNewLayerType('object')
+                                setNewLayerWidth(10)
+                                setNewLayerHeight(10)
                             }}
                         >
                             Отмена
@@ -90,6 +145,9 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                 onClose={() => {
                     setEditLayerModalOpened(false)
                     setNewLayerName('')
+                    setEditingLayerType('object')
+                    setEditingLayerWidth(10)
+                    setEditingLayerHeight(10)
                 }}
                 title="Редактировать слой"
                 size="sm"
@@ -105,14 +163,42 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                                 onUpdateLayer()
                             }
                         }}
-                        autoFocus
-                    />
-                    <Group justify="flex-end" gap="sm">
+                    autoFocus
+                />
+                <Select
+                    label="Тип слоя"
+                    data={[
+                        { value: 'object', label: 'Object Layer' },
+                        { value: 'landscape', label: 'Landscape' }
+                    ]}
+                    value={editingLayerType}
+                    onChange={(v) => setEditingLayerType(v as 'object' | 'landscape')}
+                />
+                {editingLayerType === 'landscape' && (
+                    <Group gap="sm">
+                        <NumberInput
+                            label="Ширина, м"
+                            value={editingLayerWidth}
+                            onChange={(val) => setEditingLayerWidth(val || 1)}
+                            min={1}
+                        />
+                        <NumberInput
+                            label="Длина, м"
+                            value={editingLayerHeight}
+                            onChange={(val) => setEditingLayerHeight(val || 1)}
+                            min={1}
+                        />
+                    </Group>
+                )}
+                <Group justify="flex-end" gap="sm">
                         <Button
                             variant="outline"
                             onClick={() => {
                                 setEditLayerModalOpened(false)
                                 setNewLayerName('')
+                                setEditingLayerType('object')
+                                setEditingLayerWidth(10)
+                                setEditingLayerHeight(10)
                             }}
                         >
                             Отмена

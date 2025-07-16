@@ -14,8 +14,9 @@ interface LayerItemProps {
     dragOverLayerId: string | null
     onToggleExpanded: (layerId: string) => void
     onToggleVisibility: (layerId: string) => void
-    onEdit: (layerId: string, currentName: string) => void
+    onEdit: (layer: SceneLayer) => void
     onDelete: (layerId: string) => void
+    onEditSize?: (layer: SceneLayer) => void
     onToggleObjectExpanded: (objectIndex: number) => void
     onHighlightObject?: (objectIndex: number) => void
     onClearHighlight?: () => void
@@ -44,6 +45,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
     onToggleVisibility,
     onEdit,
     onDelete,
+    onEditSize,
     onToggleObjectExpanded,
     onHighlightObject,
     onClearHighlight,
@@ -133,10 +135,15 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                             <Menu.Dropdown>
                                 <Menu.Item
                                     leftSection={<IconEdit size={14} />}
-                                    onClick={() => onEdit(layer.id, layer.name)}
+                                    onClick={() => onEdit(layer)}
                                 >
                                     Переименовать
                                 </Menu.Item>
+                                {layer.type === 'landscape' && onEditSize && (
+                                    <Menu.Item onClick={() => onEditSize(layer)}>
+                                        Изменить размер
+                                    </Menu.Item>
+                                )}
                                 {layer.id !== 'objects' && (
                                     <Menu.Item
                                         leftSection={<IconTrash size={14} />}

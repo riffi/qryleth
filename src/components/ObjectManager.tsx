@@ -38,7 +38,7 @@ interface ObjectManagerProps {
     lighting?: LightingSettings
     onLightingChange?: (lighting: LightingSettings) => void
     layers?: SceneLayer[]
-    onCreateLayer?: (name: string) => void
+    onCreateLayer?: (name: string, type: 'object' | 'landscape', width?: number, height?: number) => void
     onUpdateLayer?: (layerId: string, updates: Partial<SceneLayer>) => void
     onDeleteLayer?: (layerId: string) => void
     onToggleLayerVisibility?: (layerId: string) => void
@@ -73,7 +73,13 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
     const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
     const [newLayerName, setNewLayerName] = useState('')
+    const [newLayerType, setNewLayerType] = useState<'object' | 'landscape'>('object')
+    const [newLayerWidth, setNewLayerWidth] = useState(10)
+    const [newLayerHeight, setNewLayerHeight] = useState(10)
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
+    const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape'>('object')
+    const [editingLayerWidth, setEditingLayerWidth] = useState(10)
+    const [editingLayerHeight, setEditingLayerHeight] = useState(10)
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -107,24 +113,34 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     const handleCreateLayer = () => {
         if (newLayerName.trim() && onCreateLayer) {
-            onCreateLayer(newLayerName.trim())
+            onCreateLayer(newLayerName.trim(), newLayerType, newLayerWidth, newLayerHeight)
             setNewLayerName('')
+            setNewLayerType('object')
+            setNewLayerWidth(10)
+            setNewLayerHeight(10)
             setCreateLayerModalOpened(false)
         }
     }
 
     const handleUpdateLayer = () => {
         if (newLayerName.trim() && onUpdateLayer && editingLayerId) {
-            onUpdateLayer(editingLayerId, { name: newLayerName.trim() })
+            onUpdateLayer(editingLayerId, {
+                name: newLayerName.trim(),
+                width: editingLayerType === 'landscape' ? editingLayerWidth : undefined,
+                height: editingLayerType === 'landscape' ? editingLayerHeight : undefined
+            })
             setNewLayerName('')
             setEditingLayerId(null)
             setEditLayerModalOpened(false)
         }
     }
 
-    const openEditLayerModal = (layerId: string, currentName: string) => {
-        setEditingLayerId(layerId)
-        setNewLayerName(currentName)
+    const openEditLayerModal = (layer: SceneLayer) => {
+        setEditingLayerId(layer.id)
+        setNewLayerName(layer.name)
+        setEditingLayerType(layer.type || 'object')
+        setEditingLayerWidth(layer.width || 10)
+        setEditingLayerHeight(layer.height || 10)
         setEditLayerModalOpened(true)
     }
 
@@ -222,11 +238,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         onClick={() => setContextMenuOpened(false)}
                     >
                         <Stack gap="xs">
-                            {objects.length === 0 ? (
-                                <Text size="sm" c="dimmed" ta="center" py="xl">
-                                    Нет объектов на сцене
-                                </Text>
-                            ) : layers && layers.length > 0 ? (
+                            {layers && layers.length > 0 ? (
                                 layers.map((layer) => {
                                     const layerObjects = getObjectsByLayer(layer.id)
                                     const isLayerExpanded = expandedLayers.has(layer.id)
@@ -243,6 +255,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             onToggleExpanded={toggleLayerExpanded}
                                             onToggleVisibility={onToggleLayerVisibility || (() => {})}
                                             onEdit={openEditLayerModal}
+                                            onEditSize={openEditLayerModal}
                                             onDelete={onDeleteLayer || (() => {})}
                                             onToggleObjectExpanded={toggleObjectExpanded}
                                             onHighlightObject={onHighlightObject}
@@ -290,6 +303,12 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                     )
                                 })
                             )}
+
+                            {objects.length === 0 && (
+                                <Text size="sm" c="dimmed" ta="center" py="xl">
+                                    Нет объектов на сцене
+                                </Text>
+                            )}
                         </Stack>
                     </ScrollArea>
 
@@ -333,9 +352,21 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 setCreateLayerModalOpened={setCreateLayerModalOpened}
                 newLayerName={newLayerName}
                 setNewLayerName={setNewLayerName}
+                newLayerType={newLayerType}
+                setNewLayerType={setNewLayerType}
+                newLayerWidth={newLayerWidth}
+                setNewLayerWidth={setNewLayerWidth}
+                newLayerHeight={newLayerHeight}
+                setNewLayerHeight={setNewLayerHeight}
                 onCreateLayer={handleCreateLayer}
                 editLayerModalOpened={editLayerModalOpened}
                 setEditLayerModalOpened={setEditLayerModalOpened}
+                editingLayerType={editingLayerType}
+                setEditingLayerType={setEditingLayerType}
+                editingLayerWidth={editingLayerWidth}
+                setEditingLayerWidth={setEditingLayerWidth}
+                editingLayerHeight={editingLayerHeight}
+                setEditingLayerHeight={setEditingLayerHeight}
                 onUpdateLayer={handleUpdateLayer}
                 contextMenuOpened={contextMenuOpened}
                 setContextMenuOpened={setContextMenuOpened}

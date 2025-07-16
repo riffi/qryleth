@@ -42,6 +42,9 @@ export interface ScenePlacement {
 export interface SceneLayer {
   id: string;
   name: string;
+  type?: 'object' | 'landscape';
+  width?: number;
+  height?: number;
   visible: boolean;
   position: number;
 }
