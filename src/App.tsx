@@ -52,11 +52,11 @@ function App() {
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const [currentLighting, setCurrentLighting] = useState<LightingSettings>({
-    ambientColor: '#404040',
+    ambientColor: '#87CEEB',
     ambientIntensity: 0.6,
-    directionalColor: '#ffffff',
+    directionalColor: '#FFD700',
     directionalIntensity: 1.0,
-    backgroundColor: '#f8f9fa'
+    backgroundColor: '#87CEEB'
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
