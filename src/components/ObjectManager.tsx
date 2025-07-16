@@ -38,7 +38,7 @@ interface ObjectManagerProps {
     lighting?: LightingSettings
     onLightingChange?: (lighting: LightingSettings) => void
     layers?: SceneLayer[]
-    onCreateLayer?: (name: string, type: 'object' | 'landscape', width?: number, height?: number) => void
+    onCreateLayer?: (name: string, type: 'object' | 'landscape', width?: number, height?: number, shape?: 'plane' | 'perlin') => void
     onUpdateLayer?: (layerId: string, updates: Partial<SceneLayer>) => void
     onDeleteLayer?: (layerId: string) => void
     onToggleLayerVisibility?: (layerId: string) => void
@@ -76,10 +76,12 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const [newLayerType, setNewLayerType] = useState<'object' | 'landscape'>('object')
     const [newLayerWidth, setNewLayerWidth] = useState(10)
     const [newLayerHeight, setNewLayerHeight] = useState(10)
+    const [newLayerShape, setNewLayerShape] = useState<'plane' | 'perlin'>('plane')
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
     const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape'>('object')
     const [editingLayerWidth, setEditingLayerWidth] = useState(10)
     const [editingLayerHeight, setEditingLayerHeight] = useState(10)
+    const [editingLayerShape, setEditingLayerShape] = useState<'plane' | 'perlin'>('plane')
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -113,11 +115,12 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     const handleCreateLayer = () => {
         if (newLayerName.trim() && onCreateLayer) {
-            onCreateLayer(newLayerName.trim(), newLayerType, newLayerWidth, newLayerHeight)
+            onCreateLayer(newLayerName.trim(), newLayerType, newLayerWidth, newLayerHeight, newLayerShape)
             setNewLayerName('')
             setNewLayerType('object')
             setNewLayerWidth(10)
             setNewLayerHeight(10)
+            setNewLayerShape('plane')
             setCreateLayerModalOpened(false)
         }
     }
@@ -127,7 +130,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
             onUpdateLayer(editingLayerId, {
                 name: newLayerName.trim(),
                 width: editingLayerType === 'landscape' ? editingLayerWidth : undefined,
-                height: editingLayerType === 'landscape' ? editingLayerHeight : undefined
+                height: editingLayerType === 'landscape' ? editingLayerHeight : undefined,
+                shape: editingLayerType === 'landscape' ? editingLayerShape : undefined
             })
             setNewLayerName('')
             setEditingLayerId(null)
@@ -141,6 +145,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         setEditingLayerType(layer.type || 'object')
         setEditingLayerWidth(layer.width || 10)
         setEditingLayerHeight(layer.height || 10)
+        setEditingLayerShape(layer.shape || 'plane')
         setEditLayerModalOpened(true)
     }
 
@@ -358,6 +363,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 setNewLayerWidth={setNewLayerWidth}
                 newLayerHeight={newLayerHeight}
                 setNewLayerHeight={setNewLayerHeight}
+                newLayerShape={newLayerShape}
+                setNewLayerShape={setNewLayerShape}
                 onCreateLayer={handleCreateLayer}
                 editLayerModalOpened={editLayerModalOpened}
                 setEditLayerModalOpened={setEditLayerModalOpened}
@@ -367,6 +374,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 setEditingLayerWidth={setEditingLayerWidth}
                 editingLayerHeight={editingLayerHeight}
                 setEditingLayerHeight={setEditingLayerHeight}
+                editingLayerShape={editingLayerShape}
+                setEditingLayerShape={setEditingLayerShape}
                 onUpdateLayer={handleUpdateLayer}
                 contextMenuOpened={contextMenuOpened}
                 setContextMenuOpened={setContextMenuOpened}

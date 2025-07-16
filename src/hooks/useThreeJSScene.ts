@@ -8,6 +8,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { GridHelper } from 'three'
+import { generatePerlinNoise } from 'perlin-noise'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive, SceneLayer } from '../types/scene'
 import { db } from '../utils/database'
 import { notifications } from '@mantine/notifications'
@@ -974,16 +975,27 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     sceneLayers.forEach(layer => {
       if (layer.type === 'landscape' && scene) {
-        const geometry = new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
-        const material = new THREE.MeshLambertMaterial({ color: 0x808080, side: THREE.DoubleSide })
+        console.log('Creating landscape layer:', layer)
+        const geometry = layer.shape === 'perlin' 
+          ? createPerlinGeometry(layer.width || 1, layer.height || 1)
+          : new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+        const material = new THREE.MeshLambertMaterial({ 
+          color: layer.shape === 'perlin' ? 0x4a5d23 : 0x808080, // Зеленый для perlin, серый для plane
+          side: THREE.DoubleSide,
+          wireframe: false
+        })
         const plane = new THREE.Mesh(geometry, material)
         plane.rotation.x = -Math.PI / 2
         plane.receiveShadow = true
+        plane.castShadow = false
         plane.userData.generated = true
         plane.userData.layerId = layer.id
         plane.visible = layer.visible
+        plane.position.set(0, 0, 0) // На том же уровне что и сетка
+        console.log('Created landscape mesh:', plane, 'Shape:', layer.shape, 'Position:', plane.position, 'Visible:', plane.visible, 'Geometry type:', geometry.type)
         scene.add(plane)
         landscapeMeshesRef.current.set(layer.id, plane)
+        console.log('Scene children count after adding landscape:', scene.children.length)
       }
     })
 
@@ -1538,34 +1550,129 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     markSceneAsModified()
   }
 
+  // Функция для создания геометрии с Perlin noise
+  const createPerlinGeometry = (width: number, height: number): THREE.BufferGeometry => {
+    console.log('Creating Perlin geometry with dimensions:', width, 'x', height)
+    const segments = 64
+    const geometry = new THREE.PlaneGeometry(width, height, segments, segments)
+    const positions = geometry.attributes.position.array as Float32Array
+    
+    console.log('Initial geometry vertices count:', positions.length / 3)
+    
+    // Генерируем шум Perlin
+    const noiseData = generatePerlinNoise(segments + 1, segments + 1, {
+      octaveCount: 4,
+      amplitude: 0.8, // Увеличиваем амплитуду для более выраженного эффекта
+      persistence: 0.5
+    })
+    
+    console.log('Generated noise data length:', noiseData.length)
+    console.log('Sample noise values:', noiseData.slice(0, 5))
+    
+    // Применяем шум к вертексам
+    let appliedCount = 0
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i]
+      const z = positions[i + 2]
+      const originalY = positions[i + 1]
+      
+      // Нормализуем координаты к индексам массива шума
+      const noiseX = Math.floor(((x + width/2) / width) * segments)
+      const noiseZ = Math.floor(((z + height/2) / height) * segments)
+      
+      // Получаем значение шума и применяем к высоте
+      const noiseIndex = noiseZ * (segments + 1) + noiseX
+      const noiseValue = noiseData[noiseIndex] || 0
+      positions[i + 1] = noiseValue * 4 // Умножаем на 4 для более выраженного эффекта
+      
+      if (appliedCount < 5) {
+        console.log(`Vertex ${appliedCount}: x=${x}, z=${z}, originalY=${originalY}, newY=${positions[i + 1]}, noiseValue=${noiseValue}`)
+        appliedCount++
+      }
+    }
+    
+    geometry.attributes.position.needsUpdate = true
+    geometry.computeVertexNormals()
+    geometry.computeBoundingBox()
+    
+    console.log('Final geometry bounding box:', geometry.boundingBox)
+    
+    return geometry
+  }
+
   // Функции для работы со слоями
   const createLayer = (
     name: string,
     type: 'object' | 'landscape' = 'object',
     width?: number,
-    height?: number
+    height?: number,
+    shape?: 'plane' | 'perlin'
   ): SceneLayer => {
+    console.log('createLayer called with:', { name, type, width, height, shape })
     const newLayer: SceneLayer = {
       id: Math.random().toString(36).substr(2, 9),
       name,
       type,
       width: type === 'landscape' ? width : undefined,
       height: type === 'landscape' ? height : undefined,
+      shape: type === 'landscape' ? shape || 'plane' : undefined,
       visible: true,
       position: layers.length
     }
+    console.log('New layer created:', newLayer)
     setLayers([...layers, newLayer])
 
     if (type === 'landscape' && sceneRef.current) {
-      const geometry = new THREE.PlaneGeometry(width || 1, height || 1)
-      const material = new THREE.MeshLambertMaterial({ color: 0x808080, side: THREE.DoubleSide })
+      console.log('Creating landscape mesh for layer:', newLayer.id)
+      let geometry: THREE.BufferGeometry
+      
+      if (shape === 'perlin') {
+        console.log('Creating perlin geometry with shape:', shape)
+        try {
+          geometry = createPerlinGeometry(width || 1, height || 1)
+          console.log('Perlin geometry created successfully:', geometry)
+        } catch (error) {
+          console.error('Error creating perlin geometry:', error)
+          console.log('Falling back to plane geometry')
+          geometry = new THREE.PlaneGeometry(width || 1, height || 1)
+        }
+      } else {
+        console.log('Creating plane geometry')
+        geometry = new THREE.PlaneGeometry(width || 1, height || 1)
+        console.log('Plane geometry created successfully')
+      }
+      
+      const material = new THREE.MeshLambertMaterial({ 
+        color: shape === 'perlin' ? 0x4a7c59 : 0x8B4513, // Более реалистичный зеленый для perlin, коричневый для plane
+        side: THREE.DoubleSide,
+        wireframe: false,
+        transparent: false,
+        opacity: 1.0
+      })
+      
+      // Добавляем дополнительные настройки для лучшей видимости
+      if (shape === 'perlin') {
+        material.emissive = new THREE.Color(0x001100) // Легкое зеленое свечение
+        material.emissiveIntensity = 0.1
+      }
       const plane = new THREE.Mesh(geometry, material)
       plane.rotation.x = -Math.PI / 2
       plane.receiveShadow = true
+      plane.castShadow = false
       plane.userData.generated = true
       plane.userData.layerId = newLayer.id
+      plane.position.set(0, 0.1, 0) // Выше сетки для лучшей видимости
+      plane.scale.set(1, 1, 1) // Убедимся что масштаб правильный
+      console.log('Adding landscape mesh to scene:', plane)
+      console.log('Landscape position:', plane.position)
+      console.log('Landscape scale:', plane.scale)
+      console.log('Landscape visible:', plane.visible)
+      console.log('Landscape material color:', plane.material.color.getHex())
+      console.log('Geometry bounds:', geometry.boundingBox)
       sceneRef.current.add(plane)
       landscapeMeshesRef.current.set(newLayer.id, plane)
+      console.log('Scene children after adding landscape:', sceneRef.current.children.length)
+      console.log('All scene children:', sceneRef.current.children.map(c => ({ name: c.name || c.type, type: c.type, userData: c.userData })))
     }
 
     markSceneAsModified()
@@ -1573,17 +1680,36 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   const updateLayer = (layerId: string, updates: Partial<SceneLayer>) => {
-    setLayers(layers.map(layer =>
+    const updatedLayers = layers.map(layer =>
       layer.id === layerId ? { ...layer, ...updates } : layer
-    ))
+    )
+    setLayers(updatedLayers)
 
-    if (updates.width !== undefined || updates.height !== undefined) {
+    if (updates.width !== undefined || updates.height !== undefined || updates.shape !== undefined) {
       const mesh = landscapeMeshesRef.current.get(layerId)
       if (mesh) {
-        const newWidth = updates.width ?? mesh.geometry.parameters.width
-        const newHeight = updates.height ?? mesh.geometry.parameters.height
-        mesh.geometry.dispose()
-        mesh.geometry = new THREE.PlaneGeometry(newWidth, newHeight)
+        const updatedLayer = updatedLayers.find(l => l.id === layerId)
+        if (updatedLayer) {
+          const newWidth = updates.width ?? updatedLayer.width ?? 1
+          const newHeight = updates.height ?? updatedLayer.height ?? 1
+          const newShape = updates.shape ?? updatedLayer.shape ?? 'plane'
+          
+          mesh.geometry.dispose()
+          mesh.geometry = newShape === 'perlin' 
+            ? createPerlinGeometry(newWidth, newHeight)
+            : new THREE.PlaneGeometry(newWidth, newHeight)
+          
+          // Обновить материал если изменился тип
+          if (updates.shape !== undefined) {
+            const newMaterial = new THREE.MeshLambertMaterial({ 
+              color: newShape === 'perlin' ? 0x4a5d23 : 0x808080,
+              side: THREE.DoubleSide,
+              wireframe: false
+            })
+            mesh.material.dispose()
+            mesh.material = newMaterial
+          }
+        }
       }
     }
 

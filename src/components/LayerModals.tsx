@@ -15,6 +15,8 @@ interface LayerModalsProps {
     setNewLayerWidth: (v: number) => void
     newLayerHeight: number
     setNewLayerHeight: (v: number) => void
+    newLayerShape: 'plane' | 'perlin'
+    setNewLayerShape: (shape: 'plane' | 'perlin') => void
     onCreateLayer: () => void
     
     // Edit Layer Modal
@@ -26,6 +28,8 @@ interface LayerModalsProps {
     setEditingLayerWidth: (v: number) => void
     editingLayerHeight: number
     setEditingLayerHeight: (v: number) => void
+    editingLayerShape: 'plane' | 'perlin'
+    setEditingLayerShape: (shape: 'plane' | 'perlin') => void
     onUpdateLayer: () => void
     
     // Context Menu
@@ -47,6 +51,8 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
     setNewLayerWidth,
     newLayerHeight,
     setNewLayerHeight,
+    newLayerShape,
+    setNewLayerShape,
     onCreateLayer,
     editLayerModalOpened,
     setEditLayerModalOpened,
@@ -56,6 +62,8 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
     setEditingLayerWidth,
     editingLayerHeight,
     setEditingLayerHeight,
+    editingLayerShape,
+    setEditingLayerShape,
     onUpdateLayer,
     contextMenuOpened,
     setContextMenuOpened,
@@ -74,6 +82,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                     setNewLayerType('object')
                     setNewLayerWidth(10)
                     setNewLayerHeight(10)
+                    setNewLayerShape('plane')
                 }}
                 title="Создать новый слой"
                 size="sm"
@@ -101,20 +110,31 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                     onChange={(v) => setNewLayerType(v as 'object' | 'landscape')}
                 />
                 {newLayerType === 'landscape' && (
-                    <Group gap="sm">
-                        <NumberInput
-                            label="Ширина, м"
-                            value={newLayerWidth}
-                            onChange={(val) => setNewLayerWidth(val || 1)}
-                            min={1}
+                    <>
+                        <Select
+                            label="Форма поверхности"
+                            data={[
+                                { value: 'plane', label: 'Плоская поверхность' },
+                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                            ]}
+                            value={newLayerShape}
+                            onChange={(v) => setNewLayerShape(v as 'plane' | 'perlin')}
                         />
-                        <NumberInput
-                            label="Длина, м"
-                            value={newLayerHeight}
-                            onChange={(val) => setNewLayerHeight(val || 1)}
-                            min={1}
-                        />
-                    </Group>
+                        <Group gap="sm">
+                            <NumberInput
+                                label="Ширина, м"
+                                value={newLayerWidth}
+                                onChange={(val) => setNewLayerWidth(val || 1)}
+                                min={1}
+                            />
+                            <NumberInput
+                                label="Длина, м"
+                                value={newLayerHeight}
+                                onChange={(val) => setNewLayerHeight(val || 1)}
+                                min={1}
+                            />
+                        </Group>
+                    </>
                 )}
                 <Group justify="flex-end" gap="sm">
                         <Button
@@ -125,6 +145,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                                 setNewLayerType('object')
                                 setNewLayerWidth(10)
                                 setNewLayerHeight(10)
+                                setNewLayerShape('plane')
                             }}
                         >
                             Отмена
@@ -148,6 +169,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                     setEditingLayerType('object')
                     setEditingLayerWidth(10)
                     setEditingLayerHeight(10)
+                    setEditingLayerShape('plane')
                 }}
                 title="Редактировать слой"
                 size="sm"
@@ -175,20 +197,31 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                     onChange={(v) => setEditingLayerType(v as 'object' | 'landscape')}
                 />
                 {editingLayerType === 'landscape' && (
-                    <Group gap="sm">
-                        <NumberInput
-                            label="Ширина, м"
-                            value={editingLayerWidth}
-                            onChange={(val) => setEditingLayerWidth(val || 1)}
-                            min={1}
+                    <>
+                        <Select
+                            label="Форма поверхности"
+                            data={[
+                                { value: 'plane', label: 'Плоская поверхность' },
+                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                            ]}
+                            value={editingLayerShape}
+                            onChange={(v) => setEditingLayerShape(v as 'plane' | 'perlin')}
                         />
-                        <NumberInput
-                            label="Длина, м"
-                            value={editingLayerHeight}
-                            onChange={(val) => setEditingLayerHeight(val || 1)}
-                            min={1}
-                        />
-                    </Group>
+                        <Group gap="sm">
+                            <NumberInput
+                                label="Ширина, м"
+                                value={editingLayerWidth}
+                                onChange={(val) => setEditingLayerWidth(val || 1)}
+                                min={1}
+                            />
+                            <NumberInput
+                                label="Длина, м"
+                                value={editingLayerHeight}
+                                onChange={(val) => setEditingLayerHeight(val || 1)}
+                                min={1}
+                            />
+                        </Group>
+                    </>
                 )}
                 <Group justify="flex-end" gap="sm">
                         <Button
@@ -199,6 +232,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                                 setEditingLayerType('object')
                                 setEditingLayerWidth(10)
                                 setEditingLayerHeight(10)
+                                setEditingLayerShape('plane')
                             }}
                         >
                             Отмена

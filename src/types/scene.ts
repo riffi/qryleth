@@ -45,6 +45,7 @@ export interface SceneLayer {
   type?: 'object' | 'landscape';
   width?: number;
   height?: number;
+  shape?: 'plane' | 'perlin';
   visible: boolean;
   position: number;
 }
