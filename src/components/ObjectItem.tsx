@@ -53,7 +53,6 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
     return (
         <Box>
             <Box
-                p="xs"
                 draggable
                 style={{
                     opacity: obj.visible ? 1 : 0.6,
@@ -66,7 +65,9 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                     border: isSelected
                         ? '1px solid var(--mantine-color-blue-6)'
                         : '1px solid transparent',
-                    marginBottom: '1px'
+                    marginBottom: '1px',
+                    padding: "8px 4px"
+
                 }}
                 onMouseEnter={onHighlight}
                 onMouseLeave={onClearHighlight}
@@ -83,10 +84,10 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                 e.stopPropagation()
                                 onToggleExpanded()
                             }}
-                            style={{ 
-                                width: '16px', 
-                                height: '16px', 
-                                minWidth: '16px' 
+                            style={{
+                                width: '16px',
+                                height: '16px',
+                                minWidth: '16px'
                             }}
                         >
                             {isExpanded ? (
@@ -112,10 +113,10 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                 e.stopPropagation()
                                 onToggleVisibility()
                             }}
-                            style={{ 
-                                width: '16px', 
-                                height: '16px', 
-                                minWidth: '16px' 
+                            style={{
+                                width: '16px',
+                                height: '16px',
+                                minWidth: '16px'
                             }}
                         >
                             {obj.visible ? (
@@ -129,10 +130,10 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                 <ActionIcon
                                     size="xs"
                                     variant="transparent"
-                                    style={{ 
-                                        width: '16px', 
-                                        height: '16px', 
-                                        minWidth: '16px' 
+                                    style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        minWidth: '16px'
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
@@ -174,7 +175,7 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                     </Group>
                 </Group>
             </Box>
-            
+
             <Collapse in={isExpanded}>
                 <Box ml="lg" mt="2px">
                     <Stack gap="2px">

@@ -63,13 +63,13 @@ export const LayerItem: React.FC<LayerItemProps> = ({
     return (
         <div>
             <Box
-                p="xs"
                 style={{
                     backgroundColor: dragOverLayerId === layer.id
                         ? 'var(--mantine-color-blue-8)'
                         : 'transparent',
                     marginBottom: '0px',
                     borderRadius: '4px',
+                    padding: '8px 4px',
                     border: dragOverLayerId === layer.id
                         ? '1px dashed var(--mantine-color-blue-4)'
                         : '1px solid transparent',

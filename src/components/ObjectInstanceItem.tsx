@@ -26,7 +26,6 @@ export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
 }) => {
     return (
         <Box
-            p="xs"
             style={{
                 opacity: instance.visible ? 1 : 0.6,
                 backgroundColor: isSelected
@@ -38,7 +37,8 @@ export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
                     : '1px solid transparent',
                 cursor: 'pointer',
                 transition: 'all 0.1s ease',
-                marginBottom: '1px'
+                marginBottom: '1px',
+                padding: "8px 4px"
             }}
             onMouseEnter={onHighlight}
             onMouseLeave={onClearHighlight}
@@ -54,7 +54,7 @@ export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
                         ({instance.position[0].toFixed(1)}, {instance.position[1].toFixed(1)}, {instance.position[2].toFixed(1)})
                     </Text>
                 </Group>
-                
+
                 <Group gap="xs">
                     <ActionIcon
                         size="xs"
@@ -63,10 +63,10 @@ export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
                             e.stopPropagation()
                             onToggleVisibility()
                         }}
-                        style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            minWidth: '16px' 
+                        style={{
+                            width: '16px',
+                            height: '16px',
+                            minWidth: '16px'
                         }}
                     >
                         {instance.visible ? (
@@ -80,10 +80,10 @@ export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
                             <ActionIcon
                                 size="xs"
                                 variant="transparent"
-                                style={{ 
-                                    width: '16px', 
-                                    height: '16px', 
-                                    minWidth: '16px' 
+                                style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    minWidth: '16px'
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
