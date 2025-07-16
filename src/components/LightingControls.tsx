@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Group,
     Text,
@@ -85,6 +85,24 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
             }
         }
     }
+
+    // Определяем текущий пресет на основе настроек освещения
+    useEffect(() => {
+        if (lighting) {
+            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) => 
+                preset.ambientColor === lighting.ambientColor &&
+                preset.ambientIntensity === lighting.ambientIntensity &&
+                preset.directionalColor === lighting.directionalColor &&
+                preset.directionalIntensity === lighting.directionalIntensity &&
+                preset.backgroundColor === lighting.backgroundColor
+            )
+            if (currentPreset) {
+                setSelectedPreset(currentPreset[0])
+            } else {
+                setSelectedPreset('') // Кастомные настройки
+            }
+        }
+    }, [lighting])
 
     if (!lighting || !onLightingChange) return null
 

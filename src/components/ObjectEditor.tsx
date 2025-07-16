@@ -51,17 +51,23 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         const primitive = objectData.primitives[selectedPrimitiveIndex]
         const storedState = primitiveStates[selectedPrimitiveIndex]
         
-        return storedState || { 
-            position: [0, 0, 0], 
-            rotation: [0, 0, 0], 
-            dimensions: {
-                width: primitive.width || 1,
-                height: primitive.height || 1,
-                depth: primitive.depth || 1,
-                radius: primitive.radius || 1,
-                baseSize: primitive.baseSize || 1
-            }
+        if (storedState) return storedState
+
+        const baseDimensions: any = {
+            width: primitive.width || 1,
+            height: primitive.height || 1,
+            depth: primitive.depth || 1,
+            baseSize: primitive.baseSize || 1
         }
+
+        if (primitive.type === 'cylinder') {
+            baseDimensions.radiusTop = primitive.radiusTop || 1
+            baseDimensions.radiusBottom = primitive.radiusBottom || 1
+        } else {
+            baseDimensions.radius = primitive.radius || 1
+        }
+
+        return { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: baseDimensions }
     }
 
     const updateCurrentPrimitiveState = (position: [number, number, number], rotation: [number, number, number], dimensions: any) => {
@@ -144,25 +150,33 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 if (!primitiveStates[index]) {
                     const primitive = objectData.primitives[index]
                     if (primitive) {
-                        newStates[index] = { 
-                            position: [0, 0, 0], 
-                            rotation: [0, 0, 0], 
-                            dimensions: {
-                                width: primitive.width || 1,
-                                height: primitive.height || 1,
-                                depth: primitive.depth || 1,
-                                radius: primitive.radius || 1,
-                                baseSize: primitive.baseSize || 1
-                            }
+                        const dims: any = {
+                            width: primitive.width || 1,
+                            height: primitive.height || 1,
+                            depth: primitive.depth || 1,
+                            baseSize: primitive.baseSize || 1
+                        }
+                        if (primitive.type === 'cylinder') {
+                            dims.radiusTop = primitive.radiusTop || 1
+                            dims.radiusBottom = primitive.radiusBottom || 1
+                        } else {
+                            dims.radius = primitive.radius || 1
+                        }
+                        newStates[index] = {
+                            position: [0, 0, 0],
+                            rotation: [0, 0, 0],
+                            dimensions: dims
                         }
                     } else {
-                        newStates[index] = { 
-                            position: [0, 0, 0], 
-                            rotation: [0, 0, 0], 
+                        newStates[index] = {
+                            position: [0, 0, 0],
+                            rotation: [0, 0, 0],
                             dimensions: {
                                 width: 1,
                                 height: 1,
                                 depth: 1,
+                                radiusTop: 1,
+                                radiusBottom: 1,
                                 radius: 1,
                                 baseSize: 1
                             }
@@ -297,7 +311,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 newDimensions.depth = Math.max(0.01, newDimensions.depth + step)
                             } else if (primitive.type === 'sphere') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
-                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                            } else if (primitive.type === 'cylinder') {
+                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) + step)
+                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) + step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            } else if (primitive.type === 'cone') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
                                 newDimensions.height = Math.max(0.01, newDimensions.height + step)
                             } else if (primitive.type === 'pyramid') {
@@ -318,7 +336,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 newDimensions.depth = Math.max(0.01, newDimensions.depth - step)
                             } else if (primitive.type === 'sphere') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
-                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                            } else if (primitive.type === 'cylinder') {
+                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) - step)
+                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) - step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            } else if (primitive.type === 'cone') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
                                 newDimensions.height = Math.max(0.01, newDimensions.height - step)
                             } else if (primitive.type === 'pyramid') {
@@ -335,8 +357,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             event.preventDefault()
                             if (primitive.type === 'box') {
                                 newDimensions.width = Math.max(0.01, newDimensions.width - step)
-                            } else if (primitive.type === 'sphere' || primitive.type === 'cylinder' || primitive.type === 'cone') {
+                            } else if (primitive.type === 'sphere' || primitive.type === 'cone') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
+                            } else if (primitive.type === 'cylinder') {
+                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) - step)
+                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) - step)
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
                             } else if (primitive.type === 'plane') {
@@ -349,8 +374,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             event.preventDefault()
                             if (primitive.type === 'box') {
                                 newDimensions.width = Math.max(0.01, newDimensions.width + step)
-                            } else if (primitive.type === 'sphere' || primitive.type === 'cylinder' || primitive.type === 'cone') {
+                            } else if (primitive.type === 'sphere' || primitive.type === 'cone') {
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
+                            } else if (primitive.type === 'cylinder') {
+                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) + step)
+                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) + step)
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
                             } else if (primitive.type === 'plane') {
@@ -459,19 +487,21 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
             
             // Initialize state for the new primitive
             const newIndex = getPrimitivesList().length - 1
+            const dims: any = {
+                width: clonedData.width || 1,
+                height: clonedData.height || 1,
+                depth: clonedData.depth || 1,
+                baseSize: clonedData.baseSize || 1
+            }
+            if (clonedData.type === 'cylinder') {
+                dims.radiusTop = clonedData.radiusTop || 1
+                dims.radiusBottom = clonedData.radiusBottom || 1
+            } else {
+                dims.radius = clonedData.radius || 1
+            }
             setPrimitiveStates(prev => ({
                 ...prev,
-                [newIndex]: {
-                    position: [0, 0, 0],
-                    rotation: [0, 0, 0],
-                    dimensions: {
-                        width: clonedData.width || 1,
-                        height: clonedData.height || 1,
-                        depth: clonedData.depth || 1,
-                        radius: clonedData.radius || 1,
-                        baseSize: clonedData.baseSize || 1
-                    }
-                }
+                [newIndex]: { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: dims }
             }))
             
             setIsModified(true)
@@ -662,7 +692,24 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                             <Text size="sm" fw={500}>{dimensions.radius?.toFixed(3) || '1.000'}</Text>
                                         </Group>
                                     )
-                                } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+                                } else if (primitive.type === 'cylinder') {
+                                    return (
+                                        <>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>R верх:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.radiusTop?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>R низ:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.radiusBottom?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Высота:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '2.000'}</Text>
+                                            </Group>
+                                        </>
+                                    )
+                                } else if (primitive.type === 'cone') {
                                     return (
                                         <>
                                             <Group gap="xs" align="center">

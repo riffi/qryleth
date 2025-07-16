@@ -404,8 +404,8 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
           break
         case 'cylinder':
           newGeometry = new THREE.CylinderGeometry(
-            dimensions.radiusTop || dimensions.radius || 1,
-            dimensions.radiusBottom || dimensions.radius || 1,
+            dimensions.radiusTop || 1,
+            dimensions.radiusBottom || 1,
             dimensions.height || 2,
             16
           )

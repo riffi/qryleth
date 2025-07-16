@@ -1457,7 +1457,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
             primitive.depth = state.dimensions.depth || 1
           } else if (primitive.type === 'sphere') {
             primitive.radius = state.dimensions.radius || 1
-          } else if (primitive.type === 'cylinder' || primitive.type === 'cone') {
+          } else if (primitive.type === 'cylinder') {
+            primitive.radiusTop = state.dimensions.radiusTop || 1
+            primitive.radiusBottom = state.dimensions.radiusBottom || 1
+            primitive.height = state.dimensions.height || 2
+          } else if (primitive.type === 'cone') {
             primitive.radius = state.dimensions.radius || 1
             primitive.height = state.dimensions.height || 2
           } else if (primitive.type === 'pyramid') {
