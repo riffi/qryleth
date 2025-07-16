@@ -1,6 +1,6 @@
 import { getActiveConnection } from './openAISettings'
 import {buildSystemPrompt} from "./systemPrompt.ts";
-import type { SceneObject, ScenePrimitive, SceneResponse, LightingSettings } from '../types/scene'
+import type {  ScenePrimitive, SceneResponse  } from '../types/scene'
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -309,7 +309,7 @@ export async function fetchWithTools(messages: ChatMessage[], tools?: Tool[]): P
 
   const data = await response.json()
   const choice = data.choices?.[0]
-  
+
   if (!choice) {
     throw new Error('No response from API')
   }

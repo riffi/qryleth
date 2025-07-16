@@ -858,6 +858,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
             primitive.height || 1
         )
         mesh = new THREE.Mesh(geometry, material)
+        
+        // Автоматически поворачиваем плоскость на -90 градусов по X-оси
+        // чтобы она была горизонтальной при нулевом rotation
+        mesh.rotation.x = -Math.PI / 2
         break
       }
       default:
@@ -871,8 +875,12 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     if (primitive.rotation) {
-      // Для пирамиды добавляем заданный поворот к автоматическому
+      // Для пирамиды и plane добавляем заданный поворот к автоматическому
       if (primitive.type === 'pyramid') {
+        mesh.rotation.x += primitive.rotation[0]
+        mesh.rotation.y += primitive.rotation[1]
+        mesh.rotation.z += primitive.rotation[2]
+      } else if (primitive.type === 'plane') {
         mesh.rotation.x += primitive.rotation[0]
         mesh.rotation.y += primitive.rotation[1]
         mesh.rotation.z += primitive.rotation[2]

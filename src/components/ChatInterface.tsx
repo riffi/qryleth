@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Box, Group, ScrollArea, ActionIcon, Badge } from '@mantine/core'
 import { IconSend, IconUser, IconRobot, IconTool } from '@tabler/icons-react'
-import { fetchWithTools, fetchSceneJSON, AVAILABLE_TOOLS } from '../utils/openAIAPI'
+import { fetchWithTools, AVAILABLE_TOOLS } from '../utils/openAIAPI'
 import type { ChatMessage, ToolCall } from '../utils/openAIAPI'
 import type { SceneResponse } from '../types/scene'
 
@@ -14,7 +14,6 @@ export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isFirstMessage, setIsFirstMessage] = useState(true)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages are added
@@ -38,33 +37,19 @@ export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded
     setIsLoading(true)
 
     try {
-      if (isFirstMessage) {
-        // First message - generate scene
-        const sceneResponse = await fetchSceneJSON(userMessage.content)
-        onSceneGenerated(sceneResponse)
+      // Always use tools for all messages
+      const chatResponse = await fetchWithTools([...messages, userMessage], AVAILABLE_TOOLS)
 
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: 'Сцена успешно создана! Теперь вы можете попросить меня добавить новые объекты или изменить существующие.',
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, assistantMessage])
-        setIsFirstMessage(false)
-      } else {
-        // Subsequent messages - use tools
-        const chatResponse = await fetchWithTools([...messages, userMessage], AVAILABLE_TOOLS)
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: chatResponse.message,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, assistantMessage])
 
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: chatResponse.message,
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, assistantMessage])
-
-        // Handle tool calls
-        if (chatResponse.toolCalls && chatResponse.toolCalls.length > 0) {
-          await handleToolCalls(chatResponse.toolCalls)
-        }
+      // Handle tool calls
+      if (chatResponse.toolCalls && chatResponse.toolCalls.length > 0) {
+        await handleToolCalls(chatResponse.toolCalls)
       }
     } catch (error) {
       console.error('Chat error:', error)
@@ -142,8 +127,8 @@ export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded
           <Text size="lg" fw={500}>
             Чат с агентом
           </Text>
-          <Badge color={isFirstMessage ? 'orange' : 'blue'} variant="light">
-            {isFirstMessage ? 'Создание сцены' : 'Редактирование'}
+          <Badge color="blue" variant="light">
+            Добавление объектов
           </Badge>
         </Group>
       </Paper>
@@ -153,9 +138,7 @@ export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded
           {messages.length === 0 && (
             <Paper p="md" withBorder style={{ backgroundColor: '#4e4e4e' }}>
               <Text c="white" ta="center">
-                {isFirstMessage
-                  ? 'Опишите сцену, которую хотите создать...'
-                  : 'Начните диалог с агентом...'}
+                Попросите агента добавить объект в сцену...
               </Text>
             </Paper>
           )}
@@ -214,7 +197,7 @@ export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded
         <Group gap="sm">
           <TextInput
             flex={1}
-            placeholder={isFirstMessage ? "Опишите сцену..." : "Сообщение агенту..."}
+            placeholder="Попросите добавить объект..."
             value={inputValue}
             onChange={(e) => setInputValue(e.currentTarget.value)}
             onKeyPress={handleKeyPress}

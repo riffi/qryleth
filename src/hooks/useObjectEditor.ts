@@ -263,6 +263,10 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
           primitive.height || 1
         )
         mesh = new THREE.Mesh(geometry, material)
+        
+        // Автоматически поворачиваем плоскость на -90 градусов по X-оси
+        // чтобы она была горизонтальной при нулевом rotation
+        mesh.rotation.x = -Math.PI / 2
         break
       }
       default:
@@ -276,8 +280,12 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     if (primitive.rotation) {
-      // Для пирамиды добавляем заданный поворот к автоматическому
+      // Для пирамиды и plane добавляем заданный поворот к автоматическому
       if (primitive.type === 'pyramid') {
+        mesh.rotation.x += primitive.rotation[0]
+        mesh.rotation.y += primitive.rotation[1]
+        mesh.rotation.z += primitive.rotation[2]
+      } else if (primitive.type === 'plane') {
         mesh.rotation.x += primitive.rotation[0]
         mesh.rotation.y += primitive.rotation[1]
         mesh.rotation.z += primitive.rotation[2]
@@ -311,13 +319,15 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
         primitive.position?.[2] || 0
       )
       
-      // For pyramid, account for the automatic rotation
+      // For pyramid and plane, account for the automatic rotation
       let initialRotationX = primitive.rotation?.[0] || 0
       let initialRotationY = primitive.rotation?.[1] || 0
       let initialRotationZ = primitive.rotation?.[2] || 0
       
       if (primitive.type === 'pyramid') {
         initialRotationY += Math.PI / 4 // Add the automatic rotation
+      } else if (primitive.type === 'plane') {
+        initialRotationX += -Math.PI / 2 // Add the automatic rotation
       }
       
       mesh.userData.initialRotation = new THREE.Euler(
@@ -394,8 +404,8 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
           break
         case 'cylinder':
           newGeometry = new THREE.CylinderGeometry(
-            dimensions.radius || 1,
-            dimensions.radius || 1,
+            dimensions.radiusTop || dimensions.radius || 1,
+            dimensions.radiusBottom || dimensions.radius || 1,
             dimensions.height || 2,
             16
           )
@@ -570,6 +580,8 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     
     if (clonedPrimitiveData.type === 'pyramid') {
       initialRotationY += Math.PI / 4 // Add the automatic rotation
+    } else if (clonedPrimitiveData.type === 'plane') {
+      initialRotationX += -Math.PI / 2 // Add the automatic rotation
     }
     
     clonedMesh.userData.initialRotation = new THREE.Euler(
