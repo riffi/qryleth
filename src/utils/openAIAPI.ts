@@ -48,68 +48,92 @@ export const AVAILABLE_TOOLS: Tool[] = [
         properties: {
           name: {
             type: 'string',
-            description: 'Название объекта'
+            description: 'Название объекта (например, Дерево, Человек, Стол)'
           },
           primitives: {
             type: 'array',
-            description: 'Массив примитивов, составляющих объект',
+            description: 'Массив графических примитивов, составляющих объект',
             items: {
               type: 'object',
               properties: {
                 type: {
                   type: 'string',
-                  enum: ['box', 'sphere', 'cylinder', 'cone', 'plane', 'torus'],
+                  enum: ['box', 'sphere', 'cylinder', 'cone', 'pyramid', 'plane'],
                   description: 'Тип примитива'
                 },
+                // Box parameters
+                width: {
+                  type: 'number',
+                  description: 'Ширина для box (в метрах)'
+                },
+                height: {
+                  type: 'number',
+                  description: 'Высота для box, cylinder, cone, pyramid (в метрах)'
+                },
+                depth: {
+                  type: 'number',
+                  description: 'Глубина для box (в метрах)'
+                },
+                // Sphere parameters
+                radius: {
+                  type: 'number',
+                  description: 'Радиус для sphere, cone (в метрах)'
+                },
+                // Cylinder parameters
+                radiusTop: {
+                  type: 'number',
+                  description: 'Радиус верха для cylinder (в метрах)'
+                },
+                radiusBottom: {
+                  type: 'number',
+                  description: 'Радиус низа для cylinder (в метрах)'
+                },
+                radialSegments: {
+                  type: 'number',
+                  description: 'Количество сегментов для cylinder, cone'
+                },
+                // Pyramid parameters
+                baseSize: {
+                  type: 'number',
+                  description: 'Размер основания для pyramid (в метрах)'
+                },
+                // Material properties
+                color: {
+                  type: 'string',
+                  description: 'Цвет в формате hex (#ffffff)'
+                },
+                opacity: {
+                  type: 'number',
+                  minimum: 0,
+                  maximum: 1,
+                  description: 'Прозрачность от 0 до 1'
+                },
+                emissive: {
+                  type: 'string',
+                  description: 'Цвет свечения в формате hex'
+                },
+                emissiveIntensity: {
+                  type: 'number',
+                  minimum: 0,
+                  description: 'Интенсивность свечения (по умолчанию 1)'
+                },
+                // Transform properties
                 position: {
                   type: 'array',
                   items: { type: 'number' },
                   minItems: 3,
                   maxItems: 3,
-                  description: 'Позиция примитива [x, y, z]'
+                  description: 'Позиция примитива относительно центра составного объекта [x, y, z]'
                 },
                 rotation: {
                   type: 'array',
                   items: { type: 'number' },
                   minItems: 3,
                   maxItems: 3,
-                  description: 'Поворот примитива [x, y, z] в радианах'
-                },
-                scale: {
-                  type: 'array',
-                  items: { type: 'number' },
-                  minItems: 3,
-                  maxItems: 3,
-                  description: 'Масштаб примитива [x, y, z]'
-                },
-                color: {
-                  type: 'string',
-                  description: 'Цвет примитива в формате hex (#ffffff)'
-                },
-                material: {
-                  type: 'object',
-                  properties: {
-                    type: {
-                      type: 'string',
-                      enum: ['basic', 'standard', 'phong', 'lambert'],
-                      description: 'Тип материала'
-                    },
-                    metalness: {
-                      type: 'number',
-                      minimum: 0,
-                      maximum: 1,
-                      description: 'Металличность материала'
-                    },
-                    roughness: {
-                      type: 'number',
-                      minimum: 0,
-                      maximum: 1,
-                      description: 'Шероховатость материала'
-                    }
-                  }
+                  description: 'Поворот примитива в радианах [x, y, z]'
                 }
               },
-              required: ['type', 'position']
+              required: ['type']
             }
           },
           position: {
