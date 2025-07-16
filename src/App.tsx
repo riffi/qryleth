@@ -60,7 +60,7 @@ function App() {
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, renderMode, switchRenderMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, renderMode, switchRenderMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility, isInitialized } = useThreeJSScene(canvasRef)
 
   const handleSceneGenerated = (sceneResponse: SceneResponse) => {
     setStatus('generating')
@@ -122,6 +122,13 @@ function App() {
     setCurrentLighting(newLighting)
     updateLighting(newLighting)
   }
+
+  // Apply default lighting preset once the 3D scene is initialized
+  useEffect(() => {
+    if (isInitialized) {
+      updateLighting(currentLighting)
+    }
+  }, [isInitialized])
 
   // Обработка горячих клавиш для undo/redo
   useEffect(() => {
