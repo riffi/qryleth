@@ -257,6 +257,14 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
         mesh.rotation.y = Math.PI / 4
         break
       }
+      case 'plane': {
+        const geometry = new THREE.PlaneGeometry(
+          primitive.width || 1,
+          primitive.height || 1
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
       default:
         console.warn('Unknown primitive type:', primitive.type)
         mesh = new THREE.Mesh()
@@ -404,6 +412,12 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
             (dimensions.baseSize || 1) / 2,
             dimensions.height || 2,
             4
+          )
+          break
+        case 'plane':
+          newGeometry = new THREE.PlaneGeometry(
+            dimensions.width || 1,
+            dimensions.height || 1
           )
           break
       }

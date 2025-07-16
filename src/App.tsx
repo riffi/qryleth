@@ -39,13 +39,12 @@ import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager.tsx'
 import { SceneLibraryModal } from './components/SceneLibraryModal'
 import { ObjectEditor } from './components/ObjectEditor'
+import { ChatInterface } from './components/ChatInterface'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
-import type {LightingSettings} from './types/scene'
+import type {LightingSettings, SceneResponse} from './types/scene'
 
 function App() {
-  const [prompt, setPrompt] = useState('')
-  const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [libraryOpened, setLibraryOpened] = useState(false)
@@ -63,25 +62,11 @@ function App() {
 
   const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, renderMode, switchRenderMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility } = useThreeJSScene(canvasRef)
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      notifications.show({
-        title: 'Ошибка',
-        message: 'Введите описание объекта',
-        color: 'red',
-        icon: <IconX size="1rem" />,
-      })
-      return
-    }
-
-    setLoading(true)
+  const handleSceneGenerated = (sceneResponse: SceneResponse) => {
     setStatus('generating')
-
     try {
-      const sceneJSON = await fetchSceneJSON(prompt)
-      buildSceneFromDescription(sceneJSON)
+      buildSceneFromDescription(sceneResponse)
       setStatus('success')
-
       notifications.show({
         title: 'Успешно!',
         message: 'Сцена сгенерирована',
@@ -89,24 +74,48 @@ function App() {
         icon: <IconCheck size="1rem" />,
       })
     } catch (error) {
-      console.error('Generation error:', error)
+      console.error('Scene generation error:', error)
       setStatus('error')
-
       notifications.show({
         title: 'Ошибка генерации',
         message: error instanceof Error ? error.message : 'Неизвестная ошибка',
         color: 'red',
         icon: <IconX size="1rem" />,
       })
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const handleObjectAdded = (objectData: any) => {
+    try {
+      // Create scene object from the tool data
+      const sceneObject = {
+        name: objectData.name,
+        primitives: objectData.primitives
+      }
+      
+      // Add to scene
+      addObjectToScene(sceneObject, objectData.position, objectData.rotation, objectData.scale)
+      
+      notifications.show({
+        title: 'Успешно!',
+        message: `Объект "${objectData.name}" добавлен в сцену`,
+        color: 'green',
+        icon: <IconCheck size="1rem" />,
+      })
+    } catch (error) {
+      console.error('Object addition error:', error)
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Не удалось добавить объект в сцену',
+        color: 'red',
+        icon: <IconX size="1rem" />,
+      })
     }
   }
 
   const handleClear = () => {
     clearScene()
     setStatus('idle')
-    setPrompt('')
   }
 
   const handleLightingChange = (newLighting: LightingSettings) => {
@@ -304,54 +313,11 @@ function App() {
                 h="100%"
                 style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
             >
-              <Paper shadow="sm" radius="md" p="sm" style={{ width: 320 }}>
-                <Stack gap="sm">
-                  <Title order={4} c="gray.6" size="md">
-                    Чат
-                  </Title>
-                  <Textarea
-                      placeholder="Опишите объект (например, 'дерево', 'дом', 'автомобиль')"
-                      value={prompt}
-                      autosize
-                      minRows={2}
-                      maxRows={8}
-                      onChange={(event) => setPrompt(event.currentTarget.value)}
-                      onKeyDown={(event) => {
-                        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !loading) {
-                          handleGenerate()
-                        }
-                      }}
-                      style={{ flex: 1 }}
-                      size="sm"
-                      disabled={loading}
-                  />
-                  <Group gap="xs">
-                    <Button
-                        onClick={handleGenerate}
-                        loading={loading}
-                        leftSection={<IconWand size="0.9rem" />}
-                        size="sm"
-                        disabled={!prompt.trim()}
-                        style={{ flex: 1 }}
-                    >
-                      Создать
-                    </Button>
-
-                    <Button
-                        onClick={handleClear}
-                        variant="light"
-                        color="gray"
-                        size="sm"
-                        disabled={loading}
-                    >
-                      Очистить
-                    </Button>
-                  </Group>
-
-                  <Text size="xs" c="dimmed">
-                    Опишите объект на русском языке для создания 3D-модели
-                  </Text>
-                </Stack>
+              <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
+                <ChatInterface 
+                  onSceneGenerated={handleSceneGenerated}
+                  onObjectAdded={handleObjectAdded}
+                />
               </Paper>
 
               <Paper
@@ -365,7 +331,7 @@ function App() {
                   }}
               >
                 <LoadingOverlay
-                    visible={loading}
+                    visible={status === 'generating'}
                     zIndex={1000}
                     overlayProps={{ radius: 'md', blur: 2 }}
                     loaderProps={{

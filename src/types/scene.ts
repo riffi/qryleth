@@ -1,7 +1,7 @@
 import type {Vector3} from './common';
 
 export interface ScenePrimitive {
-  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid';
+  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane';
   width?: number;
   height?: number;
   depth?: number;

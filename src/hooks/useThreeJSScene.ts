@@ -852,6 +852,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
         mesh.rotation.y = Math.PI / 4
         break
       }
+      case 'plane': {
+        const geometry = new THREE.PlaneGeometry(
+            primitive.width || 1,
+            primitive.height || 1
+        )
+        mesh = new THREE.Mesh(geometry, material)
+        break
+      }
       default:
         console.warn('Unknown primitive type:', primitive.type)
         return new THREE.Mesh()

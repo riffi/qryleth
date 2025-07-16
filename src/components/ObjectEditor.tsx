@@ -303,6 +303,9 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
                                 newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            } else if (primitive.type === 'plane') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
                             }
                             newState.dimensions = newDimensions
                             hasChanged = true
@@ -321,6 +324,9 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
                                 newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            } else if (primitive.type === 'plane') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
                             }
                             newState.dimensions = newDimensions
                             hasChanged = true
@@ -333,6 +339,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
+                            } else if (primitive.type === 'plane') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
                             }
                             newState.dimensions = newDimensions
                             hasChanged = true
@@ -345,6 +353,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
                             } else if (primitive.type === 'pyramid') {
                                 newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
+                            } else if (primitive.type === 'plane') {
+                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
                             }
                             newState.dimensions = newDimensions
                             hasChanged = true
@@ -355,6 +365,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 newDimensions.height = Math.max(0.01, newDimensions.height + step)
                             } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
                                 newDimensions.height = Math.max(0.01, newDimensions.height + step)
+                            } else if (primitive.type === 'plane') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
                             }
                             newState.dimensions = newDimensions
                             hasChanged = true
@@ -364,6 +376,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             if (primitive.type === 'box') {
                                 newDimensions.height = Math.max(0.01, newDimensions.height - step)
                             } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
+                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
+                            } else if (primitive.type === 'plane') {
                                 newDimensions.height = Math.max(0.01, newDimensions.height - step)
                             }
                             newState.dimensions = newDimensions
@@ -671,6 +685,19 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                             <Group gap="xs" align="center">
                                                 <Text size="xs" c="dimmed" w={40}>Высота:</Text>
                                                 <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '2.000'}</Text>
+                                            </Group>
+                                        </>
+                                    )
+                                } else if (primitive.type === 'plane') {
+                                    return (
+                                        <>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Ширина:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.width?.toFixed(3) || '1.000'}</Text>
+                                            </Group>
+                                            <Group gap="xs" align="center">
+                                                <Text size="xs" c="dimmed" w={40}>Высота:</Text>
+                                                <Text size="sm" fw={500}>{dimensions.height?.toFixed(3) || '1.000'}</Text>
                                             </Group>
                                         </>
                                     )
