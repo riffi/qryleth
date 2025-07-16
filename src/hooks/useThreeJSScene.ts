@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js'
-import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -52,7 +50,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<OrbitControls | FirstPersonControls | FlyControls | PointerLockControls | null>(null)
+  const controlsRef = useRef<OrbitControls | PointerLockControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const lightsRef = useRef<SceneLights | null>(null)
   const clockRef = useRef<THREE.Clock>(new THREE.Clock())
@@ -62,6 +60,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const [selectedObject, setSelectedObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const selectedObjectRef = useRef<{objectIndex: number, instanceId?: string} | null>(null)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
+  const walkRaycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const [isInitialized, setIsInitialized] = useState(false)
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([])
@@ -150,6 +149,25 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     controlsRef.current.moveRight(-flyVelocity.current.x * delta)
     controlsRef.current.moveForward(-flyVelocity.current.z * delta)
+
+    if (viewModeRef.current === 'walk' && cameraRef.current) {
+      const cam = cameraRef.current
+      const meshes = Array.from(landscapeMeshesRef.current.values())
+      if (meshes.length > 0) {
+        walkRaycasterRef.current.set(
+          new THREE.Vector3(cam.position.x, 1000, cam.position.z),
+          new THREE.Vector3(0, -1, 0)
+        )
+        const intersects = walkRaycasterRef.current.intersectObjects(meshes, true)
+        if (intersects.length > 0) {
+          cam.position.y = intersects[0].point.y + 1.8
+        } else {
+          cam.position.y = 1.8
+        }
+      } else {
+        cam.position.y = 1.8
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -368,7 +386,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     // Mouse click handler for object selection
     const handleMouseClick = (event: MouseEvent) => {
-      if (viewModeRef.current === 'fly' && controlsRef.current instanceof PointerLockControls) {
+      if ((viewModeRef.current === 'fly' || viewModeRef.current === 'walk') && controlsRef.current instanceof PointerLockControls) {
         controlsRef.current.lock()
         return
       }
@@ -415,12 +433,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       animationFrameRef.current = requestAnimationFrame(animate)
       const delta = clockRef.current.getDelta()
       if (controlsRef.current) {
-        if (controlsRef.current instanceof FirstPersonControls || controlsRef.current instanceof FlyControls) {
-          controlsRef.current.update(delta)
-        } else if (controlsRef.current instanceof PointerLockControls) {
+        if (controlsRef.current instanceof PointerLockControls) {
           updateFlyMovement(delta)
         } else {
-          controlsRef.current.update()
+          ;(controlsRef.current as any).update?.(delta)
         }
       }
 
@@ -1262,21 +1278,23 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       controls.enablePan = true
       controlsRef.current = controls
     } else if (mode === 'walk') {
-      // Reset camera position for walk mode (FPS style)
+      // Walk mode uses pointer lock controls with constrained height
       camera.position.set(0, 1.8, 5)
       camera.lookAt(0, 1.8, 0)
 
-      const controls = new FirstPersonControls(camera, renderer.domElement)
-      controls.lookSpeed = 0.8
-      controls.movementSpeed = 15
-      controls.lookVertical = true
-      controls.constrainVertical = false
-      controls.activeLook = true
-      controls.heightSpeed = false
-      controls.heightCoef = 1
-      controls.heightMin = 0
-      controls.heightMax = 1000
+      const controls = new PointerLockControls(camera, renderer.domElement)
       controlsRef.current = controls
+
+      flyMoveForward.current = false
+      flyMoveBackward.current = false
+      flyMoveLeft.current = false
+      flyMoveRight.current = false
+
+      const handleLock = () => controls.lock()
+      flyLockHandlerRef.current = handleLock
+      container.addEventListener('click', handleLock)
+      document.addEventListener('keydown', handleFlyKeyDown)
+      document.addEventListener('keyup', handleFlyKeyUp)
     } else if (mode === 'fly') {
       // Reset camera position for fly mode
       camera.position.set(0, 5, 10)
