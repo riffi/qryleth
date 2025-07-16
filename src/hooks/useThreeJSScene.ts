@@ -1293,14 +1293,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       
       if (currentScene.uuid && currentScene.status === 'modified') {
         // Update existing scene if it's modified
-        await db.updateScene(currentScene.uuid, name, sceneData, description, undefined, layers)
+        await db.updateScene(currentScene.uuid, name, sceneData, description, undefined)
         sceneUuid = currentScene.uuid
       } else if (!currentScene.uuid || currentScene.status === 'draft') {
         // Save as new scene if it's a draft or has no UUID
-        sceneUuid = await db.saveScene(name, sceneData, description, undefined, layers)
+        sceneUuid = await db.saveScene(name, sceneData, description, undefined)
       } else {
         // For already saved scenes, always create a new one to avoid overwriting
-        sceneUuid = await db.saveScene(name, sceneData, description, undefined, layers)
+        sceneUuid = await db.saveScene(name, sceneData, description, undefined)
       }
       
       // Update current scene state

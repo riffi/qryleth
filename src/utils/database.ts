@@ -1,14 +1,12 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
 import type {BaseObject, Vector3, Transform} from '../types/common'
-import type {SceneLayer} from '../types/scene'
 import type {OpenAISettingsConnection} from './openAISettings'
 
 // Database interfaces
 export interface SceneRecord extends BaseObject {
   id?: number
   sceneData: any // JSON data of the scene
-  layers?: SceneLayer[]
 }
 
 export interface ObjectRecord extends BaseObject {
@@ -70,7 +68,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Scene methods
-  async saveScene(name: string, sceneData: any, description?: string, thumbnail?: string, layers?: SceneLayer[]): Promise<string> {
+  async saveScene(name: string, sceneData: any, description?: string, thumbnail?: string): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
     
@@ -80,7 +78,6 @@ export class SceneLibraryDB extends Dexie {
       description,
       thumbnail,
       sceneData,
-      layers,
       createdAt: now,
       updatedAt: now
     })
@@ -88,13 +85,12 @@ export class SceneLibraryDB extends Dexie {
     return uuid
   }
 
-  async updateScene(uuid: string, name: string, sceneData: any, description?: string, thumbnail?: string, layers?: SceneLayer[]): Promise<void> {
+  async updateScene(uuid: string, name: string, sceneData: any, description?: string, thumbnail?: string): Promise<void> {
     await this.scenes.where('uuid').equals(uuid).modify({
       name,
       description,
       thumbnail,
       sceneData,
-      layers,
       updatedAt: new Date()
     })
   }
