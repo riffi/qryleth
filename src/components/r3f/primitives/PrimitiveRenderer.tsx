@@ -1,0 +1,91 @@
+import React from 'react'
+import * as THREE from 'three'
+import type { PrimitiveRendererProps } from '../../../types/r3f'
+import type { ScenePrimitive } from '../../../types/scene'
+import { Box3D } from './Box3D'
+import { Sphere3D } from './Sphere3D'
+import { Cylinder3D } from './Cylinder3D'
+import { Cone3D } from './Cone3D'
+import { Pyramid3D } from './Pyramid3D'
+import { Plane3D } from './Plane3D'
+
+export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({ 
+  primitive, 
+  renderMode = 'solid' 
+}) => {
+  const baseMaterialProps = {
+    color: primitive.color || '#cccccc',
+    transparent: primitive.opacity !== undefined && primitive.opacity < 1,
+    opacity: primitive.opacity !== undefined ? Math.max(0, Math.min(1, primitive.opacity)) : 1,
+    emissive: primitive.emissive ? new THREE.Color(primitive.emissive) : undefined,
+    emissiveIntensity: primitive.emissiveIntensity !== undefined ? Math.max(0, primitive.emissiveIntensity) : undefined,
+    wireframe: renderMode === 'wireframe'
+  }
+
+  const meshProps = {
+    position: primitive.position || [0, 0, 0],
+    rotation: primitive.rotation || [0, 0, 0],
+    castShadow: true,
+    receiveShadow: true
+  }
+
+  switch (primitive.type) {
+    case 'box':
+      return (
+        <Box3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    case 'sphere':
+      return (
+        <Sphere3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    case 'cylinder':
+      return (
+        <Cylinder3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    case 'cone':
+      return (
+        <Cone3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    case 'pyramid':
+      return (
+        <Pyramid3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    case 'plane':
+      return (
+        <Plane3D
+          primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+      
+    default:
+      console.warn('Unknown primitive type:', primitive.type)
+      return null
+  }
+}
