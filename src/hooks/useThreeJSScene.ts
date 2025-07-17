@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
-import { GridHelper } from 'three'
+import {
+  THREE,
+  OrbitControls,
+  PointerLockControls,
+  TransformControls,
+  EffectComposer,
+  RenderPass,
+  OutlinePass,
+  OutputPass
+} from '../boundaries/three/sceneAdapter'
 import { generatePerlinNoise } from 'perlin-noise'
 import type { LightingSettings, ScenePlacement, SceneResponse, SceneObject, ScenePrimitive, SceneLayer } from '../types/scene'
 import { db } from '../utils/database'

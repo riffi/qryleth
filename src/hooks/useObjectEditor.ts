@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { THREE, OrbitControls, TransformControls } from '../boundaries/three/sceneAdapter'
 import type { SceneObject, ScenePrimitive } from '../types/scene'
 
 export type RenderMode = 'solid' | 'wireframe'
