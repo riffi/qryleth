@@ -1,5 +1,5 @@
 import React from 'react'
-import { EffectComposer, Outline, RenderPass } from '@react-three/postprocessing'
+import { EffectComposer, Outline } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
 import type { PostProcessingProps } from '../../../types/r3f'
@@ -16,8 +16,6 @@ export const PostProcessing: React.FC<PostProcessingProps> = ({
 
   return (
     <EffectComposer>
-      {/* Main render pass */}
-      <RenderPass />
       
       {/* Hover outline effect (green) */}
       {finalHoveredObjects.length > 0 && (

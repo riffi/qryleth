@@ -1,14 +1,18 @@
-import React from 'react'
-import { Box, Group, Paper, Stack } from '@mantine/core'
+import React, { useEffect } from 'react'
+import { Box, Group, Paper, Stack, Container } from '@mantine/core'
 import { Scene3D } from '../Scene3D'
 import { ObjectManagerR3F } from './ObjectManagerR3F'
 import { useSceneStore } from '../../../stores/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
+import { db } from '../../../utils/database'
+import MainLayout from '../../../layouts/MainLayout'
 
 interface SceneEditorR3FProps {
   width?: number
   height?: number
   showObjectManager?: boolean
+  uuid?: string
+  isNew?: boolean
 }
 
 /**
@@ -16,12 +20,42 @@ interface SceneEditorR3FProps {
  * This replaces the traditional SceneEditor component for R3F workflows
  */
 export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
-  width = 800,
-  height = 600,
-  showObjectManager = true
+  width = 1200,
+  height = 800,
+  showObjectManager = true,
+  uuid,
+  isNew = false
 }) => {
   // Initialize scene history for undo/redo
   useSceneHistory()
+
+  // Get scene store actions
+  const { loadSceneData, clearScene, setCurrentScene } = useSceneStore.getState()
+
+  // Load scene data from database if uuid is provided
+  useEffect(() => {
+    const loadScene = async () => {
+      if (uuid && !isNew) {
+        try {
+          const sceneData = await db.scenes.get(uuid)
+          if (sceneData) {
+            loadSceneData(sceneData.data, sceneData.name, uuid)
+          }
+        } catch (error) {
+          console.error('Failed to load scene:', error)
+        }
+      } else if (isNew) {
+        // Clear scene for new scene
+        clearScene()
+        setCurrentScene({
+          name: 'Новая сцена',
+          status: 'draft'
+        })
+      }
+    }
+
+    loadScene()
+  }, [uuid, isNew, loadSceneData, clearScene, setCurrentScene])
 
   // Get current scene status
   const currentScene = useSceneStore(state => state.currentScene)
@@ -29,36 +63,40 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const placementCount = useSceneStore(state => state.placements.length)
 
   return (
-    <Group align="flex-start" gap="md" wrap="nowrap">
-      {/* 3D Scene Viewport */}
-      <Paper withBorder style={{ flex: 1, minWidth: width }}>
-        <Box style={{ width: '100%', height }}>
-          <Scene3D />
-        </Box>
-        
-        {/* Scene Stats */}
-        <Stack gap="xs" p="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
-          <Group gap="md">
-            <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-              Scene: {currentScene.name} ({currentScene.status})
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-              Objects: {objectCount}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-              Instances: {placementCount}
-            </span>
-          </Group>
-        </Stack>
-      </Paper>
+    <MainLayout>
+      <Container size="100%" style={{ maxWidth: 'none', padding: 0 }}>
+        <Group align="flex-start" gap="md" wrap="nowrap" style={{ height: '100vh', padding: '1rem' }}>
+          {/* 3D Scene Viewport */}
+          <Paper withBorder style={{ flex: 1, minWidth: width * 0.7 }}>
+            <Box style={{ width: '100%', height }}>
+              <Scene3D />
+            </Box>
+            
+            {/* Scene Stats */}
+            <Stack gap="xs" p="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
+              <Group gap="md">
+                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
+                  Scene: {currentScene.name} ({currentScene.status})
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
+                  Objects: {objectCount}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
+                  Instances: {placementCount}
+                </span>
+              </Group>
+            </Stack>
+          </Paper>
 
-      {/* Object Manager Sidebar */}
-      {showObjectManager && (
-        <Paper withBorder style={{ width: 350, flexShrink: 0 }}>
-          <ObjectManagerR3F />
-        </Paper>
-      )}
-    </Group>
+          {/* Object Manager Sidebar */}
+          {showObjectManager && (
+            <Paper withBorder style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
+              <ObjectManagerR3F />
+            </Paper>
+          )}
+        </Group>
+      </Container>
+    </MainLayout>
   )
 }
 

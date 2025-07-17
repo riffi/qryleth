@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
-import { useObjectInstanceCounts, useSceneObjects, useScenePlacements } from '../../../stores/optimizedSelectors'
+import { useObjectInstanceCounts, useSceneObjectsOptimized, useScenePlacementsOptimized } from '../../../stores/optimizedSelectors'
 import type { SceneObject, ScenePlacement } from '../../../types/scene'
 import { Primitive3D } from '../primitives/Primitive3D'
 
@@ -11,8 +11,8 @@ interface InstancedObjectsProps {
 export const InstancedObjects: React.FC<InstancedObjectsProps> = ({ 
   minimumInstancesForOptimization = 3 
 }) => {
-  const objects = useSceneObjects()
-  const placements = useScenePlacements()
+  const objects = useSceneObjectsOptimized()
+  const placements = useScenePlacementsOptimized()
   const instanceCounts = useObjectInstanceCounts()
 
   // Group placements by object type for instancing

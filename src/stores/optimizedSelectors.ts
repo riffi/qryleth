@@ -1,5 +1,6 @@
 import { useSceneStore } from './sceneStore'
 import { shallow } from 'zustand/shallow'
+import { useMemo } from 'react'
 import type { SceneObject, ScenePlacement, SceneLayer } from '../types/scene'
 
 // Optimized selectors for preventing unnecessary re-renders
@@ -164,34 +165,40 @@ export const useWireframeMode = () =>
 export const useNeedsUpdate = () =>
   useSceneStore(state => state.currentScene.status === 'modified')
 
-// Export actions for convenience
-export const useSceneActions = () =>
-  useSceneStore(state => ({
-    setObjects: state.setObjects,
-    addObject: state.addObject,
-    removeObject: state.removeObject,
-    updateObject: state.updateObject,
-    setPlacements: state.setPlacements,
-    addPlacement: state.addPlacement,
-    updatePlacement: state.updatePlacement,
-    removePlacement: state.removePlacement,
-    setLayers: state.setLayers,
-    createLayer: state.createLayer,
-    updateLayer: state.updateLayer,
-    deleteLayer: state.deleteLayer,
-    toggleLayerVisibility: state.toggleLayerVisibility,
-    moveObjectToLayer: state.moveObjectToLayer,
-    selectObject: state.selectObject,
-    clearSelection: state.clearSelection,
-    setHoveredObject: state.setHoveredObject,
-    clearHover: state.clearHover,
-    setViewMode: state.setViewMode,
-    setRenderMode: state.setRenderMode,
-    setTransformMode: state.setTransformMode,
-    toggleGridVisibility: state.toggleGridVisibility,
-    updateLighting: state.updateLighting,
-    saveToHistory: state.saveToHistory,
-    undo: state.undo,
-    redo: state.redo,
-    markSceneAsModified: state.markSceneAsModified
-  }), shallow)
+// Export actions for convenience with memoization to prevent infinite loops
+export const useSceneActions = () => {
+  const store = useSceneStore()
+  
+  // Memoize the actions object to prevent recreating it on every render
+  return useMemo(() => ({
+    setObjects: store.setObjects,
+    addObject: store.addObject,
+    removeObject: store.removeObject,
+    updateObject: store.updateObject,
+    setPlacements: store.setPlacements,
+    addPlacement: store.addPlacement,
+    updatePlacement: store.updatePlacement,
+    removePlacement: store.removePlacement,
+    setLayers: store.setLayers,
+    createLayer: store.createLayer,
+    updateLayer: store.updateLayer,
+    deleteLayer: store.deleteLayer,
+    toggleLayerVisibility: store.toggleLayerVisibility,
+    moveObjectToLayer: store.moveObjectToLayer,
+    selectObject: store.selectObject,
+    clearSelection: store.clearSelection,
+    setHoveredObject: store.setHoveredObject,
+    clearHover: store.clearHover,
+    setViewMode: store.setViewMode,
+    setRenderMode: store.setRenderMode,
+    setTransformMode: store.setTransformMode,
+    toggleGridVisibility: store.toggleGridVisibility,
+    updateLighting: store.updateLighting,
+    saveToHistory: store.saveToHistory,
+    undo: store.undo,
+    redo: store.redo,
+    markSceneAsModified: store.markSceneAsModified,
+    exportScene: store.exportScene,
+    saveSceneToLocalStorage: store.saveSceneToLocalStorage
+  }), [store])
+}

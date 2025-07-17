@@ -3,8 +3,7 @@ import { useSceneStore } from '../../stores/sceneStore'
 import { 
   useSceneObjectsOptimized,
   useScenePlacementsOptimized,
-  useSelectedObject,
-  useHoveredObject
+  useSelectionState
 } from '../../stores/optimizedSelectors'
 
 /**
@@ -14,8 +13,7 @@ import {
 export const useUISync = () => {
   const objects = useSceneObjectsOptimized()
   const placements = useScenePlacementsOptimized()
-  const selectedObject = useSelectedObject()
-  const hoveredObject = useHoveredObject()
+  const { selectedObject, hoveredObject } = useSelectionState()
   
   const {
     selectObject,

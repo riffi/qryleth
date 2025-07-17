@@ -4,8 +4,8 @@ import { useSceneStore } from '../../../stores/sceneStore'
 import { 
   useSceneObjectsOptimized,
   useSceneLayersOptimized,
-  useSceneLighting,
-  useSelectedObject,
+  useSceneMetadata,
+  useSelectionState,
   useSceneActions
 } from '../../../stores/optimizedSelectors'
 import type { ObjectInfo } from '../../ObjectItem'
@@ -20,8 +20,8 @@ export const ObjectManagerR3F: React.FC = () => {
   const objects = useSceneObjectsOptimized()
   const placements = useSceneStore(state => state.placements)
   const layers = useSceneLayersOptimized()
-  const lighting = useSceneLighting()
-  const selectedObject = useSelectedObject()
+  const { lighting } = useSceneMetadata()
+  const { selectedObject } = useSelectionState()
   const currentScene = useSceneStore(state => state.currentScene)
 
   // Get actions from selectors
