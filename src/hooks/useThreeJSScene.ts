@@ -483,7 +483,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const objectsMap = Array.isArray(objects) ?
       objects.reduce((map, obj, index) => ({ ...map, [index]: obj }), {}) : objects
 
-    if (!objectsArray.length || !placements.length) {
+    // Если объекты пусты, используем getObjectsFromScene() в качестве fallback
+    let finalObjectsArray: SceneObject[]
+    let finalObjectsMap: { [key: number]: SceneObject }
+    
+    if (objectsArray.length > 0) {
+      finalObjectsArray = objectsArray
+      finalObjectsMap = Array.isArray(objects) ?
+        objects.reduce((map, obj, index) => ({ ...map, [index]: obj }), {}) : objects
+    } else {
+      const objectsFromScene = getObjectsFromScene()
+      finalObjectsMap = objectsFromScene
+      finalObjectsArray = Object.values(objectsFromScene)
+    }
+
+    if (!finalObjectsArray.length || !placements.length) {
       setObjectsInfo([])
       return
     }
@@ -512,7 +526,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Создаем информацию об объектах
     const info: ObjectInfo[] = []
     objectCounts.forEach((count, objectIndex) => {
-      const sceneObject = objectsArray[objectIndex]
+      const sceneObject = finalObjectsMap[objectIndex]
       if (sceneObject) {
         info.push({
           name: sceneObject.name,
