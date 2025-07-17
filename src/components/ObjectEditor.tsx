@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, {useState, useRef, useEffect, useCallback} from 'react'
 import {
     Modal,
     Group,
@@ -39,18 +39,32 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
     const [editMode, setEditMode] = useState<'move' | 'rotate' | 'scale'>('move')
     const [primitiveStates, setPrimitiveStates] = useState<{[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}}>({})
     const [isModified, setIsModified] = useState(false)
-    
-    const { isInitialized, createSampleObject, createObjectFromData, updateObjectTransform, getObjectTransform, selectedPrimitive, selectedPrimitiveIndex, selectPrimitiveByIndex, getPrimitivesList, getCameraRelativeMovement, cloneSelectedPrimitive } = useObjectEditor(canvasRef, opened)
+
+    const {
+        isInitialized,
+        createSampleObject,
+        createObjectFromData,
+        updateObjectTransform,
+        getObjectTransform,
+        selectedPrimitive,
+        selectedPrimitiveIndex,
+        selectPrimitiveByIndex,
+        getPrimitivesList,
+        getCameraRelativeMovement,
+        cloneSelectedPrimitive,
+        setTransformMode,
+        registerOnTransformChange
+    } = useObjectEditor(canvasRef, opened)
 
     // Helper functions for primitive states
     const getCurrentPrimitiveState = () => {
         if (!objectData?.primitives[selectedPrimitiveIndex]) {
             return { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: {} }
         }
-        
+
         const primitive = objectData.primitives[selectedPrimitiveIndex]
         const storedState = primitiveStates[selectedPrimitiveIndex]
-        
+
         if (storedState) return storedState
 
         const baseDimensions: any = {
@@ -169,7 +183,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         if (isInitialized && objectData) {
             const primitivesList = getPrimitivesList()
             const newStates: {[key: number]: {position: [number, number, number], rotation: [number, number, number], dimensions: any}} = {}
-            
+
             primitivesList.forEach((_, index) => {
                 if (!primitiveStates[index]) {
                     const primitive = objectData.primitives[index]
@@ -208,7 +222,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                     }
                 }
             })
-            
+
             if (Object.keys(newStates).length > 0) {
                 setPrimitiveStates(prev => ({ ...prev, ...newStates }))
             }
@@ -216,299 +230,65 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
     }, [isInitialized, getPrimitivesList, objectData])
 
     useEffect(() => {
-        if (!opened) return
+        registerOnTransformChange(() => {
+            const transform = getObjectTransform()
+            if (!transform) return
 
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const step = event.shiftKey ? 0.1 : 0.01
             const currentState = getCurrentPrimitiveState()
-            let newState = { ...currentState }
-            let hasChanged = false
+            const newState = { ...currentState }
 
-            switch (editMode) {
-                case 'move':
-                    switch (event.key) {
-                        case 'ArrowLeft':
-                            event.preventDefault()
-                            {
-                                const [dx, dy, dz] = getCameraRelativeMovement('left', step)
-                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
-                                hasChanged = true
-                            }
-                            break
-                        case 'ArrowRight':
-                            event.preventDefault()
-                            {
-                                const [dx, dy, dz] = getCameraRelativeMovement('right', step)
-                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
-                                hasChanged = true
-                            }
-                            break
-                        case 'ArrowUp':
-                            event.preventDefault()
-                            {
-                                const [dx, dy, dz] = getCameraRelativeMovement('backward', step)
-                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
-                                hasChanged = true
-                            }
-                            break
-                        case 'ArrowDown':
-                            event.preventDefault()
-                            {
-                                const [dx, dy, dz] = getCameraRelativeMovement('forward', step)
-                                newState.position = [currentState.position[0] + dx, currentState.position[1] + dy, currentState.position[2] + dz]
-                                hasChanged = true
-                            }
-                            break
-                        case 'Numpad8':
-                        case '8':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                newState.position = [currentState.position[0], currentState.position[1] + step, currentState.position[2]]
-                                hasChanged = true
-                            }
-                            break
-                        case 'Numpad2':
-                        case '2':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                newState.position = [currentState.position[0], currentState.position[1] - step, currentState.position[2]]
-                                hasChanged = true
-                            }
-                            break
-                    }
-                    break
+            newState.position = transform.position
+            newState.rotation = transform.rotation
 
-                case 'rotate':
-                    switch (event.key) {
-                        case 'ArrowLeft':
-                            event.preventDefault()
-                            newState.rotation = [currentState.rotation[0], currentState.rotation[1] - step, currentState.rotation[2]]
-                            hasChanged = true
-                            break
-                        case 'ArrowRight':
-                            event.preventDefault()
-                            newState.rotation = [currentState.rotation[0], currentState.rotation[1] + step, currentState.rotation[2]]
-                            hasChanged = true
-                            break
-                        case 'ArrowUp':
-                            event.preventDefault()
-                            newState.rotation = [currentState.rotation[0] - step, currentState.rotation[1], currentState.rotation[2]]
-                            hasChanged = true
-                            break
-                        case 'ArrowDown':
-                            event.preventDefault()
-                            newState.rotation = [currentState.rotation[0] + step, currentState.rotation[1], currentState.rotation[2]]
-                            hasChanged = true
-                            break
-                        case 'Numpad8':
-                        case '8':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                newState.rotation = [currentState.rotation[0], currentState.rotation[1], currentState.rotation[2] + step]
-                                hasChanged = true
-                            }
-                            break
-                        case 'Numpad2':
-                        case '2':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                newState.rotation = [currentState.rotation[0], currentState.rotation[1], currentState.rotation[2] - step]
-                                hasChanged = true
-                            }
-                            break
-                    }
-                    break
+            if (editMode === 'scale' && objectData?.primitives[selectedPrimitiveIndex]) {
+                const primitive = objectData.primitives[selectedPrimitiveIndex]
+                const scale = transform.scale
+                const dims = { ...currentState.dimensions }
 
-                case 'scale':
-                    if (!objectData?.primitives[selectedPrimitiveIndex]) break
-                    
-                    const primitive = objectData.primitives[selectedPrimitiveIndex]
-                    const newDimensions = { ...currentState.dimensions }
-                    
-                    switch (event.key) {
-                        case '=':
-                        case '+':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                                newDimensions.depth = Math.max(0.01, newDimensions.depth + step)
-                            } else if (primitive.type === 'sphere') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
-                            } else if (primitive.type === 'cylinder') {
-                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) + step)
-                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) + step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            } else if (primitive.type === 'cone') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            } else if (primitive.type === 'pyramid') {
-                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case '-':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                                newDimensions.depth = Math.max(0.01, newDimensions.depth - step)
-                            } else if (primitive.type === 'sphere') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
-                            } else if (primitive.type === 'cylinder') {
-                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) - step)
-                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) - step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            } else if (primitive.type === 'cone') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            } else if (primitive.type === 'pyramid') {
-                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case 'ArrowLeft':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
-                            } else if (primitive.type === 'sphere' || primitive.type === 'cone') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius - step)
-                            } else if (primitive.type === 'cylinder') {
-                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) - step)
-                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) - step)
-                            } else if (primitive.type === 'pyramid') {
-                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize - step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width - step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case 'ArrowRight':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
-                            } else if (primitive.type === 'sphere' || primitive.type === 'cone') {
-                                newDimensions.radius = Math.max(0.01, newDimensions.radius + step)
-                            } else if (primitive.type === 'cylinder') {
-                                newDimensions.radiusTop = Math.max(0.01, (newDimensions.radiusTop || 1) + step)
-                                newDimensions.radiusBottom = Math.max(0.01, (newDimensions.radiusBottom || 1) + step)
-                            } else if (primitive.type === 'pyramid') {
-                                newDimensions.baseSize = Math.max(0.01, newDimensions.baseSize + step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.width = Math.max(0.01, newDimensions.width + step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case 'ArrowUp':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height + step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case 'ArrowDown':
-                            event.preventDefault()
-                            if (primitive.type === 'box') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            } else if (primitive.type === 'cylinder' || primitive.type === 'cone' || primitive.type === 'pyramid') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            } else if (primitive.type === 'plane') {
-                                newDimensions.height = Math.max(0.01, newDimensions.height - step)
-                            }
-                            newState.dimensions = newDimensions
-                            hasChanged = true
-                            break
-                        case 'Numpad8':
-                        case '8':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                if (primitive.type === 'box') {
-                                    newDimensions.depth = Math.max(0.01, newDimensions.depth + step)
-                                }
-                                newState.dimensions = newDimensions
-                                hasChanged = true
-                            }
-                            break
-                        case 'Numpad2':
-                        case '2':
-                            if (event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD || event.ctrlKey) {
-                                event.preventDefault()
-                                if (primitive.type === 'box') {
-                                    newDimensions.depth = Math.max(0.01, newDimensions.depth - step)
-                                }
-                                newState.dimensions = newDimensions
-                                hasChanged = true
-                            }
-                            break
-                    }
-                    break
+                if (primitive.type === 'box') {
+                    dims.width *= scale[0]
+                    dims.height *= scale[1]
+                    dims.depth *= scale[2]
+                } else if (primitive.type === 'sphere' || primitive.type === 'cone') {
+                    dims.radius *= scale[0]
+                    if (primitive.type === 'cone') dims.height *= scale[1]
+                } else if (primitive.type === 'cylinder') {
+                    dims.radiusTop *= scale[0]
+                    dims.radiusBottom *= scale[0]
+                    dims.height *= scale[1]
+                } else if (primitive.type === 'pyramid') {
+                    dims.baseSize *= scale[0]
+                    dims.height *= scale[1]
+                } else if (primitive.type === 'plane') {
+                    dims.width *= scale[0]
+                    dims.height *= scale[1]
+                }
+
+                newState.dimensions = dims
+                // reset object scale after applying
+                selectedPrimitive?.scale.set(1, 1, 1)
             }
 
-            if (hasChanged) {
-                updateCurrentPrimitiveState(newState.position, newState.rotation, newState.dimensions)
-                setIsModified(true)
-            }
+            updateCurrentPrimitiveState(newState.position, newState.rotation, newState.dimensions)
+            updateObjectTransform(newState.position, newState.rotation, newState.dimensions)
+            setIsModified(true)
+        })
+    }, [registerOnTransformChange, getObjectTransform, editMode, objectData, selectedPrimitiveIndex, selectedPrimitive])
 
-            if (event.key === 'Escape') {
-                event.preventDefault()
-                onClose()
-            }
-            
-            if (event.key === 'd' && (event.ctrlKey || event.metaKey)) {
-                event.preventDefault()
-                handleClonePrimitive()
-            }
-        }
+    useEffect(() => {
+        setTransformMode(editMode === 'move' ? 'translate' : editMode)
+    }, [editMode, setTransformMode])
 
-        window.addEventListener('keydown', handleKeyDown)
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown)
-        }
-    }, [opened, editMode, onClose, selectedPrimitiveIndex, primitiveStates])
-
-    const handleSave = () => {
-        if (objectInfo) {
-            // Pass all primitive states to the save function
-            onSave(objectInfo.objectIndex, instanceId, primitiveStates)
-            onClose()
-        }
-    }
-
-    const handleClose = () => {
-        if (isModified) {
-            const confirmed = window.confirm('У вас есть несохраненные изменения. Вы уверены, что хотите закрыть редактор?')
-            if (!confirmed) return
-        }
-        onClose()
-    }
-
-    const handleClonePrimitive = () => {
+    const handleClonePrimitive = useCallback(() => {
         if (!selectedPrimitive) return
-        
+
         const clonedData = cloneSelectedPrimitive()
         if (clonedData) {
             // Update object data to include the new primitive
             if (objectData) {
                 objectData.primitives.push(clonedData)
             }
-            
+
             // Initialize state for the new primitive
             const newIndex = getPrimitivesList().length - 1
             const dims: any = {
@@ -527,10 +307,48 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 ...prev,
                 [newIndex]: { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: dims }
             }))
-            
+
             setIsModified(true)
         }
+    }, [])
+
+    useEffect(() => {
+        if (!opened) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault()
+                onClose()
+            }
+            if ((event.key === 'd' || event.key === 'D') && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault()
+                handleClonePrimitive()
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [opened, onClose, handleClonePrimitive])
+
+    const handleSave = () => {
+        if (objectInfo) {
+            // Pass all primitive states to the save function
+            onSave(objectInfo.objectIndex, instanceId, primitiveStates)
+            onClose()
+        }
     }
+
+    const handleClose = () => {
+        if (isModified) {
+            const confirmed = window.confirm('У вас есть несохраненные изменения. Вы уверены, что хотите закрыть редактор?')
+            if (!confirmed) return
+        }
+        onClose()
+    }
+
+
 
     if (!objectInfo) return null
 
@@ -560,11 +378,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         >
             <Box style={{ height: '100%', display: 'flex' }}>
                 {/* Left Sidebar - Controls */}
-                <Paper 
-                    shadow="sm" 
-                    p="md" 
-                    style={{ 
-                        width: 300, 
+                <Paper
+                    shadow="sm"
+                    p="md"
+                    style={{
+                        width: 300,
                         height: '100%',
                         borderRadius: 0,
                         borderRight: '1px solid var(--mantine-color-gray-3)'
@@ -572,7 +390,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                 >
                     <Stack gap="md">
                         <Title order={4}>Выбор примитива</Title>
-                        
+
                         <Select
                             value={selectedPrimitiveIndex.toString()}
                             onChange={(value) => {
@@ -587,11 +405,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             placeholder="Выберите примитив"
                             size="sm"
                         />
-                        
+
                         <Text size="xs" c="dimmed">
                             Кликните на объект в сцене или выберите из списка
                         </Text>
-                        
+
                         {selectedPrimitive && (
                             <Paper p="xs" bg="blue.0" radius="sm">
                                 <Text size="sm" fw={500} c="blue.7">
@@ -599,7 +417,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 </Text>
                             </Paper>
                         )}
-                        
+
                         {selectedPrimitive && (
                             <Button
                                 size="xs"
@@ -611,11 +429,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                 Клонировать примитив
                             </Button>
                         )}
-                        
+
                         <Divider />
-                        
+
                         <Title order={4}>Режим редактирования</Title>
-                        
+
                         <Group gap="xs">
                             <Tooltip label="Перемещение">
                                 <ActionIcon
@@ -627,7 +445,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                     <IconArrowRightBar size={20} />
                                 </ActionIcon>
                             </Tooltip>
-                            
+
                             <Tooltip label="Поворот">
                                 <ActionIcon
                                     size="lg"
@@ -638,7 +456,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                     <IconRotate size={20} />
                                 </ActionIcon>
                             </Tooltip>
-                            
+
                             <Tooltip label="Масштаб">
                                 <ActionIcon
                                     size="lg"
@@ -691,7 +509,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             {objectData?.primitives[selectedPrimitiveIndex] && (() => {
                                 const primitive = objectData.primitives[selectedPrimitiveIndex]
                                 const dimensions = getCurrentPrimitiveState().dimensions
-                                
+
                                 if (primitive.type === 'box') {
                                     return (
                                         <>
@@ -780,33 +598,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                         {/* Controls Help */}
                         <Stack gap="xs" mt="md">
                             <Text fw={500} size="sm">Управление</Text>
-                            {editMode === 'move' && (
-                                <>
-                                    <Text size="xs" c="dimmed">←→ - влево/вправо относительно камеры</Text>
-                                    <Text size="xs" c="dimmed">↑↓ - назад/вперед относительно камеры</Text>
-                                    <Text size="xs" c="dimmed">Num8/Num2 или Ctrl+8/2 - по Y</Text>
-                                    <Text size="xs" c="dimmed">Shift - точное движение</Text>
-                                </>
-                            )}
-                            {editMode === 'rotate' && (
-                                <>
-                                    <Text size="xs" c="dimmed">←→ - поворот по Y</Text>
-                                    <Text size="xs" c="dimmed">↑↓ - поворот по X</Text>
-                                    <Text size="xs" c="dimmed">Num8/Num2 - поворот по Z</Text>
-                                    <Text size="xs" c="dimmed">Shift - точный поворот</Text>
-                                </>
-                            )}
-                            {editMode === 'scale' && (
-                                <>
-                                    <Text size="xs" c="dimmed">+/- - равномерное изменение размера</Text>
-                                    <Text size="xs" c="dimmed">←→ - ширина/радиус</Text>
-                                    <Text size="xs" c="dimmed">↑↓ - высота</Text>
-                                    <Text size="xs" c="dimmed">Num8/Num2 - глубина (для box)</Text>
-                                    <Text size="xs" c="dimmed">Shift - точное изменение</Text>
-                                </>
-                            )}
-                            <Text size="xs" c="dimmed">Esc - закрыть редактор</Text>
+                            <Text size="xs" c="dimmed">
+                                Используйте манипулятор в сцене для перемещения, поворота и масштабирования
+                            </Text>
                             <Text size="xs" c="dimmed">Ctrl+D - клонировать примитив</Text>
+                            <Text size="xs" c="dimmed">Esc - закрыть редактор</Text>
                         </Stack>
 
                         {/* Action Buttons */}
@@ -856,7 +652,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             </Text>
                         </Box>
                     )}
-                    
+
                     {/* Mode indicator */}
                     {isInitialized && (
                         <Box

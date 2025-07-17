@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import type { SceneObject, ScenePrimitive } from '../types/scene'
 
-export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | null>, isOpen: boolean = true) => {
+export const useObjectEditor = (
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  isOpen: boolean = true,
+  onTransform?: () => void
+) => {
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
+  const transformControlsRef = useRef<TransformControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const editObjectRef = useRef<THREE.Object3D | null>(null)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
@@ -16,7 +22,12 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
   const [isInitialized, setIsInitialized] = useState(false)
   const [selectedPrimitive, setSelectedPrimitive] = useState<THREE.Mesh | null>(null)
   const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number>(0)
-  const initTimeoutRef = useRef<number | NodeJS.Timeout | null>(null)
+  const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onTransformRef = useRef<(() => void) | undefined>(onTransform)
+
+  useEffect(() => {
+    onTransformRef.current = onTransform
+  }, [onTransform])
 
   useEffect(() => {
     if (!isOpen) {
@@ -88,6 +99,18 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       controls.enablePan = true
       controlsRef.current = controls
 
+      const transformControls = new TransformControls(camera, renderer.domElement)
+      transformControls.addEventListener('dragging-changed', event => {
+        if (controlsRef.current) {
+          controlsRef.current.enabled = !event.value
+        }
+      })
+      transformControls.addEventListener('objectChange', () => {
+        onTransformRef.current?.()
+      })
+      scene.add(transformControls.getHelper())
+      transformControlsRef.current = transformControls
+
       // Lighting setup
       const ambientLight = new THREE.AmbientLight(0x404040, 0.6)
       scene.add(ambientLight)
@@ -118,7 +141,7 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
 
         if (intersects.length > 0) {
           const clickedPrimitive = intersects[0].object as THREE.Mesh
-          
+
           setSelectedPrimitive(clickedPrimitive)
           
           // Find index of selected primitive
@@ -126,8 +149,11 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
           if (index !== -1) {
             setSelectedPrimitiveIndex(index)
           }
-          
+
           updatePrimitiveHighlight(clickedPrimitive)
+          if (transformControlsRef.current) {
+            transformControlsRef.current.attach(clickedPrimitive)
+          }
         }
       }
 
@@ -177,6 +203,10 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       
       rendererRef.current?.dispose()
       controlsRef.current?.dispose()
+      if (transformControlsRef.current && sceneRef.current) {
+        sceneRef.current.remove(transformControlsRef.current.getHelper())
+        transformControlsRef.current.dispose()
+      }
     }
   }, [containerRef, isOpen])
 
@@ -353,6 +383,9 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
       setSelectedPrimitive(primitivesRef.current[0])
       setSelectedPrimitiveIndex(0)
       updatePrimitiveHighlight(primitivesRef.current[0])
+      if (transformControlsRef.current) {
+        transformControlsRef.current.attach(primitivesRef.current[0])
+      }
     }
 
     return group
@@ -498,10 +531,13 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
   const selectPrimitiveByIndex = useCallback((index: number) => {
     if (index >= 0 && index < primitivesRef.current.length) {
       const primitive = primitivesRef.current[index]
-      
+
       setSelectedPrimitive(primitive)
       setSelectedPrimitiveIndex(index)
       updatePrimitiveHighlight(primitive)
+      if (transformControlsRef.current) {
+        transformControlsRef.current.attach(primitive)
+      }
     }
   }, [])
 
@@ -661,6 +697,12 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
     selectPrimitiveByIndex,
     getPrimitivesList,
     getCameraRelativeMovement,
-    cloneSelectedPrimitive
+    cloneSelectedPrimitive,
+    setTransformMode: (mode: 'translate' | 'rotate' | 'scale') => {
+      transformControlsRef.current?.setMode(mode)
+    },
+    registerOnTransformChange: (cb: () => void) => {
+      onTransformRef.current = cb
+    }
   }
 }
