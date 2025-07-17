@@ -21,7 +21,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
       }}
     >
       <AppShell.Header>
-        <Container size="xl" h="100%">
+        <Container size="xl" h="100%" fluid>
           <Group h="100%" justify="space-between">
             <Group gap="sm">
               <IconBrain size={24} color="var(--mantine-color-gray-6)" />
