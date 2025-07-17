@@ -1,69 +1,69 @@
-# React + TypeScript + Vite
+Qryleth - 3d редактор с ИИ
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Технологии:
+SPA react typescript mantine three.js vite dexie
 
-Currently, two official plugins are available:
+---
+Основные термины:
+---
+- Примитив - графический 3d примитив
+- Объект - сгруппированный набор примитивов
+- Инстанс объекта - конкретная реализация объекта, с указанием расположения на сцене, поворотом и масштабированием
+- Слой, два типа:
+    - группа объектов
+    - поверхность(Landscape), может быть Plane или Perlin Noise
+- Глобальное освещение - Цвет и интенсивность фонового и направленного света
+- Сцена - набор слоев
+- Редактор сцены - страница, где можно расставлять объекты, состоит из:
+    - чата с ИИ ассистентом
+    - окна рендера(Three.js)
+    - менеджера объектов, слоев, глобального освещения
+- Редактор объекта - страница, где можно изменять расположение примитивов в объекте, состоит из:
+    - окна рендера(Three.js)
+    - панели инструментов редактирования примитивов
+- Библиотека - перечень сохраненных сцен и объектов(две вкладки)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Expanding the ESLint configuration
+---
+Сценарии использования:
+---
+- Быстрое создание сцены: Библиотека -> Добавить сцену -> Запрос к ИИ редактору на создание освещения, слоев и объектов
+- Корректировка расположения объектов на сцене: Редактор сцены -> выбор объекта -> перемещение/поворот/изменение размера/удаление
+- Добавление объектов из библиотеки на сцену: Редактор сцены -> менеджер объектов -> Добавить объект -> Библиотека -> Выбор объекта -> Добавить на сцену
+- Сохранение объекта в библиотеку: Редактор сцены -> выбор объекта -> Подсветка выбранного объекта в менеджере объектов -> Сохранить в библиотеку
+- Сохранение сцены: Изменение сцены -> Статус - изменена, отображается кнопка сохранить -> Менеджер объектов -> Сохранить
+- Редактирование объекта на сцене: Редактор сцены -> выбор объекта -> Подсветка выбранного объекта в менеджере объектов -> Редактор объекта -> корректировка -> сохранение -> Возврат в редактор сцен, объект скорректирован
+- Редактирование объекта из библиотеки: Библиотека -> Объекты -> Выбор объекта -> Редактор объекта -> корректировка -> сохранение -> Возврат в библиотеку, объект скорректирован
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
+ИИ ассистент, текущие возможности
+---
+- Добавление новых созданных ии объектов на сцену про одному, в виде одного иснстанса, один tool call - addNewObject
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+---
+Хранилище
+---
+Текущий способ хранения библиотеки - локально, dexie
+Текущий способ хранения чатов с ИИ - нет, теряется при перезагрузке страницы.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+Планы
+---
+Хранилище
+План по изменению способа хранения библиотеки - Backend spring boot
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Социальная составляющая
+- публикация сцен и объектов в общедоступную библиотеку
+- Возможность использования сцен и объектов из общедоступной библиотеки
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+ИИ ассистент
+- Возможность добавления не только новых сгенерированных объектов на сцену, но и элементов из локальной и общедоступной библиотеки
+- Возможность корректировки глобального освещения
+- Возможность управления слоями
+- Возможность изменять количество и расположение инстансов объекта, массовое создание инстансов
+- Возможность управления слоем Landscape
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+
+
+  
