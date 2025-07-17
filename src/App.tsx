@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
-  AppShell,
   Container,
   Group,
   Textarea,
   Button,
-  Title,
   Paper,
   Text,
   Badge,
@@ -25,15 +23,13 @@ import {
   IconInfoCircle,
   IconCheck,
   IconX,
-  IconBrain,
   IconEye,
   IconRun,
   IconPlaneTilt,
   IconBooks,
   IconArrowBack,
   IconArrowForward,
-  IconGridDots,
-  IconTableOff
+  IconGridDots
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager.tsx'
@@ -42,6 +38,7 @@ import { ObjectEditor } from './components/ObjectEditor'
 import { ChatInterface } from './components/ChatInterface'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
 import { fetchSceneJSON } from './utils/openAIAPI.ts'
+import MainLayout from './layouts/MainLayout'
 import type {LightingSettings, SceneResponse} from './types/scene'
 
 function App() {
@@ -239,220 +236,197 @@ function App() {
 
   return (
       <>
-        <AppShell
-            header={{ height: 60 }}
-            padding="sm"
-            styles={{
-              main: {
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100vh',
-              },
-            }}
+        <MainLayout
+          rightSection={(
+            <>
+              <Badge
+                color={getStatusColor()}
+                variant="light"
+                size="sm"
+              >
+                {getStatusText()}
+              </Badge>
+
+              <Tooltip label="Отменить (Ctrl+Z)">
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={undo}
+                  disabled={!canUndo()}
+                >
+                  <IconArrowBack size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label="Вернуть (Ctrl+Y)">
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={redo}
+                  disabled={!canRedo()}
+                >
+                  <IconArrowForward size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label="Библиотека">
+                <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)} c={"gray.4"}>
+                  <IconBooks size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label="Настройки">
+                <ActionIcon variant="subtle" size="sm" onClick={() => setSettingsOpened(true)} c={"gray.4"}>
+                  <IconSettings size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label="Справка">
+                <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
+                  <IconInfoCircle size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </>
+          )}
         >
-          <AppShell.Header>
-            <Container size="xl" h="100%">
-              <Group h="100%" justify="space-between">
-                <Group gap="sm">
-                  <IconBrain size={24} color="var(--mantine-color-gray-6)" />
-                  <Title order={3} c="gray.5">
-                    Qryleth 3D
-                  </Title>
-                </Group>
+          <Container
+              size="xl"
+              fluid
+              h="100%"
+              style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+          >
+            <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
+              <ChatInterface
+                onSceneGenerated={handleSceneGenerated}
+                onObjectAdded={handleObjectAdded}
+              />
+            </Paper>
 
-                <Group gap="xs">
-                  <Badge
-                      color={getStatusColor()}
-                      variant="light"
-                      size="sm"
-                  >
-                    {getStatusText()}
-                  </Badge>
-
-                  <Tooltip label="Отменить (Ctrl+Z)">
-                    <ActionIcon 
-                      variant="subtle" 
-                      size="sm" 
-                      onClick={undo}
-                      disabled={!canUndo()}
-                    >
-                      <IconArrowBack size="1rem" />
-                    </ActionIcon>
-                  </Tooltip>
-
-                  <Tooltip label="Вернуть (Ctrl+Y)">
-                    <ActionIcon 
-                      variant="subtle" 
-                      size="sm" 
-                      onClick={redo}
-                      disabled={!canRedo()}
-                    >
-                      <IconArrowForward size="1rem" />
-                    </ActionIcon>
-                  </Tooltip>
-
-                  <Tooltip label="Библиотека">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)} c={"gray.4"}>
-                      <IconBooks size="1rem" />
-                    </ActionIcon>
-                  </Tooltip>
-
-                  <Tooltip label="Настройки">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setSettingsOpened(true)} c={"gray.4"}>
-                      <IconSettings size="1rem" />
-                    </ActionIcon>
-                  </Tooltip>
-
-                  <Tooltip label="Справка">
-                    <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
-                      <IconInfoCircle size="1rem" />
-                    </ActionIcon>
-                  </Tooltip>
-                </Group>
-              </Group>
-            </Container>
-          </AppShell.Header>
-
-          <AppShell.Main>
-            <Container
-                size="xl"
-                fluid
-                h="100%"
-                style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+            <Paper
+                shadow="sm"
+                radius="md"
+                style={{
+                  flex: 1,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minHeight: 400,
+                }}
             >
-              <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
-                <ChatInterface 
-                  onSceneGenerated={handleSceneGenerated}
-                  onObjectAdded={handleObjectAdded}
-                />
-              </Paper>
+              <LoadingOverlay
+                  visible={status === 'generating'}
+                  zIndex={1000}
+                  overlayProps={{ radius: 'md', blur: 2 }}
+                  loaderProps={{
+                    color: 'blue',
+                    type: 'dots'
+                  }}
+              />
 
-              <Paper
-                  shadow="sm"
-                  radius="md"
+              <Box
                   style={{
-                    flex: 1,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    minHeight: 400,
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    zIndex: 10,
+                    backgroundColor: 'transparent',
+                    borderRadius: 'var(--mantine-radius-sm)',
+                    padding: 6,
                   }}
               >
-                <LoadingOverlay
-                    visible={status === 'generating'}
-                    zIndex={1000}
-                    overlayProps={{ radius: 'md', blur: 2 }}
-                    loaderProps={{
-                      color: 'blue',
-                      type: 'dots'
-                    }}
-                />
+                <Group gap="xs">
+                  <Tooltip label={gridVisible ? "Скрыть сетку" : "Показать сетку"}>
+                    <ActionIcon
+                      variant={gridVisible ? "filled" : "light"}
+                      c={gridVisible ? "white" : "gray"}
+                      onClick={toggleGridVisibility}
+                      size="md"
+                    >
+                      {gridVisible ? <IconGridDots size={18} /> : <IconGridDots size={18} />}
+                    </ActionIcon>
+                  </Tooltip>
 
-                <Box
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      zIndex: 10,
-                      backgroundColor: 'transparent',
-                      borderRadius: 'var(--mantine-radius-sm)',
-                      padding: 6,
-                    }}
-                >
-                  <Group gap="xs">
-                    <Tooltip label={gridVisible ? "Скрыть сетку" : "Показать сетку"}>
-                      <ActionIcon
-                        variant={gridVisible ? "filled" : "light"}
-                        c={gridVisible ? "white" : "gray"}
-                        onClick={toggleGridVisibility}
-                        size="md"
-                      >
-                        {gridVisible ? <IconGridDots size={18} /> : <IconGridDots size={18} />}
-                      </ActionIcon>
-                    </Tooltip>
-                    
-                    <SegmentedControl
-                        value={renderMode}
-                        onChange={(value) => switchRenderMode(value as 'solid' | 'wireframe')}
-                        data={[
-                          { value: 'solid', label: 'Solid' },
-                          { value: 'wireframe', label: 'Wireframe' }
-                        ]}
-                        size="xs"
-                    />
+                  <SegmentedControl
+                      value={renderMode}
+                      onChange={(value) => switchRenderMode(value as 'solid' | 'wireframe')}
+                      data={[
+                        { value: 'solid', label: 'Solid' },
+                        { value: 'wireframe', label: 'Wireframe' }
+                      ]}
+                      size="xs"
+                  />
 
-                    <SegmentedControl
-                        value={viewMode}
-                        onChange={(value) => switchViewMode(value as 'orbit' | 'walk' | 'fly')}
-                        data={[
-                          {
-                            value: 'orbit',
-                            label: (
-                              <Group gap={4} wrap={"nowrap"}>
-                                <IconEye size={14} />
-                                <span>Orbit</span>
-                              </Group>
-                            )
-                          },
-                          {
-                            value: 'walk',
-                            label: (
-                              <Group gap={4} wrap={"nowrap"}>
-                                <IconRun size={14} />
-                                <span>Walk</span>
-                              </Group>
-                            )
-                          },
-                          {
-                            value: 'fly',
-                            label: (
-                              <Group gap={4} wrap={"nowrap"}>
-                                <IconPlaneTilt size={14} />
-                                <span>Fly</span>
-                              </Group>
-                            )
-                          }
-                        ]}
-                        size="xs"
-                    />
-                  </Group>
-                </Box>
+                  <SegmentedControl
+                      value={viewMode}
+                      onChange={(value) => switchViewMode(value as 'orbit' | 'walk' | 'fly')}
+                      data={[
+                        {
+                          value: 'orbit',
+                          label: (
+                            <Group gap={4} wrap={"nowrap"}>
+                              <IconEye size={14} />
+                              <span>Orbit</span>
+                            </Group>
+                          )
+                        },
+                        {
+                          value: 'walk',
+                          label: (
+                            <Group gap={4} wrap={"nowrap"}>
+                              <IconRun size={14} />
+                              <span>Walk</span>
+                            </Group>
+                          )
+                        },
+                        {
+                          value: 'fly',
+                          label: (
+                            <Group gap={4} wrap={"nowrap"}>
+                              <IconPlaneTilt size={14} />
+                              <span>Fly</span>
+                            </Group>
+                          )
+                        }
+                      ]}
+                      size="xs"
+                  />
+                </Group>
+              </Box>
 
-                <Box
-                    ref={canvasRef}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: 'var(--mantine-radius-md)'
-                    }}
-                />
-              </Paper>
-
-              <ObjectManager
-                  objects={objectsInfo}
-                  onToggleVisibility={toggleObjectVisibility}
-                  onRemoveObject={removeObjectFromScene}
-                  onToggleInstanceVisibility={toggleInstanceVisibility}
-                  onRemoveInstance={removeInstance}
-                  onHighlightObject={highlightObjects}
-                  onClearHighlight={clearHighlight}
-                  onSelectObject={selectObject}
-                  selectedObject={selectedObject}
-                  onSaveObjectToLibrary={saveObjectToLibrary}
-                  currentScene={currentScene}
-                  onSaveSceneToLibrary={handleSaveSceneToLibrary}
-                  onEditObject={handleEditObject}
-                  lighting={currentLighting}
-                  onLightingChange={handleLightingChange}
-                  layers={layers}
-                  onCreateLayer={createLayer}
-                  onUpdateLayer={updateLayer}
-                  onDeleteLayer={deleteLayer}
-                  onToggleLayerVisibility={toggleLayerVisibility}
-                  onMoveObjectToLayer={moveObjectToLayer}
+              <Box
+                  ref={canvasRef}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 'var(--mantine-radius-md)'
+                  }}
               />
-            </Container>
-          </AppShell.Main>
-        </AppShell>
+            </Paper>
+
+            <ObjectManager
+                objects={objectsInfo}
+                onToggleVisibility={toggleObjectVisibility}
+                onRemoveObject={removeObjectFromScene}
+                onToggleInstanceVisibility={toggleInstanceVisibility}
+                onRemoveInstance={removeInstance}
+                onHighlightObject={highlightObjects}
+                onClearHighlight={clearHighlight}
+                onSelectObject={selectObject}
+                selectedObject={selectedObject}
+                onSaveObjectToLibrary={saveObjectToLibrary}
+                currentScene={currentScene}
+                onSaveSceneToLibrary={handleSaveSceneToLibrary}
+                onEditObject={handleEditObject}
+                lighting={currentLighting}
+                onLightingChange={handleLightingChange}
+                layers={layers}
+                onCreateLayer={createLayer}
+                onUpdateLayer={updateLayer}
+                onDeleteLayer={deleteLayer}
+                onToggleLayerVisibility={toggleLayerVisibility}
+                onMoveObjectToLayer={moveObjectToLayer}
+            />
+          </Container>
+        </MainLayout>
         <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
         <SceneLibraryModal 
           opened={libraryOpened} 

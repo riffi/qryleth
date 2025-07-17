@@ -1,10 +1,19 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import App from './App'
+import MainLayout from './layouts/MainLayout'
 
-const LibraryPage: React.FC = () => <div>Library Page</div>
+const LibraryPage: React.FC = () => (
+  <MainLayout>
+    <div>Library Page</div>
+  </MainLayout>
+)
 const SceneEditor: React.FC = () => <App />
-const ObjectEditorPage: React.FC = () => <div>Object Editor Page</div>
+const ObjectEditorPage: React.FC = () => (
+  <MainLayout>
+    <div>Object Editor Page</div>
+  </MainLayout>
+)
 
 export default function Router() {
   return (
