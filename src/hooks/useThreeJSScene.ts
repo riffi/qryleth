@@ -231,7 +231,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     selectedOutlinePass.edgeThickness = 3
     selectedOutlinePass.pulsePeriod = 2
     selectedOutlinePass.visibleEdgeColor.set('#ff6600')
-    selectedOutlinePass.hiddenEdgeColor.set('#ff6600')
+    selectedOutlinePass.hiddenEdgeColor.set('#423a34')
     composer.addPass(selectedOutlinePass)
 
     // Output pass for proper tone mapping and gamma correction
