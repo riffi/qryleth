@@ -46,6 +46,7 @@ export interface SceneLayer {
   width?: number;
   height?: number;
   shape?: 'plane' | 'perlin';
+  noiseData?: number[];
   visible: boolean;
   position: number;
 }

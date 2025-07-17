@@ -1071,9 +1071,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     sceneLayers.forEach(layer => {
       if (layer.type === 'landscape' && scene) {
         console.log('Creating landscape layer:', layer)
-        const geometry = layer.shape === 'perlin'
-          ? createPerlinGeometry(layer.width || 1, layer.height || 1)
-          : new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+        let geometry: THREE.BufferGeometry
+        if (layer.shape === 'perlin') {
+          const result = createPerlinGeometry(layer.width || 1, layer.height || 1, layer.noiseData)
+          geometry = result.geometry
+          layer.noiseData = result.noiseData
+        } else {
+          geometry = new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+        }
         const material = new THREE.MeshLambertMaterial({
           color: layer.shape === 'perlin' ? 0x4a5d23 : 0x808080, // Зеленый для perlin, серый для plane
           side: THREE.DoubleSide,
@@ -1663,7 +1668,11 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   }
 
   // Функция для создания геометрии с Perlin noise
-  const createPerlinGeometry = (width: number, height: number): THREE.BufferGeometry => {
+  const createPerlinGeometry = (
+    width: number,
+    height: number,
+    existingNoiseData?: number[]
+  ): { geometry: THREE.BufferGeometry; noiseData: number[] } => {
     console.log('Creating Perlin geometry with dimensions:', width, 'x', height)
     const segments = 64
     const geometry = new THREE.PlaneGeometry(width, height, segments, segments)
@@ -1672,14 +1681,14 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     console.log('Initial geometry vertices count:', positions.length / 3)
 
-    // Генерируем шум Perlin
-    const noiseData = generatePerlinNoise(segments + 1, segments + 1, {
+    // Генерируем шум Perlin или используем существующие данные
+    const noiseData = existingNoiseData ?? generatePerlinNoise(segments + 1, segments + 1, {
       octaveCount: 4,
       amplitude: 0.1, // Увеличиваем амплитуду для более выраженного эффекта
       persistence: 0.5
     })
 
-    console.log('Generated noise data length:', noiseData.length)
+    console.log('Noise data length:', noiseData.length)
     console.log('Sample noise values:', noiseData.slice(0, 5))
 
     // Применяем шум к вертексам
@@ -1690,8 +1699,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       const originalY = positions[i + 1]
 
       // Нормализуем координаты к индексам массива шума
-      const noiseX = Math.floor(((x + width/2) / width) * segments)
-      const noiseZ = Math.floor(((z + height/2) / height) * segments)
+      const noiseX = Math.floor(((x + width / 2) / width) * segments)
+      const noiseZ = Math.floor(((z + height / 2) / height) * segments)
 
       // Получаем значение шума и применяем к высоте
       const noiseIndex = noiseZ * (segments + 1) + noiseX
@@ -1710,7 +1719,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     console.log('Final geometry bounding box:', geometry.boundingBox)
 
-    return geometry
+    return { geometry, noiseData }
   }
 
   // Функции для работы со слоями
@@ -1729,20 +1738,21 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       width: type === 'landscape' ? width : undefined,
       height: type === 'landscape' ? height : undefined,
       shape: type === 'landscape' ? shape || 'plane' : undefined,
+      noiseData: undefined,
       visible: true,
       position: layers.length
     }
-    console.log('New layer created:', newLayer)
-    setLayers([...layers, newLayer])
-
     if (type === 'landscape' && sceneRef.current) {
       console.log('Creating landscape mesh for layer:', newLayer.id)
       let geometry: THREE.BufferGeometry
+      let noiseData: number[] | undefined
 
       if (shape === 'perlin') {
         console.log('Creating perlin geometry with shape:', shape)
         try {
-          geometry = createPerlinGeometry(width || 1, height || 1)
+          const result = createPerlinGeometry(width || 1, height || 1)
+          geometry = result.geometry
+          noiseData = result.noiseData
           console.log('Perlin geometry created successfully:', geometry)
         } catch (error) {
           console.error('Error creating perlin geometry:', error)
@@ -1788,6 +1798,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       console.log('All scene children:', sceneRef.current.children.map(c => ({ name: c.name || c.type, type: c.type, userData: c.userData })))
     }
 
+    // Сохраняем данные шума и слой в состояние
+    if (noiseData) {
+      newLayer.noiseData = noiseData
+    }
+    console.log('New layer created:', newLayer)
+    setLayers([...layers, newLayer])
+
     markSceneAsModified()
     return newLayer
   }
@@ -1796,7 +1813,6 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     const updatedLayers = layers.map(layer =>
       layer.id === layerId ? { ...layer, ...updates } : layer
     )
-    setLayers(updatedLayers)
 
     if (updates.width !== undefined || updates.height !== undefined || updates.shape !== undefined) {
       const mesh = landscapeMeshesRef.current.get(layerId)
@@ -1808,9 +1824,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
           const newShape = updates.shape ?? updatedLayer.shape ?? 'plane'
 
           mesh.geometry.dispose()
-          mesh.geometry = newShape === 'perlin'
-            ? createPerlinGeometry(newWidth, newHeight)
-            : new THREE.PlaneGeometry(newWidth, newHeight)
+          if (newShape === 'perlin') {
+            const result = createPerlinGeometry(newWidth, newHeight, updatedLayer.noiseData)
+            mesh.geometry = result.geometry
+            updatedLayer.noiseData = result.noiseData
+          } else {
+            mesh.geometry = new THREE.PlaneGeometry(newWidth, newHeight)
+          }
           mesh.rotation.x = newShape === 'perlin' ? 0 : -Math.PI / 2
 
           // Обновить материал если изменился тип
@@ -1827,6 +1847,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
     }
 
+    setLayers(updatedLayers)
     markSceneAsModified()
   }
 
