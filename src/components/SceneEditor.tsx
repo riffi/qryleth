@@ -131,16 +131,16 @@ function SceneEditor({ uuid, isNew }: SceneEditorProps) {
     }
   }, [isInitialized])
 
-  // Load scene from route if ID is provided
+  // Load scene from route once editor is initialized
   useEffect(() => {
-    if (uuid) {
+    if (uuid && isInitialized) {
       db.getScene(uuid).then(scene => {
         if (scene) {
           loadSceneData(scene.sceneData, scene.name, scene.uuid)
         }
       })
     }
-  }, [uuid])
+  }, [uuid, isInitialized])
 
   // Обработка горячих клавиш для undo/redo
   useEffect(() => {
