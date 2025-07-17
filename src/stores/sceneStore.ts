@@ -109,12 +109,20 @@ export const useSceneStore = create<SceneStore>()(
 
     // Placement management
     setPlacements: (placements: ScenePlacement[]) => {
-      set({ placements })
+      const normalized = placements.map(p => ({
+        ...p,
+        visible: p.visible !== false
+      }))
+      set({ placements: normalized })
       get().saveToHistory()
     },
 
     addPlacement: (placement: ScenePlacement) => {
-      const placements = [...get().placements, placement]
+      const normalized = {
+        ...placement,
+        visible: placement.visible !== false
+      }
+      const placements = [...get().placements, normalized]
       set({ placements })
       get().saveToHistory()
       get().markSceneAsModified()
@@ -188,6 +196,18 @@ export const useSceneStore = create<SceneStore>()(
         index === objectIndex ? { ...obj, visible: obj.visible === false ? true : !obj.visible } : obj
       )
       set({ objects })
+      get().markSceneAsModified()
+    },
+
+    toggleInstanceVisibility: (objectIndex: number, instanceId: string) => {
+      const placementIndex = parseInt(instanceId.split('-')[1])
+      if (isNaN(placementIndex)) return
+      const placements = get().placements.map((placement, i) =>
+        i === placementIndex
+          ? { ...placement, visible: placement.visible === false ? true : !placement.visible }
+          : placement
+      )
+      set({ placements })
       get().markSceneAsModified()
     },
 

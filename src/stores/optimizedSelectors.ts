@@ -198,6 +198,7 @@ export const useSceneActions = () => {
     deleteLayer: store.deleteLayer,
     toggleLayerVisibility: store.toggleLayerVisibility,
     toggleObjectVisibility: store.toggleObjectVisibility,
+    toggleInstanceVisibility: store.toggleInstanceVisibility,
     moveObjectToLayer: store.moveObjectToLayer,
     selectObject: store.selectObject,
     clearSelection: store.clearSelection,

@@ -39,6 +39,8 @@ export interface ScenePlacement {
   position?: Vector3;
   rotation?: Vector3;
   scale?: Vector3;
+  /** Visibility of a particular placement/instance */
+  visible?: boolean;
 }
 
 export interface SceneLayer {

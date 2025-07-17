@@ -67,6 +67,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
                 position={[px, py, pz]}
                 rotation={[rx, ry, rz]}
                 scale={[sx, sy, sz]}
+                visible={placement.visible !== false}
               />
             )
           })}
@@ -111,10 +112,14 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
   children
 }) => {
   const shouldUseInstancing = useInstanceOptimization(objectIndex, minimumInstancesForOptimization)
-  
+
   // If this object should use instancing, don't render individual instance
   // It will be handled by InstancedObjects component
   if (shouldUseInstancing) {
+    return null
+  }
+
+  if (placement.visible === false) {
     return null
   }
 

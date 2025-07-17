@@ -292,9 +292,8 @@ const usePreservedObjectFunctionality = (): PreservedObjectFunctionality => {
   }, [store, actions])
 
   const toggleInstanceVisibility = React.useCallback((objectIndex: number, instanceId: string) => {
-    // This would need instance-level visibility support
-    console.log('Instance visibility not yet implemented', { objectIndex, instanceId })
-  }, [])
+    actions.toggleInstanceVisibility(objectIndex, instanceId)
+  }, [actions])
 
   const showAllObjects = React.useCallback(() => {
     const layers = store.getState().layers

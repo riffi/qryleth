@@ -117,6 +117,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         deleteLayer: storeDeleteLayer,
         toggleLayerVisibility: storeToggleLayerVisibility,
         toggleObjectVisibility: storeToggleObjectVisibility,
+        toggleInstanceVisibility: storeToggleInstanceVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
         exportScene,
         saveSceneToLocalStorage
@@ -137,7 +138,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                     position: placement.position || [0,0,0],
                     rotation: placement.rotation || [0,0,0],
                     scale: placement.scale || [1,1,1],
-                    visible: true
+                    visible: placement.visible !== false
                 }))
             }
         })
@@ -241,8 +242,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     const handleToggleInstanceVisibility = (objectIndex: number, instanceId: string) => {
         if (onToggleInstanceVisibility) return onToggleInstanceVisibility(objectIndex, instanceId)
-        // Future instance visibility logic
-        console.log('Instance visibility toggle not implemented', { objectIndex, instanceId })
+        storeToggleInstanceVisibility(objectIndex, instanceId)
     }
 
     const handleRemoveInstance = (objectIndex: number, instanceId: string) => {

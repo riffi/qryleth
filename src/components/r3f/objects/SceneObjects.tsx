@@ -87,7 +87,7 @@ export const SceneObjects: React.FC = () => {
               onClick={handleClick}
               onHover={handlePointerOver}
               onTransform={handleObjectTransform}
-              visible={isLayerVisible && (sceneObject.visible !== false)}
+              visible={isLayerVisible && (sceneObject.visible !== false) && (placement.visible !== false)}
             />
           </ConditionalInstancedObject>
         )

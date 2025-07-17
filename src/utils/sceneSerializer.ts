@@ -235,7 +235,8 @@ export class SceneSerializer {
       ...placement,
       position: placement.position || [0, 0, 0],
       rotation: placement.rotation || [0, 0, 0],
-      scale: placement.scale || [1, 1, 1]
+      scale: placement.scale || [1, 1, 1],
+      visible: placement.visible !== false
     }))
   }
 
@@ -244,7 +245,8 @@ export class SceneSerializer {
       ...placement,
       position: placement.position || [0, 0, 0],
       rotation: placement.rotation || [0, 0, 0],
-      scale: placement.scale || [1, 1, 1]
+      scale: placement.scale || [1, 1, 1],
+      visible: placement.visible !== false
     }))
   }
 

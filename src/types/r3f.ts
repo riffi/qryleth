@@ -161,6 +161,8 @@ export interface SceneStoreActions {
   deleteLayer: (layerId: string) => void
   toggleLayerVisibility: (layerId: string) => void
   toggleObjectVisibility: (objectIndex: number) => void
+  /** Toggle visibility of a specific object instance */
+  toggleInstanceVisibility: (objectIndex: number, instanceId: string) => void
   moveObjectToLayer: (objectIndex: number, layerId: string) => void
   
   // Lighting
