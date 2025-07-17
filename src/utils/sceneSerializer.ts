@@ -217,14 +217,16 @@ export class SceneSerializer {
       name: obj.name,
       type: obj.type,
       primitives: obj.primitives,
-      layerId: obj.layerId || 'objects'
+      layerId: obj.layerId || 'objects',
+      visible: obj.visible !== false
     }))
   }
 
   private static deserializeObjects(objects: SceneObject[]): SceneObject[] {
     return objects.map(obj => ({
       ...obj,
-      layerId: obj.layerId || 'objects'
+      layerId: obj.layerId || 'objects',
+      visible: obj.visible !== false
     }))
   }
 

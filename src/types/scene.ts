@@ -22,6 +22,8 @@ export interface SceneObject {
   name: string;
   primitives: ScenePrimitive[];
   layerId?: string;
+  /** Controls visibility of all placements of this object */
+  visible?: boolean;
 }
 
 export interface LightingSettings {

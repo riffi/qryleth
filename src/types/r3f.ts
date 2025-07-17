@@ -160,6 +160,7 @@ export interface SceneStoreActions {
   updateLayer: (layerId: string, updates: Partial<SceneLayer>) => void
   deleteLayer: (layerId: string) => void
   toggleLayerVisibility: (layerId: string) => void
+  toggleObjectVisibility: (objectIndex: number) => void
   moveObjectToLayer: (objectIndex: number, layerId: string) => void
   
   // Lighting

@@ -138,7 +138,8 @@ export class LegacyCompatibility {
         name: legacyObj.name || `Object ${index + 1}`,
         type: legacyObj.type || 'composite',
         primitives: this.migrateLegacyPrimitives(legacyObj.primitives || []),
-        layerId: legacyObj.layerId || 'objects'
+        layerId: legacyObj.layerId || 'objects',
+        visible: legacyObj.visible !== false
       }
     })
   }

@@ -288,11 +288,7 @@ const usePreservedObjectFunctionality = (): PreservedObjectFunctionality => {
 
   // Visibility operations
   const toggleObjectVisibility = React.useCallback((objectIndex: number) => {
-    const objects = store.getState().objects
-    const object = objects[objectIndex]
-    if (object?.layerId) {
-      actions.toggleLayerVisibility(object.layerId)
-    }
+    actions.toggleObjectVisibility(objectIndex)
   }, [store, actions])
 
   const toggleInstanceVisibility = React.useCallback((objectIndex: number, instanceId: string) => {

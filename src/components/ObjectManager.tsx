@@ -116,6 +116,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         updateLayer: storeUpdateLayer,
         deleteLayer: storeDeleteLayer,
         toggleLayerVisibility: storeToggleLayerVisibility,
+        toggleObjectVisibility: storeToggleObjectVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
         exportScene,
         saveSceneToLocalStorage
@@ -128,7 +129,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
             return {
                 name: sceneObject.name,
                 count: objectPlacements.length,
-                visible: true,
+                visible: sceneObject.visible !== false,
                 objectIndex,
                 layerId: sceneObject.layerId || 'objects',
                 instances: objectPlacements.map((placement, placementIndex) => ({
@@ -229,10 +230,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     // Default handlers using Zustand store if callbacks are not provided
     const handleToggleVisibility = (objectIndex: number) => {
         if (onToggleVisibility) return onToggleVisibility(objectIndex)
-        const obj = sceneObjects[objectIndex]
-        if (obj?.layerId) {
-            storeToggleLayerVisibility(obj.layerId)
-        }
+        storeToggleObjectVisibility(objectIndex)
     }
 
     const handleRemoveObject = (objectIndex: number) => {

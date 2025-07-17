@@ -71,12 +71,20 @@ export const useSceneStore = create<SceneStore>()(
 
     // Object management
     setObjects: (objects: SceneObject[]) => {
-      set({ objects })
+      const normalized = objects.map(obj => ({
+        ...obj,
+        visible: obj.visible !== false
+      }))
+      set({ objects: normalized })
       get().saveToHistory()
     },
 
     addObject: (object: SceneObject) => {
-      const objects = [...get().objects, object]
+      const normalized = {
+        ...object,
+        visible: object.visible !== false
+      }
+      const objects = [...get().objects, normalized]
       set({ objects })
       get().saveToHistory()
       get().markSceneAsModified()
@@ -172,6 +180,14 @@ export const useSceneStore = create<SceneStore>()(
         layer.id === layerId ? { ...layer, visible: !layer.visible } : layer
       )
       set({ layers })
+      get().markSceneAsModified()
+    },
+
+    toggleObjectVisibility: (objectIndex: number) => {
+      const objects = get().objects.map((obj, index) =>
+        index === objectIndex ? { ...obj, visible: obj.visible === false ? true : !obj.visible } : obj
+      )
+      set({ objects })
       get().markSceneAsModified()
     },
 
