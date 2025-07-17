@@ -464,7 +464,7 @@ function SceneEditor({ uuid, isNew }: SceneEditorProps) {
           onClose={() => setEditorOpened(false)}
           objectInfo={editingObject ? objectsInfo.find(obj => obj.objectIndex === editingObject.objectIndex) : undefined}
           instanceId={editingObject?.instanceId}
-          objectData={editingObject ? getSceneObjects()[editingObject.objectIndex] : undefined}
+          objectData={editingObject ? JSON.parse(JSON.stringify(getSceneObjects()[editingObject.objectIndex])) : undefined}
           onSave={handleSaveObjectEdit}
         />
       </>
