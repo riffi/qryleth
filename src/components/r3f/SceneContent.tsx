@@ -1,13 +1,19 @@
 import React from 'react'
 import { SceneLighting } from './lighting/SceneLighting'
 import { CameraControls } from './controls/CameraControls'
+import { TransformGizmo } from './controls/TransformGizmo'
 import { Environment } from './environment/Environment'
 import { SceneObjects } from './objects/SceneObjects'
 import { LandscapeLayers } from './landscape/LandscapeLayers'
+import { PostProcessing } from './effects/PostProcessing'
 import { useSceneStore } from '../../stores/sceneStore'
+import { useKeyboardShortcuts } from '../../hooks/r3f/useKeyboardShortcuts'
 
 export const SceneContent: React.FC = () => {
   const lighting = useSceneStore(state => state.lighting)
+  
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts()
 
   return (
     <>
@@ -23,7 +29,11 @@ export const SceneContent: React.FC = () => {
       <SceneObjects />
       <LandscapeLayers />
       
-      {/* Post-processing and effects will be added later */}
+      {/* Transform controls */}
+      <TransformGizmo />
+      
+      {/* Post-processing effects */}
+      <PostProcessing />
     </>
   )
 }

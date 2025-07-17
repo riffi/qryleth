@@ -1,0 +1,100 @@
+import React, { useRef, useEffect } from 'react'
+import { TransformControls } from '@react-three/drei'
+import { useThree } from '@react-three/fiber'
+import { useSceneStore } from '../../../stores/sceneStore'
+import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
+import type { TransformGizmoProps } from '../../../types/r3f'
+
+export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) => {
+  const { scene, camera, gl } = useThree()
+  const transformControlsRef = useRef<any>()
+  const selectedObject = useSceneStore(state => state.selectedObject)
+  const transformMode = useSceneStore(state => state.transformMode)
+  const updatePlacement = useSceneStore(state => state.updatePlacement)
+  const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
+  const { selectedObjects } = useObjectSelection()
+
+  // Find the target object for transform controls
+  const targetObject = selectedObjects.length > 0 ? selectedObjects[0] : undefined
+
+  const handleObjectChange = () => {
+    if (!transformControlsRef.current?.object || !selectedObject) return
+
+    const obj = transformControlsRef.current.object
+    const position = obj.position
+    const rotation = obj.rotation  
+    const scale = obj.scale
+
+    // Update the placement in the store
+    if (selectedObject.placementIndex !== undefined) {
+      updatePlacement(selectedObject.placementIndex, {
+        position: [position.x, position.y, position.z],
+        rotation: [rotation.x, rotation.y, rotation.z],
+        scale: [scale.x, scale.y, scale.z]
+      })
+    }
+
+    // Call external transform handler if provided
+    if (onTransform) {
+      onTransform({
+        objectIndex: selectedObject.objectIndex,
+        instanceId: selectedObject.instanceId,
+        placementIndex: selectedObject.placementIndex,
+        position: [position.x, position.y, position.z],
+        rotation: [rotation.x, rotation.y, rotation.z],
+        scale: [scale.x, scale.y, scale.z]
+      })
+    }
+  }
+
+  const handleDraggingChanged = (event: any) => {
+    // Disable camera controls while dragging
+    const orbitControls = gl.domElement.querySelector('[data-drei-orbit-controls]')
+    if (orbitControls) {
+      (orbitControls as any).enabled = !event.value
+    }
+
+    // Save to history and mark as modified when dragging ends
+    if (!event.value) {
+      markSceneAsModified()
+      // Save to history would be called here
+      useSceneStore.getState().saveToHistory()
+    }
+  }
+
+  useEffect(() => {
+    const controls = transformControlsRef.current
+    if (!controls) return
+
+    controls.addEventListener('objectChange', handleObjectChange)
+    controls.addEventListener('dragging-changed', handleDraggingChanged)
+
+    return () => {
+      controls.removeEventListener('objectChange', handleObjectChange)
+      controls.removeEventListener('dragging-changed', handleDraggingChanged)
+    }
+  }, [selectedObject])
+
+  // Don't render if no object is selected
+  if (!targetObject || !selectedObject) {
+    return null
+  }
+
+  return (
+    <TransformControls
+      ref={transformControlsRef}
+      object={targetObject}
+      mode={transformMode}
+      camera={camera}
+      gl={gl}
+      size={1}
+      showX={true}
+      showY={true}
+      showZ={true}
+      space="world"
+      translationSnap={null}
+      rotationSnap={null}
+      scaleSnap={null}
+    />
+  )
+}

@@ -7,31 +7,18 @@ import {
   useHoveredObject,
   useSceneStore 
 } from '../../../stores/sceneStore'
+import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
 
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()
   const placements = useScenePlacements()
   const selectedObject = useSelectedObject()
   const hoveredObject = useHoveredObject()
-  const selectObject = useSceneStore(state => state.selectObject)
-  const setHoveredObject = useSceneStore(state => state.setHoveredObject)
+  const updatePlacement = useSceneStore(state => state.updatePlacement)
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
-  const updatePlacement = useSceneStore(state => state.updatePlacement)
-
-  const handleObjectClick = (event: any) => {
-    if (event.objectIndex !== undefined) {
-      selectObject(event.objectIndex, event.instanceId)
-    } else {
-      clearSelection()
-    }
-  }
-
-  const handleObjectHover = (event: any) => {
-    if (event.objectIndex !== undefined) {
-      setHoveredObject(event.objectIndex, event.instanceId)
-    }
-  }
+  
+  const { handleClick, handlePointerOver, handlePointerOut } = useSceneEvents()
 
   const handleObjectTransform = (event: any) => {
     if (event.placementIndex !== undefined) {
@@ -57,12 +44,9 @@ export const SceneObjects: React.FC = () => {
 
   return (
     <group
-      onClick={(event) => {
-        // Handle clicks on empty space
-        if (event.eventObject === event.object) {
-          clearSelection()
-        }
-      }}
+      onClick={handleClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
       onPointerMissed={() => {
         clearSelection()
         clearHover()
@@ -82,8 +66,8 @@ export const SceneObjects: React.FC = () => {
             placementIndex={placementIndex}
             isSelected={isSelected(placement.objectIndex, instanceId)}
             isHovered={isHovered(placement.objectIndex, instanceId)}
-            onClick={handleObjectClick}
-            onHover={handleObjectHover}
+            onClick={handleClick}
+            onHover={handlePointerOver}
             onTransform={handleObjectTransform}
           />
         )
