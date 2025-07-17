@@ -37,9 +37,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     const loadScene = async () => {
       if (uuid && !isNew) {
         try {
-          const sceneData = await db.scenes.get(uuid)
+          const sceneData = await db.getScene(uuid)
+          console.log(sceneData)
           if (sceneData) {
-            loadSceneData(sceneData.data, sceneData.name, uuid)
+            loadSceneData(sceneData.sceneData, sceneData.name, uuid)
           }
         } catch (error) {
           console.error('Failed to load scene:', error)
@@ -71,7 +72,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             <Box style={{ width: '100%', height }}>
               <Scene3D />
             </Box>
-            
+
             {/* Scene Stats */}
             <Stack gap="xs" p="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
               <Group gap="md">
@@ -106,14 +107,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
  */
 export const useR3FSceneIntegration = () => {
   const store = useSceneStore()
-  
+
   return {
     // Scene data
     objects: store.objects,
     placements: store.placements,
     layers: store.layers,
     lighting: store.lighting,
-    
+
     // UI state
     selectedObject: store.selectedObject,
     hoveredObject: store.hoveredObject,
@@ -121,10 +122,10 @@ export const useR3FSceneIntegration = () => {
     renderMode: store.renderMode,
     transformMode: store.transformMode,
     gridVisible: store.gridVisible,
-    
+
     // Scene metadata
     currentScene: store.currentScene,
-    
+
     // Actions
     addObject: store.addObject,
     removeObject: store.removeObject,
@@ -146,19 +147,19 @@ export const useR3FSceneIntegration = () => {
     toggleLayerVisibility: store.toggleLayerVisibility,
     moveObjectToLayer: store.moveObjectToLayer,
     updateLighting: store.updateLighting,
-    
+
     // Scene management
     loadSceneData: store.loadSceneData,
     getCurrentSceneData: store.getCurrentSceneData,
     clearScene: store.clearScene,
     markSceneAsModified: store.markSceneAsModified,
-    
+
     // History
     undo: store.undo,
     redo: store.redo,
     canUndo: store.canUndo(),
     canRedo: store.canRedo(),
-    
+
     // Serialization
     exportScene: store.exportScene,
     importScene: store.importScene,
