@@ -2,12 +2,7 @@ import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import App from './App'
 import MainLayout from './layouts/MainLayout'
-
-const LibraryPage: React.FC = () => (
-  <MainLayout>
-    <div>Library Page</div>
-  </MainLayout>
-)
+import LibraryPage from './pages/LibraryPage'
 const SceneEditor: React.FC = () => <App />
 const ObjectEditorPage: React.FC = () => (
   <MainLayout>

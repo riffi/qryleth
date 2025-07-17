@@ -33,7 +33,8 @@ import {
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './components/OpenAISettingsModal'
 import { ObjectManager } from './components/ObjectManager.tsx'
-import { SceneLibraryModal } from './components/SceneLibraryModal'
+import { Link, useParams } from 'react-router-dom'
+import { db } from './utils/database'
 import { ObjectEditor } from './components/ObjectEditor'
 import { ChatInterface } from './components/ChatInterface'
 import { useThreeJSScene } from './hooks/useThreeJSScene'
@@ -42,9 +43,9 @@ import MainLayout from './layouts/MainLayout'
 import type {LightingSettings, SceneResponse} from './types/scene'
 
 function App() {
+  const { id } = useParams()
   const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
   const [settingsOpened, setSettingsOpened] = useState(false)
-  const [libraryOpened, setLibraryOpened] = useState(false)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
@@ -126,6 +127,17 @@ function App() {
       updateLighting(currentLighting)
     }
   }, [isInitialized])
+
+  // Load scene from route if ID is provided
+  useEffect(() => {
+    if (id) {
+      db.getScene(id).then(scene => {
+        if (scene) {
+          loadSceneData(scene.sceneData, scene.name, scene.uuid)
+        }
+      })
+    }
+  }, [id])
 
   // Обработка горячих клавиш для undo/redo
   useEffect(() => {
@@ -270,7 +282,13 @@ function App() {
               </Tooltip>
 
               <Tooltip label="Библиотека">
-                <ActionIcon variant="subtle" size="sm" onClick={() => setLibraryOpened(true)} c={"gray.4"}>
+                <ActionIcon
+                  component={Link}
+                  to="/"
+                  variant="subtle"
+                  size="sm"
+                  c={"gray.4"}
+                >
                   <IconBooks size="1rem" />
                 </ActionIcon>
               </Tooltip>
@@ -428,13 +446,6 @@ function App() {
           </Container>
         </MainLayout>
         <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
-        <SceneLibraryModal 
-          opened={libraryOpened} 
-          onClose={() => setLibraryOpened(false)}
-          onLoadScene={loadSceneData}
-          onSaveCurrentScene={saveCurrentSceneToLibrary}
-          onAddObjectToScene={addObjectToScene}
-        />
         
         {/* Quick Save Scene Modal */}
         <SaveSceneModal 
