@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react'
 import { Box, Group, Paper, Stack, Container } from '@mantine/core'
+import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManagerR3F } from './ObjectManagerR3F'
 import { useSceneStore } from '../../../stores/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../utils/database'
 import MainLayout from '../../../layouts/MainLayout'
+import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
 
 interface SceneEditorR3FProps {
   width?: number
@@ -63,109 +65,59 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const objectCount = useSceneStore(state => state.objects.length)
   const placementCount = useSceneStore(state => state.placements.length)
 
+  const handleSceneGenerated = (scene: SceneResponse) => {
+    useSceneStore.getState().loadSceneData(scene)
+  }
+
+  const handleObjectAdded = (objectData: any) => {
+    const { addObject, addPlacement, objects } = useSceneStore.getState()
+    const newObject: SceneObject = {
+      name: objectData.name,
+      primitives: objectData.primitives,
+      layerId: 'objects'
+    }
+    const objectIndex = objects.length
+    addObject(newObject)
+
+    const placement: ScenePlacement = {
+      objectIndex,
+      position: objectData.position || [0, 0, 0],
+      rotation: objectData.rotation || [0, 0, 0],
+      scale: objectData.scale || [1, 1, 1]
+    }
+    addPlacement(placement)
+  }
+
   return (
     <MainLayout>
-      <Container size="100%" style={{ maxWidth: 'none', padding: 0 }}>
-        <Group align="flex-start" gap="md" wrap="nowrap" style={{ height: '100vh', padding: '1rem' }}>
-          {/* 3D Scene Viewport */}
-          <Paper withBorder style={{ flex: 1, minWidth: width * 0.7 }}>
-            <Box style={{ width: '100%', height }}>
-              <Scene3D />
-            </Box>
+      <Container
+        size="xl"
+        fluid
+        h="100%"
+        style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+      >
+        <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
+          <ChatInterface onSceneGenerated={handleSceneGenerated} onObjectAdded={handleObjectAdded} />
+        </Paper>
 
-            {/* Scene Stats */}
-            <Stack gap="xs" p="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
-              <Group gap="md">
-                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-                  Scene: {currentScene.name} ({currentScene.status})
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-                  Objects: {objectCount}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--mantine-color-gray-6)' }}>
-                  Instances: {placementCount}
-                </span>
-              </Group>
-            </Stack>
+        <Paper
+          shadow="sm"
+          radius="md"
+          style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
+        >
+          <Box style={{ width: '100%', height }}>
+            <Scene3D />
+          </Box>
+        </Paper>
+
+        {showObjectManager && (
+          <Paper shadow="sm" radius="md" style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
+            <ObjectManagerR3F />
           </Paper>
-
-          {/* Object Manager Sidebar */}
-          {showObjectManager && (
-            <Paper withBorder style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
-              <ObjectManagerR3F />
-            </Paper>
-          )}
-        </Group>
+        )}
       </Container>
     </MainLayout>
   )
 }
 
-/**
- * Hook for integrating R3F scene with external components
- * Provides the same interface as the original useThreeJSScene for compatibility
- */
-export const useR3FSceneIntegration = () => {
-  const store = useSceneStore()
 
-  return {
-    // Scene data
-    objects: store.objects,
-    placements: store.placements,
-    layers: store.layers,
-    lighting: store.lighting,
-
-    // UI state
-    selectedObject: store.selectedObject,
-    hoveredObject: store.hoveredObject,
-    viewMode: store.viewMode,
-    renderMode: store.renderMode,
-    transformMode: store.transformMode,
-    gridVisible: store.gridVisible,
-
-    // Scene metadata
-    currentScene: store.currentScene,
-
-    // Actions
-    addObject: store.addObject,
-    removeObject: store.removeObject,
-    updateObject: store.updateObject,
-    addPlacement: store.addPlacement,
-    updatePlacement: store.updatePlacement,
-    removePlacement: store.removePlacement,
-    selectObject: store.selectObject,
-    clearSelection: store.clearSelection,
-    setHoveredObject: store.setHoveredObject,
-    clearHover: store.clearHover,
-    setViewMode: store.setViewMode,
-    setRenderMode: store.setRenderMode,
-    setTransformMode: store.setTransformMode,
-    toggleGridVisibility: store.toggleGridVisibility,
-    createLayer: store.createLayer,
-    updateLayer: store.updateLayer,
-    deleteLayer: store.deleteLayer,
-    toggleLayerVisibility: store.toggleLayerVisibility,
-    moveObjectToLayer: store.moveObjectToLayer,
-    updateLighting: store.updateLighting,
-
-    // Scene management
-    loadSceneData: store.loadSceneData,
-    getCurrentSceneData: store.getCurrentSceneData,
-    clearScene: store.clearScene,
-    markSceneAsModified: store.markSceneAsModified,
-
-    // History
-    undo: store.undo,
-    redo: store.redo,
-    canUndo: store.canUndo(),
-    canRedo: store.canRedo(),
-
-    // Serialization
-    exportScene: store.exportScene,
-    importScene: store.importScene,
-    saveSceneToLocalStorage: store.saveSceneToLocalStorage,
-    loadSceneFromLocalStorage: store.loadSceneFromLocalStorage,
-    getSceneJSON: store.getSceneJSON,
-    loadSceneFromJSON: store.loadSceneFromJSON
-  }
-}
