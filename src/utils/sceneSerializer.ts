@@ -5,6 +5,7 @@ import type {
   SceneLighting,
   SceneState 
 } from '../types/scene'
+import { LegacyCompatibility } from './legacyCompatibility'
 
 // Serializable scene state interface
 export interface SerializableSceneState {
@@ -105,11 +106,26 @@ export class SceneSerializer {
   }
 
   /**
-   * Deserialize scene from JSON string
+   * Deserialize scene from JSON string with legacy compatibility
    */
   static fromJSON(json: string): Partial<SceneState> {
     try {
-      const data = JSON.parse(json) as SerializableSceneState
+      const rawData = JSON.parse(json)
+      
+      // Check if this is legacy data and migrate if necessary
+      if (LegacyCompatibility.isLegacyFormat(rawData)) {
+        console.log('Legacy scene format detected, migrating to R3F format')
+        const migratedData = LegacyCompatibility.migrateLegacyData(rawData)
+        
+        // Generate migration report
+        const report = LegacyCompatibility.createMigrationReport(rawData, migratedData)
+        console.log(report)
+        
+        return this.deserialize(migratedData)
+      }
+      
+      // Handle current format
+      const data = rawData as SerializableSceneState
       return this.deserialize(data)
     } catch (error) {
       throw new Error(`Failed to parse scene JSON: ${error}`)
