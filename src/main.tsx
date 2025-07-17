@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { MantineProvider, createTheme } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import Router from './Router'
+import App from './App'
 import { BrowserRouter } from 'react-router-dom'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <MantineProvider theme={theme} defaultColorScheme="dark">
           <Notifications />
-          <Router />
+          <App />
         </MantineProvider>
       </BrowserRouter>
     </React.StrictMode>,
