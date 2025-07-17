@@ -86,6 +86,7 @@ export interface CompositeObjectProps {
   isSelected?: boolean
   isHovered?: boolean
   renderMode?: RenderMode
+  visible?: boolean
   onClick?: (event: SceneClickEvent) => void
   onHover?: (event: SceneHoverEvent) => void
   onTransform?: (event: TransformEvent) => void

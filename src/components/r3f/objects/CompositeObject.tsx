@@ -13,7 +13,8 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
   isHovered = false,
   onClick,
   onHover,
-  onTransform
+  onTransform,
+  visible = true
 }) => {
   const groupRef = useRef<THREE.Group>(null)
   const renderMode = useRenderMode()
@@ -67,6 +68,7 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
       position={placement.position || [0, 0, 0]}
       rotation={placement.rotation || [0, 0, 0]}
       scale={placement.scale || [1, 1, 1]}
+      visible={visible}
       userData={{
         generated: true,
         objectIndex: placement.objectIndex,

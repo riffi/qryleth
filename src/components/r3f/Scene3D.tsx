@@ -22,6 +22,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
         gl={{ 
           antialias: true, 
           alpha: true,
+          outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
           shadowMap: {

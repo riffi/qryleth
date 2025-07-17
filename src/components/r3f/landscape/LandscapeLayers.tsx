@@ -1,7 +1,7 @@
 import React from 'react'
 import { useSceneLayers } from '../../../stores/sceneStore'
+import { MemoizedLandscapeLayer } from '../optimization/OptimizedComponents'
 
-// Placeholder for landscape layers - will be implemented in Phase 4
 export const LandscapeLayers: React.FC = () => {
   const layers = useSceneLayers()
   
@@ -9,11 +9,19 @@ export const LandscapeLayers: React.FC = () => {
   
   if (landscapeLayers.length === 0) return null
 
-  // For now, just render a comment
-  // Full landscape implementation will be done in Phase 4
+  console.log('Rendering landscape layers:', landscapeLayers.length)
+
   return (
     <group>
-      {/* Landscape layers will be implemented in Phase 4 */}
+      {landscapeLayers.map(layer => {
+        console.log('Rendering landscape layer:', layer.id, 'visible:', layer.visible, 'shape:', layer.shape)
+        return (
+          <MemoizedLandscapeLayer 
+            key={layer.id} 
+            layer={layer} 
+          />
+        )
+      })}
     </group>
   )
 }

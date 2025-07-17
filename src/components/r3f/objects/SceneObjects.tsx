@@ -1,10 +1,11 @@
 import React from 'react'
-import { CompositeObject } from './CompositeObject'
+import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
 import { 
   useSceneObjects, 
   useScenePlacements, 
   useSelectedObject,
   useHoveredObject,
+  useSceneLayers,
   useSceneStore 
 } from '../../../stores/sceneStore'
 import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
@@ -12,6 +13,7 @@ import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()
   const placements = useScenePlacements()
+  const layers = useSceneLayers()
   const selectedObject = useSelectedObject()
   const hoveredObject = useHoveredObject()
   const updatePlacement = useSceneStore(state => state.updatePlacement)
@@ -56,10 +58,15 @@ export const SceneObjects: React.FC = () => {
         const sceneObject = objects[placement.objectIndex]
         if (!sceneObject) return null
 
+        // Check layer visibility
+        const layerId = sceneObject.layerId || 'objects'
+        const layer = layers.find(l => l.id === layerId)
+        const isLayerVisible = layer ? layer.visible : true
+
         const instanceId = `${placement.objectIndex}-${placementIndex}`
 
         return (
-          <CompositeObject
+          <MemoizedCompositeObject
             key={instanceId}
             sceneObject={sceneObject}
             placement={placement}
@@ -69,6 +76,7 @@ export const SceneObjects: React.FC = () => {
             onClick={handleClick}
             onHover={handlePointerOver}
             onTransform={handleObjectTransform}
+            visible={isLayerVisible}
           />
         )
       })}
