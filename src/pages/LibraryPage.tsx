@@ -18,7 +18,7 @@ import {
 } from '@mantine/core'
 import {
   IconTrash,
-  IconDownload,
+  IconEdit,
   IconSearch,
   IconCalendar,
   IconCube,
@@ -75,7 +75,7 @@ const LibraryPage: React.FC = () => {
     (object.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   )
 
-  const handleLoadScene = async (scene: SceneRecord) => {
+  const handleEditScene = (scene: SceneRecord) => {
     navigate(`/scenes/${scene.uuid}/edit`)
   }
 
@@ -142,6 +142,7 @@ const LibraryPage: React.FC = () => {
               {activeTab === 'scenes' ? `${scenes.length} сцен` : `${objects.length} объектов`}
             </Badge>
           </Group>
+          <Button size="sm" onClick={() => navigate('/scenes/new')}>Создать сцену</Button>
         </Group>
         <Divider />
         <Tabs value={activeTab} onChange={setActiveTab}>
@@ -191,12 +192,12 @@ const LibraryPage: React.FC = () => {
                             <Group gap="xs" mt="xs">
                               <Button
                                 size="xs"
-                                leftSection={<IconDownload size={14} />}
-                                onClick={() => handleLoadScene(scene)}
+                                leftSection={<IconEdit size={14} />}
+                                onClick={() => handleEditScene(scene)}
                                 loading={isLoading}
                                 style={{ flex: 1 }}
                               >
-                                Загрузить
+                                Редактировать
                               </Button>
                               <Tooltip label="Удалить сцену">
                                 <ActionIcon
