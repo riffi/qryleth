@@ -1,5 +1,15 @@
 import React, { useState } from 'react'
 import {
+    useSceneStore
+} from '../stores/sceneStore'
+import {
+    useSceneObjectsOptimized,
+    useSceneLayersOptimized,
+    useSceneMetadata,
+    useSelectionState,
+    useSceneActions
+} from '../stores/optimizedSelectors'
+import {
     Paper,
     Stack,
     Title,
@@ -22,7 +32,7 @@ import { ObjectItem } from './ObjectItem'
 import type { ObjectInfo } from './ObjectItem'
 
 interface ObjectManagerProps {
-    objects: ObjectInfo[]
+    objects?: ObjectInfo[]
     onToggleVisibility?: (objectIndex: number) => void
     onRemoveObject?: (objectIndex: number) => void
     onToggleInstanceVisibility?: (objectIndex: number, instanceId: string) => void
@@ -46,7 +56,7 @@ interface ObjectManagerProps {
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
-    objects,
+    objects: propsObjects,
     onToggleVisibility,
     onRemoveObject,
     onToggleInstanceVisibility,
@@ -54,14 +64,14 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     onHighlightObject,
     onClearHighlight,
     onSelectObject,
-    selectedObject,
+    selectedObject: propSelectedObject,
     onSaveObjectToLibrary,
-    currentScene,
+    currentScene: propCurrentScene,
     onSaveSceneToLibrary,
     onEditObject,
-    lighting,
+    lighting: propLighting,
     onLightingChange,
-    layers,
+    layers: propLayers,
     onCreateLayer,
     onUpdateLayer,
     onDeleteLayer,
@@ -86,6 +96,56 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
     const [contextMenuObjectIndex, setContextMenuObjectIndex] = useState<number | null>(null)
+
+    // R3F Zustand store data
+    const sceneObjects = useSceneObjectsOptimized()
+    const placements = useSceneStore(state => state.placements)
+    const storeLayers = useSceneLayersOptimized()
+    const { lighting: storeLighting } = useSceneMetadata()
+    const { selectedObject: storeSelectedObject } = useSelectionState()
+    const storeCurrentScene = useSceneStore(state => state.currentScene)
+    const {
+        removeObject,
+        removePlacement,
+        selectObject: storeSelectObject,
+        clearSelection,
+        setHoveredObject,
+        clearHover,
+        updateLighting,
+        createLayer: storeCreateLayer,
+        updateLayer: storeUpdateLayer,
+        deleteLayer: storeDeleteLayer,
+        toggleLayerVisibility: storeToggleLayerVisibility,
+        moveObjectToLayer: storeMoveObjectToLayer,
+        exportScene,
+        saveSceneToLocalStorage
+    } = useSceneActions()
+
+    const objects = React.useMemo<ObjectInfo[]>(() => {
+        if (propsObjects) return propsObjects
+        return sceneObjects.map((sceneObject, objectIndex) => {
+            const objectPlacements = placements.filter(p => p.objectIndex === objectIndex)
+            return {
+                name: sceneObject.name,
+                count: objectPlacements.length,
+                visible: true,
+                objectIndex,
+                layerId: sceneObject.layerId || 'objects',
+                instances: objectPlacements.map((placement, placementIndex) => ({
+                    id: `${objectIndex}-${placementIndex}`,
+                    position: placement.position || [0,0,0],
+                    rotation: placement.rotation || [0,0,0],
+                    scale: placement.scale || [1,1,1],
+                    visible: true
+                }))
+            }
+        })
+    }, [propsObjects, sceneObjects, placements])
+
+    const layers = propLayers || storeLayers
+    const lighting = propLighting || storeLighting
+    const selectedObject = propSelectedObject ?? storeSelectedObject
+    const currentScene = propCurrentScene || storeCurrentScene
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
 
@@ -114,29 +174,46 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleCreateLayer = () => {
-        if (newLayerName.trim() && onCreateLayer) {
+        if (!newLayerName.trim()) return
+        if (onCreateLayer) {
             onCreateLayer(newLayerName.trim(), newLayerType, newLayerWidth, newLayerHeight, newLayerShape)
-            setNewLayerName('')
-            setNewLayerType('object')
-            setNewLayerWidth(10)
-            setNewLayerHeight(10)
-            setNewLayerShape('plane')
-            setCreateLayerModalOpened(false)
+        } else {
+            storeCreateLayer({
+                name: newLayerName.trim(),
+                type: newLayerType,
+                visible: true,
+                position: layers.length,
+                ...(newLayerType === 'landscape' && {
+                    width: newLayerWidth,
+                    height: newLayerHeight,
+                    shape: newLayerShape
+                })
+            })
         }
+        setNewLayerName('')
+        setNewLayerType('object')
+        setNewLayerWidth(10)
+        setNewLayerHeight(10)
+        setNewLayerShape('plane')
+        setCreateLayerModalOpened(false)
     }
 
     const handleUpdateLayer = () => {
-        if (newLayerName.trim() && onUpdateLayer && editingLayerId) {
-            onUpdateLayer(editingLayerId, {
-                name: newLayerName.trim(),
-                width: editingLayerType === 'landscape' ? editingLayerWidth : undefined,
-                height: editingLayerType === 'landscape' ? editingLayerHeight : undefined,
-                shape: editingLayerType === 'landscape' ? editingLayerShape : undefined
-            })
-            setNewLayerName('')
-            setEditingLayerId(null)
-            setEditLayerModalOpened(false)
+        if (!newLayerName.trim() || !editingLayerId) return
+        const updates: Partial<SceneLayer> = {
+            name: newLayerName.trim(),
+            width: editingLayerType === 'landscape' ? editingLayerWidth : undefined,
+            height: editingLayerType === 'landscape' ? editingLayerHeight : undefined,
+            shape: editingLayerType === 'landscape' ? editingLayerShape : undefined
         }
+        if (onUpdateLayer) {
+            onUpdateLayer(editingLayerId, updates)
+        } else {
+            storeUpdateLayer(editingLayerId, updates)
+        }
+        setNewLayerName('')
+        setEditingLayerId(null)
+        setEditLayerModalOpened(false)
     }
 
     const openEditLayerModal = (layer: SceneLayer) => {
@@ -147,6 +224,72 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         setEditingLayerHeight(layer.height || 10)
         setEditingLayerShape(layer.shape || 'plane')
         setEditLayerModalOpened(true)
+    }
+
+    // Default handlers using Zustand store if callbacks are not provided
+    const handleToggleVisibility = (objectIndex: number) => {
+        if (onToggleVisibility) return onToggleVisibility(objectIndex)
+        const obj = sceneObjects[objectIndex]
+        if (obj?.layerId) {
+            storeToggleLayerVisibility(obj.layerId)
+        }
+    }
+
+    const handleRemoveObject = (objectIndex: number) => {
+        if (onRemoveObject) return onRemoveObject(objectIndex)
+        removeObject(objectIndex)
+        clearSelection()
+    }
+
+    const handleToggleInstanceVisibility = (objectIndex: number, instanceId: string) => {
+        if (onToggleInstanceVisibility) return onToggleInstanceVisibility(objectIndex, instanceId)
+        // Future instance visibility logic
+        console.log('Instance visibility toggle not implemented', { objectIndex, instanceId })
+    }
+
+    const handleRemoveInstance = (objectIndex: number, instanceId: string) => {
+        if (onRemoveInstance) return onRemoveInstance(objectIndex, instanceId)
+        const placementIndex = parseInt(instanceId.split('-')[1])
+        if (!isNaN(placementIndex)) {
+            removePlacement(placementIndex)
+            clearSelection()
+        }
+    }
+
+    const handleHighlightObject = (objectIndex: number, instanceId?: string) => {
+        if (onHighlightObject) return onHighlightObject(objectIndex, instanceId)
+        setHoveredObject(objectIndex, instanceId)
+    }
+
+    const handleClearHighlight = () => {
+        if (onClearHighlight) return onClearHighlight()
+        clearHover()
+    }
+
+    const handleSelectObject = (objectIndex: number, instanceId?: string) => {
+        if (onSelectObject) return onSelectObject(objectIndex, instanceId)
+        storeSelectObject(objectIndex, instanceId)
+    }
+
+    const handleSaveObjectToLibrary = (objectIndex: number) => {
+        if (onSaveObjectToLibrary) return onSaveObjectToLibrary(objectIndex)
+        console.log('Save object to library not implemented', { objectIndex })
+    }
+
+    const handleEditObject = (objectIndex: number, instanceId?: string) => {
+        if (onEditObject) return onEditObject(objectIndex, instanceId)
+        storeSelectObject(objectIndex, instanceId)
+        console.log('Object edit not implemented', { objectIndex, instanceId })
+    }
+
+    const handleLightingChange = (newLighting: LightingSettings) => {
+        if (onLightingChange) return onLightingChange(newLighting)
+        updateLighting(newLighting)
+    }
+
+    const handleSaveSceneToLibraryInternal = () => {
+        if (onSaveSceneToLibrary) return onSaveSceneToLibrary()
+        exportScene(`scene-${Date.now()}.json`)
     }
 
     // Drag & Drop handlers
@@ -168,8 +311,12 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         e.preventDefault()
         const objectIndex = parseInt(e.dataTransfer.getData('text/plain'))
 
-        if (objectIndex !== null && onMoveObjectToLayer) {
-            onMoveObjectToLayer(objectIndex, layerId)
+        if (objectIndex !== null) {
+            if (onMoveObjectToLayer) {
+                onMoveObjectToLayer(objectIndex, layerId)
+            } else {
+                storeMoveObjectToLayer(objectIndex, layerId)
+            }
         }
 
         setDragOverLayerId(null)
@@ -184,8 +331,12 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleMoveToLayer = (layerId: string) => {
-        if (contextMenuObjectIndex !== null && onMoveObjectToLayer) {
-            onMoveObjectToLayer(contextMenuObjectIndex, layerId)
+        if (contextMenuObjectIndex !== null) {
+            if (onMoveObjectToLayer) {
+                onMoveObjectToLayer(contextMenuObjectIndex, layerId)
+            } else {
+                storeMoveObjectToLayer(contextMenuObjectIndex, layerId)
+            }
         }
         setContextMenuOpened(false)
         setContextMenuObjectIndex(null)
@@ -208,13 +359,13 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
                     <SceneHeader
                         currentScene={currentScene}
-                        onSaveSceneToLibrary={onSaveSceneToLibrary}
+                        onSaveSceneToLibrary={handleSaveSceneToLibraryInternal}
                     />
 
-                    <LightingControls
-                        lighting={lighting}
-                        onLightingChange={onLightingChange}
-                    />
+                    {/*<LightingControls*/}
+                    {/*    lighting={lighting}*/}
+                    {/*    onLightingChange={handleLightingChange}*/}
+                    {/*/>*/}
 
 
                     <Group justify="space-between" align="center">
@@ -258,20 +409,20 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             selectedObject={selectedObject}
                                             dragOverLayerId={dragOverLayerId}
                                             onToggleExpanded={toggleLayerExpanded}
-                                            onToggleVisibility={onToggleLayerVisibility || (() => {})}
+                                            onToggleVisibility={onToggleLayerVisibility || storeToggleLayerVisibility}
                                             onEdit={openEditLayerModal}
                                             onEditSize={openEditLayerModal}
-                                            onDelete={onDeleteLayer || (() => {})}
+                                            onDelete={onDeleteLayer || storeDeleteLayer}
                                             onToggleObjectExpanded={toggleObjectExpanded}
-                                            onHighlightObject={onHighlightObject}
-                                            onClearHighlight={onClearHighlight}
-                                            onSelectObject={onSelectObject}
-                                            onToggleObjectVisibility={onToggleVisibility}
-                                            onRemoveObject={onRemoveObject}
-                                            onSaveObjectToLibrary={onSaveObjectToLibrary}
-                                            onEditObject={onEditObject}
-                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
-                                            onRemoveInstance={onRemoveInstance}
+                                            onHighlightObject={handleHighlightObject}
+                                            onClearHighlight={handleClearHighlight}
+                                            onSelectObject={handleSelectObject}
+                                            onToggleObjectVisibility={handleToggleVisibility}
+                                            onRemoveObject={handleRemoveObject}
+                                            onSaveObjectToLibrary={handleSaveObjectToLibrary}
+                                            onEditObject={handleEditObject}
+                                            onToggleInstanceVisibility={handleToggleInstanceVisibility}
+                                            onRemoveInstance={handleRemoveInstance}
                                             onDragStart={handleDragStart}
                                             onContextMenu={handleContextMenu}
                                             onDragOver={handleDragOver}
@@ -293,15 +444,15 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             isSelected={isSelected}
                                             selectedObject={selectedObject}
                                             onToggleExpanded={() => toggleObjectExpanded(obj.objectIndex)}
-                                            onHighlight={() => onHighlightObject?.(obj.objectIndex)}
-                                            onClearHighlight={() => onClearHighlight?.()}
-                                            onSelect={() => onSelectObject?.(obj.objectIndex)}
-                                            onToggleVisibility={() => onToggleVisibility?.(obj.objectIndex)}
-                                            onRemove={() => onRemoveObject?.(obj.objectIndex)}
-                                            onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectIndex)}
-                                            onEdit={() => onEditObject?.(obj.objectIndex)}
-                                            onToggleInstanceVisibility={onToggleInstanceVisibility}
-                                            onRemoveInstance={onRemoveInstance}
+                                            onHighlight={() => handleHighlightObject(obj.objectIndex)}
+                                            onClearHighlight={() => handleClearHighlight()}
+                                            onSelect={() => handleSelectObject(obj.objectIndex)}
+                                            onToggleVisibility={() => handleToggleVisibility(obj.objectIndex)}
+                                            onRemove={() => handleRemoveObject(obj.objectIndex)}
+                                            onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectIndex)}
+                                            onEdit={() => handleEditObject(obj.objectIndex)}
+                                            onToggleInstanceVisibility={handleToggleInstanceVisibility}
+                                            onRemoveInstance={handleRemoveInstance}
                                             onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
                                             onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
                                         />
@@ -330,18 +481,6 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                             {selectedObject && (
                                 <>
                                     <Divider />
-                                    <Text size="xs" c="dimmed" ta="center">
-                                        Выбран объект для управления
-                                    </Text>
-                                    <Text size="xs" c="dimmed" ta="center">
-                                        ←→↑↓ перемещение по XZ
-                                    </Text>
-                                    <Text size="xs" c="dimmed" ta="center">
-                                        Num8/Num2 перемещение по Y
-                                    </Text>
-                                    <Text size="xs" c="dimmed" ta="center">
-                                        +/- изменение размера
-                                    </Text>
                                     <Text size="xs" c="dimmed" ta="center">
                                         Esc отмена выбора
                                     </Text>

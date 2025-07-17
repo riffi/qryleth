@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip } from '@mantine/core'
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
-import { ObjectManagerR3F } from './ObjectManagerR3F'
+import { ObjectManager } from '../../ObjectManager'
 import { useSceneStore } from '../../../stores/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../utils/database'
@@ -182,14 +182,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           radius="md"
           style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
         >
-          <Box style={{ width: '100%', height }}>
+          <Box style={{ width: '100%', height: '100%' }}>
             <Scene3D />
           </Box>
         </Paper>
 
         {showObjectManager && (
           <Paper shadow="sm" radius="md" style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
-            <ObjectManagerR3F />
+            <ObjectManager />
           </Paper>
         )}
       </Container>
