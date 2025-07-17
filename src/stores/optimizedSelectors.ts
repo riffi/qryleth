@@ -6,13 +6,13 @@ import type { SceneObject, ScenePlacement, SceneLayer } from '../types/scene'
 // Optimized selectors for preventing unnecessary re-renders
 
 // Scene data selectors
-export const useSceneObjectsOptimized = () => 
+export const useSceneObjectsOptimized = () =>
   useSceneStore(state => state.objects, shallow)
 
-export const useScenePlacementsOptimized = () => 
+export const useScenePlacementsOptimized = () =>
   useSceneStore(state => state.placements, shallow)
 
-export const useSceneLayersOptimized = () => 
+export const useSceneLayersOptimized = () =>
   useSceneStore(state => state.layers, shallow)
 
 // Object-specific selectors
@@ -30,13 +30,13 @@ export const useVisibleLayers = () =>
   useSceneStore(state => state.layers.filter(layer => layer.visible), shallow)
 
 export const useObjectsByLayer = (layerId: string) =>
-  useSceneStore(state => 
-    state.objects.filter(obj => (obj.layerId || 'objects') === layerId), 
+  useSceneStore(state =>
+    state.objects.filter(obj => (obj.layerId || 'objects') === layerId),
     shallow
   )
 
 export const usePlacementsByObjectIndex = (objectIndex: number) =>
-  useSceneStore(state => 
+  useSceneStore(state =>
     state.placements.filter(placement => placement.objectIndex === objectIndex),
     shallow
   )
@@ -74,11 +74,15 @@ export const useViewState = () =>
   }), shallow)
 
 // Scene metadata selectors
-export const useSceneMetadata = () =>
-  useSceneStore(state => ({
-    currentScene: state.currentScene,
-    lighting: state.lighting
-  }), shallow)
+export const useSceneMetadata = () => {
+    const currentScene = useSceneStore(state => state.currentScene)
+    const lighting = useSceneStore(state => state.lighting)
+    return useMemo(
+        () => ({ currentScene, lighting }),
+        [currentScene, lighting]
+    )
+}
+
 
 // History selectors
 export const useHistoryState = () =>
@@ -116,14 +120,19 @@ export const useGroupedObjects = () =>
     return groups
   }, shallow)
 
-export const useObjectInstanceCounts = () =>
-  useSceneStore(state => {
-    const counts: { [objectIndex: number]: number } = {}
-    state.placements.forEach(placement => {
-      counts[placement.objectIndex] = (counts[placement.objectIndex] || 0) + 1
-    })
-    return counts
-  }, shallow)
+export const useObjectInstanceCounts = () => {
+  // Забираем только placements — примитив (array) со стабильной ссылкой
+  const placements = useSceneStore(s => s.placements)
+
+  // Считаем один раз за рендер
+  return useMemo(() => {
+    const counts: Record<number, number> = {}
+    for (const p of placements) {
+      counts[p.objectIndex] = (counts[p.objectIndex] || 0) + 1
+    }
+    return counts           // ← одна и та же ссылка внутри коммита
+  }, [placements])
+}
 
 // Layer-specific optimization selectors
 export const useLayerVisibility = (layerId: string) =>
@@ -133,13 +142,13 @@ export const useLayerVisibility = (layerId: string) =>
   })
 
 export const useLandscapeLayers = () =>
-  useSceneStore(state => 
+  useSceneStore(state =>
     state.layers.filter(layer => layer.type === 'landscape'),
     shallow
   )
 
 export const useObjectLayers = () =>
-  useSceneStore(state => 
+  useSceneStore(state =>
     state.layers.filter(layer => layer.type === 'object'),
     shallow
   )
@@ -149,7 +158,7 @@ export const useTransformableObjects = () =>
   useSceneStore(state => {
     const selected = state.selectedObject
     if (!selected) return []
-    
+
     return state.placements.filter((placement, index) => {
       if (selected.instanceId) {
         // Specific instance selected
@@ -172,7 +181,7 @@ export const useNeedsUpdate = () =>
 // Export actions for convenience with memoization to prevent infinite loops
 export const useSceneActions = () => {
   const store = useSceneStore()
-  
+
   // Memoize the actions object to prevent recreating it on every render
   return useMemo(() => ({
     setObjects: store.setObjects,
