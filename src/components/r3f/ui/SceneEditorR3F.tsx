@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { Box, Group, Paper, Stack, Container } from '@mantine/core'
+import React, { useEffect, useState } from 'react'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip } from '@mantine/core'
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManagerR3F } from './ObjectManagerR3F'
@@ -8,6 +8,36 @@ import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../utils/database'
 import MainLayout from '../../../layouts/MainLayout'
 import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
+import type { SceneStatus } from '../../../types/r3f'
+import { Link } from 'react-router-dom'
+import { IconArrowBack, IconArrowForward, IconBooks, IconSettings, IconInfoCircle } from '@tabler/icons-react'
+import { OpenAISettingsModal } from '../../OpenAISettingsModal'
+
+const getStatusColor = (status: SceneStatus) => {
+  switch (status) {
+    case 'draft':
+      return 'orange'
+    case 'modified':
+      return 'yellow'
+    case 'saved':
+      return 'green'
+    default:
+      return 'gray'
+  }
+}
+
+const getStatusText = (status: SceneStatus) => {
+  switch (status) {
+    case 'draft':
+      return 'Черновик'
+    case 'modified':
+      return 'Есть изменения'
+    case 'saved':
+      return 'Сохранена'
+    default:
+      return 'Неизвестно'
+  }
+}
 
 interface SceneEditorR3FProps {
   width?: number
@@ -28,8 +58,12 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   uuid,
   isNew = false
 }) => {
-  // Initialize scene history for undo/redo
-  useSceneHistory()
+  // Initialize scene history for undo/redo and get controls
+  const { undo, redo, canUndo, canRedo } = useSceneHistory()
+
+  const [settingsOpened, setSettingsOpened] = useState(false)
+
+  const currentScene = useSceneStore(state => state.currentScene)
 
   // Get scene store actions
   const { loadSceneData, clearScene, setCurrentScene } = useSceneStore.getState()
@@ -84,13 +118,61 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   return (
-    <MainLayout>
-      <Container
-        size="xl"
-        fluid
-        h="100%"
-        style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+    <>
+      <MainLayout
+        rightSection={(
+          <>
+            <Badge
+              color={getStatusColor(currentScene.status as SceneStatus)}
+              variant="light"
+              size="sm"
+            >
+              {getStatusText(currentScene.status as SceneStatus)}
+            </Badge>
+
+            <Tooltip label="Отменить (Ctrl+Z)">
+              <ActionIcon variant="subtle" size="sm" onClick={undo} disabled={!canUndo}>
+                <IconArrowBack size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Вернуть (Ctrl+Y)">
+              <ActionIcon variant="subtle" size="sm" onClick={redo} disabled={!canRedo}>
+                <IconArrowForward size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Библиотека">
+              <ActionIcon component={Link} to="/" variant="subtle" size="sm" c={"gray.4"}>
+                <IconBooks size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Настройки">
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                onClick={() => setSettingsOpened(true)}
+                c={"gray.4"}
+              >
+                <IconSettings size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Справка">
+              <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
+                <IconInfoCircle size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+          </>
+        )}
       >
+        <Container
+          size="xl"
+          fluid
+          h="100%"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+        >
         <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
           <ChatInterface onSceneGenerated={handleSceneGenerated} onObjectAdded={handleObjectAdded} />
         </Paper>
@@ -111,7 +193,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Paper>
         )}
       </Container>
-    </MainLayout>
+      </MainLayout>
+      <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+    </>
   )
 }
 
