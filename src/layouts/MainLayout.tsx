@@ -1,5 +1,5 @@
 import React from 'react'
-import { AppShell, Container, Group, Title } from '@mantine/core'
+import {AppShell, Container, Group, Image, Title} from '@mantine/core'
 import { IconBrain } from '@tabler/icons-react'
 
 interface MainLayoutProps {
@@ -23,11 +23,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
       <AppShell.Header>
         <Container size="xl" h="100%" fluid>
           <Group h="100%" justify="space-between">
-            <Group gap="sm">
-              <IconBrain size={24} color="var(--mantine-color-gray-6)" />
-              <Title order={3} c="gray.5">
-                Qryleth 3D
-              </Title>
+            <Group gap="sm" pl={"sm"}>
+              <Image src="/logo.png" h={35} />
+              {/*<IconBrain size={24} color="var(--mantine-color-gray-6)" />*/}
+              {/*<Title order={3} c="gray.5">*/}
+              {/*  Qryleth 3D*/}
+              {/*</Title>*/}
             </Group>
             <Group gap="xs">{rightSection}</Group>
           </Group>
