@@ -142,6 +142,17 @@ export class SceneLibraryDB extends Dexie {
     await this.sceneObjects.where('objectUuid').equals(uuid).delete()
   }
 
+  async updateObject(uuid: string, name: string, objectData: any, description?: string, thumbnail?: string, layerId?: string): Promise<void> {
+    await this.objects.where('uuid').equals(uuid).modify({
+      name,
+      description,
+      thumbnail,
+      objectData,
+      layerId,
+      updatedAt: new Date()
+    })
+  }
+
   // Scene-Object relation methods
   async addObjectToScene(sceneUuid: string, objectUuid: string, position: Vector3, rotation: Vector3, scale: Vector3): Promise<void> {
     await this.sceneObjects.add({

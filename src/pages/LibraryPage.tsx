@@ -34,7 +34,7 @@ const LibraryPage: React.FC = () => {
   const [scenes, setScenes] = useState<SceneRecord[]>([])
   const [objects, setObjects] = useState<ObjectRecord[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('scenes')
 
   const loadScenes = async () => {
@@ -117,6 +117,10 @@ const LibraryPage: React.FC = () => {
     }
   }
 
+  const handleEditObject = (object: ObjectRecord) => {
+    navigate(`/objects/${object.uuid}/edit`)
+  }
+
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('ru-RU', {
       year: 'numeric',
@@ -142,7 +146,11 @@ const LibraryPage: React.FC = () => {
               {activeTab === 'scenes' ? `${scenes.length} сцен` : `${objects.length} объектов`}
             </Badge>
           </Group>
-          <Button size="sm" onClick={() => navigate('/scenes/new')}>Создать сцену</Button>
+          {activeTab === 'scenes' ? (
+            <Button size="sm" onClick={() => navigate('/scenes/new')}>Создать сцену</Button>
+          ) : (
+            <Button size="sm" onClick={() => navigate('/objects/new')}>Создать объект</Button>
+          )}
         </Group>
         <Divider />
         <Tabs value={activeTab} onChange={setActiveTab}>
@@ -259,6 +267,15 @@ const LibraryPage: React.FC = () => {
                               <Text size="xs" c="dimmed">{formatDate(object.updatedAt)}</Text>
                             </Group>
                             <Group gap="xs" mt="xs">
+                              <Button
+                                size="xs"
+                                leftSection={<IconEdit size={14} />}
+                                onClick={() => handleEditObject(object)}
+                                loading={isLoading}
+                                style={{ flex: 1 }}
+                              >
+                                Редактировать
+                              </Button>
                               <Tooltip label="Удалить объект">
                                 <ActionIcon
                                   size="sm"
