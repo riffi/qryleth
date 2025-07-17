@@ -17,7 +17,9 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
       return
     }
 
-    event.stopPropagation()
+    if (typeof event.stopPropagation === 'function') {
+      event.stopPropagation()
+    }
 
     // Check if clicked object has generated userData
     let clickedObject = event.object
@@ -45,7 +47,9 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
   }, [selectObject, clearSelection, viewMode])
 
   const handlePointerOver = useCallback((event: any) => {
-    event.stopPropagation()
+    if (typeof event.stopPropagation === 'function') {
+      event.stopPropagation()
+    }
 
     // Find the top-level generated object
     let hoveredObject = event.object
@@ -68,7 +72,9 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
   }, [setHoveredObject, gl])
 
   const handlePointerOut = useCallback((event: any) => {
-    event.stopPropagation()
+    if (typeof event.stopPropagation === 'function') {
+      event.stopPropagation()
+    }
     clearHover()
     
     // Reset cursor
