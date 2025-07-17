@@ -70,6 +70,30 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         return { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: baseDimensions }
     }
 
+    // Calculate absolute transform for UI display
+    const getDisplayPrimitiveState = () => {
+        if (!objectData?.primitives[selectedPrimitiveIndex]) {
+            return { position: [0, 0, 0], rotation: [0, 0, 0], dimensions: {} }
+        }
+
+        const primitive = objectData.primitives[selectedPrimitiveIndex]
+        const baseState = getCurrentPrimitiveState()
+
+        return {
+            position: [
+                (primitive.position?.[0] || 0) + baseState.position[0],
+                (primitive.position?.[1] || 0) + baseState.position[1],
+                (primitive.position?.[2] || 0) + baseState.position[2]
+            ] as [number, number, number],
+            rotation: [
+                (primitive.rotation?.[0] || 0) + baseState.rotation[0],
+                (primitive.rotation?.[1] || 0) + baseState.rotation[1],
+                (primitive.rotation?.[2] || 0) + baseState.rotation[2]
+            ] as [number, number, number],
+            dimensions: baseState.dimensions
+        }
+    }
+
     const updateCurrentPrimitiveState = (position: [number, number, number], rotation: [number, number, number], dimensions: any) => {
         setPrimitiveStates(prev => ({
             ...prev,
@@ -632,15 +656,15 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500}>Позиция</Text>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[0].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().position[0].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[1].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().position[1].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().position[2].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().position[2].toFixed(3)}</Text>
                             </Group>
                         </Stack>
 
@@ -649,15 +673,15 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             <Text fw={500}>Поворот (рад)</Text>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>X:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[0].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().rotation[0].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Y:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[1].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().rotation[1].toFixed(3)}</Text>
                             </Group>
                             <Group gap="xs" align="center">
                                 <Text size="xs" c="dimmed" w={15}>Z:</Text>
-                                <Text size="sm" fw={500}>{getCurrentPrimitiveState().rotation[2].toFixed(3)}</Text>
+                                <Text size="sm" fw={500}>{getDisplayPrimitiveState().rotation[2].toFixed(3)}</Text>
                             </Group>
                         </Stack>
 
