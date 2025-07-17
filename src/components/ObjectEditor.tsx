@@ -12,7 +12,8 @@ import {
     Tooltip,
     Paper,
     Select,
-    Divider
+    Divider,
+    SegmentedControl
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type {ObjectInfo} from './ObjectItem'
@@ -50,7 +51,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         selectedPrimitiveIndex,
         selectPrimitiveByIndex,
         getPrimitivesList,
-        getCameraRelativeMovement,
+        renderMode,
+        switchRenderMode,
         cloneSelectedPrimitive,
         setTransformMode,
         registerOnTransformChange
@@ -469,6 +471,16 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                             </Tooltip>
                         </Group>
 
+                        <SegmentedControl
+                            value={renderMode}
+                            onChange={(value) => switchRenderMode(value as 'solid' | 'wireframe')}
+                            data={[
+                                { value: 'solid', label: 'Solid' },
+                                { value: 'wireframe', label: 'Wireframe' }
+                            ]}
+                            size="xs"
+                        />
+
                         {/* Position */}
                         <Stack gap="xs">
                             <Text fw={500}>Позиция</Text>
@@ -675,6 +687,9 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
                                     Примитив: {getPrimitivesList()[selectedPrimitiveIndex]?.name || 'Неизвестно'} {selectedPrimitiveIndex + 1}
                                 </Text>
                             )}
+                            <Text size="xs" c="dimmed">
+                                Отображение: {renderMode === 'wireframe' ? 'Wireframe' : 'Solid'}
+                            </Text>
                         </Box>
                     )}
                 </Box>

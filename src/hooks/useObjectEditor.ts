@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import type { SceneObject, ScenePrimitive } from '../types/scene'
 
+export type RenderMode = 'solid' | 'wireframe'
+
 export const useObjectEditor = (
   containerRef: React.RefObject<HTMLDivElement | null>,
   isOpen: boolean = true,
@@ -22,6 +24,7 @@ export const useObjectEditor = (
   const [isInitialized, setIsInitialized] = useState(false)
   const [selectedPrimitive, setSelectedPrimitive] = useState<THREE.Mesh | null>(null)
   const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number>(0)
+  const [renderMode, setRenderMode] = useState<RenderMode>('solid')
   const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onTransformRef = useRef<(() => void) | undefined>(onTransform)
 
@@ -585,6 +588,21 @@ export const useObjectEditor = (
     return [movement.x, movement.y, movement.z]
   }, [])
 
+  const switchRenderMode = useCallback((mode: RenderMode) => {
+    primitivesRef.current.forEach(mesh => {
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(m => {
+          ;(m as THREE.Material).wireframe = mode === 'wireframe'
+          ;(m as THREE.Material).needsUpdate = true
+        })
+      } else {
+        ;(mesh.material as THREE.Material).wireframe = mode === 'wireframe'
+        ;(mesh.material as THREE.Material).needsUpdate = true
+      }
+    })
+    setRenderMode(mode)
+  }, [])
+
   const cloneSelectedPrimitive = useCallback(() => {
     if (!selectedPrimitive || !editObjectRef.current) return null
 
@@ -697,6 +715,8 @@ export const useObjectEditor = (
     selectPrimitiveByIndex,
     getPrimitivesList,
     getCameraRelativeMovement,
+    renderMode,
+    switchRenderMode,
     cloneSelectedPrimitive,
     setTransformMode: (mode: 'translate' | 'rotate' | 'scale') => {
       transformControlsRef.current?.setMode(mode)
