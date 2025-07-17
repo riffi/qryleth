@@ -59,6 +59,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const outlinePassRef = useRef<OutlinePass | null>(null)
   const selectedOutlinePassRef = useRef<OutlinePass | null>(null)
   const transformControlsRef = useRef<TransformControls | null>(null)
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const [selectedObject, setSelectedObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const selectedObjectRef = useRef<{objectIndex: number, instanceId?: string} | null>(null)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
@@ -250,6 +251,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     controlsRef.current = controls
 
     const transformControls = new TransformControls(camera, renderer.domElement)
+    transformControls.setMode(transformMode)
     transformControls.addEventListener('dragging-changed', event => {
       if (controlsRef.current) {
         controlsRef.current.enabled = !event.value
@@ -1334,6 +1336,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     setRenderMode(mode)
   }
 
+  const switchTransformMode = (mode: 'translate' | 'rotate' | 'scale') => {
+    setTransformMode(mode)
+    if (transformControlsRef.current) {
+      transformControlsRef.current.setMode(mode)
+    }
+  }
+
   const getCurrentSceneData = () => {
     // Получаем объекты из сцены, если состояние пустое
     const objectsFromScene = getObjectsFromScene()
@@ -1935,6 +1944,8 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     switchViewMode,
     renderMode,
     switchRenderMode,
+    transformMode,
+    switchTransformMode,
     toggleInstanceVisibility,
     removeInstance,
     highlightObjects,

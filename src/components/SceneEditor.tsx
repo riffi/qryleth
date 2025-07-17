@@ -29,7 +29,10 @@ import {
   IconBooks,
   IconArrowBack,
   IconArrowForward,
-  IconGridDots
+  IconGridDots,
+  IconArrowRightBar,
+  IconRotate,
+  IconResize
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './OpenAISettingsModal'
 import { ObjectManager } from './ObjectManager.tsx'
@@ -61,7 +64,7 @@ function SceneEditor({ uuid, isNew }: SceneEditorProps) {
   })
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, renderMode, switchRenderMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility, isInitialized } = useThreeJSScene(canvasRef)
+  const { buildSceneFromDescription, clearScene, updateLighting, toggleObjectVisibility, removeObjectFromScene, objectsInfo, viewMode, switchViewMode, renderMode, switchRenderMode, transformMode, switchTransformMode, toggleInstanceVisibility, removeInstance, highlightObjects, clearHighlight, selectObject, clearSelection, selectedObject, getCurrentSceneData, loadSceneData, saveObjectToLibrary, addObjectToScene, currentScene, saveCurrentSceneToLibrary, checkSceneModified, getSceneObjects, updateObjectPrimitives, undo, redo, canUndo, canRedo, toggleGridVisibility, gridVisible, layers, createLayer, updateLayer, deleteLayer, moveObjectToLayer, toggleLayerVisibility, isInitialized } = useThreeJSScene(canvasRef)
 
   const handleSceneGenerated = (sceneResponse: SceneResponse) => {
     setStatus('generating')
@@ -365,6 +368,39 @@ function SceneEditor({ uuid, isNew }: SceneEditorProps) {
                       {gridVisible ? <IconGridDots size={18} /> : <IconGridDots size={18} />}
                     </ActionIcon>
                   </Tooltip>
+
+                  <Group gap="xs">
+                    <Tooltip label="Перемещение">
+                      <ActionIcon
+                        size="md"
+                        variant={transformMode === 'translate' ? 'filled' : 'light'}
+                        color="blue"
+                        onClick={() => switchTransformMode('translate')}
+                      >
+                        <IconArrowRightBar size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Поворот">
+                      <ActionIcon
+                        size="md"
+                        variant={transformMode === 'rotate' ? 'filled' : 'light'}
+                        color="green"
+                        onClick={() => switchTransformMode('rotate')}
+                      >
+                        <IconRotate size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Масштаб">
+                      <ActionIcon
+                        size="md"
+                        variant={transformMode === 'scale' ? 'filled' : 'light'}
+                        color="orange"
+                        onClick={() => switchTransformMode('scale')}
+                      >
+                        <IconResize size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
 
                   <SegmentedControl
                       value={renderMode}
