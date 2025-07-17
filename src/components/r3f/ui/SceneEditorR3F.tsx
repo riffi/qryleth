@@ -40,7 +40,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       if (uuid && !isNew) {
         try {
           const sceneData = await db.getScene(uuid)
-          console.log(sceneData)
           if (sceneData) {
             loadSceneData(sceneData.sceneData, sceneData.name, uuid)
           }
