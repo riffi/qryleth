@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
@@ -57,6 +58,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
   const composerRef = useRef<EffectComposer | null>(null)
   const outlinePassRef = useRef<OutlinePass | null>(null)
   const selectedOutlinePassRef = useRef<OutlinePass | null>(null)
+  const transformControlsRef = useRef<TransformControls | null>(null)
   const [selectedObject, setSelectedObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
   const selectedObjectRef = useRef<{objectIndex: number, instanceId?: string} | null>(null)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
@@ -247,6 +249,25 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     controls.enablePan = true
     controlsRef.current = controls
 
+    const transformControls = new TransformControls(camera, renderer.domElement)
+    transformControls.addEventListener('dragging-changed', event => {
+      if (controlsRef.current) {
+        controlsRef.current.enabled = !event.value
+      }
+      if (!event.value && transformControls.object) {
+        updatePlacementFromObject(transformControls.object)
+        saveToHistory()
+        markSceneAsModified()
+      }
+    })
+    transformControls.addEventListener('objectChange', () => {
+      if (transformControls.object) {
+        updatePlacementFromObject(transformControls.object)
+      }
+    })
+    scene.add(transformControls.getHelper())
+    transformControlsRef.current = transformControls
+
     // Lighting setup
     const ambientLight = new THREE.AmbientLight(0x404040, 0.6)
     scene.add(ambientLight)
@@ -315,67 +336,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
 
     window.addEventListener('resize', handleResize)
 
-    // Keyboard event handler for object movement
+    // Keyboard event handler
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!selectedObjectRef.current) {
-        return
-      }
-
-      let moved = false
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault()
-          moveSelectedObject('left')
-          moved = true
-          break
-        case 'ArrowRight':
-          event.preventDefault()
-          moveSelectedObject('right')
-          moved = true
-          break
-        case 'ArrowUp':
-          event.preventDefault()
-          moveSelectedObject('forward')
-          moved = true
-          break
-        case 'ArrowDown':
-          event.preventDefault()
-          moveSelectedObject('backward')
-          moved = true
-          break
-        case '8':
-          if (event.code === 'Numpad8' || event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
-            event.preventDefault()
-            moveSelectedObject('up')
-            moved = true
-          }
-          break
-        case '2':
-          if (event.code === 'Numpad2' || event.location === KeyboardEvent.DOM_KEY_LOCATION_NUMPAD) {
-            event.preventDefault()
-            moveSelectedObject('down')
-            moved = true
-          }
-          break
-        case '+':
-        case '=':
-          if (event.code === 'NumpadAdd' || event.code === 'Equal') {
-            event.preventDefault()
-            scaleSelectedObject('up')
-            moved = true
-          }
-          break
-        case '-':
-        case '_':
-          if (event.code === 'NumpadSubtract' || event.code === 'Minus') {
-            event.preventDefault()
-            scaleSelectedObject('down')
-            moved = true
-          }
-          break
-        case 'Escape':
-          clearSelection()
-          break
+      if (event.key === 'Escape') {
+        clearSelection()
       }
     }
 
@@ -474,6 +438,10 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
       }
       if (composerRef.current) {
         composerRef.current.dispose()
+      }
+      if (transformControlsRef.current && sceneRef.current) {
+        sceneRef.current.remove(transformControlsRef.current.getHelper())
+        transformControlsRef.current.dispose()
       }
       setIsInitialized(false)
     }
@@ -692,6 +660,13 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     }
 
     selectedOutlinePassRef.current.selectedObjects = objectsToSelect
+    if (transformControlsRef.current) {
+      if (objectsToSelect.length > 0) {
+        transformControlsRef.current.attach(objectsToSelect[0])
+      } else {
+        transformControlsRef.current.detach()
+      }
+    }
   }
 
   const clearSelection = () => {
@@ -700,6 +675,7 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     if (selectedOutlinePassRef.current) {
       selectedOutlinePassRef.current.selectedObjects = []
     }
+    transformControlsRef.current?.detach()
   }
 
   const scaleSelectedObject = (scaleDirection: 'up' | 'down') => {
@@ -878,6 +854,19 @@ export const useThreeJSScene = (containerRef: React.RefObject<HTMLDivElement | n
     // Сохранить состояние в историю и отметить сцену как измененную
     saveToHistory()
     markSceneAsModified()
+  }
+
+  const updatePlacementFromObject = (obj: THREE.Object3D) => {
+    const placementIndex = obj.userData.placementIndex
+    if (placementIndex !== undefined && placementsRef.current[placementIndex]) {
+      placementsRef.current[placementIndex] = {
+        ...placementsRef.current[placementIndex],
+        position: [obj.position.x, obj.position.y, obj.position.z],
+        rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+        scale: [obj.scale.x, obj.scale.y, obj.scale.z]
+      }
+      updateObjectsInfo(sceneObjects, placementsRef.current)
+    }
   }
 
   const createPrimitiveMesh = (primitive: ScenePrimitive): THREE.Mesh => {
