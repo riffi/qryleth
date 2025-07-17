@@ -60,10 +60,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     loadScene()
   }, [uuid, isNew, loadSceneData, clearScene, setCurrentScene])
 
-  // Get current scene status
-  const currentScene = useSceneStore(state => state.currentScene)
-  const objectCount = useSceneStore(state => state.objects.length)
-  const placementCount = useSceneStore(state => state.placements.length)
 
   const handleSceneGenerated = (scene: SceneResponse) => {
     useSceneStore.getState().loadSceneData(scene)
