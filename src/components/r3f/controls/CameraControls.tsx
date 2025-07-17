@@ -11,6 +11,7 @@ export const CameraControls: React.FC = () => {
     case 'orbit':
       return (
         <OrbitControls
+          makeDefault
           enableDamping
           dampingFactor={0.05}
           enableZoom
@@ -28,6 +29,7 @@ export const CameraControls: React.FC = () => {
     default:
       return (
         <OrbitControls
+          makeDefault
           enableDamping
           dampingFactor={0.05}
           enableZoom

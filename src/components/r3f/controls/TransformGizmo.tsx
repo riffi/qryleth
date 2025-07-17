@@ -6,7 +6,7 @@ import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
 import type { TransformGizmoProps } from '../../../types/r3f'
 
 export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) => {
-  const { scene, camera, gl } = useThree()
+  const { scene, camera, gl, controls } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedObject = useSceneStore(state => state.selectedObject)
   const transformMode = useSceneStore(state => state.transformMode)
@@ -49,9 +49,8 @@ export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) =
 
   const handleDraggingChanged = (event: any) => {
     // Disable camera controls while dragging
-    const orbitControls = gl.domElement.querySelector('[data-drei-orbit-controls]')
-    if (orbitControls) {
-      (orbitControls as any).enabled = !event.value
+    if (controls && 'enabled' in controls) {
+      ;(controls as any).enabled = !event.value
     }
 
     // Save to history and mark as modified when dragging ends
