@@ -16,33 +16,39 @@ export const useObjectEditor = (containerRef: React.RefObject<HTMLDivElement | n
   const [isInitialized, setIsInitialized] = useState(false)
   const [selectedPrimitive, setSelectedPrimitive] = useState<THREE.Mesh | null>(null)
   const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number>(0)
+  const initTimeoutRef = useRef<number | NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!isOpen) {
       setIsInitialized(false)
       return
     }
-    
-    // Wait for container to be ready
+
     const initializeWhenReady = () => {
       if (!containerRef.current) {
-        setTimeout(initializeWhenReady, 100)
+        initTimeoutRef.current = setTimeout(initializeWhenReady, 100)
         return
       }
 
       const container = containerRef.current
 
-      // Check if container has dimensions
       if (container.clientWidth === 0 || container.clientHeight === 0) {
-        setTimeout(initializeWhenReady, 100)
+        initTimeoutRef.current = setTimeout(initializeWhenReady, 100)
         return
       }
 
       initializeThreeJS(container)
     }
 
-    // Add a small delay to ensure modal is fully rendered
-    setTimeout(initializeWhenReady, 200)
+    // Delay to ensure modal content is rendered
+    initTimeoutRef.current = setTimeout(initializeWhenReady, 200)
+
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current)
+        initTimeoutRef.current = null
+      }
+    }
   }, [containerRef, isOpen])
 
   const initializeThreeJS = (container: HTMLDivElement) => {

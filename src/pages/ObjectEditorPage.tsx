@@ -8,12 +8,16 @@ const ObjectEditorPage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [objectRecord, setObjectRecord] = useState<ObjectRecord | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     if (id) {
       db.getObject(id).then(record => {
         if (record) setObjectRecord(record)
+        setIsReady(true)
       })
+    } else {
+      setIsReady(true)
     }
   }, [id])
 
@@ -27,10 +31,18 @@ const ObjectEditorPage: React.FC = () => {
     objectIndex: 0
   }
 
+  if (!isReady) {
+    return (
+      <MainLayout>
+        <div style={{ padding: '1rem' }}>Загрузка...</div>
+      </MainLayout>
+    )
+  }
+
   return (
     <MainLayout>
       <ObjectEditor
-        opened
+        opened={isReady}
         onClose={handleClose}
         onSave={handleSave}
         objectInfo={objectInfo}
