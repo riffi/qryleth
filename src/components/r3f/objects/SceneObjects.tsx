@@ -1,5 +1,6 @@
 import React from 'react'
 import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
+import { InstancedObjects, ConditionalInstancedObject } from '../optimization/InstancedObjects'
 import { 
   useSceneObjects, 
   useScenePlacements, 
@@ -54,6 +55,10 @@ export const SceneObjects: React.FC = () => {
         clearHover()
       }}
     >
+      {/* Instanced objects for performance optimization */}
+      <InstancedObjects minimumInstancesForOptimization={3} />
+      
+      {/* Individual objects (not instanced) */}
       {placements.map((placement, placementIndex) => {
         const sceneObject = objects[placement.objectIndex]
         if (!sceneObject) return null
@@ -66,18 +71,25 @@ export const SceneObjects: React.FC = () => {
         const instanceId = `${placement.objectIndex}-${placementIndex}`
 
         return (
-          <MemoizedCompositeObject
+          <ConditionalInstancedObject
             key={instanceId}
-            sceneObject={sceneObject}
+            objectIndex={placement.objectIndex}
             placement={placement}
             placementIndex={placementIndex}
-            isSelected={isSelected(placement.objectIndex, instanceId)}
-            isHovered={isHovered(placement.objectIndex, instanceId)}
-            onClick={handleClick}
-            onHover={handlePointerOver}
-            onTransform={handleObjectTransform}
-            visible={isLayerVisible}
-          />
+            minimumInstancesForOptimization={3}
+          >
+            <MemoizedCompositeObject
+              sceneObject={sceneObject}
+              placement={placement}
+              placementIndex={placementIndex}
+              isSelected={isSelected(placement.objectIndex, instanceId)}
+              isHovered={isHovered(placement.objectIndex, instanceId)}
+              onClick={handleClick}
+              onHover={handlePointerOver}
+              onTransform={handleObjectTransform}
+              visible={isLayerVisible}
+            />
+          </ConditionalInstancedObject>
         )
       })}
     </group>
