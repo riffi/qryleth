@@ -42,11 +42,15 @@ export const usePlacementsByObjectIndex = (objectIndex: number) =>
   )
 
 // Selection and interaction selectors
-export const useSelectionState = () =>
-  useSceneStore(state => ({
-    selectedObject: state.selectedObject,
-    hoveredObject: state.hoveredObject
-  }), shallow)
+export const useSelectionState = () => {
+  const selectedObject = useSceneStore(state => state.selectedObject)
+  const hoveredObject = useSceneStore(state => state.hoveredObject)
+
+  return useMemo(
+    () => ({ selectedObject, hoveredObject }),
+    [selectedObject, hoveredObject]
+  )
+}
 
 export const useIsObjectSelected = (objectIndex: number, instanceId?: string) =>
   useSceneStore(state => {
