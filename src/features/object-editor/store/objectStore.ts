@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { SceneObject, SceneObjectInstance, SceneLayer, LightingSettings } from '../../../entities/scene/types'
-import type { SelectedObject, TransformMode, ViewMode } from '../../../entities/r3f/types'
+import type {RenderMode, SelectedObject, TransformMode, ViewMode} from '../../../entities/r3f/types'
 
 interface ObjectStoreState {
   objects: SceneObject[]
@@ -9,7 +9,7 @@ interface ObjectStoreState {
   layers: SceneLayer[]
   lighting: LightingSettings
   viewMode: ViewMode
-  renderMode: 'solid' | 'wireframe'
+  renderMode: RenderMode
   transformMode: TransformMode
   selectedObject: SelectedObject | null
   hoveredObject: SelectedObject | null
@@ -23,7 +23,7 @@ interface ObjectStoreActions {
   updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => void
   setLayers: (layers: SceneLayer[]) => void
   setLighting: (lighting: LightingSettings) => void
-  setRenderMode: (mode: 'solid' | 'wireframe') => void
+  setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
   selectObject: (objectIndex: number, instanceId?: string) => void
   clearSelection: () => void
