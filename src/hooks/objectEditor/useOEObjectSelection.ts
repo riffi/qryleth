@@ -1,55 +1,41 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useObjectSelected, useObjectHovered } from '../../features/object-editor/store/objectStore'
+import {
+  useObjectSelectedPrimitiveId,
+  useObjectHoveredPrimitiveId
+} from '../../features/object-editor/store/objectStore'
 import type { UseObjectSelectionReturn } from '../../entities/r3f/types'
 
 export const useOEObjectSelection = (): UseObjectSelectionReturn => {
   const { scene } = useThree()
-  const selectedObject = useObjectSelected()
-  const hoveredObject = useObjectHovered()
+  const selectedId = useObjectSelectedPrimitiveId()
+  const hoveredId = useObjectHoveredPrimitiveId()
 
   const selectedObjects = useMemo(() => {
-    if (!selectedObject || !scene) return []
+    if (selectedId === null || !scene) return []
     const objects: THREE.Object3D[] = []
-    scene.traverse((child) => {
-      if (child.userData.generated && 
-          child.userData.objectIndex === selectedObject.objectIndex &&
-          child.type === 'Group') { // Only select the Group, not the mesh inside
-        console.log('Found selected group:', child.userData.objectIndex, 'position:', child.position)
+    scene.traverse(child => {
+      if (child.userData.generated && child.userData.primitiveIndex === selectedId) {
         objects.push(child)
       }
     })
-    console.log('useOEObjectSelection selectedObjects:', objects)
     return objects
-  }, [selectedObject, scene])
+  }, [selectedId, scene])
 
   const hoveredObjects = useMemo(() => {
-    if (!hoveredObject || !scene) return []
+    if (hoveredId === null || !scene) return []
     const objects: THREE.Object3D[] = []
-    scene.traverse((child) => {
-      if (child.userData.generated && child.userData.objectIndex === hoveredObject.objectIndex) {
-        if (hoveredObject.instanceId) {
-          const placementIndex = parseInt(hoveredObject.instanceId.split('-')[1])
-          if (child.userData.placementIndex === placementIndex) {
-            objects.push(child)
-          }
-        } else {
-          objects.push(child)
-        }
+    scene.traverse(child => {
+      if (child.userData.generated && child.userData.primitiveIndex === hoveredId) {
+        objects.push(child)
       }
     })
     return objects
-  }, [hoveredObject, scene])
+  }, [hoveredId, scene])
 
-  const isSelected = (objectIndex: number, instanceId?: string) => {
-    if (!selectedObject) return false
-    return selectedObject.objectIndex === objectIndex && selectedObject.instanceId === instanceId
-  }
+  const isSelected = (index: number) => selectedId === index
 
-  const isHovered = (objectIndex: number, instanceId?: string) => {
-    if (!hoveredObject) return false
-    return hoveredObject.objectIndex === objectIndex && hoveredObject.instanceId === instanceId
-  }
+  const isHovered = (index: number) => hoveredId === index
 
   return { selectedObjects, hoveredObjects, isSelected, isHovered }
 }

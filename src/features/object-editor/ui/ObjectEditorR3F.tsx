@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Modal,
   Paper,
@@ -9,13 +9,12 @@ import {
   SegmentedControl,
   Button,
   Badge,
-  Text,
   Title
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import { ObjectScene3D } from '../r3f/ObjectScene3D'
 import { useObjectStore } from '../store/objectStore'
-import type { SceneObject, SceneObjectInstance } from '../../../entities/scene/types'
+import type { SceneObject } from '../../../entities/scene/types'
 
 interface ObjectEditorR3FProps {
   opened: boolean
@@ -56,27 +55,17 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const [renderMode, setRenderMode] = useState<'solid' | 'wireframe'>('solid')
 
-  // Initialize object store with primitives as separate objects
+  // Initialize object store with primitives only
   useEffect(() => {
     if (!opened) return
     useObjectStore.getState().clearScene()
 
     const obj = objectData || sampleObject
 
-    obj.primitives.forEach((prim, index) => {
-      // Create primitive with position reset to origin for simpler editing
-      const normalizedPrimitive = { ...prim, position: [0, 0, 0], rotation: [0, 0, 0] }
-      useObjectStore.getState().addObject({ name: `Primitive ${index + 1}`, primitives: [normalizedPrimitive] })
-      useObjectStore.getState().addPlacement({
-        objectIndex: index,
-        position: prim.position || [0, 0, 0], // Placement gets the primitive position
-        rotation: prim.rotation || [0, 0, 0],
-        scale: [1, 1, 1]
-      })
-    })
+    useObjectStore.getState().setPrimitives(obj.primitives.map(p => ({ ...p })))
 
     setSelectedPrimitive(0)
-    useObjectStore.getState().selectObject(0, '0-0')
+    useObjectStore.getState().selectPrimitive(0)
   }, [opened, objectData])
 
   const handleSave = () => {
@@ -84,8 +73,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const state = useObjectStore.getState()
     const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
     
-    // Save placement positions as primitive positions
-    state.placements.forEach((p, idx) => {
+    state.primitives.forEach((p, idx) => {
       primitiveStates[idx] = {
         position: (p.position || [0, 0, 0]) as [number, number, number],
         rotation: (p.rotation || [0, 0, 0]) as [number, number, number],
@@ -99,7 +87,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
 
   const handleSelectPrimitive = (index: number) => {
     setSelectedPrimitive(index)
-    useObjectStore.getState().selectObject(index, `${index}-0`)
+    useObjectStore.getState().selectPrimitive(index)
   }
 
   return (
@@ -131,7 +119,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
               value={selectedPrimitive.toString()}
               onChange={(v) => v && handleSelectPrimitive(parseInt(v))}
               data={useObjectStore.getState()
-                .objects.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
+                .primitives.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
               size="sm"
             />
             <SegmentedControl

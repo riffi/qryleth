@@ -8,33 +8,29 @@ import type { TransformGizmoProps } from '../../../../entities/r3f/types'
 export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
   const { camera, gl } = useThree()
   const transformControlsRef = useRef<any>()
-  const selectedObject = useObjectStore(state => state.selectedObject)
+  const selectedPrimitiveId = useObjectStore(state => state.selectedPrimitiveId)
   const transformMode = useObjectStore(state => state.transformMode)
-  const updatePlacement = useObjectStore(state => state.updatePlacement)
+  const updatePrimitive = useObjectStore(state => state.updatePrimitive)
   const { selectedObjects } = useOEObjectSelection()
 
   const targetObject = selectedObjects.length > 0 ? selectedObjects[0] : undefined
 
   const handleObjectChange = () => {
-    if (!transformControlsRef.current?.object || !selectedObject) return
+    if (!transformControlsRef.current?.object || selectedPrimitiveId === null) return
     const obj = transformControlsRef.current.object
     const position = obj.position
     const rotation = obj.rotation
     const scale = obj.scale
     
     // Update placement for the selected object
-    if (selectedObject.objectIndex !== undefined) {
-      updatePlacement(selectedObject.objectIndex, {
-        position: [position.x, position.y, position.z],
-        rotation: [rotation.x, rotation.y, rotation.z],
-        scale: [scale.x, scale.y, scale.z]
-      })
-    }
+    updatePrimitive(selectedPrimitiveId, {
+      position: [position.x, position.y, position.z],
+      rotation: [rotation.x, rotation.y, rotation.z],
+      scale: [scale.x, scale.y, scale.z]
+    })
     
     onTransform?.({
-      objectIndex: selectedObject.objectIndex,
-      instanceId: selectedObject.instanceId,
-      placementIndex: selectedObject.placementIndex,
+      objectIndex: selectedPrimitiveId,
       position: [position.x, position.y, position.z],
       rotation: [rotation.x, rotation.y, rotation.z],
       scale: [scale.x, scale.y, scale.z]
@@ -74,9 +70,9 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControl
       controls.removeEventListener('mouseDown', handleMouseDown)
       controls.removeEventListener('mouseUp', handleMouseUp)
     }
-  }, [selectedObject, orbitControlsRef])
+  }, [selectedPrimitiveId, orbitControlsRef])
 
-  if (!selectedObject) return null
+  if (selectedPrimitiveId === null) return null
 
   return (
     <TransformControls
