@@ -35,7 +35,7 @@ import {
   IconResize
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from './OpenAISettingsModal'
-import { ObjectManager } from './ObjectManager.tsx'
+import { ObjectManager } from '../features/scene/ui/ObjectManager'
 import { Link } from 'react-router-dom'
 import { db } from '../utils/database'
 import { ObjectEditor } from './ObjectEditor'

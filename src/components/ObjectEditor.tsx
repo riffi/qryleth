@@ -16,7 +16,7 @@ import {
     SegmentedControl
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
-import type {ObjectInfo} from './ObjectItem'
+import type {ObjectInfo} from '../features/scene/ui/ObjectItem'
 import { useObjectEditor } from '../hooks/useObjectEditor'
 
 interface ObjectEditorProps {
