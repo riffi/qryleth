@@ -1,17 +1,7 @@
 import type { Vector3, SceneObject, ScenePlacement, SceneLayer, LightingSettings } from './scene'
+import type {Primitive} from "../primitive/model/types.ts";
 
-// R3F specific type extensions
-export interface R3FSceneObject extends SceneObject {
-  instances?: R3FObjectInstance[]
-}
 
-export interface R3FObjectInstance {
-  id: string
-  placement: ScenePlacement
-  visible: boolean
-  selected: boolean
-  hovered: boolean
-}
 
 // Selection state for R3F
 export interface SelectedObject {
@@ -40,12 +30,6 @@ export interface CurrentScene {
   status: SceneStatus
 }
 
-// Camera state
-export interface CameraState {
-  position: Vector3
-  target: Vector3
-  viewMode: ViewMode
-}
 
 // Scene interaction events
 export interface SceneClickEvent {
@@ -73,11 +57,6 @@ export interface TransformEvent {
   scale: Vector3
 }
 
-// R3F component props
-export interface Scene3DProps {
-  className?: string
-  onSceneReady?: () => void
-}
 
 export interface CompositeObjectProps {
   sceneObject: SceneObject
@@ -93,7 +72,7 @@ export interface CompositeObjectProps {
 }
 
 export interface PrimitiveRendererProps {
-  primitive: import('./scene').ScenePrimitive
+  primitive: Primitive
   renderMode?: RenderMode
 }
 
@@ -101,10 +80,6 @@ export interface LandscapeLayerProps {
   layer: SceneLayer
 }
 
-export interface CameraControlsProps {
-  viewMode: ViewMode
-  onViewModeChange?: (mode: ViewMode) => void
-}
 
 export interface TransformGizmoProps {
   selectedObject?: SelectedObject
@@ -198,21 +173,6 @@ export interface SceneStoreActions {
 
 export type SceneStore = SceneStoreState & SceneStoreActions
 
-// Camera store
-export interface CameraStoreState {
-  position: Vector3
-  target: Vector3
-  viewMode: ViewMode
-}
-
-export interface CameraStoreActions {
-  setPosition: (position: Vector3) => void
-  setTarget: (target: Vector3) => void
-  setViewMode: (mode: ViewMode) => void
-  resetCamera: () => void
-}
-
-export type CameraStore = CameraStoreState & CameraStoreActions
 
 // Utility types for hooks
 export interface UseSceneEventsReturn {

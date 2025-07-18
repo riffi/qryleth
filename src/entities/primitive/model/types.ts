@@ -1,6 +1,6 @@
 import type { Vector3 } from "../../../shared/types/vector3.ts";
 
-export interface ScenePrimitive {
+export interface Primitive {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane';
   width?: number;
   height?: number;

@@ -1,9 +1,9 @@
 import React from 'react'
-import type {ScenePrimitive} from "../../../entities/primitive/model/types.ts";
+import type {Primitive} from "../../../entities/primitive/model/types.ts";
 
 
 interface Primitive3DProps {
-  primitive: ScenePrimitive
+  primitive: Primitive
 }
 
 export const Primitive3D: React.FC<Primitive3DProps> = ({ primitive }) => {

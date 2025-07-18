@@ -1,9 +1,9 @@
 import React from 'react'
-import type { ScenePrimitive } from '../../../entities/primitive/model/types'
+import type { Primitive } from '../../../entities/primitive/model/types'
 
 
 interface Pyramid3DProps {
-  primitive: ScenePrimitive
+  primitive: Primitive
   materialProps: any
   meshProps: any
 }

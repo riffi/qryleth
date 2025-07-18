@@ -1,8 +1,8 @@
 import React from 'react'
-import type {ScenePrimitive} from "../../../entities/primitive/model/types.ts";
+import type {Primitive} from "../../../entities/primitive/model/types.ts";
 
 interface Cone3DProps {
-  primitive: ScenePrimitive
+  primitive: Primitive
   materialProps: any
   meshProps: any
 }

@@ -1,12 +1,12 @@
 import type {Vector3} from './common';
-import type {ScenePrimitive} from "../primitive/model/types.ts";
+import type {Primitive} from "../primitive/model/types.ts";
 
 
 
 export interface SceneObject {
   uuid: string;
   name: string;
-  primitives: ScenePrimitive[];
+  primitives: Primitive[];
   layerId?: string;
   /** Controls visibility of all placements of this object */
   visible?: boolean;
