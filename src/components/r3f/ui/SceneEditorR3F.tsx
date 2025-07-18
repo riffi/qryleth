@@ -117,6 +117,40 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     addPlacement(placement)
   }
 
+  const handleSaveSceneToLibrary = async () => {
+    try {
+      const state = useSceneStore.getState()
+      const sceneData = state.getCurrentSceneData()
+      let sceneUuid: string
+
+      if (state.currentScene.uuid) {
+        await db.updateScene(
+          state.currentScene.uuid,
+          state.currentScene.name,
+          sceneData,
+          undefined,
+          undefined
+        )
+        sceneUuid = state.currentScene.uuid
+      } else {
+        sceneUuid = await db.saveScene(
+          state.currentScene.name,
+          sceneData,
+          undefined,
+          undefined
+        )
+      }
+
+      state.setCurrentScene({
+        uuid: sceneUuid,
+        name: state.currentScene.name,
+        status: 'saved'
+      })
+    } catch (error) {
+      console.error('Failed to save scene:', error)
+    }
+  }
+
   return (
     <>
       <MainLayout
@@ -189,7 +223,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
         {showObjectManager && (
           <Paper shadow="sm" radius="md" style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
-            <ObjectManager />
+            <ObjectManager onSaveSceneToLibrary={handleSaveSceneToLibrary} />
           </Paper>
         )}
       </Container>
