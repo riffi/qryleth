@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group } from '@mantine/core'
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManager } from '../../ObjectManager'
-import { useSceneStore } from '../../../stores/sceneStore'
+import { useSceneStore, useViewMode } from '../../../stores/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../utils/database'
 import MainLayout from '../../../layouts/MainLayout'
 import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
 import type { SceneStatus } from '../../../types/r3f'
 import { Link } from 'react-router-dom'
-import { IconArrowBack, IconArrowForward, IconBooks, IconSettings, IconInfoCircle } from '@tabler/icons-react'
+import { IconArrowBack, IconArrowForward, IconBooks, IconSettings, IconInfoCircle, IconEye, IconRun, IconPlaneTilt } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../OpenAISettingsModal'
 
 const getStatusColor = (status: SceneStatus) => {
@@ -62,6 +62,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 
   const [settingsOpened, setSettingsOpened] = useState(false)
+
+  const viewMode = useViewMode()
+  const setViewMode = useSceneStore(state => state.setViewMode)
 
   const currentScene = useSceneStore(state => state.currentScene)
 
@@ -216,6 +219,51 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           radius="md"
           style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
         >
+          <Box
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              zIndex: 10,
+              padding: 6
+            }}
+          >
+            <SegmentedControl
+              value={viewMode}
+              onChange={(value) => setViewMode(value as 'orbit' | 'walk' | 'fly')}
+              data={[
+                {
+                  value: 'orbit',
+                  label: (
+                    <Group gap={4} wrap="nowrap">
+                      <IconEye size={14} />
+                      <span>Orbit</span>
+                    </Group>
+                  )
+                },
+                {
+                  value: 'walk',
+                  label: (
+                    <Group gap={4} wrap="nowrap">
+                      <IconRun size={14} />
+                      <span>Walk</span>
+                    </Group>
+                  )
+                },
+                {
+                  value: 'fly',
+                  label: (
+                    <Group gap={4} wrap="nowrap">
+                      <IconPlaneTilt size={14} />
+                      <span>Fly</span>
+                    </Group>
+                  )
+                }
+              ]}
+              size="xs"
+            />
+          </Box>
+
           <Box style={{ width: '100%', height: '100%' }}>
             <Scene3D />
           </Box>
