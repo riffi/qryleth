@@ -2,9 +2,10 @@ import React, { useRef, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
+import { useSceneStore } from '../../../stores/sceneStore'
 
 export const WalkControls: React.FC = () => {
-  const { camera, gl } = useThree()
+  const { camera, gl, scene } = useThree()
   const controlsRef = useRef<any>()
   
   // Movement state
@@ -100,8 +101,40 @@ export const WalkControls: React.FC = () => {
       controlsRef.current.moveForward(-velocity.current.z * delta)
     }
 
-    // Keep camera at walking height (1.8 units above ground)
-    camera.position.y = 1.8
+    // Adjust camera height based on perlin landscape
+    const layers = useSceneStore.getState().layers
+    const perlinLayerIds = layers
+      .filter(l => l.type === 'landscape' && l.shape === 'perlin')
+      .map(l => l.id)
+
+    if (perlinLayerIds.length > 0) {
+      const meshes: THREE.Object3D[] = []
+      scene.traverse(obj => {
+        if (
+          obj.userData?.layerType === 'landscape' &&
+          perlinLayerIds.includes(obj.userData.layerId)
+        ) {
+          meshes.push(obj)
+        }
+      })
+
+      if (meshes.length > 0) {
+        raycaster.current.set(
+          new THREE.Vector3(camera.position.x, 1000, camera.position.z),
+          new THREE.Vector3(0, -1, 0)
+        )
+        const intersects = raycaster.current.intersectObjects(meshes, true)
+        if (intersects.length > 0) {
+          camera.position.y = intersects[0].point.y + 1.8
+        } else {
+          camera.position.y = 1.8
+        }
+      } else {
+        camera.position.y = 1.8
+      }
+    } else {
+      camera.position.y = 1.8
+    }
   })
 
   return (

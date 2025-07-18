@@ -9,7 +9,7 @@ const SceneEditorPage: React.FC = () => {
   const isNew = !id
 
     return (
-      <ObjectManagementWrapper>
+      //<ObjectManagementWrapper>
         <SceneEditorR3F
           uuid={id}
           isNew={isNew}
@@ -17,7 +17,7 @@ const SceneEditorPage: React.FC = () => {
           height={800}
           showObjectManager={true}
         />
-      </ObjectManagementWrapper>
+      //</ObjectManagementWrapper>
     )
 }
 
