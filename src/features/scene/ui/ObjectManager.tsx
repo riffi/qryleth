@@ -137,9 +137,11 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleCreateLayer = () => {
-        if (!newLayerName.trim()) return
+        const layerName = newLayerType === 'landscape' ? 'landscape' : newLayerName.trim()
+        if (newLayerType === 'object' && !layerName) return
+        
         storeCreateLayer({
-            name: newLayerName.trim(),
+            name: layerName,
             type: newLayerType,
             visible: true,
             position: layers.length,

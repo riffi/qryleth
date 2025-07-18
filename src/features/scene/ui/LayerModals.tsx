@@ -88,18 +88,6 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                 size="sm"
             >
                 <Stack gap="md">
-                <TextInput
-                    label="Название слоя"
-                    placeholder="Введите название слоя"
-                    value={newLayerName}
-                    onChange={(e) => setNewLayerName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                onCreateLayer()
-                            }
-                        }}
-                    autoFocus
-                />
                 <Select
                     label="Тип слоя"
                     data={[
@@ -107,8 +95,29 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                         { value: 'landscape', label: 'Landscape' }
                     ]}
                     value={newLayerType}
-                    onChange={(v) => setNewLayerType(v as 'object' | 'landscape')}
+                    onChange={(v) => {
+                        const newType = v as 'object' | 'landscape'
+                        setNewLayerType(newType)
+                        // Set default name for landscape layers
+                        if (newType === 'landscape') {
+                            setNewLayerName('landscape')
+                        }
+                    }}
                 />
+                {newLayerType === 'object' && (
+                    <TextInput
+                        label="Название слоя"
+                        placeholder="Введите название слоя"
+                        value={newLayerName}
+                        onChange={(e) => setNewLayerName(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                onCreateLayer()
+                            }
+                        }}
+                        autoFocus
+                    />
+                )}
                 {newLayerType === 'landscape' && (
                     <>
                         <Select
@@ -152,7 +161,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                         </Button>
                         <Button
                             onClick={onCreateLayer}
-                            disabled={!newLayerName.trim()}
+                            disabled={newLayerType === 'object' && !newLayerName.trim()}
                         >
                             Создать
                         </Button>
