@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
 import { ChatInterface } from '../../../components/ChatInterface'
 import { Scene3D } from './Scene3D'
 import { ObjectManager } from './ObjectManager'
 import { ObjectEditorR3F } from '../../object-editor/ui/ObjectEditorR3F'
 import { notifications } from '@mantine/notifications'
-import { IconCheck } from '@tabler/icons-react'
+import { IconCheck, IconX } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -86,6 +86,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
+  const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -155,36 +156,74 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleSaveSceneToLibrary = async () => {
+    // If scene already exists (has UUID), save directly
+    if (currentScene?.uuid) {
+      try {
+        const state = useSceneStore.getState()
+        const sceneData = state.getCurrentSceneData()
+        await db.updateScene(
+          currentScene.uuid,
+          currentScene.name,
+          sceneData,
+          undefined,
+          undefined
+        )
+        state.setCurrentScene({
+          uuid: currentScene.uuid,
+          name: currentScene.name,
+          status: 'saved'
+        })
+        notifications.show({
+          title: 'Успешно!',
+          message: `Сцена "${currentScene.name}" сохранена`,
+          color: 'green',
+          icon: <IconCheck size="1rem" />,
+        })
+      } catch (error) {
+        console.error('Failed to save scene:', error)
+        notifications.show({
+          title: 'Ошибка',
+          message: 'Не удалось сохранить сцену',
+          color: 'red',
+          icon: <IconX size="1rem" />,
+        })
+      }
+    } else {
+      // For new scenes, show modal
+      setSaveSceneModalOpened(true)
+    }
+  }
+
+  const handleSaveScene = async (name: string, description?: string) => {
     try {
       const state = useSceneStore.getState()
       const sceneData = state.getCurrentSceneData()
-      let sceneUuid: string
-
-      if (state.currentScene.uuid) {
-        await db.updateScene(
-          state.currentScene.uuid,
-          state.currentScene.name,
-          sceneData,
-          undefined,
-          undefined
-        )
-        sceneUuid = state.currentScene.uuid
-      } else {
-        sceneUuid = await db.saveScene(
-          state.currentScene.name,
-          sceneData,
-          undefined,
-          undefined
-        )
-      }
-
+      const sceneUuid = await db.saveScene(
+        name,
+        sceneData,
+        description,
+        undefined
+      )
       state.setCurrentScene({
         uuid: sceneUuid,
-        name: state.currentScene.name,
+        name: name,
         status: 'saved'
+      })
+      setSaveSceneModalOpened(false)
+      notifications.show({
+        title: 'Успешно!',
+        message: `Сцена "${name}" сохранена в библиотеку`,
+        color: 'green',
+        icon: <IconCheck size="1rem" />,
       })
     } catch (error) {
       console.error('Failed to save scene:', error)
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Не удалось сохранить сцену',
+        color: 'red',
+        icon: <IconX size="1rem" />,
+      })
     }
   }
 
@@ -465,8 +504,88 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         objectData={editingObjectData}
         onSave={handleSaveObjectEdit}
       />
+      <SaveSceneModal
+        opened={saveSceneModalOpened}
+        onClose={() => setSaveSceneModalOpened(false)}
+        onSave={handleSaveScene}
+        currentSceneName={currentScene?.name}
+      />
     </>
   )
 }
 
+interface SaveSceneModalProps {
+  opened: boolean
+  onClose: () => void
+  onSave: (name: string, description?: string) => void
+  currentSceneName?: string
+}
+
+const SaveSceneModal: React.FC<SaveSceneModalProps> = ({ opened, onClose, onSave, currentSceneName }) => {
+  const [sceneName, setSceneName] = useState('')
+  const [sceneDescription, setSceneDescription] = useState('')
+
+  const handleSave = () => {
+    if (!sceneName.trim()) {
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Введите название сцены',
+        color: 'red',
+        icon: <IconX size="1rem" />,
+      })
+      return
+    }
+
+    onSave(sceneName.trim(), sceneDescription.trim() || undefined)
+    setSceneName('')
+    setSceneDescription('')
+  }
+
+  const handleClose = () => {
+    setSceneName('')
+    setSceneDescription('')
+    onClose()
+  }
+
+  // Set default name when modal opens
+  React.useEffect(() => {
+    if (opened && currentSceneName && !sceneName) {
+      setSceneName(currentSceneName)
+    }
+  }, [opened, currentSceneName, sceneName])
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="Сохранить сцену"
+      size="md"
+    >
+      <Stack gap="md">
+        <TextInput
+          label="Название сцены"
+          placeholder="Введите название..."
+          value={sceneName}
+          onChange={(e) => setSceneName(e.currentTarget.value)}
+          required
+        />
+        <Textarea
+          label="Описание (необязательно)"
+          placeholder="Краткое описание сцены..."
+          value={sceneDescription}
+          onChange={(e) => setSceneDescription(e.currentTarget.value)}
+          minRows={3}
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="subtle" onClick={handleClose}>
+            Отмена
+          </Button>
+          <Button onClick={handleSave}>
+            Сохранить
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  )
+}
 
