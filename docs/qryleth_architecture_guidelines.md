@@ -77,19 +77,9 @@ src/
 
 ---
 
-## 6. Boundary для Three.js
 
-```ts
-// boundaries/three/sceneAdapter.ts
-export function toThreeScene(domain: Scene): THREE.Scene { … }
-export function fromThreeObject(o: THREE.Object3D): SceneObject { … }
-```
 
-> UI импортирует **только** функции адаптера, не `three` напрямую.
-
----
-
-## 7. Производительность
+## 6. Производительность
 
 * **react‑virtual** для списков > 1000 эл‑тов  
 * `InstancedMesh`, `bounds-culled` — для массовых инстансов  
@@ -98,7 +88,7 @@ export function fromThreeObject(o: THREE.Object3D): SceneObject { … }
 
 ---
 
-## 8. Error Handling & Monitoring
+## 7. Error Handling & Monitoring
 
 * `app/providers/ErrorBoundary` охватывает всё дерево  
 * `shared/hooks/useErrorHandler` — всплывающие нотификации + Sentry  
