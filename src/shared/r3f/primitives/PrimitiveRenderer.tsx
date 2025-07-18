@@ -29,7 +29,8 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     scale: primitive.scale || [1, 1, 1],
     castShadow: true,
     receiveShadow: true,
-    userData: userData || {}
+    userData: userData || {},
+    onClick: onClick
   }
 
   switch (primitive.type) {
