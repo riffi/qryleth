@@ -1,5 +1,5 @@
 import React from 'react'
-import { OrbitControls, PointerLockControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { useViewMode } from '../../../stores/sceneStore'
 import { WalkControls } from './WalkControls'
 import { FlyControls } from './FlyControls'
@@ -19,13 +19,13 @@ export const CameraControls: React.FC = () => {
           target={[0, 0, 0]}
         />
       )
-    
+
     case 'walk':
       return <WalkControls />
-    
+
     case 'fly':
       return <FlyControls />
-    
+
     default:
       return (
         <OrbitControls
