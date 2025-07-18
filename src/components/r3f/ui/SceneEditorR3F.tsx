@@ -3,6 +3,9 @@ import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Gr
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManager } from '../../ObjectManager'
+import { ObjectEditor } from '../../ObjectEditor'
+import { notifications } from '@mantine/notifications'
+import { IconCheck } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -81,6 +84,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 
   const [settingsOpened, setSettingsOpened] = useState(false)
+  const [editorOpened, setEditorOpened] = useState(false)
+  const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -90,6 +95,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const setTransformMode = useSceneStore(state => state.setTransformMode)
   const gridVisible = useGridVisible()
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
+
+  const objects = useSceneStore(state => state.objects)
+  const placements = useSceneStore(state => state.placements)
+  const updateObject = useSceneStore(state => state.updateObject)
 
   const currentScene = useSceneStore(state => state.currentScene)
 
@@ -178,6 +187,104 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       console.error('Failed to save scene:', error)
     }
   }
+
+  const handleEditObject = (objectIndex: number, instanceId?: string) => {
+    setEditingObject({ objectIndex, instanceId })
+    setEditorOpened(true)
+  }
+
+  const handleSaveObjectEdit = (
+    objectIndex: number,
+    instanceId: string | undefined,
+    primitiveStates: {
+      [key: number]: {
+        position: [number, number, number]
+        rotation: [number, number, number]
+        dimensions: any
+      }
+    }
+  ) => {
+    const object = objects[objectIndex]
+    if (!object) return
+
+    const updatedPrimitives = object.primitives.map((primitive, index) => {
+      const state = primitiveStates[index]
+      if (!state) return primitive
+      const updated = { ...primitive }
+      updated.position = [
+        (primitive.position?.[0] || 0) + state.position[0],
+        (primitive.position?.[1] || 0) + state.position[1],
+        (primitive.position?.[2] || 0) + state.position[2]
+      ]
+      updated.rotation = [
+        (primitive.rotation?.[0] || 0) + state.rotation[0],
+        (primitive.rotation?.[1] || 0) + state.rotation[1],
+        (primitive.rotation?.[2] || 0) + state.rotation[2]
+      ]
+
+      if (state.dimensions) {
+        if (primitive.type === 'box') {
+          updated.width = state.dimensions.width || 1
+          updated.height = state.dimensions.height || 1
+          updated.depth = state.dimensions.depth || 1
+        } else if (primitive.type === 'sphere') {
+          updated.radius = state.dimensions.radius || 1
+        } else if (primitive.type === 'cylinder') {
+          updated.radiusTop = state.dimensions.radiusTop || 1
+          updated.radiusBottom = state.dimensions.radiusBottom || 1
+          updated.height = state.dimensions.height || 2
+        } else if (primitive.type === 'cone') {
+          updated.radius = state.dimensions.radius || 1
+          updated.height = state.dimensions.height || 2
+        } else if (primitive.type === 'pyramid') {
+          updated.baseSize = state.dimensions.baseSize || 1
+          updated.height = state.dimensions.height || 2
+        }
+      }
+
+      return updated
+    })
+
+    updateObject(objectIndex, { primitives: updatedPrimitives })
+
+    notifications.show({
+      title: 'Успешно!',
+      message: 'Изменения объекта сохранены',
+      color: 'green',
+      icon: <IconCheck size="1rem" />
+    })
+  }
+
+  const editingObjectInfo = React.useMemo(() => {
+    if (!editingObject) return undefined
+    const obj = objects[editingObject.objectIndex]
+    if (!obj) return undefined
+    const objectPlacements = placements.filter(
+      p => p.objectIndex === editingObject.objectIndex
+    )
+    const instances = objectPlacements.map((placement, index) => ({
+      id: `${editingObject.objectIndex}-${index}`,
+      position: placement.position || [0, 0, 0],
+      rotation: placement.rotation || [0, 0, 0],
+      scale: placement.scale || [1, 1, 1],
+      visible: placement.visible !== false
+    }))
+    return {
+      name: obj.name,
+      count: objectPlacements.length,
+      visible: obj.visible !== false,
+      objectIndex: editingObject.objectIndex,
+      instances,
+      layerId: obj.layerId
+    }
+  }, [editingObject, objects, placements])
+
+  const editingObjectData = React.useMemo(() => {
+    if (!editingObject) return undefined
+    const obj = objects[editingObject.objectIndex]
+    if (!obj) return undefined
+    return JSON.parse(JSON.stringify(obj))
+  }, [editingObject, objects])
 
   return (
     <>
@@ -351,13 +458,28 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         </Paper>
 
         {showObjectManager && (
-          <Paper shadow="sm" radius="md" style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}>
-            <ObjectManager onSaveSceneToLibrary={handleSaveSceneToLibrary} />
+          <Paper
+            shadow="sm"
+            radius="md"
+            style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}
+          >
+            <ObjectManager
+              onSaveSceneToLibrary={handleSaveSceneToLibrary}
+              onEditObject={handleEditObject}
+            />
           </Paper>
         )}
       </Container>
       </MainLayout>
       <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+      <ObjectEditor
+        opened={editorOpened}
+        onClose={() => setEditorOpened(false)}
+        objectInfo={editingObjectInfo}
+        instanceId={editingObject?.instanceId}
+        objectData={editingObjectData}
+        onSave={handleSaveObjectEdit}
+      />
     </>
   )
 }
