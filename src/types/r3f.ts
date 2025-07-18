@@ -124,7 +124,7 @@ export interface SceneStoreState {
   placements: ScenePlacement[]
   layers: SceneLayer[]
   lighting: LightingSettings
-  
+
   // UI state
   viewMode: ViewMode
   renderMode: RenderMode
@@ -132,10 +132,10 @@ export interface SceneStoreState {
   selectedObject: SelectedObject | null
   hoveredObject: HoveredObject | null
   gridVisible: boolean
-  
+
   // Scene metadata
   currentScene: CurrentScene
-  
+
   // History
   history: string[]
   historyIndex: number
@@ -147,13 +147,13 @@ export interface SceneStoreActions {
   addObject: (object: SceneObject) => void
   removeObject: (objectIndex: number) => void
   updateObject: (objectIndex: number, updates: Partial<SceneObject>) => void
-  
+
   // Placement management
   setPlacements: (placements: ScenePlacement[]) => void
   addPlacement: (placement: ScenePlacement) => void
   updatePlacement: (index: number, updates: Partial<ScenePlacement>) => void
   removePlacement: (index: number) => void
-  
+
   // Layer management
   setLayers: (layers: SceneLayer[]) => void
   createLayer: (layer: Omit<SceneLayer, 'id'>) => void
@@ -164,30 +164,30 @@ export interface SceneStoreActions {
   /** Toggle visibility of a specific object instance */
   toggleInstanceVisibility: (objectIndex: number, instanceId: string) => void
   moveObjectToLayer: (objectIndex: number, layerId: string) => void
-  
+
   // Lighting
   setLighting: (lighting: LightingSettings) => void
   updateLighting: (updates: Partial<LightingSettings>) => void
-  
+
   // Selection
   selectObject: (objectIndex: number, instanceId?: string) => void
   clearSelection: () => void
   setHoveredObject: (objectIndex: number, instanceId?: string) => void
   clearHover: () => void
-  
+
   // View controls
   setViewMode: (mode: ViewMode) => void
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
   toggleGridVisibility: () => void
-  
+
   // Scene management
   setCurrentScene: (scene: CurrentScene) => void
   markSceneAsModified: () => void
   loadSceneData: (data: any, sceneName?: string, sceneUuid?: string) => void
   getCurrentSceneData: () => any
   clearScene: () => void
-  
+
   // History
   saveToHistory: () => void
   undo: () => void
@@ -236,11 +236,3 @@ export interface UseSceneHistoryReturn {
   saveToHistory: () => void
 }
 
-// Migration feature flag
-export interface MigrationFlags {
-  USE_R3F_RENDERER: boolean
-  USE_R3F_LIGHTING: boolean
-  USE_R3F_OBJECTS: boolean
-  USE_R3F_CONTROLS: boolean
-  USE_R3F_POSTPROCESSING: boolean
-}
