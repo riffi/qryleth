@@ -96,9 +96,9 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 layerId: sceneObject.layerId || 'objects',
                 instances: objectPlacements.map((placement) => ({
                     id: `${sceneObject.uuid}-${placement.uuid}`,
-                    position: placement.position || [0,0,0],
-                    rotation: placement.rotation || [0,0,0],
-                    scale: placement.scale || [1,1,1],
+                    position: placement.transform?.position || [0,0,0],
+                    rotation: placement.transform?.rotation || [0,0,0],
+                    scale: placement.transform?.scale || [1,1,1],
                     visible: placement.visible !== false
                 }))
             }

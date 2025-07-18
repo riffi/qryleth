@@ -57,9 +57,9 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 
           {instancePlacements.map((placement, index) => {
             // Convert placement arrays to individual values
-            const [px, py, pz] = placement.position || [0, 0, 0]
-            const [rx, ry, rz] = placement.rotation || [0, 0, 0]
-            const [sx, sy, sz] = placement.scale || [1, 1, 1]
+            const [px, py, pz] = placement.transform?.position || [0, 0, 0]
+            const [rx, ry, rz] = placement.transform?.rotation || [0, 0, 0]
+            const [sx, sy, sz] = placement.transform?.scale || [1, 1, 1]
 
             return (
               <Instance

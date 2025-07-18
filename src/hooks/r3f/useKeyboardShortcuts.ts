@@ -95,18 +95,24 @@ export const useKeyboardShortcuts = () => {
           if (event.shiftKey) {
             // Move forward relative to camera
             const movement = forward.multiplyScalar(moveAmount)
-            newPlacement.position = [
-              (placement.position?.[0] || 0) + movement.x,
-              (placement.position?.[1] || 0) + movement.y,
-              (placement.position?.[2] || 0) + movement.z
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                (placement.transform?.position?.[0] || 0) + movement.x,
+                (placement.transform?.position?.[1] || 0) + movement.y,
+                (placement.transform?.position?.[2] || 0) + movement.z
+              ]
+            }
           } else {
             // Move up (Y axis)
-            newPlacement.position = [
-              placement.position?.[0] || 0,
-              (placement.position?.[1] || 0) + moveAmount,
-              placement.position?.[2] || 0
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                placement.transform?.position?.[0] || 0,
+                (placement.transform?.position?.[1] || 0) + moveAmount,
+                placement.transform?.position?.[2] || 0
+              ]
+            }
           }
           needsUpdate = true
           break
@@ -116,18 +122,24 @@ export const useKeyboardShortcuts = () => {
           if (event.shiftKey) {
             // Move backward relative to camera
             const movement = forward.multiplyScalar(-moveAmount)
-            newPlacement.position = [
-              (placement.position?.[0] || 0) + movement.x,
-              (placement.position?.[1] || 0) + movement.y,
-              (placement.position?.[2] || 0) + movement.z
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                (placement.transform?.position?.[0] || 0) + movement.x,
+                (placement.transform?.position?.[1] || 0) + movement.y,
+                (placement.transform?.position?.[2] || 0) + movement.z
+              ]
+            }
           } else {
             // Move down (Y axis)
-            newPlacement.position = [
-              placement.position?.[0] || 0,
-              (placement.position?.[1] || 0) - moveAmount,
-              placement.position?.[2] || 0
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                placement.transform?.position?.[0] || 0,
+                (placement.transform?.position?.[1] || 0) - moveAmount,
+                placement.transform?.position?.[2] || 0
+              ]
+            }
           }
           needsUpdate = true
           break
@@ -137,11 +149,14 @@ export const useKeyboardShortcuts = () => {
           if (!event.shiftKey) {
             // Move left relative to camera
             const movement = right.multiplyScalar(moveAmount)
-            newPlacement.position = [
-              (placement.position?.[0] || 0) + movement.x,
-              (placement.position?.[1] || 0) + movement.y,
-              (placement.position?.[2] || 0) + movement.z
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                (placement.transform?.position?.[0] || 0) + movement.x,
+                (placement.transform?.position?.[1] || 0) + movement.y,
+                (placement.transform?.position?.[2] || 0) + movement.z
+              ]
+            }
             needsUpdate = true
           }
           break
@@ -151,11 +166,14 @@ export const useKeyboardShortcuts = () => {
           if (!event.shiftKey) {
             // Move right relative to camera
             const movement = right.multiplyScalar(-moveAmount)
-            newPlacement.position = [
-              (placement.position?.[0] || 0) + movement.x,
-              (placement.position?.[1] || 0) + movement.y,
-              (placement.position?.[2] || 0) + movement.z
-            ]
+            newPlacement.transform = {
+              ...placement.transform,
+              position: [
+                (placement.transform?.position?.[0] || 0) + movement.x,
+                (placement.transform?.position?.[1] || 0) + movement.y,
+                (placement.transform?.position?.[2] || 0) + movement.z
+              ]
+            }
             needsUpdate = true
           }
           break
@@ -163,17 +181,23 @@ export const useKeyboardShortcuts = () => {
         // Scaling shortcuts
         case '+':
         case '=':
-          const currentScale = placement.scale || [1, 1, 1]
+          const currentScale = placement.transform?.scale || [1, 1, 1]
           const newScaleUp = currentScale.map(s => Math.max(0.1, s * (1 + scaleAmount)))
-          newPlacement.scale = newScaleUp as [number, number, number]
+          newPlacement.transform = {
+            ...placement.transform,
+            scale: newScaleUp as [number, number, number]
+          }
           needsUpdate = true
           break
 
         case '-':
         case '_':
-          const currentScaleDown = placement.scale || [1, 1, 1]
+          const currentScaleDown = placement.transform?.scale || [1, 1, 1]
           const newScaleDown = currentScaleDown.map(s => Math.max(0.1, s * (1 - scaleAmount)))
-          newPlacement.scale = newScaleDown as [number, number, number]
+          newPlacement.transform = {
+            ...placement.transform,
+            scale: newScaleDown as [number, number, number]
+          }
           needsUpdate = true
           break
       }

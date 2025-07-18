@@ -1,11 +1,11 @@
-import type { 
-  SceneObject, 
-  ScenePlacement, 
-  SceneLayer, 
+import type {
+  SceneObject,
+  ScenePlacement,
+  SceneLayer,
   SceneLighting,
-  SceneState 
+  SceneState
 } from '../types/scene'
-import { LegacyCompatibility } from './legacyCompatibility'
+
 
 // Serializable scene state interface
 export interface SerializableSceneState {
@@ -36,13 +36,13 @@ export interface SerializableSceneState {
 // Scene serialization utilities
 export class SceneSerializer {
   private static readonly VERSION = '1.0.0'
-  
+
   /**
    * Serialize the current scene state to a JSON-compatible object
    */
   static serialize(sceneState: Partial<SceneState>): SerializableSceneState {
     const now = Date.now()
-    
+
     return {
       version: this.VERSION,
       timestamp: now,
@@ -74,7 +74,7 @@ export class SceneSerializer {
    */
   static deserialize(data: SerializableSceneState): Partial<SceneState> {
     this.validateVersion(data.version)
-    
+
     return {
       currentScene: {
         name: data.currentScene.name,
@@ -97,116 +97,7 @@ export class SceneSerializer {
     }
   }
 
-  /**
-   * Serialize scene to JSON string
-   */
-  static toJSON(sceneState: Partial<SceneState>): string {
-    const serialized = this.serialize(sceneState)
-    return JSON.stringify(serialized, null, 2)
-  }
 
-  /**
-   * Deserialize scene from JSON string with legacy compatibility
-   */
-  static fromJSON(json: string): Partial<SceneState> {
-    try {
-      const rawData = JSON.parse(json)
-      
-      // Check if this is legacy data and migrate if necessary
-      if (LegacyCompatibility.isLegacyFormat(rawData)) {
-        console.log('Legacy scene format detected, migrating to R3F format')
-        const migratedData = LegacyCompatibility.migrateLegacyData(rawData)
-        
-        // Generate migration report
-        const report = LegacyCompatibility.createMigrationReport(rawData, migratedData)
-        console.log(report)
-        
-        return this.deserialize(migratedData)
-      }
-      
-      // Handle current format
-      const data = rawData as SerializableSceneState
-      return this.deserialize(data)
-    } catch (error) {
-      throw new Error(`Failed to parse scene JSON: ${error}`)
-    }
-  }
-
-  /**
-   * Save scene to localStorage
-   */
-  static saveToLocalStorage(sceneState: Partial<SceneState>, key: string = 'r3f-scene'): void {
-    try {
-      const json = this.toJSON(sceneState)
-      localStorage.setItem(key, json)
-      console.log(`Scene saved to localStorage with key: ${key}`)
-    } catch (error) {
-      console.error('Failed to save scene to localStorage:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Load scene from localStorage
-   */
-  static loadFromLocalStorage(key: string = 'r3f-scene'): Partial<SceneState> | null {
-    try {
-      const json = localStorage.getItem(key)
-      if (!json) return null
-      
-      const sceneState = this.fromJSON(json)
-      console.log(`Scene loaded from localStorage with key: ${key}`)
-      return sceneState
-    } catch (error) {
-      console.error('Failed to load scene from localStorage:', error)
-      return null
-    }
-  }
-
-  /**
-   * Export scene to downloadable file
-   */
-  static exportToFile(sceneState: Partial<SceneState>, filename?: string): void {
-    const json = this.toJSON(sceneState)
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename || `scene-${Date.now()}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    console.log(`Scene exported to file: ${a.download}`)
-  }
-
-  /**
-   * Import scene from file
-   */
-  static async importFromFile(file: File): Promise<Partial<SceneState>> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      
-      reader.onload = (e) => {
-        try {
-          const json = e.target?.result as string
-          const sceneState = this.fromJSON(json)
-          console.log(`Scene imported from file: ${file.name}`)
-          resolve(sceneState)
-        } catch (error) {
-          reject(new Error(`Failed to import scene from file: ${error}`))
-        }
-      }
-      
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'))
-      }
-      
-      reader.readAsText(file)
-    })
-  }
 
   // Private helper methods
   private static serializeObjects(objects: SceneObject[]): SceneObject[] {
@@ -233,9 +124,11 @@ export class SceneSerializer {
   private static serializePlacements(placements: ScenePlacement[]): ScenePlacement[] {
     return placements.map(placement => ({
       ...placement,
-      position: placement.position || [0, 0, 0],
-      rotation: placement.rotation || [0, 0, 0],
-      scale: placement.scale || [1, 1, 1],
+      transform: {
+        position: placement.transform?.position || [0, 0, 0],
+        rotation: placement.transform?.rotation || [0, 0, 0],
+        scale: placement.transform?.scale || [1, 1, 1]
+      },
       visible: placement.visible !== false
     }))
   }
@@ -243,9 +136,11 @@ export class SceneSerializer {
   private static deserializePlacements(placements: ScenePlacement[]): ScenePlacement[] {
     return placements.map(placement => ({
       ...placement,
-      position: placement.position || [0, 0, 0],
-      rotation: placement.rotation || [0, 0, 0],
-      scale: placement.scale || [1, 1, 1],
+      transform: {
+        position: placement.transform?.position || [0, 0, 0],
+        rotation: placement.transform?.rotation || [0, 0, 0],
+        scale: placement.transform?.scale || [1, 1, 1]
+      },
       visible: placement.visible !== false
     }))
   }

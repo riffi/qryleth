@@ -418,12 +418,6 @@ export const useSceneStore = create<SceneStore>()(
       return state.historyIndex < state.history.length - 1
     },
 
-    // Scene serialization methods
-    exportScene: (filename?: string) => {
-      const state = get()
-      SceneSerializer.exportToFile(state, filename)
-    },
-
   }))
 )
 

@@ -65,9 +65,9 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     <group
       ref={groupRef}
       name={sceneObject.name}
-      position={placement.position || [0, 0, 0]}
-      rotation={placement.rotation || [0, 0, 0]}
-      scale={placement.scale || [1, 1, 1]}
+      position={placement.transform?.position || [0, 0, 0]}
+      rotation={placement.transform?.rotation || [0, 0, 0]}
+      scale={placement.transform?.scale || [1, 1, 1]}
       visible={visible}
       userData={{
         generated: true,

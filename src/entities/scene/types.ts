@@ -1,6 +1,7 @@
 import type {GfxPrimitive} from "../primitive/model/types.ts";
 import type {Vector3} from "../../shared/types/vector3.ts";
 import type {GfxObject} from "../object/model/types.ts";
+import type {Transform} from "../../shared/types/transform.ts";
 
 
 
@@ -21,9 +22,7 @@ export interface LightingSettings {
 export interface ScenePlacement {
   uuid: string;
   objectUuid: string;
-  position?: Vector3;
-  rotation?: Vector3;
-  scale?: Vector3;
+  transform?: Transform;
   /** Visibility of a particular placement/instance */
   visible?: boolean;
 }
