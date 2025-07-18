@@ -19,6 +19,7 @@ import MainLayout from '../../../layouts/MainLayout'
 import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
 import type { SceneStatus } from '../../../types/r3f'
 import { Link } from 'react-router-dom'
+import { generateUUID } from '../../../utils/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
@@ -85,7 +86,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [editorOpened, setEditorOpened] = useState(false)
-  const [editingObject, setEditingObject] = useState<{objectIndex: number, instanceId?: string} | null>(null)
+  const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
 
   const viewMode = useViewMode()
@@ -137,17 +138,19 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleObjectAdded = (objectData: any) => {
-    const { addObject, addPlacement, objects } = useSceneStore.getState()
+    const { addObject, addPlacement } = useSceneStore.getState()
+    const objectUuid = generateUUID()
     const newObject: SceneObject = {
+      uuid: objectUuid,
       name: objectData.name,
       primitives: objectData.primitives,
       layerId: 'objects'
     }
-    const objectIndex = objects.length
     addObject(newObject)
 
     const placement: ScenePlacement = {
-      objectIndex,
+      uuid: generateUUID(),
+      objectUuid,
       position: objectData.position || [0, 0, 0],
       rotation: objectData.rotation || [0, 0, 0],
       scale: objectData.scale || [1, 1, 1]
@@ -216,13 +219,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
   }
 
-  const handleEditObject = (objectIndex: number, instanceId?: string) => {
-    setEditingObject({ objectIndex, instanceId })
+  const handleEditObject = (objectUuid: string, instanceId?: string) => {
+    setEditingObject({ objectUuid, instanceId })
     setEditorOpened(true)
   }
 
   const handleSaveObjectEdit = (
-    objectIndex: number,
+    objectUuid: string,
     instanceId: string | undefined,
     primitiveStates: {
       [key: number]: {
@@ -232,7 +235,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       }
     }
   ) => {
-    const object = objects[objectIndex]
+    const object = objects.find(obj => obj.uuid === objectUuid)
     if (!object) return
 
     const updatedPrimitives = object.primitives.map((primitive, index) => {
@@ -258,7 +261,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       return updated
     })
 
-    updateObject(objectIndex, { primitives: updatedPrimitives })
+    updateObject(objectUuid, { primitives: updatedPrimitives })
 
     notifications.show({
       title: 'Успешно!',
@@ -270,13 +273,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const editingObjectInfo = React.useMemo(() => {
     if (!editingObject) return undefined
-    const obj = objects[editingObject.objectIndex]
+    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
     if (!obj) return undefined
     const objectPlacements = placements.filter(
-      p => p.objectIndex === editingObject.objectIndex
+      p => p.objectUuid === editingObject.objectUuid
     )
-    const instances = objectPlacements.map((placement, index) => ({
-      id: `${editingObject.objectIndex}-${index}`,
+    const instances = objectPlacements.map((placement) => ({
+      id: `${editingObject.objectUuid}-${placement.uuid}`,
       position: placement.position || [0, 0, 0],
       rotation: placement.rotation || [0, 0, 0],
       scale: placement.scale || [1, 1, 1],
@@ -286,7 +289,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       name: obj.name,
       count: objectPlacements.length,
       visible: obj.visible !== false,
-      objectIndex: editingObject.objectIndex,
+      objectUuid: editingObject.objectUuid,
       instances,
       layerId: obj.layerId
     }
@@ -294,7 +297,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const editingObjectData = React.useMemo(() => {
     if (!editingObject) return undefined
-    const obj = objects[editingObject.objectIndex]
+    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
     if (!obj) return undefined
     return JSON.parse(JSON.stringify(obj))
   }, [editingObject, objects])

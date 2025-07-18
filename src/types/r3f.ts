@@ -15,13 +15,13 @@ export interface R3FObjectInstance {
 
 // Selection state for R3F
 export interface SelectedObject {
-  objectIndex: number
+  objectUuid: string
   instanceId?: string
   placementIndex?: number
 }
 
 export interface HoveredObject {
-  objectIndex: number
+  objectUuid: string
   instanceId?: string
   placementIndex?: number
 }
@@ -49,7 +49,7 @@ export interface CameraState {
 
 // Scene interaction events
 export interface SceneClickEvent {
-  objectIndex?: number
+  objectUuid?: string
   instanceId?: string
   placementIndex?: number
   point: Vector3
@@ -57,7 +57,7 @@ export interface SceneClickEvent {
 }
 
 export interface SceneHoverEvent {
-  objectIndex?: number
+  objectUuid?: string
   instanceId?: string
   placementIndex?: number
   object?: THREE.Object3D
@@ -65,7 +65,7 @@ export interface SceneHoverEvent {
 
 // Transform events
 export interface TransformEvent {
-  objectIndex: number
+  objectUuid: string
   instanceId?: string
   placementIndex?: number
   position: Vector3
@@ -145,8 +145,8 @@ export interface SceneStoreActions {
   // Object management
   setObjects: (objects: SceneObject[]) => void
   addObject: (object: SceneObject) => void
-  removeObject: (objectIndex: number) => void
-  updateObject: (objectIndex: number, updates: Partial<SceneObject>) => void
+  removeObject: (objectUuid: string) => void
+  updateObject: (objectUuid: string, updates: Partial<SceneObject>) => void
 
   // Placement management
   setPlacements: (placements: ScenePlacement[]) => void
@@ -160,19 +160,19 @@ export interface SceneStoreActions {
   updateLayer: (layerId: string, updates: Partial<SceneLayer>) => void
   deleteLayer: (layerId: string) => void
   toggleLayerVisibility: (layerId: string) => void
-  toggleObjectVisibility: (objectIndex: number) => void
+  toggleObjectVisibility: (objectUuid: string) => void
   /** Toggle visibility of a specific object instance */
-  toggleInstanceVisibility: (objectIndex: number, instanceId: string) => void
-  moveObjectToLayer: (objectIndex: number, layerId: string) => void
+  toggleInstanceVisibility: (objectUuid: string, instanceId: string) => void
+  moveObjectToLayer: (objectUuid: string, layerId: string) => void
 
   // Lighting
   setLighting: (lighting: LightingSettings) => void
   updateLighting: (updates: Partial<LightingSettings>) => void
 
   // Selection
-  selectObject: (objectIndex: number, instanceId?: string) => void
+  selectObject: (objectUuid: string, instanceId?: string) => void
   clearSelection: () => void
-  setHoveredObject: (objectIndex: number, instanceId?: string) => void
+  setHoveredObject: (objectUuid: string, instanceId?: string) => void
   clearHover: () => void
 
   // View controls
@@ -224,8 +224,8 @@ export interface UseSceneEventsReturn {
 export interface UseObjectSelectionReturn {
   selectedObjects: THREE.Object3D[]
   hoveredObjects: THREE.Object3D[]
-  isSelected: (objectIndex: number, instanceId?: string) => boolean
-  isHovered: (objectIndex: number, instanceId?: string) => boolean
+  isSelected: (objectUuid: string, instanceId?: string) => boolean
+  isHovered: (objectUuid: string, instanceId?: string) => boolean
 }
 
 export interface UseSceneHistoryReturn {

@@ -9,26 +9,26 @@ interface LayerItemProps {
     layer: SceneLayer
     layerObjects: ObjectInfo[]
     isExpanded: boolean
-    expandedItems: Set<number>
-    selectedObject?: {objectIndex: number, instanceId?: string} | null
+    expandedItems: Set<string>
+    selectedObject?: {objectUuid: string, instanceId?: string} | null
     dragOverLayerId: string | null
     onToggleExpanded: (layerId: string) => void
     onToggleVisibility: (layerId: string) => void
     onEdit: (layer: SceneLayer) => void
     onDelete: (layerId: string) => void
     onEditSize?: (layer: SceneLayer) => void
-    onToggleObjectExpanded: (objectIndex: number) => void
-    onHighlightObject?: (objectIndex: number) => void
+    onToggleObjectExpanded: (objectUuid: string) => void
+    onHighlightObject?: (objectUuid: string) => void
     onClearHighlight?: () => void
-    onSelectObject?: (objectIndex: number) => void
-    onToggleObjectVisibility?: (objectIndex: number) => void
-    onRemoveObject?: (objectIndex: number) => void
-    onSaveObjectToLibrary?: (objectIndex: number) => void
-    onEditObject?: (objectIndex: number) => void
-    onToggleInstanceVisibility?: (objectIndex: number, instanceId: string) => void
-    onRemoveInstance?: (objectIndex: number, instanceId: string) => void
-    onDragStart: (e: React.DragEvent, objectIndex: number) => void
-    onContextMenu: (e: React.MouseEvent, objectIndex: number) => void
+    onSelectObject?: (objectUuid: string) => void
+    onToggleObjectVisibility?: (objectUuid: string) => void
+    onRemoveObject?: (objectUuid: string) => void
+    onSaveObjectToLibrary?: (objectUuid: string) => void
+    onEditObject?: (objectUuid: string) => void
+    onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
+    onRemoveInstance?: (objectUuid: string, instanceId: string) => void
+    onDragStart: (e: React.DragEvent, objectUuid: string) => void
+    onContextMenu: (e: React.MouseEvent, objectUuid: string) => void
     onDragOver: (e: React.DragEvent, layerId: string) => void
     onDragLeave: (e: React.DragEvent) => void
     onDrop: (e: React.DragEvent, layerId: string) => void
@@ -168,23 +168,23 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                     ) : (
                         layerObjects.map((obj) => (
                             <ObjectItem
-                                key={`${obj.name}-${obj.objectIndex}`}
+                                key={`${obj.name}-${obj.objectUuid}`}
                                 obj={obj}
-                                isExpanded={expandedItems.has(obj.objectIndex)}
-                                isSelected={selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId}
+                                isExpanded={expandedItems.has(obj.objectUuid)}
+                                isSelected={selectedObject?.objectUuid === obj.objectUuid && !selectedObject?.instanceId}
                                 selectedObject={selectedObject}
-                                onToggleExpanded={() => onToggleObjectExpanded(obj.objectIndex)}
-                                onHighlight={() => onHighlightObject?.(obj.objectIndex)}
+                                onToggleExpanded={() => onToggleObjectExpanded(obj.objectUuid)}
+                                onHighlight={() => onHighlightObject?.(obj.objectUuid)}
                                 onClearHighlight={() => onClearHighlight?.()}
-                                onSelect={() => onSelectObject?.(obj.objectIndex)}
-                                onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectIndex)}
-                                onRemove={() => onRemoveObject?.(obj.objectIndex)}
-                                onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectIndex)}
-                                onEdit={() => onEditObject?.(obj.objectIndex)}
+                                onSelect={() => onSelectObject?.(obj.objectUuid)}
+                                onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectUuid)}
+                                onRemove={() => onRemoveObject?.(obj.objectUuid)}
+                                onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectUuid)}
+                                onEdit={() => onEditObject?.(obj.objectUuid)}
                                 onToggleInstanceVisibility={onToggleInstanceVisibility}
                                 onRemoveInstance={onRemoveInstance}
-                                onDragStart={(e) => onDragStart(e, obj.objectIndex)}
-                                onContextMenu={(e) => onContextMenu(e, obj.objectIndex)}
+                                onDragStart={(e) => onDragStart(e, obj.objectUuid)}
+                                onContextMenu={(e) => onContextMenu(e, obj.objectUuid)}
                             />
                         ))
                     )}

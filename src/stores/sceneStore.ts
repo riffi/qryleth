@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { SceneSerializer } from '../utils/sceneSerializer'
+import { generateUUID } from '../utils/uuid'
 import type {
   SceneStore,
   SceneStoreState,
@@ -73,6 +74,7 @@ export const useSceneStore = create<SceneStore>()(
     setObjects: (objects: SceneObject[]) => {
       const normalized = objects.map(obj => ({
         ...obj,
+        uuid: obj.uuid || generateUUID(),
         visible: obj.visible !== false
       }))
       set({ objects: normalized })
@@ -82,6 +84,7 @@ export const useSceneStore = create<SceneStore>()(
     addObject: (object: SceneObject) => {
       const normalized = {
         ...object,
+        uuid: object.uuid || generateUUID(),
         visible: object.visible !== false
       }
       const objects = [...get().objects, normalized]
@@ -90,17 +93,17 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    removeObject: (objectIndex: number) => {
-      const objects = get().objects.filter((_, index) => index !== objectIndex)
-      const placements = get().placements.filter(p => p.objectIndex !== objectIndex)
+    removeObject: (objectUuid: string) => {
+      const objects = get().objects.filter(obj => obj.uuid !== objectUuid)
+      const placements = get().placements.filter(p => p.objectUuid !== objectUuid)
       set({ objects, placements })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
-    updateObject: (objectIndex: number, updates: Partial<SceneObject>) => {
-      const objects = get().objects.map((obj, index) =>
-        index === objectIndex ? { ...obj, ...updates } : obj
+    updateObject: (objectUuid: string, updates: Partial<SceneObject>) => {
+      const objects = get().objects.map(obj =>
+        obj.uuid === objectUuid ? { ...obj, ...updates } : obj
       )
       set({ objects })
       get().saveToHistory()
@@ -111,6 +114,7 @@ export const useSceneStore = create<SceneStore>()(
     setPlacements: (placements: ScenePlacement[]) => {
       const normalized = placements.map(p => ({
         ...p,
+        uuid: p.uuid || generateUUID(),
         visible: p.visible !== false
       }))
       set({ placements: normalized })
@@ -120,6 +124,7 @@ export const useSceneStore = create<SceneStore>()(
     addPlacement: (placement: ScenePlacement) => {
       const normalized = {
         ...placement,
+        uuid: placement.uuid || generateUUID(),
         visible: placement.visible !== false
       }
       const placements = [...get().placements, normalized]
@@ -191,19 +196,19 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    toggleObjectVisibility: (objectIndex: number) => {
-      const objects = get().objects.map((obj, index) =>
-        index === objectIndex ? { ...obj, visible: obj.visible === false ? true : !obj.visible } : obj
+    toggleObjectVisibility: (objectUuid: string) => {
+      const objects = get().objects.map(obj =>
+        obj.uuid === objectUuid ? { ...obj, visible: obj.visible === false ? true : !obj.visible } : obj
       )
       set({ objects })
       get().markSceneAsModified()
     },
 
-    toggleInstanceVisibility: (objectIndex: number, instanceId: string) => {
-      const placementIndex = parseInt(instanceId.split('-')[1])
-      if (isNaN(placementIndex)) return
-      const placements = get().placements.map((placement, i) =>
-        i === placementIndex
+    toggleInstanceVisibility: (objectUuid: string, instanceId: string) => {
+      const placementUuid = instanceId.split('-')[1]
+      if (!placementUuid) return
+      const placements = get().placements.map(placement =>
+        placement.uuid === placementUuid
           ? { ...placement, visible: placement.visible === false ? true : !placement.visible }
           : placement
       )
@@ -211,9 +216,9 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    moveObjectToLayer: (objectIndex: number, layerId: string) => {
-      const objects = get().objects.map((obj, index) =>
-        index === objectIndex ? { ...obj, layerId } : obj
+    moveObjectToLayer: (objectUuid: string, layerId: string) => {
+      const objects = get().objects.map(obj =>
+        obj.uuid === objectUuid ? { ...obj, layerId } : obj
       )
       set({ objects })
       get().saveToHistory()
@@ -235,9 +240,9 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Selection
-    selectObject: (objectIndex: number, instanceId?: string) => {
+    selectObject: (objectUuid: string, instanceId?: string) => {
       const selectedObject: SelectedObject = {
-        objectIndex,
+        objectUuid,
         instanceId,
         placementIndex: instanceId ? parseInt(instanceId.split('-')[1]) : undefined
       }
@@ -248,9 +253,9 @@ export const useSceneStore = create<SceneStore>()(
       set({ selectedObject: null })
     },
 
-    setHoveredObject: (objectIndex: number, instanceId?: string) => {
+    setHoveredObject: (objectUuid: string, instanceId?: string) => {
       const hoveredObject: HoveredObject = {
-        objectIndex,
+        objectUuid,
         instanceId,
         placementIndex: instanceId ? parseInt(instanceId.split('-')[1]) : undefined
       }

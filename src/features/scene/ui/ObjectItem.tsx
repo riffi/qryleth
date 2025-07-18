@@ -8,7 +8,7 @@ export interface ObjectInfo {
     name: string
     count: number
     visible: boolean
-    objectIndex: number
+    objectUuid: string
     instances?: ObjectInstance[]
     layerId?: string
 }
@@ -17,7 +17,7 @@ interface ObjectItemProps {
     obj: ObjectInfo
     isExpanded: boolean
     isSelected: boolean
-    selectedObject?: {objectIndex: number, instanceId?: string} | null
+    selectedObject?: {objectUuid: string, instanceId?: string} | null
     onToggleExpanded: () => void
     onHighlight: () => void
     onClearHighlight: () => void
@@ -26,8 +26,8 @@ interface ObjectItemProps {
     onRemove: () => void
     onSaveToLibrary: () => void
     onEdit: () => void
-    onToggleInstanceVisibility?: (objectIndex: number, instanceId: string) => void
-    onRemoveInstance?: (objectIndex: number, instanceId: string) => void
+    onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
+    onRemoveInstance?: (objectUuid: string, instanceId: string) => void
     onDragStart: (e: React.DragEvent) => void
     onContextMenu: (e: React.MouseEvent) => void
 }
@@ -184,13 +184,13 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                 <ObjectInstanceItem
                                     key={instance.id}
                                     instance={instance}
-                                    isSelected={selectedObject?.objectIndex === obj.objectIndex && selectedObject?.instanceId === instance.id}
+                                    isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}
                                     onHighlight={() => {}}
                                     onClearHighlight={() => {}}
                                     onSelect={() => {}}
-                                    onToggleVisibility={() => onToggleInstanceVisibility?.(obj.objectIndex, instance.id)}
+                                    onToggleVisibility={() => onToggleInstanceVisibility?.(obj.objectUuid, instance.id)}
                                     onEdit={() => {}}
-                                    onRemove={() => onRemoveInstance?.(obj.objectIndex, instance.id)}
+                                    onRemove={() => onRemoveInstance?.(obj.objectUuid, instance.id)}
                                 />
                             ))
                         ) : (

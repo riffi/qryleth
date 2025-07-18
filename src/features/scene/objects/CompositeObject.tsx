@@ -23,8 +23,8 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     event.stopPropagation()
     if (onClick) {
       onClick({
-        objectIndex: placement.objectIndex,
-        instanceId: `${placement.objectIndex}-${placementIndex}`,
+        objectUuid: placement.objectUuid,
+        instanceId: `${placement.objectUuid}-${placement.uuid}`,
         placementIndex,
         point: event.point,
         object: event.object
@@ -36,8 +36,8 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     event.stopPropagation()
     if (onHover) {
       onHover({
-        objectIndex: placement.objectIndex,
-        instanceId: `${placement.objectIndex}-${placementIndex}`,
+        objectUuid: placement.objectUuid,
+        instanceId: `${placement.objectUuid}-${placement.uuid}`,
         placementIndex,
         object: event.object
       })
@@ -71,7 +71,8 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
       visible={visible}
       userData={{
         generated: true,
-        objectIndex: placement.objectIndex,
+        objectUuid: placement.objectUuid,
+        placementUuid: placement.uuid,
         placementIndex: placementIndex,
         layerId: sceneObject.layerId || 'objects'
       }}

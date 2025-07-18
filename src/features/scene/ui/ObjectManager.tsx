@@ -34,14 +34,14 @@ import type { ObjectInfo } from './ObjectItem'
 interface ObjectManagerProps {
     // Optional overrides for store actions
     onSaveSceneToLibrary?: () => void
-    onEditObject?: (objectIndex: number, instanceId?: string) => void
+    onEditObject?: (objectUuid: string, instanceId?: string) => void
 }
 
 export const ObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
     onEditObject
 }) => {
-    const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
     const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
     const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
@@ -58,7 +58,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
-    const [contextMenuObjectIndex, setContextMenuObjectIndex] = useState<number | null>(null)
+    const [contextMenuObjectUuid, setContextMenuObjectUuid] = useState<string | null>(null)
 
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
@@ -86,16 +86,16 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     } = useSceneActions()
 
     const objects = React.useMemo<ObjectInfo[]>(() => {
-        return sceneObjects.map((sceneObject, objectIndex) => {
-            const objectPlacements = placements.filter(p => p.objectIndex === objectIndex)
+        return sceneObjects.map((sceneObject) => {
+            const objectPlacements = placements.filter(p => p.objectUuid === sceneObject.uuid)
             return {
                 name: sceneObject.name,
                 count: objectPlacements.length,
                 visible: sceneObject.visible !== false,
-                objectIndex,
+                objectUuid: sceneObject.uuid,
                 layerId: sceneObject.layerId || 'objects',
-                instances: objectPlacements.map((placement, placementIndex) => ({
-                    id: `${objectIndex}-${placementIndex}`,
+                instances: objectPlacements.map((placement) => ({
+                    id: `${sceneObject.uuid}-${placement.uuid}`,
                     position: placement.position || [0,0,0],
                     rotation: placement.rotation || [0,0,0],
                     scale: placement.scale || [1,1,1],
@@ -124,13 +124,13 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         })
     }
 
-    const toggleObjectExpanded = (objectIndex: number) => {
+    const toggleObjectExpanded = (objectUuid: string) => {
         setExpandedItems(prev => {
             const newSet = new Set(prev)
-            if (newSet.has(objectIndex)) {
-                newSet.delete(objectIndex)
+            if (newSet.has(objectUuid)) {
+                newSet.delete(objectUuid)
             } else {
-                newSet.add(objectIndex)
+                newSet.add(objectUuid)
             }
             return newSet
         })
@@ -184,47 +184,51 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     // Handlers using Zustand store
-    const handleToggleVisibility = (objectIndex: number) => {
-        storeToggleObjectVisibility(objectIndex)
+    const handleToggleVisibility = (objectUuid: string) => {
+        storeToggleObjectVisibility(objectUuid)
     }
 
-    const handleRemoveObject = (objectIndex: number) => {
-        removeObject(objectIndex)
+    const handleRemoveObject = (objectUuid: string) => {
+        removeObject(objectUuid)
         clearSelection()
     }
 
-    const handleToggleInstanceVisibility = (objectIndex: number, instanceId: string) => {
-        storeToggleInstanceVisibility(objectIndex, instanceId)
+    const handleToggleInstanceVisibility = (objectUuid: string, instanceId: string) => {
+        storeToggleInstanceVisibility(objectUuid, instanceId)
     }
 
-    const handleRemoveInstance = (objectIndex: number, instanceId: string) => {
-        const placementIndex = parseInt(instanceId.split('-')[1])
-        if (!isNaN(placementIndex)) {
-            removePlacement(placementIndex)
-            clearSelection()
+    const handleRemoveInstance = (objectUuid: string, instanceId: string) => {
+        const placementUuid = instanceId.split('-')[1]
+        if (placementUuid) {
+            // Find placement by UUID and remove it
+            const placementIndex = placements.findIndex(p => p.uuid === placementUuid)
+            if (placementIndex !== -1) {
+                removePlacement(placementIndex)
+                clearSelection()
+            }
         }
     }
 
-    const handleHighlightObject = (objectIndex: number, instanceId?: string) => {
-        setHoveredObject(objectIndex, instanceId)
+    const handleHighlightObject = (objectUuid: string, instanceId?: string) => {
+        setHoveredObject(objectUuid, instanceId)
     }
 
     const handleClearHighlight = () => {
         clearHover()
     }
 
-    const handleSelectObject = (objectIndex: number, instanceId?: string) => {
-        storeSelectObject(objectIndex, instanceId)
+    const handleSelectObject = (objectUuid: string, instanceId?: string) => {
+        storeSelectObject(objectUuid, instanceId)
     }
 
-    const handleSaveObjectToLibrary = (objectIndex: number) => {
-        console.log('Save object to library not implemented', { objectIndex })
+    const handleSaveObjectToLibrary = (objectUuid: string) => {
+        console.log('Save object to library not implemented', { objectUuid })
     }
 
-    const handleEditObject = (objectIndex: number, instanceId?: string) => {
-        if (onEditObject) return onEditObject(objectIndex, instanceId)
-        storeSelectObject(objectIndex, instanceId)
-        console.log('Object edit not implemented', { objectIndex, instanceId })
+    const handleEditObject = (objectUuid: string, instanceId?: string) => {
+        if (onEditObject) return onEditObject(objectUuid, instanceId)
+        storeSelectObject(objectUuid, instanceId)
+        console.log('Object edit not implemented', { objectUuid, instanceId })
     }
 
     const handleLightingChange = (newLighting: LightingSettings) => {
@@ -237,8 +241,8 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     // Drag & Drop handlers
-    const handleDragStart = (e: React.DragEvent, objectIndex: number) => {
-        e.dataTransfer.setData('text/plain', objectIndex.toString())
+    const handleDragStart = (e: React.DragEvent, objectUuid: string) => {
+        e.dataTransfer.setData('text/plain', objectUuid)
     }
 
     const handleDragOver = (e: React.DragEvent, layerId: string) => {
@@ -253,35 +257,34 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     const handleDrop = (e: React.DragEvent, layerId: string) => {
         e.preventDefault()
-        const objectIndex = parseInt(e.dataTransfer.getData('text/plain'))
+        const objectUuid = e.dataTransfer.getData('text/plain')
 
-        if (objectIndex !== null) {
-            storeMoveObjectToLayer(objectIndex, layerId)
+        if (objectUuid) {
+            storeMoveObjectToLayer(objectUuid, layerId)
         }
 
         setDragOverLayerId(null)
     }
 
     // Context Menu handlers
-    const handleContextMenu = (e: React.MouseEvent, objectIndex: number) => {
+    const handleContextMenu = (e: React.MouseEvent, objectUuid: string) => {
         e.preventDefault()
         setContextMenuPosition({ x: e.clientX, y: e.clientY })
-        setContextMenuObjectIndex(objectIndex)
+        setContextMenuObjectUuid(objectUuid)
         setContextMenuOpened(true)
     }
 
     const handleMoveToLayer = (layerId: string) => {
-        if (contextMenuObjectIndex !== null) {
-            storeMoveObjectToLayer(contextMenuObjectIndex, layerId)
+        if (contextMenuObjectUuid !== null) {
+            storeMoveObjectToLayer(contextMenuObjectUuid, layerId)
         }
         setContextMenuOpened(false)
-        setContextMenuObjectIndex(null)
+        setContextMenuObjectUuid(null)
     }
 
     const getObjectsByLayer = (layerId: string) => {
         return objects.filter((obj) => {
-            const sceneObject = obj as any
-            return sceneObject.layerId === layerId || (!sceneObject.layerId && layerId === 'objects')
+            return obj.layerId === layerId || (!obj.layerId && layerId === 'objects')
         })
     }
 
@@ -370,27 +373,27 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                             ) : (
                                 // Fallback для случая без слоев
                                 objects.map((obj) => {
-                                    const isExpanded = expandedItems.has(obj.objectIndex)
-                                    const isSelected = selectedObject?.objectIndex === obj.objectIndex && !selectedObject?.instanceId
+                                    const isExpanded = expandedItems.has(obj.objectUuid)
+                                    const isSelected = selectedObject?.objectUuid === obj.objectUuid && !selectedObject?.instanceId
                                     return (
                                         <ObjectItem
-                                            key={`${obj.name}-${obj.objectIndex}`}
+                                            key={`${obj.name}-${obj.objectUuid}`}
                                             obj={obj}
                                             isExpanded={isExpanded}
                                             isSelected={isSelected}
                                             selectedObject={selectedObject}
-                                            onToggleExpanded={() => toggleObjectExpanded(obj.objectIndex)}
-                                            onHighlight={() => handleHighlightObject(obj.objectIndex)}
+                                            onToggleExpanded={() => toggleObjectExpanded(obj.objectUuid)}
+                                            onHighlight={() => handleHighlightObject(obj.objectUuid)}
                                             onClearHighlight={() => handleClearHighlight()}
-                                            onSelect={() => handleSelectObject(obj.objectIndex)}
-                                            onToggleVisibility={() => handleToggleVisibility(obj.objectIndex)}
-                                            onRemove={() => handleRemoveObject(obj.objectIndex)}
-                                            onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectIndex)}
-                                            onEdit={() => handleEditObject(obj.objectIndex)}
+                                            onSelect={() => handleSelectObject(obj.objectUuid)}
+                                            onToggleVisibility={() => handleToggleVisibility(obj.objectUuid)}
+                                            onRemove={() => handleRemoveObject(obj.objectUuid)}
+                                            onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectUuid)}
+                                            onEdit={() => handleEditObject(obj.objectUuid)}
                                             onToggleInstanceVisibility={handleToggleInstanceVisibility}
                                             onRemoveInstance={handleRemoveInstance}
-                                            onDragStart={(e) => handleDragStart(e, obj.objectIndex)}
-                                            onContextMenu={(e) => handleContextMenu(e, obj.objectIndex)}
+                                            onDragStart={(e) => handleDragStart(e, obj.objectUuid)}
+                                            onContextMenu={(e) => handleContextMenu(e, obj.objectUuid)}
                                         />
                                     )
                                 })

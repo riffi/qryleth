@@ -28,19 +28,19 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     }
 
     if (clickedObject?.userData.generated) {
-      const objectIndex = clickedObject.userData.objectIndex
-      const placementIndex = clickedObject.userData.placementIndex
-      const instanceId = `${objectIndex}-${placementIndex}`
+      const objectUuid = clickedObject.userData.objectUuid
+      const placementUuid = clickedObject.userData.placementUuid
+      const instanceId = `${objectUuid}-${placementUuid}`
 
       const clickEvent: SceneClickEvent = {
-        objectIndex,
+        objectUuid,
         instanceId,
-        placementIndex,
+        placementIndex: clickedObject.userData.placementIndex,
         point: event.point ? [event.point.x, event.point.y, event.point.z] : [0, 0, 0],
         object: clickedObject
       }
 
-      selectObject(objectIndex, instanceId)
+      selectObject(objectUuid, instanceId)
     } else {
       clearSelection()
     }
@@ -58,11 +58,11 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     }
 
     if (hoveredObject?.userData.generated) {
-      const objectIndex = hoveredObject.userData.objectIndex
-      const placementIndex = hoveredObject.userData.placementIndex
-      const instanceId = `${objectIndex}-${placementIndex}`
+      const objectUuid = hoveredObject.userData.objectUuid
+      const placementUuid = hoveredObject.userData.placementUuid
+      const instanceId = `${objectUuid}-${placementUuid}`
 
-      setHoveredObject(objectIndex, instanceId)
+      setHoveredObject(objectUuid, instanceId)
 
       // Change cursor to pointer
       if (gl.domElement.style.cursor !== 'pointer') {

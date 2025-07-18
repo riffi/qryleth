@@ -33,15 +33,15 @@ export const SceneObjects: React.FC = () => {
     }
   }
 
-  const isSelected = (objectIndex: number, instanceId?: string) => {
+  const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
-    return selectedObject.objectIndex === objectIndex && 
+    return selectedObject.objectUuid === objectUuid && 
            selectedObject.instanceId === instanceId
   }
 
-  const isHovered = (objectIndex: number, instanceId?: string) => {
+  const isHovered = (objectUuid: string, instanceId?: string) => {
     if (!hoveredObject) return false
-    return hoveredObject.objectIndex === objectIndex && 
+    return hoveredObject.objectUuid === objectUuid && 
            hoveredObject.instanceId === instanceId
   }
 
@@ -60,7 +60,7 @@ export const SceneObjects: React.FC = () => {
       
       {/* Individual objects (not instanced) */}
       {placements.map((placement, placementIndex) => {
-        const sceneObject = objects[placement.objectIndex]
+        const sceneObject = objects.find(obj => obj.uuid === placement.objectUuid)
         if (!sceneObject) return null
 
         // Check layer visibility
@@ -68,12 +68,12 @@ export const SceneObjects: React.FC = () => {
         const layer = layers.find(l => l.id === layerId)
         const isLayerVisible = layer ? layer.visible : true
 
-        const instanceId = `${placement.objectIndex}-${placementIndex}`
+        const instanceId = `${placement.objectUuid}-${placement.uuid}`
 
         return (
           <ConditionalInstancedObject
             key={instanceId}
-            objectIndex={placement.objectIndex}
+            objectUuid={placement.objectUuid}
             placement={placement}
             placementIndex={placementIndex}
             minimumInstancesForOptimization={3}
@@ -82,8 +82,8 @@ export const SceneObjects: React.FC = () => {
               sceneObject={sceneObject}
               placement={placement}
               placementIndex={placementIndex}
-              isSelected={isSelected(placement.objectIndex, instanceId)}
-              isHovered={isHovered(placement.objectIndex, instanceId)}
+              isSelected={isSelected(placement.objectUuid, instanceId)}
+              isHovered={isHovered(placement.objectUuid, instanceId)}
               onClick={handleClick}
               onHover={handlePointerOver}
               onTransform={handleObjectTransform}

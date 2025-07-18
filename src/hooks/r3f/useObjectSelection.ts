@@ -15,12 +15,12 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     
     scene.traverse((child) => {
       if (child.userData.generated && 
-          child.userData.objectIndex === selectedObject.objectIndex) {
+          child.userData.objectUuid === selectedObject.objectUuid) {
         
         // If specific instance is selected, only include that instance
         if (selectedObject.instanceId) {
-          const placementIndex = parseInt(selectedObject.instanceId.split('-')[1])
-          if (child.userData.placementIndex === placementIndex) {
+          const placementUuid = selectedObject.instanceId.split('-')[1]
+          if (child.userData.placementUuid === placementUuid) {
             objects.push(child)
           }
         } else {
@@ -40,12 +40,12 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     
     scene.traverse((child) => {
       if (child.userData.generated && 
-          child.userData.objectIndex === hoveredObject.objectIndex) {
+          child.userData.objectUuid === hoveredObject.objectUuid) {
         
         // If specific instance is hovered, only include that instance
         if (hoveredObject.instanceId) {
-          const placementIndex = parseInt(hoveredObject.instanceId.split('-')[1])
-          if (child.userData.placementIndex === placementIndex) {
+          const placementUuid = hoveredObject.instanceId.split('-')[1]
+          if (child.userData.placementUuid === placementUuid) {
             objects.push(child)
           }
         } else {
@@ -58,15 +58,15 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     return objects
   }, [hoveredObject, scene])
 
-  const isSelected = (objectIndex: number, instanceId?: string) => {
+  const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
-    return selectedObject.objectIndex === objectIndex && 
+    return selectedObject.objectUuid === objectUuid && 
            selectedObject.instanceId === instanceId
   }
 
-  const isHovered = (objectIndex: number, instanceId?: string) => {
+  const isHovered = (objectUuid: string, instanceId?: string) => {
     if (!hoveredObject) return false
-    return hoveredObject.objectIndex === objectIndex && 
+    return hoveredObject.objectUuid === objectUuid && 
            hoveredObject.instanceId === instanceId
   }
 

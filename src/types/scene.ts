@@ -20,6 +20,7 @@ export interface ScenePrimitive {
 }
 
 export interface SceneObject {
+  uuid: string;
   name: string;
   primitives: ScenePrimitive[];
   layerId?: string;
@@ -36,7 +37,8 @@ export interface LightingSettings {
 }
 
 export interface ScenePlacement {
-  objectIndex: number;
+  uuid: string;
+  objectUuid: string;
   position?: Vector3;
   rotation?: Vector3;
   scale?: Vector3;
