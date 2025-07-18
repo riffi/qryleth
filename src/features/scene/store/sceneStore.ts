@@ -1,11 +1,9 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { SceneSerializer } from '../../../shared/lib/sceneSerializer'
 import { generateUUID } from '../../../shared/lib/uuid'
 import type {
   SceneStore,
   SceneStoreState,
-  SceneStoreActions,
   ViewMode,
   RenderMode,
   TransformMode,
