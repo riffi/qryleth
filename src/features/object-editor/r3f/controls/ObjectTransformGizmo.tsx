@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { useObjectStore } from '../../../../stores/objectStore'
+import { useObjectStore } from '../../store/objectStore'
 import { useOEObjectSelection } from '../../../../hooks/objectEditor/useOEObjectSelection'
-import type { TransformGizmoProps } from '../../../../types/r3f'
+import type { TransformGizmoProps } from '../../../../entities/r3f/types'
 
 export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
   const { camera, gl } = useThree()
@@ -59,12 +59,12 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControl
   useEffect(() => {
     const controls = transformControlsRef.current
     if (!controls) return
-    
+
     controls.addEventListener('objectChange', handleObjectChange)
     controls.addEventListener('dragging-changed', handleDraggingChanged)
     controls.addEventListener('mouseDown', handleMouseDown)
     controls.addEventListener('mouseUp', handleMouseUp)
-    
+
     return () => {
       controls.removeEventListener('objectChange', handleObjectChange)
       controls.removeEventListener('dragging-changed', handleDraggingChanged)

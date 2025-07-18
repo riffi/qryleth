@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
-import { ChatInterface } from '../../../components/ChatInterface'
+import { ChatInterface } from '../../../widgets/ChatInterface'
 import { Scene3D } from './Scene3D'
 import { ObjectManager } from './ObjectManager'
 import { ObjectEditorR3F } from '../../object-editor/ui/ObjectEditorR3F'
@@ -12,14 +12,14 @@ import {
   useRenderMode,
   useTransformMode,
   useGridVisible
-} from '../../../stores/sceneStore'
+} from '../store/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
-import { db } from '../../../utils/database'
-import MainLayout from '../../../layouts/MainLayout'
-import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
-import type { SceneStatus } from '../../../types/r3f'
+import { db } from '../../../shared/lib/database'
+import MainLayout from '../../../widgets/layouts/MainLayout'
+import type { SceneResponse, SceneObject, ScenePlacement } from '../../../entities/scene/types'
+import type { SceneStatus } from '../../../entities/r3f/types'
 import { Link } from 'react-router-dom'
-import { generateUUID } from '../../../utils/uuid'
+import { generateUUID } from '../../../shared/lib/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
@@ -34,7 +34,7 @@ import {
   IconRotate,
   IconResize
 } from '@tabler/icons-react'
-import { OpenAISettingsModal } from '../../../components/OpenAISettingsModal'
+import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {

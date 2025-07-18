@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '../../../stores/sceneStore'
+import { useSceneStore } from '../store/sceneStore'
 import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
-import type { TransformGizmoProps } from '../../../types/r3f'
+import type { TransformGizmoProps } from '../../../entities/r3f/types'
 
 export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) => {
   const { scene, camera, gl, controls } = useThree()
@@ -22,7 +22,7 @@ export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) =
 
     const obj = transformControlsRef.current.object
     const position = obj.position
-    const rotation = obj.rotation  
+    const rotation = obj.rotation
     const scale = obj.scale
 
     // Update the placement in the store

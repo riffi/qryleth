@@ -1,7 +1,7 @@
 import { useSceneStore } from './sceneStore'
 import { shallow } from 'zustand/shallow'
 import { useMemo } from 'react'
-import type { SceneObject, ScenePlacement, SceneLayer } from '../types/scene'
+import type { SceneObject, ScenePlacement, SceneLayer } from '../../../entities/scene/types'
 
 // Optimized selectors for preventing unnecessary re-renders
 

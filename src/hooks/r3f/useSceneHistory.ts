@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
-import { useSceneStore } from '../../stores/sceneStore'
-import type { UseSceneHistoryReturn } from '../../types/r3f'
+import { useSceneStore } from '../../features/scene/store/sceneStore'
+import type { UseSceneHistoryReturn } from '../../entities/r3f/types'
 
 export const useSceneHistory = (): UseSceneHistoryReturn => {
   const undo = useSceneStore(state => state.undo)

@@ -2,7 +2,7 @@ import React from 'react'
 import { EffectComposer, Outline } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
-import type { PostProcessingProps } from '../../../types/r3f'
+import type { PostProcessingProps } from '../../../entities/r3f/types'
 
 export const PostProcessing: React.FC<PostProcessingProps> = ({
   selectedObjects: externalSelected,
@@ -16,7 +16,7 @@ export const PostProcessing: React.FC<PostProcessingProps> = ({
 
   return (
     <EffectComposer>
-      
+
       {/* Hover outline effect (green) */}
       {finalHoveredObjects.length > 0 && (
         <Outline
@@ -32,7 +32,7 @@ export const PostProcessing: React.FC<PostProcessingProps> = ({
           blur={false}
         />
       )}
-      
+
       {/* Selection outline effect (orange) */}
       {finalSelectedObjects.length > 0 && (
         <Outline

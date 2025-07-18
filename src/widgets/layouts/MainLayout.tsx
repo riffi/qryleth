@@ -1,6 +1,6 @@
 import React from 'react'
-import {AppShell, Container, Group, Image, Title} from '@mantine/core'
-import { IconBrain } from '@tabler/icons-react'
+import {AppShell, Container, Group, Image} from '@mantine/core'
+
 
 interface MainLayoutProps {
   children: React.ReactNode

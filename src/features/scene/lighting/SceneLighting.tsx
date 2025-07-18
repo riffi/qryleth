@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSceneLighting } from '../../../stores/sceneStore'
+import { useSceneLighting } from '../store/sceneStore'
 
 export const SceneLighting: React.FC = () => {
   const lighting = useSceneLighting()
@@ -7,11 +7,11 @@ export const SceneLighting: React.FC = () => {
   return (
     <>
       {/* Ambient Light */}
-      <ambientLight 
-        color={lighting.ambientColor || '#404040'} 
-        intensity={lighting.ambientIntensity || 0.6} 
+      <ambientLight
+        color={lighting.ambientColor || '#404040'}
+        intensity={lighting.ambientIntensity || 0.6}
       />
-      
+
       {/* Directional Light with shadows */}
       <directionalLight
         position={[10, 10, 10]}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '../../stores/sceneStore'
+import { useSceneStore } from '../../features/scene/store/sceneStore'
 import * as THREE from 'three'
 
 export const useKeyboardShortcuts = () => {
@@ -20,7 +20,7 @@ export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Prevent handling if typing in input fields
-      if (event.target instanceof HTMLInputElement || 
+      if (event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement) {
         return
       }
@@ -187,15 +187,15 @@ export const useKeyboardShortcuts = () => {
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [
-    selectedObject, 
-    placements, 
-    updatePlacement, 
-    markSceneAsModified, 
+    selectedObject,
+    placements,
+    updatePlacement,
+    markSceneAsModified,
     saveToHistory,
     clearSelection,
     setTransformMode,

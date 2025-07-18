@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSelectedObject, useHoveredObject } from '../../stores/sceneStore'
-import type { UseObjectSelectionReturn } from '../../types/r3f'
+import { useSelectedObject, useHoveredObject } from '../../features/scene/store/sceneStore'
+import type { UseObjectSelectionReturn } from '../../entities/r3f/types'
 
 export const useObjectSelection = (): UseObjectSelectionReturn => {
   const { scene } = useThree()
@@ -12,11 +12,11 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     if (!selectedObject || !scene) return []
 
     const objects: THREE.Object3D[] = []
-    
+
     scene.traverse((child) => {
-      if (child.userData.generated && 
+      if (child.userData.generated &&
           child.userData.objectUuid === selectedObject.objectUuid) {
-        
+
         // If specific instance is selected, only include that instance
         if (selectedObject.instanceId) {
           const placementUuid = selectedObject.instanceId.split('-')[1]
@@ -37,11 +37,11 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     if (!hoveredObject || !scene) return []
 
     const objects: THREE.Object3D[] = []
-    
+
     scene.traverse((child) => {
-      if (child.userData.generated && 
+      if (child.userData.generated &&
           child.userData.objectUuid === hoveredObject.objectUuid) {
-        
+
         // If specific instance is hovered, only include that instance
         if (hoveredObject.instanceId) {
           const placementUuid = hoveredObject.instanceId.split('-')[1]
@@ -60,13 +60,13 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
 
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
-    return selectedObject.objectUuid === objectUuid && 
+    return selectedObject.objectUuid === objectUuid &&
            selectedObject.instanceId === instanceId
   }
 
   const isHovered = (objectUuid: string, instanceId?: string) => {
     if (!hoveredObject) return false
-    return hoveredObject.objectUuid === objectUuid && 
+    return hoveredObject.objectUuid === objectUuid &&
            hoveredObject.instanceId === instanceId
   }
 

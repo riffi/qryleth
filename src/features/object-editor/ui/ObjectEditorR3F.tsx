@@ -14,8 +14,8 @@ import {
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import { ObjectScene3D } from '../r3f/ObjectScene3D'
-import { useObjectStore } from '../../../stores/objectStore'
-import type { SceneObject, ScenePlacement } from '../../../types/scene'
+import { useObjectStore } from '../store/objectStore'
+import type { SceneObject, ScenePlacement } from '../../../entities/scene/types'
 
 interface ObjectEditorR3FProps {
   opened: boolean

@@ -4,12 +4,12 @@ import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
 import { Environment } from '../../../shared/r3f/environment/Environment'
 import { ObjectSceneObjects } from './objects/ObjectSceneObjects'
 import { ObjectTransformGizmo } from './controls/ObjectTransformGizmo'
-import { useObjectLighting } from '../../../stores/objectStore'
+import { useObjectLighting } from '../store/objectStore'
 
 export const ObjectSceneContent: React.FC = () => {
   const lighting = useObjectLighting()
   const orbitControlsRef = useRef<any>()
-  
+
   return (
     <>
       <color attach="background" args={[lighting.backgroundColor || '#222222']} />

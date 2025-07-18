@@ -2,18 +2,18 @@ import React, { useRef, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { useSceneStore } from '../../../stores/sceneStore'
+import { useSceneStore } from '../store/sceneStore'
 
 export const WalkControls: React.FC = () => {
   const { camera, gl, scene } = useThree()
   const controlsRef = useRef<any>()
-  
+
   // Movement state
   const moveForward = useRef(false)
   const moveBackward = useRef(false)
   const moveLeft = useRef(false)
   const moveRight = useRef(false)
-  
+
   const velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
   const raycaster = useRef(new THREE.Raycaster())

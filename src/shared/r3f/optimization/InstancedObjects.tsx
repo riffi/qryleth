@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
-import { useObjectInstanceCounts, useSceneObjectsOptimized, useScenePlacementsOptimized } from '../../../stores/optimizedSelectors'
-import type { SceneObject, ScenePlacement } from '../../../types/scene'
 import { Primitive3D } from '../primitives/Primitive3D'
+import type {ScenePlacement} from "../../../entities/scene/types.ts";
+import {useObjectInstanceCounts, useSceneObjectsOptimized, useScenePlacementsOptimized} from "../../../features/scene/store/optimizedSelectors.ts";
 
 interface InstancedObjectsProps {
   minimumInstancesForOptimization?: number // Minimum instances before using instancing
 }
 
-export const InstancedObjects: React.FC<InstancedObjectsProps> = ({ 
-  minimumInstancesForOptimization = 3 
+export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
+  minimumInstancesForOptimization = 3
 }) => {
   const objects = useSceneObjectsOptimized()
   const placements = useScenePlacementsOptimized()
@@ -18,7 +18,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
   // Group placements by object type for instancing
   const instanceGroups = useMemo(() => {
     const groups: { [objectIndex: number]: ScenePlacement[] } = {}
-    
+
     placements.forEach(placement => {
       if (!groups[placement.objectIndex]) {
         groups[placement.objectIndex] = []
@@ -46,7 +46,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
     if (sceneObject.primitives.length > 1) return null
 
     const primitive = sceneObject.primitives[0]
-    
+
     return (
       <group key={`instanced-${objectIndex}`}>
         <Instances
@@ -54,7 +54,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
           range={instancePlacements.length}
         >
           <Primitive3D primitive={primitive} />
-          
+
           {instancePlacements.map((placement, index) => {
             // Convert placement arrays to individual values
             const [px, py, pz] = placement.position || [0, 0, 0]
@@ -82,7 +82,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 
   return (
     <>
-      {Object.entries(instanceGroups).map(([objectIndex, instancePlacements]) => 
+      {Object.entries(instanceGroups).map(([objectIndex, instancePlacements]) =>
         renderInstancedGroup(parseInt(objectIndex), instancePlacements)
       )}
     </>

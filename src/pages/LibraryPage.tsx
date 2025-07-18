@@ -25,8 +25,8 @@ import {
   IconPhoto
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
-import { db, type SceneRecord, type ObjectRecord } from '../utils/database'
-import MainLayout from '../layouts/MainLayout'
+import { db, type SceneRecord, type ObjectRecord } from '../shared/lib/database'
+import MainLayout from '../widgets/layouts/MainLayout'
 import { useNavigate } from 'react-router-dom'
 
 const LibraryPage: React.FC = () => {

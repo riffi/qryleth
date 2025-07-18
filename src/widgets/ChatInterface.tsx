@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Box, Group, ScrollArea, ActionIcon, Badge } from '@mantine/core'
 import { IconSend, IconUser, IconRobot, IconTool } from '@tabler/icons-react'
-import { fetchWithTools, AVAILABLE_TOOLS } from '../utils/openAIAPI'
-import type { ChatMessage, ToolCall } from '../utils/openAIAPI'
-import type { SceneResponse } from '../types/scene'
+import { fetchWithTools, AVAILABLE_TOOLS } from '../shared/lib/openAIAPI'
+import type { ChatMessage, ToolCall } from '../shared/lib/openAIAPI'
+import type { SceneResponse } from '../entities/scene/types'
 
 interface Props {
   onSceneGenerated: (scene: SceneResponse) => void

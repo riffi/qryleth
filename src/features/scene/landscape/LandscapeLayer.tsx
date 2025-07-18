@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react'
 import * as THREE from 'three'
-import type { SceneLayer } from '../../../types/scene'
-import { createPerlinGeometry } from '../../../utils/perlinGeometry'
-import type { LandscapeLayerProps } from '../../../types/r3f'
+import type { SceneLayer } from '../../../entities/scene/types'
+import { createPerlinGeometry } from '../../../shared/lib/perlinGeometry'
+import type { LandscapeLayerProps } from '../../../entities/r3f/types'
 
 export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const geometry = useMemo(() => {
     if (layer.shape === 'perlin') {
       console.log('Creating perlin geometry for layer:', layer.id)
       const result = createPerlinGeometry(
-        layer.width || 1, 
-        layer.height || 1, 
+        layer.width || 1,
+        layer.height || 1,
         layer.noiseData
       )
       return result.geometry
@@ -49,7 +49,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         layerType: 'landscape'
       }}
     >
-      <meshLambertMaterial 
+      <meshLambertMaterial
         color={materialColor}
         side={THREE.DoubleSide}
         wireframe={false}

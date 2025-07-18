@@ -8,7 +8,7 @@ import {
   useObjectSelected,
   useObjectHovered,
   useObjectStore
-} from '../../../../stores/objectStore'
+} from '../../store/objectStore'
 
 export const ObjectSceneObjects: React.FC = () => {
   const objects = useObjectObjects()

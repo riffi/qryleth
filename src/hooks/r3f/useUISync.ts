@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useState } from 'react'
-import { useSceneStore } from '../../stores/sceneStore'
-import { 
+import { useSceneStore } from '../../features/scene/store/sceneStore'
+import {
   useSceneObjectsOptimized,
   useScenePlacementsOptimized,
   useSelectionState
-} from '../../stores/optimizedSelectors'
+} from '../../features/scene/store/optimizedSelectors'
 
 /**
  * Hook for synchronizing UI state with 3D scene state
@@ -14,7 +14,7 @@ export const useUISync = () => {
   const objects = useSceneObjectsOptimized()
   const placements = useScenePlacementsOptimized()
   const { selectedObject, hoveredObject } = useSelectionState()
-  
+
   const {
     selectObject,
     clearSelection,
@@ -53,8 +53,8 @@ export const useUISync = () => {
   useEffect(() => {
     const handleSceneDataChange = () => {
       const event = new CustomEvent('r3f:sceneDataChanged', {
-        detail: { 
-          objects, 
+        detail: {
+          objects,
           placements,
           objectCount: objects.length,
           placementCount: placements.length

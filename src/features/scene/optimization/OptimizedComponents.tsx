@@ -1,7 +1,7 @@
 import React from 'react'
 import { CompositeObject } from '../objects/CompositeObject'
 import { LandscapeLayer } from '../landscape/LandscapeLayer'
-import type { CompositeObjectProps, LandscapeLayerProps } from '../../../types/r3f'
+import type { CompositeObjectProps, LandscapeLayerProps } from '../../../entities/r3f/types'
 
 // Memoized CompositeObject for better performance
 export const MemoizedCompositeObject = React.memo<CompositeObjectProps>(
@@ -20,7 +20,7 @@ export const MemoizedCompositeObject = React.memo<CompositeObjectProps>(
   }
 )
 
-// Memoized LandscapeLayer for better performance  
+// Memoized LandscapeLayer for better performance
 export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   LandscapeLayer,
   (prevProps, nextProps) => {

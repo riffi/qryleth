@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '../../stores/sceneStore'
-import type { UseSceneEventsReturn, SceneClickEvent, SceneHoverEvent } from '../../types/r3f'
+import { useSceneStore } from '../../features/scene/store/sceneStore'
+import type { UseSceneEventsReturn, SceneClickEvent, SceneHoverEvent } from '../../entities/r3f/types'
 
 export const useSceneEvents = (): UseSceneEventsReturn => {
   const { gl } = useThree()
@@ -76,7 +76,7 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
       event.stopPropagation()
     }
     clearHover()
-    
+
     // Reset cursor
     if (gl.domElement.style.cursor === 'pointer') {
       gl.domElement.style.cursor = 'auto'
@@ -97,7 +97,7 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     gl.domElement.style.outline = 'none'
 
     gl.domElement.addEventListener('keydown', handleKeyDown)
-    
+
     return () => {
       gl.domElement.removeEventListener('keydown', handleKeyDown)
     }

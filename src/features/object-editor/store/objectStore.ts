@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import type { SceneObject, ScenePlacement, SceneLayer, LightingSettings } from '../types/scene'
-import type { SelectedObject, TransformMode, ViewMode } from '../types/r3f'
+import type { SceneObject, ScenePlacement, SceneLayer, LightingSettings } from '../../../entities/scene/types'
+import type { SelectedObject, TransformMode, ViewMode } from '../../../entities/r3f/types'
 
 interface ObjectStoreState {
   objects: SceneObject[]

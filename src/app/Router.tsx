@@ -1,8 +1,8 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
-import LibraryPage from './pages/LibraryPage'
-import ObjectEditorPage from './pages/ObjectEditorPage'
-import SceneEditorPage from './pages/SceneEditorPage'
+import LibraryPage from '../pages/LibraryPage'
+import ObjectEditorPage from '../pages/ObjectEditorPage'
+import SceneEditorPage from '../pages/SceneEditorPage'
 
 export default function Router() {
   return (

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useObjectSelected, useObjectHovered } from '../../stores/objectStore'
-import type { UseObjectSelectionReturn } from '../../types/r3f'
+import { useObjectSelected, useObjectHovered } from '../../features/object-editor/store/objectStore'
+import type { UseObjectSelectionReturn } from '../../entities/r3f/types'
 
 export const useOEObjectSelection = (): UseObjectSelectionReturn => {
   const { scene } = useThree()

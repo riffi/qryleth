@@ -8,7 +8,7 @@ import {
   useHoveredObject,
   useSceneLayers,
   useSceneStore 
-} from '../../../stores/sceneStore'
+} from '../store/sceneStore'
 import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
 
 export const SceneObjects: React.FC = () => {

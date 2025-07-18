@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { SceneSerializer } from '../utils/sceneSerializer'
-import { generateUUID } from '../utils/uuid'
+import { SceneSerializer } from '../../../shared/lib/sceneSerializer'
+import { generateUUID } from '../../../shared/lib/uuid'
 import type {
   SceneStore,
   SceneStoreState,
@@ -12,13 +12,13 @@ import type {
   SelectedObject,
   HoveredObject,
   CurrentScene
-} from '../types/r3f'
+} from '../../../entities/r3f/types'
 import type {
   SceneObject,
   ScenePlacement,
   SceneLayer,
   LightingSettings
-} from '../types/scene'
+} from '../../../entities/scene/types'
 
 const initialLighting: LightingSettings = {
   ambientColor: '#404040',

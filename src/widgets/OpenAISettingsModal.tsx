@@ -6,8 +6,8 @@ import {
   getAllConnections,
   saveConnections,
   setActiveConnection
-} from '../utils/openAISettings'
-import type { OpenAISettingsConnection } from '../utils/openAISettings'
+} from '../shared/lib/openAISettings'
+import type { OpenAISettingsConnection } from '../shared/lib/openAISettings'
 
 const PROVIDER_URLS = {
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
