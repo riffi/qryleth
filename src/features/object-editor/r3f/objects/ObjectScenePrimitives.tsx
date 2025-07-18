@@ -7,7 +7,7 @@ import {
   useObjectStore
 } from '../../store/objectStore'
 
-export const ObjectSceneObjects: React.FC = () => {
+export const ObjectScenePrimitives: React.FC = () => {
   const objects = useObjectObjects()
   const placements = useObjectPlacements()
   const selectedObject = useObjectSelected()
@@ -26,7 +26,7 @@ export const ObjectSceneObjects: React.FC = () => {
       {objects.map((obj, objectIndex) => {
         const placement = placements[objectIndex]
         if (!placement) return null
-        
+
         // Render each primitive directly
         return obj.primitives.map((primitive, primitiveIndex) => (
           <PrimitiveRenderer
