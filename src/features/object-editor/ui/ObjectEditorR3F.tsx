@@ -13,7 +13,7 @@ import {
   Title
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
-import { ObjectScene3D } from '../objectEditor/ObjectScene3D'
+import { ObjectScene3D } from '../r3f/ObjectScene3D'
 import { useObjectStore } from '../../../stores/objectStore'
 import type { SceneObject, ScenePlacement } from '../../../types/scene'
 

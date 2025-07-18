@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Box } from '@mantine/core'
 import * as THREE from 'three'
 import { ObjectSceneContent } from './ObjectSceneContent'
-import type { Scene3DProps } from '../../types/r3f'
+import type { Scene3DProps } from '../../../types/r3f'
 
 export const ObjectScene3D: React.FC<Scene3DProps> = ({ className, onSceneReady }) => {
   return (

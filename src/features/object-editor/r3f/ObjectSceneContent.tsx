@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
 import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
-import { Environment } from '../environment/Environment'
+import { Environment } from '../../../shared/r3f/environment/Environment'
 import { ObjectSceneObjects } from './objects/ObjectSceneObjects'
 import { ObjectTransformGizmo } from './controls/ObjectTransformGizmo'
 import { useObjectLighting } from '../../../stores/objectStore'

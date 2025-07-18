@@ -2,7 +2,7 @@ import React, { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { CompositeObjectProps } from '../../../../types/r3f'
-import { PrimitiveRenderer } from '../../primitives/PrimitiveRenderer'
+import { PrimitiveRenderer } from '../../../../shared/r3f/primitives/PrimitiveRenderer'
 import { useObjectRenderMode, useObjectStore } from '../../../../stores/objectStore'
 
 export const ObjectCompositeObject: React.FC<CompositeObjectProps> = ({

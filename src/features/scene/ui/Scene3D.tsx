@@ -3,8 +3,8 @@ import { Canvas } from '@react-three/fiber'
 import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent'
-import { useUISync, useRealTimeSync } from '../../hooks/r3f/useUISync'
-import type { Scene3DProps } from '../../types/r3f'
+import { useUISync, useRealTimeSync } from '../../../hooks/r3f/useUISync'
+import type { Scene3DProps } from '../../../types/r3f'
 
 export const Scene3D: React.FC<Scene3DProps> = ({ 
   className, 

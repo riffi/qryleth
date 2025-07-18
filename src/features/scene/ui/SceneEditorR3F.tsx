@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group } from '@mantine/core'
-import { ChatInterface } from '../../ChatInterface'
-import { Scene3D } from '../Scene3D'
-import { ObjectManager } from '../../ObjectManager'
-import { ObjectEditorR3F } from './ObjectEditorR3F'
+import { ChatInterface } from '../../../components/ChatInterface'
+import { Scene3D } from './Scene3D'
+import { ObjectManager } from '../../../components/ObjectManager'
+import { ObjectEditorR3F } from '../../object-editor/ui/ObjectEditorR3F'
 import { notifications } from '@mantine/notifications'
 import { IconCheck } from '@tabler/icons-react'
 import {
@@ -33,7 +33,7 @@ import {
   IconRotate,
   IconResize
 } from '@tabler/icons-react'
-import { OpenAISettingsModal } from '../../OpenAISettingsModal'
+import { OpenAISettingsModal } from '../../../components/OpenAISettingsModal'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {

@@ -1,6 +1,6 @@
 import React from 'react'
 import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
-import { InstancedObjects, ConditionalInstancedObject } from '../optimization/InstancedObjects'
+import { InstancedObjects, ConditionalInstancedObject } from '../../../shared/r3f/optimization/InstancedObjects'
 import { 
   useSceneObjects, 
   useScenePlacements, 

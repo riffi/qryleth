@@ -1,6 +1,6 @@
 import React from 'react'
 import { ObjectCompositeObject } from './ObjectCompositeObject'
-import { InstancedObjects, ConditionalInstancedObject } from '../../optimization/InstancedObjects'
+import { InstancedObjects, ConditionalInstancedObject } from '../../../../shared/r3f/optimization/InstancedObjects'
 import {
   useObjectObjects,
   useObjectPlacements,

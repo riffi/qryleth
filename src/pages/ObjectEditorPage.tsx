@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
-import { ObjectEditorR3F } from '../components/r3f/ui/ObjectEditorR3F'
+import { ObjectEditorR3F } from '../features/object-editor/ui/ObjectEditorR3F'
 import { db, type ObjectRecord } from '../utils/database'
 
 const ObjectEditorPage: React.FC = () => {
