@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import type { SceneObject, ScenePlacement, SceneLayer, LightingSettings } from '../../../entities/scene/types'
+import type { SceneObject, SceneObjectInstance, SceneLayer, LightingSettings } from '../../../entities/scene/types'
 import type { SelectedObject, TransformMode, ViewMode } from '../../../entities/r3f/types'
 
 interface ObjectStoreState {
   objects: SceneObject[]
-  placements: ScenePlacement[]
+  placements: SceneObjectInstance[]
   layers: SceneLayer[]
   lighting: LightingSettings
   viewMode: ViewMode
@@ -18,9 +18,9 @@ interface ObjectStoreState {
 interface ObjectStoreActions {
   setObjects: (objects: SceneObject[]) => void
   addObject: (object: SceneObject) => void
-  setPlacements: (placements: ScenePlacement[]) => void
-  addPlacement: (placement: ScenePlacement) => void
-  updatePlacement: (index: number, updates: Partial<ScenePlacement>) => void
+  setPlacements: (placements: SceneObjectInstance[]) => void
+  addPlacement: (placement: SceneObjectInstance) => void
+  updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => void
   setLayers: (layers: SceneLayer[]) => void
   setLighting: (lighting: LightingSettings) => void
   setRenderMode: (mode: 'solid' | 'wireframe') => void
@@ -65,10 +65,10 @@ export const useObjectStore = create<ObjectStore>()(
     setObjects: (objects: SceneObject[]) => set({ objects }),
     addObject: (object: SceneObject) =>
       set(state => ({ objects: [...state.objects, { ...object, visible: object.visible !== false }] })),
-    setPlacements: (placements: ScenePlacement[]) => set({ placements }),
-    addPlacement: (placement: ScenePlacement) =>
+    setPlacements: (placements: SceneObjectInstance[]) => set({ placements }),
+    addPlacement: (placement: SceneObjectInstance) =>
       set(state => ({ placements: [...state.placements, placement] })),
-    updatePlacement: (index: number, updates: Partial<ScenePlacement>) =>
+    updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) =>
       set(state => ({ placements: state.placements.map((p, i) => (i === index ? { ...p, ...updates } : p)) })),
     setLayers: (layers: SceneLayer[]) => set({ layers }),
     setLighting: (lighting: LightingSettings) => set({ lighting }),

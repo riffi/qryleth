@@ -13,7 +13,7 @@ import type {
 } from '../../../entities/r3f/types'
 import type {
   SceneObject,
-  ScenePlacement,
+  SceneObjectInstance,
   SceneLayer,
   LightingSettings
 } from '../../../entities/scene/types'
@@ -109,7 +109,7 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Placement management
-    setPlacements: (placements: ScenePlacement[]) => {
+    setPlacements: (placements: SceneObjectInstance[]) => {
       const normalized = placements.map(p => ({
         ...p,
         uuid: p.uuid || generateUUID(),
@@ -119,7 +119,7 @@ export const useSceneStore = create<SceneStore>()(
       get().saveToHistory()
     },
 
-    addPlacement: (placement: ScenePlacement) => {
+    addPlacement: (placement: SceneObjectInstance) => {
       const normalized = {
         ...placement,
         uuid: placement.uuid || generateUUID(),
@@ -131,7 +131,7 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    updatePlacement: (index: number, updates: Partial<ScenePlacement>) => {
+    updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => {
       const placements = get().placements.map((placement, i) =>
         i === index ? { ...placement, ...updates } : placement
       )

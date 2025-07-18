@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
 import { Primitive3D } from '../primitives/Primitive3D'
-import type {ScenePlacement} from "../../../entities/scene/types.ts";
+import type {SceneObjectInstance} from "../../../entities/scene/types.ts";
 import {useObjectInstanceCounts, useSceneObjectsOptimized, useScenePlacementsOptimized} from "../../../features/scene/store/optimizedSelectors.ts";
 
 interface InstancedObjectsProps {
@@ -17,7 +17,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 
   // Group placements by object type for instancing
   const instanceGroups = useMemo(() => {
-    const groups: { [objectIndex: number]: ScenePlacement[] } = {}
+    const groups: { [objectIndex: number]: SceneObjectInstance[] } = {}
 
     placements.forEach(placement => {
       if (!groups[placement.objectIndex]) {
@@ -27,7 +27,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
     })
 
     // Only include objects with enough instances for optimization
-    const optimizedGroups: { [objectIndex: number]: ScenePlacement[] } = {}
+    const optimizedGroups: { [objectIndex: number]: SceneObjectInstance[] } = {}
     Object.entries(groups).forEach(([objectIndex, instancePlacements]) => {
       if (instancePlacements.length >= minimumInstancesForOptimization) {
         optimizedGroups[parseInt(objectIndex)] = instancePlacements
@@ -37,7 +37,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
     return optimizedGroups
   }, [placements, minimumInstancesForOptimization])
 
-  const renderInstancedGroup = (objectIndex: number, instancePlacements: ScenePlacement[]) => {
+  const renderInstancedGroup = (objectIndex: number, instancePlacements: SceneObjectInstance[]) => {
     const sceneObject = objects[objectIndex]
     if (!sceneObject || sceneObject.primitives.length === 0) return null
 
@@ -98,7 +98,7 @@ export const useInstanceOptimization = (objectIndex: number, minimumInstances = 
 // Component for conditionally rendering instances vs individual objects
 interface ConditionalInstancedObjectProps {
   objectIndex: number
-  placement: ScenePlacement
+  placement: SceneObjectInstance
   placementIndex: number
   minimumInstancesForOptimization?: number
   children: React.ReactNode

@@ -1,14 +1,22 @@
-import type {GfxPrimitive} from "../primitive/model/types.ts";
-import type {Vector3} from "../../shared/types/vector3.ts";
-import type {GfxObject} from "../object/model/types.ts";
-import type {Transform} from "../../shared/types/transform.ts";
-
-
+import type {GfxObject} from "../object";
+import type {GfxObjectInstance} from "../objectInstance";
+import type {GfxLayer} from "../layer";
 
 export interface SceneObject extends GfxObject{
   layerId?: string;
   /** Controls visibility of all placements of this object */
   visible?: boolean;
+}
+
+export interface SceneObjectInstance extends GfxObjectInstance{
+  /** Visibility of a particular placement/instance */
+  visible?: boolean;
+}
+
+export interface SceneLayer extends GfxLayer{
+  /** Видимость слоя в сцене **/
+  visible: boolean;
+  position: number;
 }
 
 export interface LightingSettings {
@@ -19,29 +27,12 @@ export interface LightingSettings {
   backgroundColor?: string;
 }
 
-export interface ScenePlacement {
-  uuid: string;
-  objectUuid: string;
-  transform?: Transform;
-  /** Visibility of a particular placement/instance */
-  visible?: boolean;
-}
 
-export interface SceneLayer {
-  id: string;
-  name: string;
-  type?: 'object' | 'landscape';
-  width?: number;
-  height?: number;
-  shape?: 'plane' | 'perlin';
-  noiseData?: number[];
-  visible: boolean;
-  position: number;
-}
+
 
 export interface SceneResponse {
   objects: SceneObject[];
-  placements: ScenePlacement[];
+  placements: SceneObjectInstance[];
   layers?: SceneLayer[];
   lighting?: LightingSettings;
 }

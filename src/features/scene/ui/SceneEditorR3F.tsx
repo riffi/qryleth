@@ -16,7 +16,7 @@ import {
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../shared/lib/database'
 import MainLayout from '../../../widgets/layouts/MainLayout'
-import type { SceneResponse, SceneObject, ScenePlacement } from '../../../entities/scene/types'
+import type { SceneResponse, SceneObject, SceneObjectInstance } from '../../../entities/scene/types'
 import type { SceneStatus } from '../../../entities/r3f/types'
 import { Link } from 'react-router-dom'
 import { generateUUID } from '../../../shared/lib/uuid'
@@ -148,7 +148,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
     addObject(newObject)
 
-    const placement: ScenePlacement = {
+    const placement: SceneObjectInstance = {
       uuid: generateUUID(),
       objectUuid,
       position: objectData.position || [0, 0, 0],
