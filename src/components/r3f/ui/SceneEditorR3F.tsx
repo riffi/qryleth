@@ -3,14 +3,33 @@ import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Gr
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManager } from '../../ObjectManager'
-import { useSceneStore, useViewMode } from '../../../stores/sceneStore'
+import {
+  useSceneStore,
+  useViewMode,
+  useRenderMode,
+  useTransformMode,
+  useGridVisible
+} from '../../../stores/sceneStore'
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../utils/database'
 import MainLayout from '../../../layouts/MainLayout'
 import type { SceneResponse, SceneObject, ScenePlacement } from '../../../types/scene'
 import type { SceneStatus } from '../../../types/r3f'
 import { Link } from 'react-router-dom'
-import { IconArrowBack, IconArrowForward, IconBooks, IconSettings, IconInfoCircle, IconEye, IconRun, IconPlaneTilt } from '@tabler/icons-react'
+import {
+  IconArrowBack,
+  IconArrowForward,
+  IconBooks,
+  IconSettings,
+  IconInfoCircle,
+  IconEye,
+  IconRun,
+  IconPlaneTilt,
+  IconGridDots,
+  IconArrowRightBar,
+  IconRotate,
+  IconResize
+} from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../OpenAISettingsModal'
 
 const getStatusColor = (status: SceneStatus) => {
@@ -65,6 +84,12 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
+  const renderMode = useRenderMode()
+  const setRenderMode = useSceneStore(state => state.setRenderMode)
+  const transformMode = useTransformMode()
+  const setTransformMode = useSceneStore(state => state.setTransformMode)
+  const gridVisible = useGridVisible()
+  const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const currentScene = useSceneStore(state => state.currentScene)
 
@@ -228,40 +253,96 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               padding: 6
             }}
           >
-            <SegmentedControl
-              value={viewMode}
-              onChange={(value) => setViewMode(value as 'orbit' | 'walk' | 'fly')}
-              data={[
-                {
-                  value: 'orbit',
-                  label: (
-                    <Group gap={4} wrap="nowrap">
-                      <IconEye size={14} />
-                      <span>Orbit</span>
-                    </Group>
-                  )
-                },
-                {
-                  value: 'walk',
-                  label: (
-                    <Group gap={4} wrap="nowrap">
-                      <IconRun size={14} />
-                      <span>Walk</span>
-                    </Group>
-                  )
-                },
-                {
-                  value: 'fly',
-                  label: (
-                    <Group gap={4} wrap="nowrap">
-                      <IconPlaneTilt size={14} />
-                      <span>Fly</span>
-                    </Group>
-                  )
-                }
-              ]}
-              size="xs"
-            />
+            <Group gap="xs">
+              <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
+                <ActionIcon
+                  variant={gridVisible ? 'filled' : 'light'}
+                  c={gridVisible ? 'white' : 'gray'}
+                  onClick={toggleGridVisibility}
+                  size="md"
+                >
+                  <IconGridDots size={18} />
+                </ActionIcon>
+              </Tooltip>
+
+              <Group gap="xs">
+                <Tooltip label="Перемещение">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'translate' ? 'filled' : 'light'}
+                    color="blue"
+                    onClick={() => setTransformMode('translate')}
+                  >
+                    <IconArrowRightBar size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Поворот">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'rotate' ? 'filled' : 'light'}
+                    color="green"
+                    onClick={() => setTransformMode('rotate')}
+                  >
+                    <IconRotate size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Масштаб">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'scale' ? 'filled' : 'light'}
+                    color="orange"
+                    onClick={() => setTransformMode('scale')}
+                  >
+                    <IconResize size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+
+              <SegmentedControl
+                value={renderMode}
+                onChange={(value) => setRenderMode(value as 'solid' | 'wireframe')}
+                data={[
+                  { value: 'solid', label: 'Solid' },
+                  { value: 'wireframe', label: 'Wireframe' }
+                ]}
+                size="xs"
+              />
+
+              <SegmentedControl
+                value={viewMode}
+                onChange={(value) => setViewMode(value as 'orbit' | 'walk' | 'fly')}
+                data={[
+                  {
+                    value: 'orbit',
+                    label: (
+                      <Group gap={4} wrap="nowrap">
+                        <IconEye size={14} />
+                        <span>Orbit</span>
+                      </Group>
+                    )
+                  },
+                  {
+                    value: 'walk',
+                    label: (
+                      <Group gap={4} wrap="nowrap">
+                        <IconRun size={14} />
+                        <span>Walk</span>
+                      </Group>
+                    )
+                  },
+                  {
+                    value: 'fly',
+                    label: (
+                      <Group gap={4} wrap="nowrap">
+                        <IconPlaneTilt size={14} />
+                        <span>Fly</span>
+                      </Group>
+                    )
+                  }
+                ]}
+                size="xs"
+              />
+            </Group>
           </Box>
 
           <Box style={{ width: '100%', height: '100%' }}>
