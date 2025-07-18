@@ -1,5 +1,6 @@
 import React from 'react'
-import type { ScenePrimitive } from '../../../types/scene'
+import type {ScenePrimitive} from "../../../entities/primitive/model/types.ts";
+
 
 interface Primitive3DProps {
   primitive: ScenePrimitive
@@ -13,69 +14,69 @@ export const Primitive3D: React.FC<Primitive3DProps> = ({ primitive }) => {
     switch (type) {
       case 'box':
         return (
-          <boxGeometry 
+          <boxGeometry
             args={[
-              size?.width || 1, 
-              size?.height || 1, 
+              size?.width || 1,
+              size?.height || 1,
               size?.depth || 1
-            ]} 
+            ]}
           />
         )
-      
+
       case 'sphere':
         return (
-          <sphereGeometry 
+          <sphereGeometry
             args={[
               size?.radius || 0.5,
               32, 32
-            ]} 
+            ]}
           />
         )
-      
+
       case 'cylinder':
         return (
-          <cylinderGeometry 
+          <cylinderGeometry
             args={[
               size?.radiusTop || 0.5,
               size?.radiusBottom || 0.5,
               size?.height || 1,
               32
-            ]} 
+            ]}
           />
         )
-      
+
       case 'cone':
         return (
-          <coneGeometry 
+          <coneGeometry
             args={[
               size?.radius || 0.5,
               size?.height || 1,
               32
-            ]} 
+            ]}
           />
         )
-      
+
       case 'pyramid':
         return (
-          <coneGeometry 
+          <coneGeometry
             args={[
               size?.radius || 0.5,
               size?.height || 1,
               4 // 4 sides for pyramid
-            ]} 
+            ]}
           />
         )
-      
+
       case 'plane':
         return (
-          <planeGeometry 
+          <planeGeometry
             args={[
               size?.width || 1,
               size?.height || 1
-            ]} 
+            ]}
           />
         )
-      
+
       default:
         return <boxGeometry args={[1, 1, 1]} />
     }

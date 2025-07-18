@@ -19,7 +19,11 @@ src/
 │  └─ library/     # локальная / публичная библиотека
 ├─ widgets/        # крупные самостоятельные блоки UI
 ├─ entities/       # чистые доменные модели (без React)
-├─ boundaries/     # обёртки над Three.js, Dexie, REST
+   ├─ primitive
+   ├─ object
+      ├─ object-instance
+   ├─ layer   
+├─ boundaries/     # обёртки над REST, Dexie
 └─ shared/         # ui‑атомы, хуки, утилиты, тема
 ```
 

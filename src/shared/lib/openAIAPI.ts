@@ -1,6 +1,7 @@
 import { getActiveConnection } from './openAISettings'
 import {buildSystemPrompt} from "./systemPrompt.ts";
-import type {  ScenePrimitive, SceneResponse  } from '../types/scene'
+import type {SceneResponse} from "../../entities/scene/types.ts";
+import type {ScenePrimitive} from "../../entities/primitive/model/types.ts";
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'

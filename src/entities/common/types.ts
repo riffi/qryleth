@@ -1,5 +1,5 @@
 // Common vector types
-export type Vector3 = [number, number, number]
+
 
 // Common object properties
 export interface BaseObject {

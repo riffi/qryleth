@@ -1,5 +1,5 @@
 import React from 'react'
-import type { ScenePrimitive } from '../../../types/scene'
+import type {ScenePrimitive} from "../../../entities/primitive/model/types.ts";
 
 interface Cone3DProps {
   primitive: ScenePrimitive

@@ -1,17 +1,16 @@
 import React from 'react'
 import * as THREE from 'three'
-import type { PrimitiveRendererProps } from '../../../types/r3f'
-import type { ScenePrimitive } from '../../../types/scene'
 import { Box3D } from './Box3D'
 import { Sphere3D } from './Sphere3D'
 import { Cylinder3D } from './Cylinder3D'
 import { Cone3D } from './Cone3D'
 import { Pyramid3D } from './Pyramid3D'
 import { Plane3D } from './Plane3D'
+import type {PrimitiveRendererProps} from "../../../entities/r3f/types.ts";
 
-export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({ 
-  primitive, 
-  renderMode = 'solid' 
+export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
+  primitive,
+  renderMode = 'solid'
 }) => {
   const baseMaterialProps = {
     color: primitive.color || '#cccccc',
@@ -39,7 +38,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     case 'sphere':
       return (
         <Sphere3D
@@ -48,7 +47,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     case 'cylinder':
       return (
         <Cylinder3D
@@ -57,7 +56,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     case 'cone':
       return (
         <Cone3D
@@ -66,7 +65,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     case 'pyramid':
       return (
         <Pyramid3D
@@ -75,7 +74,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     case 'plane':
       return (
         <Plane3D
@@ -84,7 +83,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
           meshProps={meshProps}
         />
       )
-      
+
     default:
       console.warn('Unknown primitive type:', primitive.type)
       return null
