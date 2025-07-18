@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
-import { ObjectEditor } from '../components/ObjectEditor'
+import { ObjectEditorR3F } from '../components/r3f/ui/ObjectEditorR3F'
 import { db, type ObjectRecord } from '../utils/database'
 
 const ObjectEditorPage: React.FC = () => {
@@ -41,7 +41,7 @@ const ObjectEditorPage: React.FC = () => {
 
   return (
     <MainLayout>
-      <ObjectEditor
+      <ObjectEditorR3F
         opened={isReady}
         onClose={handleClose}
         onSave={handleSave}

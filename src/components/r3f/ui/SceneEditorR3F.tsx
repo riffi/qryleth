@@ -3,7 +3,7 @@ import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Gr
 import { ChatInterface } from '../../ChatInterface'
 import { Scene3D } from '../Scene3D'
 import { ObjectManager } from '../../ObjectManager'
-import { ObjectEditor } from '../../ObjectEditor'
+import { ObjectEditorR3F } from './ObjectEditorR3F'
 import { notifications } from '@mantine/notifications'
 import { IconCheck } from '@tabler/icons-react'
 import {
@@ -472,7 +472,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       </Container>
       </MainLayout>
       <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
-      <ObjectEditor
+      <ObjectEditorR3F
         opened={editorOpened}
         onClose={() => setEditorOpened(false)}
         objectInfo={editingObjectInfo}
