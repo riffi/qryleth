@@ -20,28 +20,15 @@ interface ObjectEditorR3FProps {
   opened: boolean
   onClose: () => void
   onSave: (
-    objectIndex: number,
-    instanceId: string | undefined,
+    objectUuid: string,
     primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>
   ) => void
-  objectInfo?: { name: string; objectIndex: number }
+  objectInfo?: { name: string; objectUuid: string }
   instanceId?: string
   objectData?: SceneObject
 }
 
-const sampleObject: SceneObject = {
-  name: 'Box',
-  primitives: [
-    {
-      type: 'box',
-      width: 1,
-      height: 1,
-      depth: 1,
-      position: [0, 0, 0],
-      rotation: [0, 0, 0]
-    }
-  ]
-}
+
 
 export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   opened,
@@ -58,12 +45,11 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
 
   // Initialize object store with primitives only
   useEffect(() => {
-    if (!opened) return
+    if (!opened || !objectData) return
     useObjectStore.getState().clearScene()
 
-    const obj = objectData || sampleObject
 
-    useObjectStore.getState().setPrimitives(obj.primitives.map(p => ({ ...p })))
+    useObjectStore.getState().setPrimitives(objectData.primitives.map(p => ({ ...p })))
 
     setSelectedPrimitive(0)
     useObjectStore.getState().selectPrimitive(0)
@@ -73,7 +59,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     if (!objectInfo) return
     const state = useObjectStore.getState()
     const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
-    
+
     state.primitives.forEach((p, idx) => {
       primitiveStates[idx] = {
         position: (p.position || [0, 0, 0]) as [number, number, number],
@@ -81,8 +67,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
         scale: (p.scale || [1, 1, 1]) as [number, number, number]
       }
     })
-    
-    onSave(objectInfo.objectIndex, instanceId, primitiveStates)
+
+    onSave(objectInfo.objectUuid, primitiveStates)
     onClose()
   }
 

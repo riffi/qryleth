@@ -226,7 +226,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const handleSaveObjectEdit = (
     objectUuid: string,
-    instanceId: string | undefined,
     primitiveStates: {
       [key: number]: {
         position: [number, number, number]
@@ -275,25 +274,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     if (!editingObject) return undefined
     const obj = objects.find(o => o.uuid === editingObject.objectUuid)
     if (!obj) return undefined
-    const objectPlacements = placements.filter(
-      p => p.objectUuid === editingObject.objectUuid
-    )
-    const instances = objectPlacements.map((placement) => ({
-      id: `${editingObject.objectUuid}-${placement.uuid}`,
-      position: placement.transform?.position || [0, 0, 0],
-      rotation: placement.transform?.rotation || [0, 0, 0],
-      scale: placement.transform?.scale || [1, 1, 1],
-      visible: placement.visible !== false
-    }))
     return {
       name: obj.name,
-      count: objectPlacements.length,
-      visible: obj.visible !== false,
       objectUuid: editingObject.objectUuid,
-      instances,
-      layerId: obj.layerId
-    }
-  }, [editingObject, objects, placements])
+   }
+  }, [editingObject, objects])
 
   const editingObjectData = React.useMemo(() => {
     if (!editingObject) return undefined
