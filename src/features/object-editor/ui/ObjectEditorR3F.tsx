@@ -13,7 +13,7 @@ import {
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import { ObjectScene3D } from '../r3f/ObjectScene3D'
-import { useObjectStore } from '../store/objectStore'
+import { useObjectStore, useObjectPrimitives } from '../store/objectStore'
 import type { SceneObject } from '../../../entities/scene/types'
 
 interface ObjectEditorR3FProps {
@@ -51,6 +51,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   instanceId,
   objectData
 }) => {
+  const primitives = useObjectPrimitives()
   const [selectedPrimitive, setSelectedPrimitive] = useState(0)
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const [renderMode, setRenderMode] = useState<'solid' | 'wireframe'>('solid')
@@ -118,8 +119,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
             <Select
               value={selectedPrimitive.toString()}
               onChange={(v) => v && handleSelectPrimitive(parseInt(v))}
-              data={useObjectStore.getState()
-                .primitives.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
+              data={primitives.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
               size="sm"
             />
             <SegmentedControl
