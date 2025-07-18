@@ -39,6 +39,10 @@ export const ObjectSceneObjects: React.FC = () => {
     }
   }
 
+  const handleObjectClick = (event: any) => {
+    useObjectStore.getState().selectObject(event.objectIndex, event.instanceId)
+  }
+
   return (
     <group
       onPointerMissed={() => clearSelection()}
@@ -65,6 +69,7 @@ export const ObjectSceneObjects: React.FC = () => {
               placementIndex={placementIndex}
               isSelected={isSelected(placement.objectIndex, instanceId)}
               isHovered={isHovered(placement.objectIndex, instanceId)}
+              onClick={handleObjectClick}
               onTransform={handleObjectTransform}
               visible={isLayerVisible && (sceneObject.visible !== false) && (placement.visible !== false)}
             />

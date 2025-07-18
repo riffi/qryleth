@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { CompositeObjectProps } from '../../../../types/r3f'
 import { PrimitiveRenderer } from '../../primitives/PrimitiveRenderer'
-import { useObjectRenderMode } from '../../../../stores/objectStore'
+import { useObjectRenderMode, useObjectStore } from '../../../../stores/objectStore'
 
 export const ObjectCompositeObject: React.FC<CompositeObjectProps> = ({
   sceneObject,

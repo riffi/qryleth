@@ -5,8 +5,8 @@ import { useObjectStore } from '../../../../stores/objectStore'
 import { useOEObjectSelection } from '../../../../hooks/objectEditor/useOEObjectSelection'
 import type { TransformGizmoProps } from '../../../../types/r3f'
 
-export const ObjectTransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) => {
-  const { camera, gl, controls } = useThree()
+export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
+  const { camera, gl } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedObject = useObjectStore(state => state.selectedObject)
   const transformMode = useObjectStore(state => state.transformMode)
@@ -39,23 +39,41 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps> = ({ onTransfor
   }
 
   const handleDraggingChanged = (event: any) => {
-    if (controls && 'enabled' in controls) {
-      ;(controls as any).enabled = !event.value
+    if (orbitControlsRef?.current) {
+      orbitControlsRef.current.enabled = !event.value
+    }
+  }
+
+  const handleMouseDown = () => {
+    if (orbitControlsRef?.current) {
+      orbitControlsRef.current.enabled = false
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (orbitControlsRef?.current) {
+      orbitControlsRef.current.enabled = true
     }
   }
 
   useEffect(() => {
     const controls = transformControlsRef.current
     if (!controls) return
+    
     controls.addEventListener('objectChange', handleObjectChange)
     controls.addEventListener('dragging-changed', handleDraggingChanged)
+    controls.addEventListener('mouseDown', handleMouseDown)
+    controls.addEventListener('mouseUp', handleMouseUp)
+    
     return () => {
       controls.removeEventListener('objectChange', handleObjectChange)
       controls.removeEventListener('dragging-changed', handleDraggingChanged)
+      controls.removeEventListener('mouseDown', handleMouseDown)
+      controls.removeEventListener('mouseUp', handleMouseUp)
     }
-  }, [selectedObject])
+  }, [selectedObject, orbitControlsRef])
 
-  if (!targetObject || !selectedObject) return null
+  if (!selectedObject) return null
 
   return (
     <TransformControls
@@ -65,6 +83,11 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps> = ({ onTransfor
       camera={camera}
       gl={gl}
       size={1}
+      onDraggingChanged={(isDragging) => {
+        if (orbitControlsRef?.current) {
+          orbitControlsRef.current.enabled = !isDragging
+        }
+      }}
     />
   )
 }
