@@ -296,10 +296,10 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                         onSaveSceneToLibrary={handleSaveSceneToLibraryInternal}
                     />
 
-                    {/*<LightingControls*/}
-                    {/*    lighting={lighting}*/}
-                    {/*    onLightingChange={handleLightingChange}*/}
-                    {/*/>*/}
+                    <LightingControls
+                        lighting={lighting}
+                        onLightingChange={handleLightingChange}
+                    />
 
 
                     <Group justify="space-between" align="center">
