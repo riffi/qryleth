@@ -1,6 +1,6 @@
 import type { Vector3 } from "../../../shared/types/vector3.ts";
 
-export interface Primitive {
+export interface GfxPrimitive {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane';
   width?: number;
   height?: number;

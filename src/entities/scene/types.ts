@@ -1,12 +1,10 @@
-import type {Vector3} from './common';
-import type {Primitive} from "../primitive/model/types.ts";
+import type {GfxPrimitive} from "../primitive/model/types.ts";
+import type {Vector3} from "../../shared/types/vector3.ts";
+import type {GfxObject} from "../object/model/types.ts";
 
 
 
-export interface SceneObject {
-  uuid: string;
-  name: string;
-  primitives: Primitive[];
+export interface SceneObject extends GfxObject{
   layerId?: string;
   /** Controls visibility of all placements of this object */
   visible?: boolean;

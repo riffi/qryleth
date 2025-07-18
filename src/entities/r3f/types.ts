@@ -1,5 +1,5 @@
 import type { Vector3, SceneObject, ScenePlacement, SceneLayer, LightingSettings } from './scene'
-import type {Primitive} from "../primitive/model/types.ts";
+import type {GfxPrimitive} from "../primitive/model/types.ts";
 
 
 
@@ -72,7 +72,7 @@ export interface CompositeObjectProps {
 }
 
 export interface PrimitiveRendererProps {
-  primitive: Primitive
+  primitive: GfxPrimitive
   renderMode?: RenderMode
 }
 

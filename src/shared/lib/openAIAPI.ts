@@ -1,7 +1,7 @@
 import { getActiveConnection } from './openAISettings'
 import {buildSystemPrompt} from "./systemPrompt.ts";
 import type {SceneResponse} from "../../entities/scene/types.ts";
-import type {Primitive} from "../../entities/primitive/model/types.ts";
+import type {GfxPrimitive} from "../../entities/primitive/model/types.ts";
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -228,7 +228,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
       if (Array.isArray(parsed)) {
         const convertedObjects = parsed.map((primitive: unknown, index: number) => ({
           name: `Object_${index}`,
-          primitives: [primitive as Primitive]
+          primitives: [primitive as GfxPrimitive]
         }))
         return {
           objects: convertedObjects,
@@ -241,7 +241,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
       if (arrays.length > 0) {
         const convertedObjects = (arrays[0] as unknown[]).map((primitive: unknown, index: number) => ({
           name: `Object_${index}`,
-          primitives: [primitive as Primitive]
+          primitives: [primitive as GfxPrimitive]
         }))
         return {
           objects: convertedObjects,
@@ -259,7 +259,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         const parsedArray = JSON.parse(jsonMatch[0])
         const convertedObjects = parsedArray.map((primitive: unknown, index: number) => ({
           name: `Object_${index}`,
-          primitives: [primitive as Primitive]
+          primitives: [primitive as GfxPrimitive]
         }))
         return {
           objects: convertedObjects,
