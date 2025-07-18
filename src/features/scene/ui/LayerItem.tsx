@@ -3,7 +3,8 @@ import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/co
 import { IconLayersLinked, IconEye, IconEyeOff, IconEdit, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import { ObjectItem } from './ObjectItem'
 import type { ObjectInfo } from './ObjectItem'
-import type { SceneLayer } from '../../../types/scene'
+import type { SceneLayer } from '../../../entities/scene/types'
+
 
 interface LayerItemProps {
     layer: SceneLayer
@@ -18,13 +19,13 @@ interface LayerItemProps {
     onDelete: (layerId: string) => void
     onEditSize?: (layer: SceneLayer) => void
     onToggleObjectExpanded: (objectUuid: string) => void
-    onHighlightObject?: (objectUuid: string) => void
+    onHighlightObject?: (objectUuid: string, instanceId?: string) => void
     onClearHighlight?: () => void
-    onSelectObject?: (objectUuid: string) => void
+    onSelectObject?: (objectUuid: string, instanceId?: string) => void
     onToggleObjectVisibility?: (objectUuid: string) => void
     onRemoveObject?: (objectUuid: string) => void
     onSaveObjectToLibrary?: (objectUuid: string) => void
-    onEditObject?: (objectUuid: string) => void
+    onEditObject?: (objectUuid: string, instanceId?: string) => void
     onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
     onRemoveInstance?: (objectUuid: string, instanceId: string) => void
     onDragStart: (e: React.DragEvent, objectUuid: string) => void
@@ -171,16 +172,16 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                                 key={`${obj.name}-${obj.objectUuid}`}
                                 obj={obj}
                                 isExpanded={expandedItems.has(obj.objectUuid)}
-                                isSelected={selectedObject?.objectUuid === obj.objectUuid && !selectedObject?.instanceId}
+                                isSelected={selectedObject?.objectUuid === obj.objectUuid}
                                 selectedObject={selectedObject}
                                 onToggleExpanded={() => onToggleObjectExpanded(obj.objectUuid)}
-                                onHighlight={() => onHighlightObject?.(obj.objectUuid)}
+                                onHighlight={onHighlightObject || (() => {})}
                                 onClearHighlight={() => onClearHighlight?.()}
-                                onSelect={() => onSelectObject?.(obj.objectUuid)}
+                                onSelect={onSelectObject || (() => {})}
                                 onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectUuid)}
                                 onRemove={() => onRemoveObject?.(obj.objectUuid)}
                                 onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectUuid)}
-                                onEdit={() => onEditObject?.(obj.objectUuid)}
+                                onEdit={onEditObject || (() => {})}
                                 onToggleInstanceVisibility={onToggleInstanceVisibility}
                                 onRemoveInstance={onRemoveInstance}
                                 onDragStart={(e) => onDragStart(e, obj.objectUuid)}

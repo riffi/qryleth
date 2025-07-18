@@ -95,7 +95,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 objectUuid: sceneObject.uuid,
                 layerId: sceneObject.layerId || 'objects',
                 instances: objectPlacements.map((placement) => ({
-                    id: `${sceneObject.uuid}-${placement.uuid}`,
+                    id: placement.uuid,
                     position: placement.transform?.position || [0,0,0],
                     rotation: placement.transform?.rotation || [0,0,0],
                     scale: placement.transform?.scale || [1,1,1],
@@ -198,14 +198,11 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleRemoveInstance = (objectUuid: string, instanceId: string) => {
-        const placementUuid = instanceId.split('-')[1]
-        if (placementUuid) {
-            // Find placement by UUID and remove it
-            const placementIndex = placements.findIndex(p => p.uuid === placementUuid)
-            if (placementIndex !== -1) {
-                removePlacement(placementIndex)
-                clearSelection()
-            }
+        // instanceId теперь это просто placementUuid
+        const placementIndex = placements.findIndex(p => p.uuid === instanceId)
+        if (placementIndex !== -1) {
+            removePlacement(placementIndex)
+            clearSelection()
         }
     }
 
@@ -374,7 +371,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                 // Fallback для случая без слоев
                                 objects.map((obj) => {
                                     const isExpanded = expandedItems.has(obj.objectUuid)
-                                    const isSelected = selectedObject?.objectUuid === obj.objectUuid && !selectedObject?.instanceId
+                                    const isSelected = selectedObject?.objectUuid === obj.objectUuid
                                     return (
                                         <ObjectItem
                                             key={`${obj.name}-${obj.objectUuid}`}
@@ -383,13 +380,13 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                             isSelected={isSelected}
                                             selectedObject={selectedObject}
                                             onToggleExpanded={() => toggleObjectExpanded(obj.objectUuid)}
-                                            onHighlight={() => handleHighlightObject(obj.objectUuid)}
-                                            onClearHighlight={() => handleClearHighlight()}
-                                            onSelect={() => handleSelectObject(obj.objectUuid)}
+                                            onHighlight={handleHighlightObject}
+                                            onClearHighlight={handleClearHighlight}
+                                            onSelect={handleSelectObject}
                                             onToggleVisibility={() => handleToggleVisibility(obj.objectUuid)}
                                             onRemove={() => handleRemoveObject(obj.objectUuid)}
                                             onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectUuid)}
-                                            onEdit={() => handleEditObject(obj.objectUuid)}
+                                            onEdit={handleEditObject}
                                             onToggleInstanceVisibility={handleToggleInstanceVisibility}
                                             onRemoveInstance={handleRemoveInstance}
                                             onDragStart={(e) => handleDragStart(e, obj.objectUuid)}

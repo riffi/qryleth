@@ -13,7 +13,7 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
 
   const handleClick = useCallback((event: any) => {
     // Prevent event if in walk/fly mode (should lock pointer instead)
-    if ((viewMode === 'walk' || viewMode === 'fly') && event.object.parent?.type !== 'Scene') {
+    if ((viewMode === 'walk' || viewMode === 'fly') && event.object?.parent?.type !== 'Scene') {
       return
     }
 
@@ -30,7 +30,7 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     if (clickedObject?.userData.generated) {
       const objectUuid = clickedObject.userData.objectUuid
       const placementUuid = clickedObject.userData.placementUuid
-      const instanceId = `${objectUuid}-${placementUuid}`
+      const instanceId = placementUuid
 
       const clickEvent: SceneClickEvent = {
         objectUuid,
@@ -60,7 +60,7 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     if (hoveredObject?.userData.generated) {
       const objectUuid = hoveredObject.userData.objectUuid
       const placementUuid = hoveredObject.userData.placementUuid
-      const instanceId = `${objectUuid}-${placementUuid}`
+      const instanceId = placementUuid
 
       setHoveredObject(objectUuid, instanceId)
 

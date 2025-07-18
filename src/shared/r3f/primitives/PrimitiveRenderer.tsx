@@ -10,7 +10,8 @@ import type {PrimitiveRendererProps} from "../../../entities/r3f/types.ts";
 
 export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   primitive,
-  renderMode = 'solid'
+  renderMode = 'solid',
+  userData
 }) => {
   const baseMaterialProps = {
     color: primitive.color || '#cccccc',
@@ -26,7 +27,8 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     rotation: primitive.rotation || [0, 0, 0],
     scale: primitive.scale || [1, 1, 1],
     castShadow: true,
-    receiveShadow: true
+    receiveShadow: true,
+    userData: userData || {}
   }
 
   switch (primitive.type) {

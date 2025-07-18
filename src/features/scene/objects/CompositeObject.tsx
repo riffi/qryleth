@@ -24,7 +24,7 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     if (onClick) {
       onClick({
         objectUuid: placement.objectUuid,
-        instanceId: `${placement.objectUuid}-${placement.uuid}`,
+        instanceId: placement.uuid,
         placementIndex,
         point: event.point,
         object: event.object
@@ -37,7 +37,7 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     if (onHover) {
       onHover({
         objectUuid: placement.objectUuid,
-        instanceId: `${placement.objectUuid}-${placement.uuid}`,
+        instanceId: placement.uuid,
         placementIndex,
         object: event.object
       })
@@ -85,6 +85,13 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
           key={index}
           primitive={primitive}
           renderMode={renderMode}
+          userData={{
+            generated: true,
+            objectUuid: placement.objectUuid,
+            placementUuid: placement.uuid,
+            placementIndex: placementIndex,
+            layerId: sceneObject.layerId || 'objects'
+          }}
         />
       ))}
     </group>

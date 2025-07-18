@@ -1,6 +1,6 @@
 import React from 'react'
 import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
-import { InstancedObjects, ConditionalInstancedObject } from '../../../shared/r3f/optimization/InstancedObjects'
+import { InstancedObjects } from '../../../shared/r3f/optimization/InstancedObjects'
 import { 
   useSceneObjects, 
   useScenePlacements, 
@@ -47,9 +47,6 @@ export const SceneObjects: React.FC = () => {
 
   return (
     <group
-      onClick={handleClick}
-      onPointerOver={handlePointerOver}
-      onPointerOut={handlePointerOut}
       onPointerMissed={() => {
         clearSelection()
         clearHover()
@@ -71,25 +68,18 @@ export const SceneObjects: React.FC = () => {
         const instanceId = `${placement.objectUuid}-${placement.uuid}`
 
         return (
-          <ConditionalInstancedObject
+          <MemoizedCompositeObject
             key={instanceId}
-            objectUuid={placement.objectUuid}
+            sceneObject={sceneObject}
             placement={placement}
             placementIndex={placementIndex}
-            minimumInstancesForOptimization={3}
-          >
-            <MemoizedCompositeObject
-              sceneObject={sceneObject}
-              placement={placement}
-              placementIndex={placementIndex}
-              isSelected={isSelected(placement.objectUuid, instanceId)}
-              isHovered={isHovered(placement.objectUuid, instanceId)}
-              onClick={handleClick}
-              onHover={handlePointerOver}
-              onTransform={handleObjectTransform}
-              visible={isLayerVisible && (sceneObject.visible !== false) && (placement.visible !== false)}
-            />
-          </ConditionalInstancedObject>
+            isSelected={isSelected(placement.objectUuid, instanceId)}
+            isHovered={isHovered(placement.objectUuid, instanceId)}
+            onClick={handleClick}
+            onHover={handlePointerOver}
+            onTransform={handleObjectTransform}
+            visible={isLayerVisible && (sceneObject.visible !== false) && (placement.visible !== false)}
+          />
         )
       })}
     </group>

@@ -19,13 +19,13 @@ interface ObjectItemProps {
     isSelected: boolean
     selectedObject?: {objectUuid: string, instanceId?: string} | null
     onToggleExpanded: () => void
-    onHighlight: () => void
+    onHighlight: (objectUuid: string, instanceId?: string) => void
     onClearHighlight: () => void
-    onSelect: () => void
+    onSelect: (objectUuid: string, instanceId?: string) => void
     onToggleVisibility: () => void
     onRemove: () => void
     onSaveToLibrary: () => void
-    onEdit: () => void
+    onEdit: (objectUuid: string, instanceId?: string) => void
     onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
     onRemoveInstance?: (objectUuid: string, instanceId: string) => void
     onDragStart: (e: React.DragEvent) => void
@@ -69,9 +69,17 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                     padding: "8px 4px"
 
                 }}
-                onMouseEnter={onHighlight}
+                onMouseEnter={() => {
+                    // При наведении на объект выделяем первый инстанс
+                    const firstInstanceId = obj.instances?.[0]?.id
+                    onHighlight(obj.objectUuid, firstInstanceId)
+                }}
                 onMouseLeave={onClearHighlight}
-                onClick={onSelect}
+                onClick={() => {
+                    // При клике на объект выделяем первый инстанс
+                    const firstInstanceId = obj.instances?.[0]?.id
+                    onSelect(obj.objectUuid, firstInstanceId)
+                }}
                 onDragStart={onDragStart}
                 onContextMenu={onContextMenu}
             >
@@ -145,7 +153,8 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                     leftSection={<IconEdit size={14} />}
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        onEdit()
+                                        const firstInstanceId = obj.instances?.[0]?.id
+                                        onEdit(obj.objectUuid, firstInstanceId)
                                     }}
                                 >
                                     Редактировать
@@ -185,11 +194,11 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                                     key={instance.id}
                                     instance={instance}
                                     isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}
-                                    onHighlight={() => {}}
-                                    onClearHighlight={() => {}}
-                                    onSelect={() => {}}
+                                    onHighlight={() => onHighlight(obj.objectUuid, instance.id)}
+                                    onClearHighlight={onClearHighlight}
+                                    onSelect={() => onSelect(obj.objectUuid, instance.id)}
                                     onToggleVisibility={() => onToggleInstanceVisibility?.(obj.objectUuid, instance.id)}
-                                    onEdit={() => {}}
+                                    onEdit={() => onEdit(obj.objectUuid, instance.id)}
                                     onRemove={() => onRemoveInstance?.(obj.objectUuid, instance.id)}
                                 />
                             ))

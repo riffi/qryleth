@@ -75,7 +75,7 @@ export const useKeyboardShortcuts = () => {
       const moveAmount = 0.5
       const scaleAmount = 0.1
       let needsUpdate = false
-      let newPlacement = { ...placement }
+      const newPlacement = { ...placement }
 
       // Calculate camera-relative movement vectors
       const forward = new THREE.Vector3()

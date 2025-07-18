@@ -75,6 +75,7 @@ export interface CompositeObjectProps {
 export interface PrimitiveRendererProps {
   primitive: GfxPrimitive
   renderMode?: RenderMode
+  userData?: any
 }
 
 export interface LandscapeLayerProps {

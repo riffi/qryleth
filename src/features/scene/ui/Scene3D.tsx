@@ -41,19 +41,29 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           height: '100%'
         }}
         onCreated={(state) => {
-          // Set up renderer properties
-          state.gl.setPixelRatio(window.devicePixelRatio)
-          
-          // Enable shadows
-          state.gl.shadowMap.enabled = true
-          state.gl.shadowMap.type = THREE.PCFSoftShadowMap
-          
-          // Set tone mapping
-          state.gl.toneMapping = THREE.ACESFilmicToneMapping
-          state.gl.toneMappingExposure = 1.0
-          
-          // Notify parent that scene is ready
-          onSceneReady?.()
+          try {
+            // Set up renderer properties safely
+            if (state.gl) {
+              state.gl.setPixelRatio(window.devicePixelRatio)
+              
+              // Enable shadows
+              if (state.gl.shadowMap) {
+                state.gl.shadowMap.enabled = true
+                state.gl.shadowMap.type = THREE.PCFSoftShadowMap
+              }
+              
+              // Set tone mapping
+              state.gl.toneMapping = THREE.ACESFilmicToneMapping
+              state.gl.toneMappingExposure = 1.0
+            }
+            
+            // Notify parent that scene is ready
+            onSceneReady?.()
+          } catch (error) {
+            console.warn('Error initializing renderer:', error)
+            // Still notify parent that scene is ready even if renderer setup fails
+            onSceneReady?.()
+          }
         }}
       >
         <Suspense fallback={null}>

@@ -203,10 +203,9 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     toggleInstanceVisibility: (objectUuid: string, instanceId: string) => {
-      const placementUuid = instanceId.split('-')[1]
-      if (!placementUuid) return
+      // instanceId теперь это просто placementUuid
       const placements = get().placements.map(placement =>
-        placement.uuid === placementUuid
+        placement.uuid === instanceId
           ? { ...placement, visible: placement.visible === false ? true : !placement.visible }
           : placement
       )
@@ -239,10 +238,18 @@ export const useSceneStore = create<SceneStore>()(
 
     // Selection
     selectObject: (objectUuid: string, instanceId?: string) => {
+      let placementIndex: number | undefined = undefined
+      if (instanceId) {
+        // instanceId теперь это просто placementUuid
+        const placements = get().placements
+        placementIndex = placements.findIndex(p => p.uuid === instanceId)
+        if (placementIndex === -1) placementIndex = undefined
+      }
+      
       const selectedObject: SelectedObject = {
         objectUuid,
         instanceId,
-        placementIndex: instanceId ? parseInt(instanceId.split('-')[1]) : undefined
+        placementIndex
       }
       set({ selectedObject })
     },
@@ -252,10 +259,18 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     setHoveredObject: (objectUuid: string, instanceId?: string) => {
+      let placementIndex: number | undefined = undefined
+      if (instanceId) {
+        // instanceId теперь это просто placementUuid
+        const placements = get().placements
+        placementIndex = placements.findIndex(p => p.uuid === instanceId)
+        if (placementIndex === -1) placementIndex = undefined
+      }
+      
       const hoveredObject: HoveredObject = {
         objectUuid,
         instanceId,
-        placementIndex: instanceId ? parseInt(instanceId.split('-')[1]) : undefined
+        placementIndex
       }
       set({ hoveredObject })
     },
