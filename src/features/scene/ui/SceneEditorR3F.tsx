@@ -155,67 +155,38 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     addPlacement(placement)
   }
 
-  const handleSaveSceneToLibrary = async () => {
-    // If scene already exists (has UUID), save directly
-    if (currentScene?.uuid) {
-      try {
-        const state = useSceneStore.getState()
-        const sceneData = state.getCurrentSceneData()
-        await db.updateScene(
-          currentScene.uuid,
-          currentScene.name,
-          sceneData,
-          undefined,
-          undefined
-        )
-        state.setCurrentScene({
-          uuid: currentScene.uuid,
-          name: currentScene.name,
-          status: 'saved'
-        })
-        notifications.show({
-          title: 'Успешно!',
-          message: `Сцена "${currentScene.name}" сохранена`,
-          color: 'green',
-          icon: <IconCheck size="1rem" />,
-        })
-      } catch (error) {
-        console.error('Failed to save scene:', error)
-        notifications.show({
-          title: 'Ошибка',
-          message: 'Не удалось сохранить сцену',
-          color: 'red',
-          icon: <IconX size="1rem" />,
-        })
-      }
-    } else {
-      // For new scenes, show modal
-      setSaveSceneModalOpened(true)
-    }
-  }
-
-  const handleSaveScene = async (name: string, description?: string) => {
+  const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
     try {
       const state = useSceneStore.getState()
       const sceneData = state.getCurrentSceneData()
-      const sceneUuid = await db.saveScene(
-        name,
-        sceneData,
-        description,
-        undefined
-      )
+      let sceneUuid: string
+      let successMessage: string
+
+      if (uuid) {
+        // Update existing scene
+        await db.updateScene(uuid, name, sceneData, description, undefined)
+        sceneUuid = uuid
+        successMessage = `Сцена "${name}" сохранена`
+      } else {
+        // Create new scene
+        sceneUuid = await db.saveScene(name, sceneData, description, undefined)
+        successMessage = `Сцена "${name}" сохранена в библиотеку`
+      }
+
       state.setCurrentScene({
         uuid: sceneUuid,
         name: name,
         status: 'saved'
       })
-      setSaveSceneModalOpened(false)
+
       notifications.show({
         title: 'Успешно!',
-        message: `Сцена "${name}" сохранена в библиотеку`,
+        message: successMessage,
         color: 'green',
         icon: <IconCheck size="1rem" />,
       })
+
+      return true
     } catch (error) {
       console.error('Failed to save scene:', error)
       notifications.show({
@@ -224,6 +195,24 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         color: 'red',
         icon: <IconX size="1rem" />,
       })
+      return false
+    }
+  }
+
+  const handleSaveSceneToLibrary = async () => {
+    // If scene already exists (has UUID), save directly
+    if (currentScene?.uuid) {
+      await saveSceneToDatabase(currentScene.name, undefined, currentScene.uuid)
+    } else {
+      // For new scenes, show modal
+      setSaveSceneModalOpened(true)
+    }
+  }
+
+  const handleSaveScene = async (name: string, description?: string) => {
+    const success = await saveSceneToDatabase(name, description)
+    if (success) {
+      setSaveSceneModalOpened(false)
     }
   }
 
