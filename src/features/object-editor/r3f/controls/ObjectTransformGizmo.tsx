@@ -2,35 +2,37 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useObjectStore } from '../../store/objectStore'
-import { useOEObjectSelection } from '../../../../hooks/objectEditor/useOEObjectSelection'
-import type { TransformGizmoProps } from '../../../../entities/r3f/types'
+import { useOEPrimitiveSelection } from '../../../../hooks/objectEditor/useOEPrimitiveSelection.ts'
+import type {
+  PrimitiveTransformGizmoProps
+} from '../../../../entities/r3f/types'
 
-export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
+export const ObjectTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
   const { camera, gl } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedPrimitiveId = useObjectStore(state => state.selectedPrimitiveId)
   const transformMode = useObjectStore(state => state.transformMode)
   const updatePrimitive = useObjectStore(state => state.updatePrimitive)
-  const { selectedObjects } = useOEObjectSelection()
+  const { selectedObjects } = useOEPrimitiveSelection()
 
   const targetObject = selectedObjects.length > 0 ? selectedObjects[0] : undefined
 
-  const handleObjectChange = () => {
+  const handlePrimitiveChange = () => {
     if (!transformControlsRef.current?.object || selectedPrimitiveId === null) return
     const obj = transformControlsRef.current.object
     const position = obj.position
     const rotation = obj.rotation
     const scale = obj.scale
-    
+
     // Update placement for the selected object
     updatePrimitive(selectedPrimitiveId, {
       position: [position.x, position.y, position.z],
       rotation: [rotation.x, rotation.y, rotation.z],
       scale: [scale.x, scale.y, scale.z]
     })
-    
+
     onTransform?.({
-      objectIndex: selectedPrimitiveId,
+      primitiveIndex: selectedPrimitiveId,
       position: [position.x, position.y, position.z],
       rotation: [rotation.x, rotation.y, rotation.z],
       scale: [scale.x, scale.y, scale.z]
@@ -59,13 +61,13 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControl
     const controls = transformControlsRef.current
     if (!controls) return
 
-    controls.addEventListener('objectChange', handleObjectChange)
+    controls.addEventListener('objectChange', handlePrimitiveChange)
     controls.addEventListener('dragging-changed', handleDraggingChanged)
     controls.addEventListener('mouseDown', handleMouseDown)
     controls.addEventListener('mouseUp', handleMouseUp)
 
     return () => {
-      controls.removeEventListener('objectChange', handleObjectChange)
+      controls.removeEventListener('objectChange', handlePrimitiveChange)
       controls.removeEventListener('dragging-changed', handleDraggingChanged)
       controls.removeEventListener('mouseDown', handleMouseDown)
       controls.removeEventListener('mouseUp', handleMouseUp)

@@ -4,9 +4,9 @@ import {
   useObjectSelectedPrimitiveId,
   useObjectHoveredPrimitiveId
 } from '../../features/object-editor/store/objectStore'
-import type { UseObjectSelectionReturn } from '../../entities/r3f/types'
+import type {UsePrimitiveSelectionReturn} from '../../entities/r3f/types'
 
-export const useOEObjectSelection = (): UseObjectSelectionReturn => {
+export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
   const { scene } = useThree()
   const selectedId = useObjectSelectedPrimitiveId()
   const hoveredId = useObjectHoveredPrimitiveId()

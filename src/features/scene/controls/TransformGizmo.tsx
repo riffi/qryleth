@@ -3,9 +3,9 @@ import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../store/sceneStore'
 import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
-import type { TransformGizmoProps } from '../../../entities/r3f/types'
+import type { ObjectTransformGizmoProps } from '../../../entities/r3f/types'
 
-export const TransformGizmo: React.FC<TransformGizmoProps> = ({ onTransform }) => {
+export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransform }) => {
   const { scene, camera, gl, controls } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedObject = useSceneStore(state => state.selectedObject)

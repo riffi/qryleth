@@ -1,6 +1,7 @@
 
 import type {GfxPrimitive} from "../primitive";
 import type {Vector3} from "../../shared/types/vector3.ts";
+import type {LightingSettings, SceneLayer, SceneObject, SceneObjectInstance} from "../scene/types.ts";
 
 
 
@@ -49,7 +50,7 @@ export interface SceneHoverEvent {
 }
 
 // Transform events
-export interface TransformEvent {
+export interface ObjectTransformEvent {
   objectUuid: string
   instanceId?: string
   placementIndex?: number
@@ -58,18 +59,25 @@ export interface TransformEvent {
   scale: Vector3
 }
 
+export interface PrimitiveTransformEvent {
+  primitiveIndex?: number
+  position: Vector3
+  rotation: Vector3
+  scale: Vector3
+}
+
 
 export interface CompositeObjectProps {
   sceneObject: SceneObject
-  placement: ScenePlacement
-  placementIndex: number
+  instance: SceneObjectInstance
+  instanceIndex: number
   isSelected?: boolean
   isHovered?: boolean
   renderMode?: RenderMode
   visible?: boolean
   onClick?: (event: SceneClickEvent) => void
   onHover?: (event: SceneHoverEvent) => void
-  onTransform?: (event: TransformEvent) => void
+  onTransform?: (event: ObjectTransformEvent) => void
 }
 
 export interface PrimitiveRendererProps {
@@ -83,10 +91,16 @@ export interface LandscapeLayerProps {
 }
 
 
-export interface TransformGizmoProps {
+export interface ObjectTransformGizmoProps {
   selectedObject?: SelectedObject
   transformMode: TransformMode
-  onTransform?: (event: TransformEvent) => void
+  onTransform?: (event: ObjectTransformEvent) => void
+}
+
+export interface PrimitiveTransformGizmoProps {
+  selectedPrimitive?: SelectedObject
+  transformMode: TransformMode
+  onTransform?: (event: PrimitiveTransformEvent) => void
 }
 
 export interface PostProcessingProps {
@@ -98,7 +112,7 @@ export interface PostProcessingProps {
 export interface SceneStoreState {
   // Scene data
   objects: SceneObject[]
-  placements: ScenePlacement[]
+  placements: SceneObjectInstance[]
   layers: SceneLayer[]
   lighting: LightingSettings
 
@@ -189,6 +203,14 @@ export interface UseObjectSelectionReturn {
   isSelected: (objectUuid: string, instanceId?: string) => boolean
   isHovered: (objectUuid: string, instanceId?: string) => boolean
 }
+
+export interface UsePrimitiveSelectionReturn {
+  selectedObjects: THREE.Object3D[]
+  hoveredObjects: THREE.Object3D[]
+  isSelected: (index: number) => boolean
+  isHovered: (index: number) => boolean
+}
+
 
 export interface UseSceneHistoryReturn {
   undo: () => void
