@@ -1,5 +1,6 @@
-import type { Vector3, SceneObject, ScenePlacement, SceneLayer, LightingSettings } from './scene'
-import type {GfxPrimitive} from "../primitive/model/types.ts";
+
+import type {GfxPrimitive} from "../primitive";
+import type {Vector3} from "../../shared/types/vector3.ts";
 
 
 
