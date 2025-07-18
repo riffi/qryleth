@@ -120,7 +120,6 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
         toggleInstanceVisibility: storeToggleInstanceVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
         exportScene,
-        saveSceneToLocalStorage
     } = useSceneActions()
 
     const objects = React.useMemo<ObjectInfo[]>(() => {
