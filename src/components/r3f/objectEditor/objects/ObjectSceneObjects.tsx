@@ -1,5 +1,5 @@
 import React from 'react'
-import { MemoizedCompositeObject } from '../../optimization/OptimizedComponents'
+import { ObjectCompositeObject } from './ObjectCompositeObject'
 import { InstancedObjects, ConditionalInstancedObject } from '../../optimization/InstancedObjects'
 import {
   useObjectObjects,
@@ -59,7 +59,7 @@ export const ObjectSceneObjects: React.FC = () => {
             placementIndex={placementIndex}
             minimumInstancesForOptimization={3}
           >
-            <MemoizedCompositeObject
+            <ObjectCompositeObject
               sceneObject={sceneObject}
               placement={placement}
               placementIndex={placementIndex}

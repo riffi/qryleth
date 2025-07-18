@@ -1,4 +1,5 @@
 import React from 'react'
+import { OrbitControls } from '@react-three/drei'
 import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
 import { Environment } from '../environment/Environment'
 import { ObjectSceneObjects } from './objects/ObjectSceneObjects'
@@ -10,6 +11,7 @@ export const ObjectSceneContent: React.FC = () => {
   return (
     <>
       <color attach="background" args={[lighting.backgroundColor || '#222222']} />
+      <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
       <ObjectSceneLighting />
       <Environment />
       <ObjectSceneObjects />

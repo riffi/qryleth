@@ -64,7 +64,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const obj = objectData || sampleObject
 
     obj.primitives.forEach((prim, index) => {
-      useObjectStore.getState().addObject({ name: `Primitive ${index + 1}`, primitives: [prim] })
+      // Create primitive as separate object with position reset to [0,0,0]
+      const normalizedPrimitive = { ...prim, position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] }
+      useObjectStore.getState().addObject({ name: `Primitive ${index + 1}`, primitives: [normalizedPrimitive] })
       useObjectStore.getState().addPlacement({
         objectIndex: index,
         position: prim.position || [0, 0, 0],
