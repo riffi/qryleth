@@ -11,7 +11,8 @@ import type {PrimitiveRendererProps} from "../../../entities/r3f/types.ts";
 export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   primitive,
   renderMode = 'solid',
-  userData
+  userData,
+  onClick
 }) => {
   const baseMaterialProps = {
     color: primitive.color || '#cccccc',

@@ -12,17 +12,14 @@ export const useOEObjectSelection = (): UseObjectSelectionReturn => {
     if (!selectedObject || !scene) return []
     const objects: THREE.Object3D[] = []
     scene.traverse((child) => {
-      if (child.userData.generated && child.userData.objectIndex === selectedObject.objectIndex) {
-        if (selectedObject.instanceId) {
-          const placementIndex = parseInt(selectedObject.instanceId.split('-')[1])
-          if (child.userData.placementIndex === placementIndex) {
-            objects.push(child)
-          }
-        } else {
-          objects.push(child)
-        }
+      if (child.userData.generated && 
+          child.userData.objectIndex === selectedObject.objectIndex &&
+          child.type === 'Group') { // Only select the Group, not the mesh inside
+        console.log('Found selected group:', child.userData.objectIndex, 'position:', child.position)
+        objects.push(child)
       }
     })
+    console.log('useOEObjectSelection selectedObjects:', objects)
     return objects
   }, [selectedObject, scene])
 

@@ -64,12 +64,12 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const obj = objectData || sampleObject
 
     obj.primitives.forEach((prim, index) => {
-      // Create primitive as separate object with position reset to [0,0,0]
-      const normalizedPrimitive = { ...prim, position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] }
+      // Create primitive with position reset to origin for simpler editing
+      const normalizedPrimitive = { ...prim, position: [0, 0, 0], rotation: [0, 0, 0] }
       useObjectStore.getState().addObject({ name: `Primitive ${index + 1}`, primitives: [normalizedPrimitive] })
       useObjectStore.getState().addPlacement({
         objectIndex: index,
-        position: prim.position || [0, 0, 0],
+        position: prim.position || [0, 0, 0], // Placement gets the primitive position
         rotation: prim.rotation || [0, 0, 0],
         scale: [1, 1, 1]
       })
@@ -83,6 +83,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     if (!objectInfo) return
     const state = useObjectStore.getState()
     const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
+    
+    // Save placement positions as primitive positions
     state.placements.forEach((p, idx) => {
       primitiveStates[idx] = {
         position: (p.position || [0, 0, 0]) as [number, number, number],
@@ -90,6 +92,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
         scale: (p.scale || [1, 1, 1]) as [number, number, number]
       }
     })
+    
     onSave(objectInfo.objectIndex, instanceId, primitiveStates)
     onClose()
   }

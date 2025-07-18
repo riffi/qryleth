@@ -21,13 +21,16 @@ export const ObjectTransformGizmo: React.FC<TransformGizmoProps & { orbitControl
     const position = obj.position
     const rotation = obj.rotation
     const scale = obj.scale
-    if (selectedObject.placementIndex !== undefined) {
-      updatePlacement(selectedObject.placementIndex, {
+    
+    // Update placement for the selected object
+    if (selectedObject.objectIndex !== undefined) {
+      updatePlacement(selectedObject.objectIndex, {
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
         scale: [scale.x, scale.y, scale.z]
       })
     }
+    
     onTransform?.({
       objectIndex: selectedObject.objectIndex,
       instanceId: selectedObject.instanceId,
