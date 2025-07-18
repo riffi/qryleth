@@ -25,6 +25,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   const meshProps = {
     position: primitive.position || [0, 0, 0],
     rotation: primitive.rotation || [0, 0, 0],
+    scale: primitive.scale || [1, 1, 1],
     castShadow: true,
     receiveShadow: true
   }

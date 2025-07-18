@@ -16,6 +16,7 @@ export interface ScenePrimitive {
   emissiveIntensity?: number;
   position?: Vector3;
   rotation?: Vector3;
+  scale?: Vector3;
 }
 
 export interface SceneObject {

@@ -200,7 +200,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       [key: number]: {
         position: [number, number, number]
         rotation: [number, number, number]
-        dimensions: any
+        scale: [number, number, number]
       }
     }
   ) => {
@@ -212,35 +212,20 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       if (!state) return primitive
       const updated = { ...primitive }
       updated.position = [
-        (primitive.position?.[0] || 0) + state.position[0],
-        (primitive.position?.[1] || 0) + state.position[1],
-        (primitive.position?.[2] || 0) + state.position[2]
+        state.position[0],
+        state.position[1],
+        state.position[2]
       ]
       updated.rotation = [
-        (primitive.rotation?.[0] || 0) + state.rotation[0],
-        (primitive.rotation?.[1] || 0) + state.rotation[1],
-        (primitive.rotation?.[2] || 0) + state.rotation[2]
+        state.rotation[0],
+        state.rotation[1],
+        state.rotation[2]
       ]
-
-      if (state.dimensions) {
-        if (primitive.type === 'box') {
-          updated.width = state.dimensions.width || 1
-          updated.height = state.dimensions.height || 1
-          updated.depth = state.dimensions.depth || 1
-        } else if (primitive.type === 'sphere') {
-          updated.radius = state.dimensions.radius || 1
-        } else if (primitive.type === 'cylinder') {
-          updated.radiusTop = state.dimensions.radiusTop || 1
-          updated.radiusBottom = state.dimensions.radiusBottom || 1
-          updated.height = state.dimensions.height || 2
-        } else if (primitive.type === 'cone') {
-          updated.radius = state.dimensions.radius || 1
-          updated.height = state.dimensions.height || 2
-        } else if (primitive.type === 'pyramid') {
-          updated.baseSize = state.dimensions.baseSize || 1
-          updated.height = state.dimensions.height || 2
-        }
-      }
+      updated.scale = [
+        state.scale[0],
+        state.scale[1],
+        state.scale[2]
+      ]
 
       return updated
     })
