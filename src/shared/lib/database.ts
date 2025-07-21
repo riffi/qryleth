@@ -1,17 +1,17 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
-import type {BaseObject, Vector3, Transform} from '../types/common'
+import type {BaseObject, Vector3, Transform, SceneData, GfxObject} from '../types/common'
 import type {OpenAISettingsConnection} from './openAISettings'
 
 // Database interfaces
 export interface SceneRecord extends BaseObject {
   id?: number
-  sceneData: any // JSON data of the scene
+  sceneData: SceneData
 }
 
 export interface ObjectRecord extends BaseObject {
   id?: number
-  objectData: any // JSON data of the object
+  objectData: GfxObject
   layerId?: string
 }
 
@@ -68,7 +68,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Scene methods
-  async saveScene(name: string, sceneData: any, description?: string, thumbnail?: string): Promise<string> {
+  async saveScene(name: string, sceneData: SceneData, description?: string, thumbnail?: string): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
     
@@ -85,7 +85,7 @@ export class SceneLibraryDB extends Dexie {
     return uuid
   }
 
-  async updateScene(uuid: string, name: string, sceneData: any, description?: string, thumbnail?: string): Promise<void> {
+  async updateScene(uuid: string, name: string, sceneData: SceneData, description?: string, thumbnail?: string): Promise<void> {
     await this.scenes.where('uuid').equals(uuid).modify({
       name,
       description,
@@ -110,7 +110,7 @@ export class SceneLibraryDB extends Dexie {
   }
 
   // Object methods
-  async saveObject(name: string, objectData: any, description?: string, thumbnail?: string, layerId?: string): Promise<string> {
+  async saveObject(name: string, objectData: GfxObject, description?: string, thumbnail?: string, layerId?: string): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
     
@@ -142,7 +142,7 @@ export class SceneLibraryDB extends Dexie {
     await this.sceneObjects.where('objectUuid').equals(uuid).delete()
   }
 
-  async updateObject(uuid: string, name: string, objectData: any, description?: string, thumbnail?: string, layerId?: string): Promise<void> {
+  async updateObject(uuid: string, name: string, objectData: GfxObject, description?: string, thumbnail?: string, layerId?: string): Promise<void> {
     await this.objects.where('uuid').equals(uuid).modify({
       name,
       description,
