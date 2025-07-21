@@ -29,13 +29,13 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
 
     if (clickedObject?.userData.generated) {
       const objectUuid = clickedObject.userData.objectUuid
-      const placementUuid = clickedObject.userData.placementUuid
-      const instanceId = placementUuid
+      const objectInstanceUuid = clickedObject.userData.objectInstanceUuid || clickedObject.userData.placementUuid
+      const instanceId = objectInstanceUuid
 
       const clickEvent: SceneClickEvent = {
         objectUuid,
         instanceId,
-        placementIndex: clickedObject.userData.placementIndex,
+        objectInstanceIndex: clickedObject.userData.objectInstanceIndex ?? clickedObject.userData.placementIndex,
         point: event.point ? [event.point.x, event.point.y, event.point.z] : [0, 0, 0],
         object: clickedObject
       }
@@ -59,8 +59,8 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
 
     if (hoveredObject?.userData.generated) {
       const objectUuid = hoveredObject.userData.objectUuid
-      const placementUuid = hoveredObject.userData.placementUuid
-      const instanceId = placementUuid
+      const objectInstanceUuid = hoveredObject.userData.objectInstanceUuid || hoveredObject.userData.placementUuid
+      const instanceId = objectInstanceUuid
 
       setHoveredObject(objectUuid, instanceId)
 

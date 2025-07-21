@@ -6,8 +6,8 @@ import * as THREE from 'three'
 export const useKeyboardShortcuts = () => {
   const { camera } = useThree()
   const selectedObject = useSceneStore(state => state.selectedObject)
-  const placements = useSceneStore(state => state.placements)
-  const updatePlacement = useSceneStore(state => state.updatePlacement)
+  const objectInstances = useSceneStore(state => state.objectInstances)
+  const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
   const saveToHistory = useSceneStore(state => state.saveToHistory)
   const clearSelection = useSceneStore(state => state.clearSelection)
@@ -67,15 +67,15 @@ export const useKeyboardShortcuts = () => {
       }
 
       // Object movement shortcuts (only if object is selected)
-      if (!selectedObject || selectedObject.placementIndex === undefined) return
+      if (!selectedObject || selectedObject.objectInstanceIndex === undefined) return
 
-      const placement = placements[selectedObject.placementIndex]
-      if (!placement) return
+      const objectInstance = objectInstances[selectedObject.objectInstanceIndex]
+      if (!objectInstance) return
 
       const moveAmount = 0.5
       const scaleAmount = 0.1
       let needsUpdate = false
-      const newPlacement = { ...placement }
+      const newObjectInstance = { ...objectInstance }
 
       // Calculate camera-relative movement vectors
       const forward = new THREE.Vector3()
@@ -95,22 +95,22 @@ export const useKeyboardShortcuts = () => {
           if (event.shiftKey) {
             // Move forward relative to camera
             const movement = forward.multiplyScalar(moveAmount)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                (placement.transform?.position?.[0] || 0) + movement.x,
-                (placement.transform?.position?.[1] || 0) + movement.y,
-                (placement.transform?.position?.[2] || 0) + movement.z
+                (objectInstance.transform?.position?.[0] || 0) + movement.x,
+                (objectInstance.transform?.position?.[1] || 0) + movement.y,
+                (objectInstance.transform?.position?.[2] || 0) + movement.z
               ]
             }
           } else {
             // Move up (Y axis)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                placement.transform?.position?.[0] || 0,
-                (placement.transform?.position?.[1] || 0) + moveAmount,
-                placement.transform?.position?.[2] || 0
+                objectInstance.transform?.position?.[0] || 0,
+                (objectInstance.transform?.position?.[1] || 0) + moveAmount,
+                objectInstance.transform?.position?.[2] || 0
               ]
             }
           }
@@ -122,22 +122,22 @@ export const useKeyboardShortcuts = () => {
           if (event.shiftKey) {
             // Move backward relative to camera
             const movement = forward.multiplyScalar(-moveAmount)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                (placement.transform?.position?.[0] || 0) + movement.x,
-                (placement.transform?.position?.[1] || 0) + movement.y,
-                (placement.transform?.position?.[2] || 0) + movement.z
+                (objectInstance.transform?.position?.[0] || 0) + movement.x,
+                (objectInstance.transform?.position?.[1] || 0) + movement.y,
+                (objectInstance.transform?.position?.[2] || 0) + movement.z
               ]
             }
           } else {
             // Move down (Y axis)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                placement.transform?.position?.[0] || 0,
-                (placement.transform?.position?.[1] || 0) - moveAmount,
-                placement.transform?.position?.[2] || 0
+                objectInstance.transform?.position?.[0] || 0,
+                (objectInstance.transform?.position?.[1] || 0) - moveAmount,
+                objectInstance.transform?.position?.[2] || 0
               ]
             }
           }
@@ -149,12 +149,12 @@ export const useKeyboardShortcuts = () => {
           if (!event.shiftKey) {
             // Move left relative to camera
             const movement = right.multiplyScalar(moveAmount)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                (placement.transform?.position?.[0] || 0) + movement.x,
-                (placement.transform?.position?.[1] || 0) + movement.y,
-                (placement.transform?.position?.[2] || 0) + movement.z
+                (objectInstance.transform?.position?.[0] || 0) + movement.x,
+                (objectInstance.transform?.position?.[1] || 0) + movement.y,
+                (objectInstance.transform?.position?.[2] || 0) + movement.z
               ]
             }
             needsUpdate = true
@@ -166,12 +166,12 @@ export const useKeyboardShortcuts = () => {
           if (!event.shiftKey) {
             // Move right relative to camera
             const movement = right.multiplyScalar(-moveAmount)
-            newPlacement.transform = {
-              ...placement.transform,
+            newObjectInstance.transform = {
+              ...objectInstance.transform,
               position: [
-                (placement.transform?.position?.[0] || 0) + movement.x,
-                (placement.transform?.position?.[1] || 0) + movement.y,
-                (placement.transform?.position?.[2] || 0) + movement.z
+                (objectInstance.transform?.position?.[0] || 0) + movement.x,
+                (objectInstance.transform?.position?.[1] || 0) + movement.y,
+                (objectInstance.transform?.position?.[2] || 0) + movement.z
               ]
             }
             needsUpdate = true
@@ -181,10 +181,10 @@ export const useKeyboardShortcuts = () => {
         // Scaling shortcuts
         case '+':
         case '=':
-          const currentScale = placement.transform?.scale || [1, 1, 1]
+          const currentScale = objectInstance.transform?.scale || [1, 1, 1]
           const newScaleUp = currentScale.map(s => Math.max(0.1, s * (1 + scaleAmount)))
-          newPlacement.transform = {
-            ...placement.transform,
+          newObjectInstance.transform = {
+            ...objectInstance.transform,
             scale: newScaleUp as [number, number, number]
           }
           needsUpdate = true
@@ -192,10 +192,10 @@ export const useKeyboardShortcuts = () => {
 
         case '-':
         case '_':
-          const currentScaleDown = placement.transform?.scale || [1, 1, 1]
+          const currentScaleDown = objectInstance.transform?.scale || [1, 1, 1]
           const newScaleDown = currentScaleDown.map(s => Math.max(0.1, s * (1 - scaleAmount)))
-          newPlacement.transform = {
-            ...placement.transform,
+          newObjectInstance.transform = {
+            ...objectInstance.transform,
             scale: newScaleDown as [number, number, number]
           }
           needsUpdate = true
@@ -204,7 +204,7 @@ export const useKeyboardShortcuts = () => {
 
       if (needsUpdate) {
         event.preventDefault()
-        updatePlacement(selectedObject.placementIndex, newPlacement)
+        updateObjectInstance(selectedObject.objectInstanceIndex, newObjectInstance)
         markSceneAsModified()
         saveToHistory()
       }
@@ -217,8 +217,8 @@ export const useKeyboardShortcuts = () => {
     }
   }, [
     selectedObject,
-    placements,
-    updatePlacement,
+    objectInstances,
+    updateObjectInstance,
     markSceneAsModified,
     saveToHistory,
     clearSelection,

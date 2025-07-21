@@ -85,11 +85,12 @@
 4. Обновить `src/features/scene/store/optimizedSelectors.ts`:
    - Селекторы и хуки
 
-### Этап 3: Хуки
+### Этап 3: Хуки – Выполнено
 5. Обновить `src/hooks/r3f/useKeyboardShortcuts.ts`
 6. Обновить `src/hooks/r3f/useUISync.ts`
 7. Обновить `src/hooks/r3f/useObjectSelection.ts`
 8. Обновить `src/hooks/r3f/useSceneEvents.ts`
+Подробности см. в [phases/phase_3_summary.md](phases/phase_3_summary.md).
 
 ### Этап 4: UI компоненты
 9. Обновить все компоненты в `src/features/scene/ui/`

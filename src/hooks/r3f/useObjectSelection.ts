@@ -19,7 +19,8 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
 
         // If specific instance is selected, only include that instance
         if (selectedObject.instanceId) {
-          if (child.userData.placementUuid === selectedObject.instanceId) {
+          const uuid = child.userData.objectInstanceUuid || child.userData.placementUuid
+          if (uuid === selectedObject.instanceId) {
             objects.push(child)
           }
         } else {
@@ -42,7 +43,8 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
 
         // If specific instance is hovered, only include that instance
         if (hoveredObject.instanceId) {
-          if (child.userData.placementUuid === hoveredObject.instanceId) {
+          const uuid = child.userData.objectInstanceUuid || child.userData.placementUuid
+          if (uuid === hoveredObject.instanceId) {
             objects.push(child)
           }
         } else {

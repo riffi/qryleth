@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState } from 'react'
 import { useSceneStore } from '../../features/scene/store/sceneStore'
 import {
   useSceneObjectsOptimized,
-  useScenePlacementsOptimized,
+  useSceneObjectInstancesOptimized,
   useSelectionState
 } from '../../features/scene/store/optimizedSelectors'
 
@@ -12,7 +12,7 @@ import {
  */
 export const useUISync = () => {
   const objects = useSceneObjectsOptimized()
-  const placements = useScenePlacementsOptimized()
+  const objectInstances = useSceneObjectInstancesOptimized()
   const { selectedObject, hoveredObject } = useSelectionState()
 
   const {
@@ -55,16 +55,16 @@ export const useUISync = () => {
       const event = new CustomEvent('r3f:sceneDataChanged', {
         detail: {
           objects,
-          placements,
+          objectInstances,
           objectCount: objects.length,
-          placementCount: placements.length
+          objectInstanceCount: objectInstances.length
         }
       })
       window.dispatchEvent(event)
     }
 
     handleSceneDataChange()
-  }, [objects, placements])
+  }, [objects, objectInstances])
 
   // Listen for UI events and sync with 3D scene
   useEffect(() => {
@@ -152,9 +152,9 @@ export const useR3FSceneListener = () => {
     selectedObject: null as any,
     hoveredObject: null as any,
     objects: [] as any[],
-    placements: [] as any[],
+    objectInstances: [] as any[],
     objectCount: 0,
-    placementCount: 0
+    objectInstanceCount: 0
   })
 
   useEffect(() => {
@@ -176,9 +176,9 @@ export const useR3FSceneListener = () => {
       setSceneState(prev => ({
         ...prev,
         objects: event.detail.objects,
-        placements: event.detail.placements,
+        objectInstances: event.detail.objectInstances,
         objectCount: event.detail.objectCount,
-        placementCount: event.detail.placementCount
+        objectInstanceCount: event.detail.objectInstanceCount
       }))
     }
 
@@ -209,7 +209,7 @@ export const useRealTimeSync = () => {
       const event = new CustomEvent('r3f:realTimeUpdate', {
         detail: {
           objects: state.objects,
-          placements: state.placements,
+          objectInstances: state.objectInstances,
           selectedObject: state.selectedObject,
           hoveredObject: state.hoveredObject,
           viewMode: state.viewMode,
