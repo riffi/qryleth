@@ -101,10 +101,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const objects = useSceneStore(state => state.objects)
   const updateObject = useSceneStore(state => state.updateObject)
 
-  const currentScene = useSceneStore(state => state.currentScene)
+  const sceneMetaData = useSceneStore(state => state.sceneMetaData)
 
   // Get scene store actions
-  const { loadSceneData, clearScene, setCurrentScene } = useSceneStore.getState()
+  const { loadSceneData, clearScene, setSceneMetadata } = useSceneStore.getState()
 
   // Load scene data from database if uuid is provided
   useEffect(() => {
@@ -121,7 +121,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       } else if (isNew) {
         // Clear scene for new scene
         clearScene()
-        setCurrentScene({
+        setSceneMetadata({
           name: 'Новая сцена',
           status: 'draft'
         })
@@ -129,7 +129,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
 
     loadScene()
-  }, [uuid, isNew, loadSceneData, clearScene, setCurrentScene])
+  }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
 
 
   const handleObjectAdded = (objectData: any) => {
@@ -171,7 +171,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         successMessage = `Сцена "${name}" сохранена в библиотеку`
       }
 
-      state.setCurrentScene({
+      state.setSceneMetadata({
         uuid: sceneUuid,
         name: name,
         status: 'saved'
@@ -199,8 +199,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const handleSaveSceneToLibrary = async () => {
     // If scene already exists (has UUID), save directly
-    if (currentScene?.uuid) {
-      await saveSceneToDatabase(currentScene.name, undefined, currentScene.uuid)
+    if (sceneMetaData?.uuid) {
+      await saveSceneToDatabase(sceneMetaData.name, undefined, sceneMetaData.uuid)
     } else {
       // For new scenes, show modal
       setSaveSceneModalOpened(true)
@@ -288,11 +288,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         rightSection={(
           <>
             <Badge
-              color={getStatusColor(currentScene.status as SceneStatus)}
+              color={getStatusColor(sceneMetaData.status as SceneStatus)}
               variant="light"
               size="sm"
             >
-              {getStatusText(currentScene.status as SceneStatus)}
+              {getStatusText(sceneMetaData.status as SceneStatus)}
             </Badge>
 
             <Tooltip label="Отменить (Ctrl+Z)">
@@ -480,7 +480,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         opened={saveSceneModalOpened}
         onClose={() => setSaveSceneModalOpened(false)}
         onSave={handleSaveScene}
-        currentSceneName={currentScene?.name}
+        currentSceneName={sceneMetaData?.name}
       />
     </>
   )

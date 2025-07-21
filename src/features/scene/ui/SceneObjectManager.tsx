@@ -66,7 +66,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const storeLayers = useSceneLayersOptimized()
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
-    const storeCurrentScene = useSceneStore(state => state.currentScene)
+    const sceneMetaData = useSceneStore(state => state.sceneMetaData)
     const {
         removeObject,
         removeObjectInstance,
@@ -82,7 +82,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         toggleObjectVisibility: storeToggleObjectVisibility,
         toggleInstanceVisibility: storeToggleInstanceVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
-        exportScene,
     } = useSceneActions()
 
     const objects = React.useMemo<ObjectInfo[]>(() => {
@@ -108,7 +107,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const layers = storeLayers
     const lighting = storeLighting
     const selectedObject = storeSelectedObject
-    const currentScene = storeCurrentScene
+    const currentScene = sceneMetaData
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
 

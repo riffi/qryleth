@@ -1,8 +1,8 @@
 
-
 import type {Vector3} from "@/shared/types/vector3.ts";
 import type { SceneLayer, SceneObject, SceneObjectInstance} from "../scene/types.ts";
 import type {LightingSettings} from "@/entities/lighting/model/types.ts";
+import type { Object3D } from "three";
 
 
 
@@ -29,7 +29,7 @@ export type TransformMode = 'translate' | 'rotate' | 'scale'
 // Scene status
 export type SceneStatus = 'draft' | 'saved' | 'modified'
 
-export interface CurrentScene {
+export interface SceneMetaData {
   uuid?: string
   name: string
   status: SceneStatus
@@ -42,14 +42,14 @@ export interface SceneClickEvent {
   instanceId?: string
   objectInstanceIndex?: number
   point: Vector3
-  object?: THREE.Object3D
+  object?: Object3D
 }
 
 export interface SceneHoverEvent {
   objectUuid?: string
   instanceId?: string
   objectInstanceIndex?: number
-  object?: THREE.Object3D
+  object?: Object3D
 }
 
 // Transform events
@@ -89,7 +89,7 @@ export interface SceneStoreState {
   gridVisible: boolean
 
   // Scene metadata
-  currentScene: CurrentScene
+  sceneMetaData: SceneMetaData
 
   // History
   history: string[]
@@ -137,7 +137,7 @@ export interface SceneStoreActions {
   toggleGridVisibility: () => void
 
   // Scene management
-  setCurrentScene: (scene: CurrentScene) => void
+  setSceneMetadata: (scene: SceneMetaData) => void
   markSceneAsModified: () => void
   loadSceneData: (data: any, sceneName?: string, sceneUuid?: string) => void
   getCurrentSceneData: () => any

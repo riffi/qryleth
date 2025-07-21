@@ -1,10 +1,10 @@
 import React from 'react'
 import { Group, Text, Badge, ActionIcon, Tooltip, Divider } from '@mantine/core'
 import { IconFileText, IconDeviceFloppy } from '@tabler/icons-react'
-import type { SceneReference } from '../../../types/common'
+import type {SceneMetaData} from "@/entities/r3f/types.ts";
 
 interface SceneHeaderProps {
-    currentScene?: SceneReference
+    sceneMetaData?: SceneMetaData
     onSaveSceneToLibrary?: () => void
 }
 
@@ -29,10 +29,10 @@ const getStatusText = (status: SceneStatus) => {
 }
 
 export const SceneHeader: React.FC<SceneHeaderProps> = ({
-    currentScene,
+    sceneMetaData,
     onSaveSceneToLibrary
 }) => {
-    if (!currentScene) return null
+    if (!sceneMetaData) return null
 
     return (
         <>
@@ -40,14 +40,14 @@ export const SceneHeader: React.FC<SceneHeaderProps> = ({
                 <Group gap="xs" style={{ flex: 1 }}>
                     <IconFileText size={14} color="var(--mantine-color-blue-6)" />
                     <Text size="xs" fw={500} lineClamp={1} style={{ flex: 1 }}>
-                        {currentScene.name}
+                        {sceneMetaData.name}
                     </Text>
                 </Group>
                 <Group gap="xs">
-                    <Badge variant="light" color={getStatusColor(currentScene.status)} size="xs">
-                        {getStatusText(currentScene.status)}
+                    <Badge variant="light" color={getStatusColor(sceneMetaData.status)} size="xs">
+                        {getStatusText(sceneMetaData.status)}
                     </Badge>
-                    {(currentScene.status === 'draft' || currentScene.status === 'modified') && (
+                    {(sceneMetaData.status === 'draft' || sceneMetaData.status === 'modified') && (
                         <Tooltip label="Сохранить сцену в библиотеку">
                             <ActionIcon
                                 size="xs"

@@ -29,11 +29,11 @@ export const useSelectionState = () => {
 
 // Scene metadata selectors
 export const useSceneMetadata = () => {
-    const currentScene = useSceneStore(state => state.currentScene)
+    const sceneMetaData = useSceneStore(state => state.sceneMetaData)
     const lighting = useSceneStore(state => state.lighting)
     return useMemo(
-        () => ({ currentScene, lighting }),
-        [currentScene, lighting]
+        () => ({ currentScene: sceneMetaData, lighting }),
+        [sceneMetaData, lighting]
     )
 }
 

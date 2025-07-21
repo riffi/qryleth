@@ -9,7 +9,7 @@ import type {
   TransformMode,
   SelectedObject,
   HoveredObject,
-  CurrentScene
+  SceneMetaData
 } from '@/entities/r3f/types.ts'
 import type {
   SceneObject,
@@ -37,7 +37,7 @@ const initialLayers: SceneLayer[] = [
   }
 ]
 
-const initialScene: CurrentScene = {
+const initialSceneMetaData: SceneMetaData = {
   name: 'Новая сцена',
   status: 'draft'
 }
@@ -58,7 +58,7 @@ const initialState: SceneStoreState = {
   gridVisible: true,
 
   // Scene metadata
-  currentScene: initialScene,
+  sceneMetaData: initialSceneMetaData,
 
   // History
   history: [],
@@ -302,19 +302,19 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Scene management
-    setCurrentScene: (currentScene: CurrentScene) => {
-      set({ currentScene })
+    setSceneMetadata: (sceneMetaData: SceneMetaData) => {
+      set({ sceneMetaData: sceneMetaData })
     },
 
     markSceneAsModified: () => {
-      const currentScene = get().currentScene
-      if (currentScene.status === 'saved') {
+      const sceneMetaData = get().sceneMetaData
+      if (sceneMetaData.status === 'saved') {
         set({
-          currentScene: { ...currentScene, status: 'modified' }
+          sceneMetaData: { ...sceneMetaData, status: 'modified' }
         })
-      } else if (currentScene.status === 'draft') {
+      } else if (sceneMetaData.status === 'draft') {
         set({
-          currentScene: { ...currentScene, status: 'modified' }
+          sceneMetaData: { ...sceneMetaData, status: 'modified' }
         })
       }
     },
@@ -332,7 +332,7 @@ export const useSceneStore = create<SceneStore>()(
         // Set scene metadata
         if (sceneName && sceneUuid) {
           set({
-            currentScene: {
+            sceneMetaData: {
               uuid: sceneUuid,
               name: sceneName,
               status: 'saved'
@@ -340,7 +340,7 @@ export const useSceneStore = create<SceneStore>()(
           })
         } else {
           set({
-            currentScene: { name: 'Новая сцена', status: 'draft' }
+            sceneMetaData: { name: 'Новая сцена', status: 'draft' }
           })
         }
 
@@ -367,7 +367,7 @@ export const useSceneStore = create<SceneStore>()(
         lighting: initialLighting,
         selectedObject: null,
         hoveredObject: null,
-        currentScene: initialScene,
+        sceneMetaData: initialSceneMetaData,
         history: [],
         historyIndex: -1
       })
@@ -451,4 +451,3 @@ export const useViewMode = () => useSceneStore(state => state.viewMode)
 export const useRenderMode = () => useSceneStore(state => state.renderMode)
 export const useTransformMode = () => useSceneStore(state => state.transformMode)
 export const useGridVisible = () => useSceneStore(state => state.gridVisible)
-export const useCurrentScene = () => useSceneStore(state => state.currentScene)
