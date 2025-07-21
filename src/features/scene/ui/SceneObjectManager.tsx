@@ -33,7 +33,8 @@ import { SceneLayerModals } from './SceneLayerModals.tsx'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
 import { SaveObjectDialog } from '@/shared/ui'
-import type {LightingSettings} from "@/entities/lighting";
+import { useErrorHandler } from '@/shared/hooks'
+import type { LightingSettings } from '@/entities/lighting'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -65,6 +66,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [contextMenuObjectUuid, setContextMenuObjectUuid] = useState<string | null>(null)
     const [saveObjectModalOpened, setSaveObjectModalOpened] = useState(false)
     const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
+    const handleError = useErrorHandler()
 
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
@@ -246,14 +248,24 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             })
             setSaveObjectModalOpened(false)
             setSavingObjectUuid(null)
-        } catch (error) {
-            console.error('Failed to save object:', error)
-            notifications.show({
-                title: 'Ошибка',
-                message: 'Не удалось сохранить объект',
-                color: 'red',
-                icon: <IconX size="1rem" />,
-            })
+        } catch (error: unknown) {
+            if (
+                error &&
+                typeof error === 'object' &&
+                'name' in error &&
+                (error as { name?: string }).name === 'DuplicateNameError'
+            ) {
+                handleError(error, 'Объект с таким именем уже существует')
+            } else if (
+                error &&
+                typeof error === 'object' &&
+                'name' in error &&
+                (error as { name?: string }).name === 'ValidationError'
+            ) {
+                handleError(error, 'Название объекта не может быть пустым')
+            } else {
+                handleError(error, 'Не удалось сохранить объект')
+            }
         }
     }
 

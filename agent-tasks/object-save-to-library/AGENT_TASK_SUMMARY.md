@@ -104,7 +104,7 @@ interface SaveObjectDialogProps {
 
 **Ожидаемый результат**: Переиспользуемый UI компонент для сохранения
 
-### Фаза 4: Error Handling & Notifications ⏳ Запланировано  
+### Фаза 4: Error Handling & Notifications ✅ Выполнено
 **Файлы для изменения**:
 - `src/features/scene/ui/SceneObjectManager.tsx`
 - `src/shared/lib/database.ts`
@@ -139,6 +139,10 @@ try {
 
 **Ожидаемый результат**: Robust error handling и user feedback
 
+Фаза выполнена: добавлен хук `useErrorHandler`, методы `saveObject` и
+`updateObject` теперь проверяют входные данные и уникальность имени. В
+`SceneObjectManager.tsx` используются уведомления с учётом типов ошибок.
+
 ### Фаза 5: Testing & Integration ⏳ Запланировано
 **Файлы для тестирования**: Все измененные компоненты
 
@@ -170,13 +174,14 @@ try {
 - [x] **Фаза 1**: Database Layer - Выполнено
 - [x] **Фаза 2**: Scene Object Manager Integration - Выполнено
 - [x] **Фаза 3**: Save Dialog Component - Выполнено
-- [ ] **Фаза 4**: Error Handling & Notifications - Запланировано
+- [x] **Фаза 4**: Error Handling & Notifications - Выполнено
 - [ ] **Фаза 5**: Testing & Integration - Запланировано
 
 ## Ссылки на выполненные фазы
 - [Фаза 1](phases/phase_1_summary.md)
 - [Фаза 2](phases/phase_2_summary.md)
 - [Фаза 3](phases/phase_3_summary.md)
+- [Фаза 4](phases/phase_4_summary.md)
 
 ## Примечания для агентов
 

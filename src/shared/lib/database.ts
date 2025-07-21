@@ -111,18 +111,36 @@ export class SceneLibraryDB extends Dexie {
     description?: string,
     thumbnail?: string
   ): Promise<string> {
+    if (!name.trim()) {
+      const error = new Error('Name is required')
+      error.name = 'ValidationError'
+      throw error
+    }
+
+    const existing = await this.objects.where('name').equals(name).first()
+    if (existing) {
+      const error = new Error('Object name must be unique')
+      error.name = 'DuplicateNameError'
+      throw error
+    }
+
     const uuid = uuidv4()
     const now = new Date()
 
-    await this.objects.add({
-      uuid,
-      name,
-      description,
-      thumbnail,
-      objectData,
-      createdAt: now,
-      updatedAt: now
-    })
+    try {
+      await this.objects.add({
+        uuid,
+        name,
+        description,
+        thumbnail,
+        objectData,
+        createdAt: now,
+        updatedAt: now
+      })
+    } catch (e) {
+      console.error('Error saving object to DB', e)
+      throw e
+    }
 
     return uuid
   }
@@ -131,10 +149,24 @@ export class SceneLibraryDB extends Dexie {
     uuid: string,
     updates: Partial<ObjectRecord>
   ): Promise<void> {
-    await this.objects.where('uuid').equals(uuid).modify({
-      ...updates,
-      updatedAt: new Date()
-    })
+    if (updates.name) {
+      const existing = await this.objects.where('name').equals(updates.name).first()
+      if (existing && existing.uuid !== uuid) {
+        const error = new Error('Object name must be unique')
+        error.name = 'DuplicateNameError'
+        throw error
+      }
+    }
+
+    try {
+      await this.objects.where('uuid').equals(uuid).modify({
+        ...updates,
+        updatedAt: new Date()
+      })
+    } catch (e) {
+      console.error('Error updating object in DB', e)
+      throw e
+    }
   }
 
   async getObject(uuid: string): Promise<ObjectRecord | undefined> {
