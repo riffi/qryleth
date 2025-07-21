@@ -17,6 +17,7 @@ import type {
   SceneLayer,
   LightingSettings
 } from '../../../entities/scene/types'
+import { normalizePrimitive } from '../../../entities/primitive'
 
 const initialLighting: LightingSettings = {
   ambientColor: '#404040',
@@ -73,7 +74,8 @@ export const useSceneStore = create<SceneStore>()(
       const normalized = objects.map(obj => ({
         ...obj,
         uuid: obj.uuid || generateUUID(),
-        visible: obj.visible !== false
+        visible: obj.visible !== false,
+        primitives: obj.primitives.map(normalizePrimitive)
       }))
       set({ objects: normalized })
       get().saveToHistory()
@@ -83,7 +85,8 @@ export const useSceneStore = create<SceneStore>()(
       const normalized = {
         ...object,
         uuid: object.uuid || generateUUID(),
-        visible: object.visible !== false
+        visible: object.visible !== false,
+        primitives: object.primitives.map(normalizePrimitive)
       }
       const objects = [...get().objects, normalized]
       set({ objects })
@@ -100,8 +103,12 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     updateObject: (objectUuid: string, updates: Partial<SceneObject>) => {
+      const normalizedUpdates = {
+        ...updates,
+        primitives: updates.primitives?.map(normalizePrimitive)
+      }
       const objects = get().objects.map(obj =>
-        obj.uuid === objectUuid ? { ...obj, ...updates } : obj
+        obj.uuid === objectUuid ? { ...obj, ...normalizedUpdates } : obj
       )
       set({ objects })
       get().saveToHistory()

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { GfxPrimitive } from '../../../entities/primitive'
+import { normalizePrimitive } from '../../../entities/primitive'
 import type { LightingSettings } from '../../../entities/scene/types'
 import type { RenderMode, TransformMode, ViewMode } from '../../../entities/r3f/types'
 
@@ -47,9 +48,12 @@ export const useObjectStore = create<ObjectStore>()(
     selectedPrimitiveId: null,
     hoveredPrimitiveId: null,
 
-    setPrimitives: (primitives: GfxPrimitive[]) => set({ primitives }),
+    setPrimitives: (primitives: GfxPrimitive[]) =>
+      set({ primitives: primitives.map(normalizePrimitive) }),
     addPrimitive: (primitive: GfxPrimitive) =>
-      set(state => ({ primitives: [...state.primitives, primitive] })),
+      set(state => ({
+        primitives: [...state.primitives, normalizePrimitive(primitive)]
+      })),
     updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) =>
       set(state => ({ primitives: state.primitives.map((p, i) => (i === index ? { ...p, ...updates } : p)) })),
     setLighting: (lighting: LightingSettings) => set({ lighting }),
