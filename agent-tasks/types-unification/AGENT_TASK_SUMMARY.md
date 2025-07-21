@@ -232,7 +232,7 @@ import type { SceneRecord, ObjectRecord } from '@/shared/api'
 
 **Файлы для создания/обновления**:
 - Все `index.ts` файлы в type-директориях
-- `docs/TYPES_GUIDE.md` - руководство по типам
+- `spec/TYPES_GUIDE.md` - руководство по типам
 - Обновить imports в примерах документации
 
 **Барельные экспорты по уровням**:
