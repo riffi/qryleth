@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import MainLayout from '../widgets/layouts/MainLayout'
+import MainLayout from '@/widgets/layouts/MainLayout'
 import { ObjectEditorR3F } from '../features/object-editor/ui/ObjectEditorR3F'
 import { db, type ObjectRecord } from '../shared/lib/database'
 
