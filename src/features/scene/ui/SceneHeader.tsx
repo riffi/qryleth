@@ -1,7 +1,7 @@
 import React from 'react'
 import { Group, Text, Badge, ActionIcon, Tooltip, Divider } from '@mantine/core'
 import { IconFileText, IconDeviceFloppy } from '@tabler/icons-react'
-import type {SceneMetaData} from "@/entities/r3f/types.ts";
+import type { SceneMetaData } from '@/features/scene/model/store-types'
 
 interface SceneHeaderProps {
     sceneMetaData?: SceneMetaData

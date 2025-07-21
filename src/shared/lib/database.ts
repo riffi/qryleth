@@ -4,43 +4,14 @@ import type {OpenAISettingsConnection} from './openAISettings'
 import type {SceneData} from "@/entities/scene/types.ts";
 import type {GfxObject} from "@/entities/object";
 
-export interface BaseDbRecord {
-  id?: number
-  uuid: string
-  name: string
-  description?: string
-  thumbnail?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-
-export interface SceneRecord extends BaseDbRecord {
-  sceneData: SceneData
-}
-
-export interface ObjectRecord extends BaseDbRecord {
-  objectData: GfxObject
-}
-
-export interface ConnectionRecord {
-  id?: number
-  connectionId: string
-  name: string
-  provider: string
-  url: string
-  model: string
-  apiKey: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface SettingsRecord {
-  id?: number
-  key: string
-  value: string
-  updatedAt: Date
-}
+// Re-export types from new shared/api location for backward compatibility
+export type {
+  BaseDbRecord,
+  SceneRecord,
+  ObjectRecord,
+  ConnectionRecord,
+  SettingsRecord
+} from '@/shared/api/types'
 
 // Database class
 export class SceneLibraryDB extends Dexie {

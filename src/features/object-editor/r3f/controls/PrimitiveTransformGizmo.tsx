@@ -5,8 +5,9 @@ import { useObjectStore } from '../../store/objectStore'
 import { useOEPrimitiveSelection } from '@/hooks/objectEditor/useOEPrimitiveSelection.ts'
 import type {
   PrimitiveTransformEvent,
-  SelectedObject, TransformMode
-} from '@/entities/r3f/types.ts'
+  SelectedObject,
+  TransformMode
+} from '@/shared/types/ui'
 
 export interface PrimitiveTransformGizmoProps {
   selectedPrimitive?: SelectedObject

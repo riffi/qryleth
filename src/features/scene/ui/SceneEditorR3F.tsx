@@ -17,7 +17,7 @@ import { useSceneHistory } from '@/hooks/r3f/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
-import type { SceneStatus } from '@/entities/r3f/types'
+import type { SceneStatus } from '@/features/scene/model/store-types'
 import { Link } from 'react-router-dom'
 import { generateUUID } from '@/shared/lib/uuid'
 import {

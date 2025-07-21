@@ -1,5 +1,5 @@
 import React from 'react'
-import type {GfxPrimitive} from "../../../entities/primitive/model/types.ts";
+import type {GfxPrimitive} from '@/entities/primitive';
 
 interface Cone3DProps {
   primitive: GfxPrimitive

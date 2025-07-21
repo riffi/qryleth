@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
 import { Primitive3D } from '../primitives/Primitive3D'
-import type {SceneObjectInstance} from "../../../entities/scene/types.ts";
+import type { SceneObjectInstance } from '@/entities/scene/types'
 import {
   useObjectInstanceCounts,
   useSceneObjectsOptimized,
   useSceneObjectInstancesOptimized
-} from '../../../features/scene/store/optimizedSelectors.ts'
+} from '@/features/scene/store/optimizedSelectors'
 
 interface InstancedObjectsProps {
   minimumInstancesForOptimization?: number // Minimum instances before using instancing
