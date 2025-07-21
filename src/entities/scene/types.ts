@@ -4,7 +4,7 @@ import type {GfxLayer} from "../layer";
 
 export interface SceneObject extends GfxObject{
   layerId?: string;
-  /** Controls visibility of all placements of this object */
+  /** Controls visibility of all object instances of this object */
   visible?: boolean;
 }
 

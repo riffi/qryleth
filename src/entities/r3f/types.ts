@@ -9,12 +9,18 @@ import type {LightingSettings, SceneLayer, SceneObject, SceneObjectInstance} fro
 export interface SelectedObject {
   objectUuid: string
   instanceId?: string
+  /** Index of the object instance within scene */
+  objectInstanceIndex?: number
+  /** @deprecated use objectInstanceIndex */
   placementIndex?: number
 }
 
 export interface HoveredObject {
   objectUuid: string
   instanceId?: string
+  /** Index of the hovered instance */
+  objectInstanceIndex?: number
+  /** @deprecated use objectInstanceIndex */
   placementIndex?: number
 }
 
@@ -37,6 +43,8 @@ export interface CurrentScene {
 export interface SceneClickEvent {
   objectUuid?: string
   instanceId?: string
+  objectInstanceIndex?: number
+  /** @deprecated use objectInstanceIndex */
   placementIndex?: number
   point: Vector3
   object?: THREE.Object3D
@@ -45,6 +53,8 @@ export interface SceneClickEvent {
 export interface SceneHoverEvent {
   objectUuid?: string
   instanceId?: string
+  objectInstanceIndex?: number
+  /** @deprecated use objectInstanceIndex */
   placementIndex?: number
   object?: THREE.Object3D
 }
@@ -53,6 +63,8 @@ export interface SceneHoverEvent {
 export interface ObjectTransformEvent {
   objectUuid: string
   instanceId?: string
+  objectInstanceIndex?: number
+  /** @deprecated use objectInstanceIndex */
   placementIndex?: number
   position: Vector3
   rotation: Vector3
@@ -112,6 +124,9 @@ export interface PostProcessingProps {
 export interface SceneStoreState {
   // Scene data
   objects: SceneObject[]
+  /** Object instances placed within the scene */
+  objectInstances: SceneObjectInstance[]
+  /** @deprecated use objectInstances */
   placements: SceneObjectInstance[]
   layers: SceneLayer[]
   lighting: LightingSettings
@@ -139,10 +154,18 @@ export interface SceneStoreActions {
   removeObject: (objectUuid: string) => void
   updateObject: (objectUuid: string, updates: Partial<SceneObject>) => void
 
-  // Placement management
+  // Object instance management
+  setObjectInstances: (objectInstances: ScenePlacement[]) => void
+  addObjectInstance: (objectInstance: ScenePlacement) => void
+  updateObjectInstance: (index: number, updates: Partial<ScenePlacement>) => void
+  removeObjectInstance: (index: number) => void
+  /** @deprecated use setObjectInstances */
   setPlacements: (placements: ScenePlacement[]) => void
+  /** @deprecated use addObjectInstance */
   addPlacement: (placement: ScenePlacement) => void
+  /** @deprecated use updateObjectInstance */
   updatePlacement: (index: number, updates: Partial<ScenePlacement>) => void
+  /** @deprecated use removeObjectInstance */
   removePlacement: (index: number) => void
 
   // Layer management
