@@ -5,7 +5,7 @@
 ## Scene
 Хранилище `sceneStore` (`src/features/scene/store/sceneStore.ts`) оперирует состоянием редактора сцены. В нём хранится:
 - **objects: SceneObject[]** – описанные в сцене объекты.
-- **placements: SceneObjectInstance[]** – инстансы объектов с позицией.
+- **objectInstances: SceneObjectInstance[]** – инстансы объектов с позицией.
 - **layers: SceneLayer[]** – слои сцены и их видимость.
 - **lighting: LightingSettings** – настройки освещения.
 - **viewMode: ViewMode** – режим перемещения камеры.

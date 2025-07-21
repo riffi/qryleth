@@ -13,7 +13,7 @@
 
 ## Используемые типы
 SceneEditor оперирует типами из [types.md](types.md):
-- **SceneObject**, **SceneObjectInstance** – описывают объекты и их инстансы на сцене; используются при добавлении объектов и обновлении размещений.
+- **SceneObject**, **SceneObjectInstance** – описывают объекты и их инстансы на сцене; используются при добавлении объектов и обновлении инстансов.
 - **SceneResponse** – применяется для загрузки сгенерированной ИИ сцены целиком (`handleSceneGenerated`).
 - **SceneStatus** и **CurrentScene** – отражают состояние текущей сцены и выводятся в шапке редактора.
 - **ViewMode**, **RenderMode**, **TransformMode** – определяют режим камеры, способ рендера и активный инструмент.
@@ -21,7 +21,7 @@ SceneEditor оперирует типами из [types.md](types.md):
 
 ## Данные из хранилища
 Состояние редактора поступает из `sceneStore` (см. [store.md](store.md)):
-- **objects**, **placements**, **layers**, **lighting** – основное содержимое сцены. Используются для рендера (`Scene3D`) и в панели `ObjectManager`.
+- **objects**, **objectInstances**, **layers**, **lighting** – основное содержимое сцены. Используются для рендера (`Scene3D`) и в панели `ObjectManager`.
 - **viewMode**, **renderMode**, **transformMode**, **gridVisible** – параметры управления камерой и отображением, меняются через панель инструментов.
 - **selectedObject**, **hoveredObject** – позволяют подсвечивать и редактировать объекты.
 - **currentScene** – метаданные (имя, статус, uuid) для отображения статуса и сохранения сцены.
