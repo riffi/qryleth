@@ -7,7 +7,7 @@ import { Cone3D } from './Cone3D'
 import { Pyramid3D } from './Pyramid3D'
 import { Plane3D } from './Plane3D'
 import type { RenderMode } from '@/shared/types/ui'
-import type {GfxPrimitive} from "../../../entities/primitive";
+import type { GfxPrimitive } from '@/entities/primitive'
 
 export interface PrimitiveRendererProps {
   primitive: GfxPrimitive
