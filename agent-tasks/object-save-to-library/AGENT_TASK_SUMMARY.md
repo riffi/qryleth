@@ -76,7 +76,7 @@ await database.saveObject(userInputName, gfxObject, userInputDescription);
 
 **Ожидаемый результат**: Рабочий функционал сохранения из ObjectManager
 
-### Фаза 3: Save Dialog Component ⏳ Запланировано
+### Фаза 3: Save Dialog Component ✅ Выполнено
 **Файлы для создания**: 
 - `src/shared/ui/SaveObjectDialog.tsx` 
 - `src/shared/ui/index.ts` (экспорт)
@@ -169,13 +169,14 @@ try {
 -## Статус выполнения фаз
 - [x] **Фаза 1**: Database Layer - Выполнено
 - [x] **Фаза 2**: Scene Object Manager Integration - Выполнено
-- [ ] **Фаза 3**: Save Dialog Component - Запланировано
+- [x] **Фаза 3**: Save Dialog Component - Выполнено
 - [ ] **Фаза 4**: Error Handling & Notifications - Запланировано
 - [ ] **Фаза 5**: Testing & Integration - Запланировано
 
 ## Ссылки на выполненные фазы
 - [Фаза 1](phases/phase_1_summary.md)
 - [Фаза 2](phases/phase_2_summary.md)
+- [Фаза 3](phases/phase_3_summary.md)
 
 ## Примечания для агентов
 

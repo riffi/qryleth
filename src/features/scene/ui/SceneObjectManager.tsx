@@ -20,9 +20,6 @@ import {
     ActionIcon,
     Tooltip,
     Divider,
-    Modal,
-    TextInput,
-    Textarea,
     Button
 } from '@mantine/core'
 import { IconPlus, IconCheck, IconX } from '@tabler/icons-react'
@@ -35,6 +32,7 @@ import { SceneLayerItem } from './SceneLayerItem.tsx'
 import { SceneLayerModals } from './SceneLayerModals.tsx'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
+import { SaveObjectDialog } from '@/shared/ui'
 import type {LightingSettings} from "@/entities/lighting";
 
 interface ObjectManagerProps {
@@ -496,14 +494,14 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 onMoveToLayer={handleMoveToLayer}
             />
 
-            <SaveObjectModal
+            <SaveObjectDialog
                 opened={saveObjectModalOpened}
                 onClose={() => {
                     setSaveObjectModalOpened(false)
                     setSavingObjectUuid(null)
                 }}
                 onSave={handleSaveObject}
-                currentObjectName={
+                objectName={
                     savingObjectUuid ? sceneObjects.find(o => o.uuid === savingObjectUuid)?.name : undefined
                 }
             />
@@ -513,70 +511,3 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
 // Экспортируем интерфейс для использования в других компонентах
 export { type ObjectInfo }
-
-interface SaveObjectModalProps {
-    opened: boolean
-    onClose: () => void
-    onSave: (name: string, description?: string) => void
-    currentObjectName?: string
-}
-
-const SaveObjectModal: React.FC<SaveObjectModalProps> = ({ opened, onClose, onSave, currentObjectName }) => {
-    const [objectName, setObjectName] = useState('')
-    const [objectDescription, setObjectDescription] = useState('')
-
-    const handleSave = () => {
-        if (!objectName.trim()) {
-            notifications.show({
-                title: 'Ошибка',
-                message: 'Введите название объекта',
-                color: 'red',
-                icon: <IconX size="1rem" />,
-            })
-            return
-        }
-
-        onSave(objectName.trim(), objectDescription.trim() || undefined)
-        setObjectName('')
-        setObjectDescription('')
-    }
-
-    const handleClose = () => {
-        setObjectName('')
-        setObjectDescription('')
-        onClose()
-    }
-
-    React.useEffect(() => {
-        if (opened && currentObjectName && !objectName) {
-            setObjectName(currentObjectName)
-        }
-    }, [opened, currentObjectName, objectName])
-
-    return (
-        <Modal opened={opened} onClose={handleClose} title="Сохранить объект" size="md">
-            <Stack gap="md">
-                <TextInput
-                    label="Название объекта"
-                    placeholder="Введите название..."
-                    value={objectName}
-                    onChange={(e) => setObjectName(e.currentTarget.value)}
-                    required
-                />
-                <Textarea
-                    label="Описание (необязательно)"
-                    placeholder="Краткое описание объекта..."
-                    value={objectDescription}
-                    onChange={(e) => setObjectDescription(e.currentTarget.value)}
-                    minRows={3}
-                />
-                <Group justify="flex-end" mt="md">
-                    <Button variant="subtle" onClick={handleClose}>
-                        Отмена
-                    </Button>
-                    <Button onClick={handleSave}>Сохранить</Button>
-                </Group>
-            </Stack>
-        </Modal>
-    )
-}
