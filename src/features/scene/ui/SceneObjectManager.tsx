@@ -120,7 +120,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const layers = storeLayers
     const lighting = storeLighting
     const selectedObject = storeSelectedObject
-    const currentScene = sceneMetaData
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
 
@@ -401,7 +400,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     </Title>
 
                     <SceneHeader
-                        currentScene={currentScene}
+                        sceneMetaData={sceneMetaData}
                         onSaveSceneToLibrary={handleSaveSceneToLibraryInternal}
                     />
 
