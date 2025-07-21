@@ -1,6 +1,7 @@
-import type {GfxObject} from "../lighting";
+import type {LightingSettings} from "../lighting";
 import type {GfxObjectInstance} from "../objectInstance";
 import type {GfxLayer} from "../layer";
+import type {GfxObject} from "@/entities/object";
 
 export interface SceneObject extends GfxObject{
   layerId?: string;
@@ -19,5 +20,10 @@ export interface SceneLayer extends GfxLayer{
   position: number;
 }
 
-
+export interface SceneData {
+  objects: SceneObject[]
+  objectInstances: SceneObjectInstance[]
+  layers: SceneLayer[]
+  lighting: LightingSettings
+}
 

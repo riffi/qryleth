@@ -15,9 +15,4 @@ export interface BaseObject {
   updatedAt: Date
 }
 
-export interface SceneData {
-  objects: SceneObject[]
-  objectInstances: SceneObjectInstance[]
-  layers: SceneLayer[]
-  lighting: LightingSettings
-}
+
