@@ -82,13 +82,6 @@ export interface CompositeObjectProps {
   onTransform?: (event: ObjectTransformEvent) => void
 }
 
-export interface PrimitiveRendererProps {
-  primitive: GfxPrimitive
-  renderMode?: RenderMode
-  userData?: any
-}
-
-
 
 
 
