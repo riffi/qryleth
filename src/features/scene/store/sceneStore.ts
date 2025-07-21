@@ -17,7 +17,7 @@ import type {
   SceneLayer
 } from '@/entities/scene/types.ts'
 import { normalizePrimitive } from '@/entities/primitive'
-import {LightingSettings} from "@/entities/lighting"
+import type {LightingSettings} from "@/entities/lighting"
 
 const initialLighting: LightingSettings = {
   ambientColor: '#404040',
