@@ -88,9 +88,7 @@ export interface PrimitiveRendererProps {
   userData?: any
 }
 
-export interface LandscapeLayerProps {
-  layer: SceneLayer
-}
+
 
 
 
