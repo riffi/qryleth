@@ -69,18 +69,7 @@ export interface PrimitiveTransformEvent {
 }
 
 
-export interface CompositeObjectProps {
-  sceneObject: SceneObject
-  instance: SceneObjectInstance
-  instanceIndex: number
-  isSelected?: boolean
-  isHovered?: boolean
-  renderMode?: RenderMode
-  visible?: boolean
-  onClick?: (event: SceneClickEvent) => void
-  onHover?: (event: SceneHoverEvent) => void
-  onTransform?: (event: ObjectTransformEvent) => void
-}
+
 
 
 

@@ -1,9 +1,28 @@
 import React, { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { CompositeObjectProps } from '../../../entities/r3f/types'
 import { PrimitiveRenderer } from '../../../shared/r3f/primitives/PrimitiveRenderer'
 import { useRenderMode } from '../store/sceneStore'
+import type {SceneObject, SceneObjectInstance} from "../../../entities/scene/types.ts";
+import type {
+  ObjectTransformEvent,
+  RenderMode,
+  SceneClickEvent,
+  SceneHoverEvent
+} from "../../../entities/r3f/types.ts";
+
+export interface CompositeObjectProps {
+  sceneObject: SceneObject
+  instance: SceneObjectInstance
+  instanceIndex: number
+  isSelected?: boolean
+  isHovered?: boolean
+  renderMode?: RenderMode
+  visible?: boolean
+  onClick?: (event: SceneClickEvent) => void
+  onHover?: (event: SceneHoverEvent) => void
+  onTransform?: (event: ObjectTransformEvent) => void
+}
 
 export const CompositeObject: React.FC<CompositeObjectProps> = ({
   sceneObject,
