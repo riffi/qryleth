@@ -15,7 +15,7 @@ export interface BaseDbRecord {
 }
 
 
-// Database interfaces
+
 export interface SceneRecord extends BaseDbRecord {
   sceneData: SceneData
 }
