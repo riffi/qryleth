@@ -44,6 +44,8 @@ const initialScene: CurrentScene = {
 const initialState: SceneStoreState = {
   // Scene data
   objects: [],
+  objectInstances: [],
+  /** @deprecated Use objectInstances */
   placements: [],
   layers: initialLayers,
   lighting: initialLighting,
@@ -93,8 +95,8 @@ export const useSceneStore = create<SceneStore>()(
 
     removeObject: (objectUuid: string) => {
       const objects = get().objects.filter(obj => obj.uuid !== objectUuid)
-      const placements = get().placements.filter(p => p.objectUuid !== objectUuid)
-      set({ objects, placements })
+      const filtered = get().objectInstances.filter(p => p.objectUuid !== objectUuid)
+      set({ objects, objectInstances: filtered, placements: filtered })
       get().saveToHistory()
       get().markSceneAsModified()
     },
@@ -108,43 +110,63 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    // Placement management
-    setPlacements: (placements: SceneObjectInstance[]) => {
-      const normalized = placements.map(p => ({
+    // Object instance management
+    setObjectInstances: (objectInstances: SceneObjectInstance[]) => {
+      const normalized = objectInstances.map(p => ({
         ...p,
         uuid: p.uuid || generateUUID(),
         visible: p.visible !== false
       }))
-      set({ placements: normalized })
+      set({ objectInstances: normalized, placements: normalized })
       get().saveToHistory()
     },
 
-    addPlacement: (placement: SceneObjectInstance) => {
+    addObjectInstance: (objectInstance: SceneObjectInstance) => {
       const normalized = {
-        ...placement,
-        uuid: placement.uuid || generateUUID(),
-        visible: placement.visible !== false
+        ...objectInstance,
+        uuid: objectInstance.uuid || generateUUID(),
+        visible: objectInstance.visible !== false
       }
-      const placements = [...get().placements, normalized]
-      set({ placements })
+      const list = [...get().objectInstances, normalized]
+      set({ objectInstances: list, placements: list })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
-    updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => {
-      const placements = get().placements.map((placement, i) =>
-        i === index ? { ...placement, ...updates } : placement
+    updateObjectInstance: (index: number, updates: Partial<SceneObjectInstance>) => {
+      const list = get().objectInstances.map((instance, i) =>
+        i === index ? { ...instance, ...updates } : instance
       )
-      set({ placements })
+      set({ objectInstances: list, placements: list })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
-    removePlacement: (index: number) => {
-      const placements = get().placements.filter((_, i) => i !== index)
-      set({ placements })
+    removeObjectInstance: (index: number) => {
+      const list = get().objectInstances.filter((_, i) => i !== index)
+      set({ objectInstances: list, placements: list })
       get().saveToHistory()
       get().markSceneAsModified()
+    },
+
+    /** @deprecated Use setObjectInstances */
+    setPlacements: (placements: SceneObjectInstance[]) => {
+      get().setObjectInstances(placements)
+    },
+
+    /** @deprecated Use addObjectInstance */
+    addPlacement: (placement: SceneObjectInstance) => {
+      get().addObjectInstance(placement)
+    },
+
+    /** @deprecated Use updateObjectInstance */
+    updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => {
+      get().updateObjectInstance(index, updates)
+    },
+
+    /** @deprecated Use removeObjectInstance */
+    removePlacement: (index: number) => {
+      get().removeObjectInstance(index)
     },
 
     // Layer management
@@ -203,13 +225,12 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     toggleInstanceVisibility: (objectUuid: string, instanceId: string) => {
-      // instanceId теперь это просто placementUuid
-      const placements = get().placements.map(placement =>
-        placement.uuid === instanceId
-          ? { ...placement, visible: placement.visible === false ? true : !placement.visible }
-          : placement
+      const list = get().objectInstances.map(inst =>
+        inst.uuid === instanceId
+          ? { ...inst, visible: inst.visible === false ? true : !inst.visible }
+          : inst
       )
-      set({ placements })
+      set({ objectInstances: list, placements: list })
       get().markSceneAsModified()
     },
 
@@ -238,18 +259,18 @@ export const useSceneStore = create<SceneStore>()(
 
     // Selection
     selectObject: (objectUuid: string, instanceId?: string) => {
-      let placementIndex: number | undefined = undefined
+      let objectInstanceIndex: number | undefined = undefined
       if (instanceId) {
-        // instanceId теперь это просто placementUuid
-        const placements = get().placements
-        placementIndex = placements.findIndex(p => p.uuid === instanceId)
-        if (placementIndex === -1) placementIndex = undefined
+        const instances = get().objectInstances
+        objectInstanceIndex = instances.findIndex(p => p.uuid === instanceId)
+        if (objectInstanceIndex === -1) objectInstanceIndex = undefined
       }
-      
+
       const selectedObject: SelectedObject = {
         objectUuid,
         instanceId,
-        placementIndex
+        objectInstanceIndex,
+        placementIndex: objectInstanceIndex
       }
       set({ selectedObject })
     },
@@ -259,18 +280,18 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     setHoveredObject: (objectUuid: string, instanceId?: string) => {
-      let placementIndex: number | undefined = undefined
+      let objectInstanceIndex: number | undefined = undefined
       if (instanceId) {
-        // instanceId теперь это просто placementUuid
-        const placements = get().placements
-        placementIndex = placements.findIndex(p => p.uuid === instanceId)
-        if (placementIndex === -1) placementIndex = undefined
+        const instances = get().objectInstances
+        objectInstanceIndex = instances.findIndex(p => p.uuid === instanceId)
+        if (objectInstanceIndex === -1) objectInstanceIndex = undefined
       }
-      
+
       const hoveredObject: HoveredObject = {
         objectUuid,
         instanceId,
-        placementIndex
+        objectInstanceIndex,
+        placementIndex: objectInstanceIndex
       }
       set({ hoveredObject })
     },
@@ -320,7 +341,7 @@ export const useSceneStore = create<SceneStore>()(
 
         // Load scene data
         if (data.objects) state.setObjects(data.objects)
-        if (data.placements) state.setPlacements(data.placements)
+        if (data.placements) state.setObjectInstances(data.placements)
         if (data.layers) state.setLayers(data.layers)
         if (data.lighting) state.setLighting(data.lighting)
 
@@ -348,7 +369,8 @@ export const useSceneStore = create<SceneStore>()(
       const state = get()
       return {
         objects: state.objects,
-        placements: state.placements,
+        objectInstances: state.objectInstances,
+        placements: state.objectInstances,
         layers: state.layers,
         lighting: state.lighting
       }
@@ -357,6 +379,7 @@ export const useSceneStore = create<SceneStore>()(
     clearScene: () => {
       set({
         objects: [],
+        objectInstances: [],
         placements: [],
         layers: initialLayers,
         lighting: initialLighting,
@@ -436,7 +459,11 @@ export const useSceneStore = create<SceneStore>()(
 
 // Selectors for optimized subscriptions
 export const useSceneObjects = () => useSceneStore(state => state.objects)
-export const useScenePlacements = () => useSceneStore(state => state.placements)
+export const useSceneObjectInstances = () =>
+  useSceneStore(state => state.objectInstances)
+/** @deprecated Use useSceneObjectInstances */
+export const useScenePlacements = () =>
+  useSceneStore(state => state.objectInstances)
 export const useSceneLayers = () => useSceneStore(state => state.layers)
 export const useSceneLighting = () => useSceneStore(state => state.lighting)
 export const useSelectedObject = () => useSceneStore(state => state.selectedObject)

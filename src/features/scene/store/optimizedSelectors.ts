@@ -8,8 +8,11 @@ import { useMemo } from 'react'
 export const useSceneObjectsOptimized = () =>
   useSceneStore(state => state.objects, shallow)
 
+export const useSceneObjectInstancesOptimized = () =>
+  useSceneStore(state => state.objectInstances, shallow)
+/** @deprecated Use useSceneObjectInstancesOptimized */
 export const useScenePlacementsOptimized = () =>
-  useSceneStore(state => state.placements, shallow)
+  useSceneStore(state => state.objectInstances, shallow)
 
 export const useSceneLayersOptimized = () =>
   useSceneStore(state => state.layers, shallow)
@@ -38,17 +41,16 @@ export const useSceneMetadata = () => {
 }
 
 export const useObjectInstanceCounts = () => {
-  // Забираем только placements — примитив (array) со стабильной ссылкой
-  const placements = useSceneStore(s => s.placements)
+  const instances = useSceneStore(s => s.objectInstances)
 
   // Считаем один раз за рендер
   return useMemo(() => {
     const counts: Record<number, number> = {}
-    for (const p of placements) {
+    for (const p of instances) {
       counts[p.objectIndex] = (counts[p.objectIndex] || 0) + 1
     }
-    return counts           // ← одна и та же ссылка внутри коммита
-  }, [placements])
+    return counts
+  }, [instances])
 }
 
 
@@ -62,9 +64,17 @@ export const useSceneActions = () => {
     addObject: store.addObject,
     removeObject: store.removeObject,
     updateObject: store.updateObject,
+    setObjectInstances: store.setObjectInstances,
+    addObjectInstance: store.addObjectInstance,
+    updateObjectInstance: store.updateObjectInstance,
+    removeObjectInstance: store.removeObjectInstance,
+    /** @deprecated */
     setPlacements: store.setPlacements,
+    /** @deprecated */
     addPlacement: store.addPlacement,
+    /** @deprecated */
     updatePlacement: store.updatePlacement,
+    /** @deprecated */
     removePlacement: store.removePlacement,
     setLayers: store.setLayers,
     createLayer: store.createLayer,
