@@ -1,6 +1,6 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
-import type {BaseObject, Transform, GfxObject} from '../types/common'
+import type {BaseObject,  GfxObject} from '../types/common'
 import type {OpenAISettingsConnection} from './openAISettings'
 import type {SceneData} from "@/entities/scene/types.ts";
 
@@ -14,13 +14,6 @@ export interface ObjectRecord extends BaseObject {
   id?: number
   objectData: GfxObject
   layerId?: string
-}
-
-export interface SceneObjectRelation extends Transform {
-  id?: number
-  sceneUuid: string
-  objectUuid: string
-  createdAt: Date
 }
 
 export interface ConnectionRecord {
@@ -46,7 +39,6 @@ export interface SettingsRecord {
 export class SceneLibraryDB extends Dexie {
   scenes!: Table<SceneRecord>
   objects!: Table<ObjectRecord>
-  sceneObjects!: Table<SceneObjectRelation>
   connections!: Table<ConnectionRecord>
   settings!: Table<SettingsRecord>
 
@@ -56,13 +48,11 @@ export class SceneLibraryDB extends Dexie {
     this.version(1).stores({
       scenes: '++id, uuid, name, createdAt, updatedAt',
       objects: '++id, uuid, name, createdAt, updatedAt',
-      sceneObjects: '++id, sceneUuid, objectUuid, createdAt'
     })
 
     this.version(2).stores({
       scenes: '++id, uuid, name, createdAt, updatedAt',
       objects: '++id, uuid, name, createdAt, updatedAt',
-      sceneObjects: '++id, sceneUuid, objectUuid, createdAt',
       connections: '++id, connectionId, name, createdAt, updatedAt',
       settings: '++id, key, updatedAt'
     })
@@ -106,8 +96,6 @@ export class SceneLibraryDB extends Dexie {
 
   async deleteScene(uuid: string): Promise<void> {
     await this.scenes.where('uuid').equals(uuid).delete()
-    // Also delete related scene-object relations
-    await this.sceneObjects.where('sceneUuid').equals(uuid).delete()
   }
 
   async getObject(uuid: string): Promise<ObjectRecord | undefined> {
@@ -120,8 +108,6 @@ export class SceneLibraryDB extends Dexie {
 
   async deleteObject(uuid: string): Promise<void> {
     await this.objects.where('uuid').equals(uuid).delete()
-    // Also delete related scene-object relations
-    await this.sceneObjects.where('objectUuid').equals(uuid).delete()
   }
 
 
