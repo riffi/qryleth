@@ -105,6 +105,38 @@ export class SceneLibraryDB extends Dexie {
     await this.scenes.where('uuid').equals(uuid).delete()
   }
 
+  async saveObject(
+    name: string,
+    objectData: GfxObject,
+    description?: string,
+    thumbnail?: string
+  ): Promise<string> {
+    const uuid = uuidv4()
+    const now = new Date()
+
+    await this.objects.add({
+      uuid,
+      name,
+      description,
+      thumbnail,
+      objectData,
+      createdAt: now,
+      updatedAt: now
+    })
+
+    return uuid
+  }
+
+  async updateObject(
+    uuid: string,
+    updates: Partial<ObjectRecord>
+  ): Promise<void> {
+    await this.objects.where('uuid').equals(uuid).modify({
+      ...updates,
+      updatedAt: new Date()
+    })
+  }
+
   async getObject(uuid: string): Promise<ObjectRecord | undefined> {
     return this.objects.where('uuid').equals(uuid).first();
   }
