@@ -1,19 +1,27 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
-import type {BaseObject,  GfxObject} from '../types/common'
 import type {OpenAISettingsConnection} from './openAISettings'
 import type {SceneData} from "@/entities/scene/types.ts";
+import type {GfxObject} from "@/entities/object";
+
+export interface BaseDbRecord {
+  id?: number
+  uuid: string
+  name: string
+  description?: string
+  thumbnail?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 
 // Database interfaces
-export interface SceneRecord extends BaseObject {
-  id?: number
+export interface SceneRecord extends BaseDbRecord {
   sceneData: SceneData
 }
 
-export interface ObjectRecord extends BaseObject {
-  id?: number
+export interface ObjectRecord extends BaseDbRecord {
   objectData: GfxObject
-  layerId?: string
 }
 
 export interface ConnectionRecord {
