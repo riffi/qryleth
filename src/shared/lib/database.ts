@@ -15,7 +15,6 @@ export interface BaseDbRecord {
 }
 
 
-
 export interface SceneRecord extends BaseDbRecord {
   sceneData: SceneData
 }
@@ -95,11 +94,11 @@ export class SceneLibraryDB extends Dexie {
   }
 
   async getScene(uuid: string): Promise<SceneRecord | undefined> {
-    return await this.scenes.where('uuid').equals(uuid).first()
+    return this.scenes.where('uuid').equals(uuid).first();
   }
 
   async getAllScenes(): Promise<SceneRecord[]> {
-    return await this.scenes.orderBy('updatedAt').reverse().toArray()
+    return this.scenes.orderBy('updatedAt').reverse().toArray();
   }
 
   async deleteScene(uuid: string): Promise<void> {
@@ -107,11 +106,11 @@ export class SceneLibraryDB extends Dexie {
   }
 
   async getObject(uuid: string): Promise<ObjectRecord | undefined> {
-    return await this.objects.where('uuid').equals(uuid).first()
+    return this.objects.where('uuid').equals(uuid).first();
   }
 
   async getAllObjects(): Promise<ObjectRecord[]> {
-    return await this.objects.orderBy('updatedAt').reverse().toArray()
+    return this.objects.orderBy('updatedAt').reverse().toArray();
   }
 
   async deleteObject(uuid: string): Promise<void> {
