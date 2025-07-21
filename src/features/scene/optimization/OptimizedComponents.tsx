@@ -1,10 +1,10 @@
 import React from 'react'
-import {CompositeObject, type CompositeObjectProps} from '../objects/CompositeObject'
+import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/SceneObjectRenderer.tsx'
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer'
 
 // Memoized CompositeObject for better performance
-export const MemoizedCompositeObject = React.memo<CompositeObjectProps>(
-  CompositeObject,
+export const MemoizedCompositeObject = React.memo<SceneObjectRendererProps>(
+  SceneObjectRenderer,
   (prevProps, nextProps) => {
     // Custom comparison function for optimal re-rendering
     return (

@@ -11,7 +11,7 @@ import type {
   SceneHoverEvent
 } from "@/entities/r3f/types.ts";
 
-export interface CompositeObjectProps {
+export interface SceneObjectRendererProps {
   sceneObject: SceneObject
   instance: SceneObjectInstance
   instanceIndex: number
@@ -24,7 +24,7 @@ export interface CompositeObjectProps {
   onTransform?: (event: ObjectTransformEvent) => void
 }
 
-export const CompositeObject: React.FC<CompositeObjectProps> = ({
+export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   sceneObject,
   instance,
   instanceIndex,
