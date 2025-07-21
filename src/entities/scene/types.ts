@@ -1,6 +1,6 @@
 import type {LightingSettings} from "../lighting";
 import type {GfxObjectInstance} from "../objectInstance";
-import type {GfxLayer} from "../layer";
+import type {GfxLayer} from "@/entities/layer";
 import type {GfxObject} from "@/entities/object";
 
 export interface SceneObject extends GfxObject{

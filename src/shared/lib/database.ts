@@ -1,7 +1,8 @@
 import Dexie, {type Table } from 'dexie'
 import { v4 as uuidv4 } from 'uuid'
-import type {BaseObject, Vector3, Transform, SceneData, GfxObject} from '../types/common'
+import type {BaseObject, Transform, GfxObject} from '../types/common'
 import type {OpenAISettingsConnection} from './openAISettings'
+import type {SceneData} from "@/entities/scene/types.ts";
 
 // Database interfaces
 export interface SceneRecord extends BaseObject {
@@ -51,13 +52,13 @@ export class SceneLibraryDB extends Dexie {
 
   constructor() {
     super('SceneLibraryDB')
-    
+
     this.version(1).stores({
       scenes: '++id, uuid, name, createdAt, updatedAt',
       objects: '++id, uuid, name, createdAt, updatedAt',
       sceneObjects: '++id, sceneUuid, objectUuid, createdAt'
     })
-    
+
     this.version(2).stores({
       scenes: '++id, uuid, name, createdAt, updatedAt',
       objects: '++id, uuid, name, createdAt, updatedAt',
@@ -71,7 +72,7 @@ export class SceneLibraryDB extends Dexie {
   async saveScene(name: string, sceneData: SceneData, description?: string, thumbnail?: string): Promise<string> {
     const uuid = uuidv4()
     const now = new Date()
-    
+
     await this.scenes.add({
       uuid,
       name,
@@ -81,7 +82,7 @@ export class SceneLibraryDB extends Dexie {
       createdAt: now,
       updatedAt: now
     })
-    
+
     return uuid
   }
 
@@ -109,25 +110,6 @@ export class SceneLibraryDB extends Dexie {
     await this.sceneObjects.where('sceneUuid').equals(uuid).delete()
   }
 
-  // Object methods
-  async saveObject(name: string, objectData: GfxObject, description?: string, thumbnail?: string, layerId?: string): Promise<string> {
-    const uuid = uuidv4()
-    const now = new Date()
-    
-    await this.objects.add({
-      uuid,
-      name,
-      description,
-      thumbnail,
-      objectData,
-      layerId,
-      createdAt: now,
-      updatedAt: now
-    })
-    
-    return uuid
-  }
-
   async getObject(uuid: string): Promise<ObjectRecord | undefined> {
     return await this.objects.where('uuid').equals(uuid).first()
   }
@@ -142,53 +124,11 @@ export class SceneLibraryDB extends Dexie {
     await this.sceneObjects.where('objectUuid').equals(uuid).delete()
   }
 
-  async updateObject(uuid: string, name: string, objectData: GfxObject, description?: string, thumbnail?: string, layerId?: string): Promise<void> {
-    await this.objects.where('uuid').equals(uuid).modify({
-      name,
-      description,
-      thumbnail,
-      objectData,
-      layerId,
-      updatedAt: new Date()
-    })
-  }
-
-  // Scene-Object relation methods
-  async addObjectToScene(sceneUuid: string, objectUuid: string, position: Vector3, rotation: Vector3, scale: Vector3): Promise<void> {
-    await this.sceneObjects.add({
-      sceneUuid,
-      objectUuid,
-      position,
-      rotation,
-      scale,
-      createdAt: new Date()
-    })
-  }
-
-  async getSceneObjects(sceneUuid: string): Promise<SceneObjectRelation[]> {
-    return await this.sceneObjects.where('sceneUuid').equals(sceneUuid).toArray()
-  }
-
-  // Layer methods
-  async updateObjectLayer(uuid: string, layerId: string): Promise<void> {
-    await this.objects.where('uuid').equals(uuid).modify({
-      layerId,
-      updatedAt: new Date()
-    })
-  }
-
-  async getObjectsByLayer(layerId: string): Promise<ObjectRecord[]> {
-    return await this.objects.where('layerId').equals(layerId).toArray()
-  }
-
-  async getObjectsWithoutLayer(): Promise<ObjectRecord[]> {
-    return await this.objects.where('layerId').equals('').toArray()
-  }
 
   // Connection methods
   async saveConnection(connection: OpenAISettingsConnection): Promise<void> {
     const now = new Date()
-    
+
     await this.connections.put({
       connectionId: connection.id,
       name: connection.name,
@@ -216,7 +156,7 @@ export class SceneLibraryDB extends Dexie {
   async getConnection(connectionId: string): Promise<OpenAISettingsConnection | undefined> {
     const record = await this.connections.where('connectionId').equals(connectionId).first()
     if (!record) return undefined
-    
+
     return {
       id: record.connectionId,
       name: record.name,
