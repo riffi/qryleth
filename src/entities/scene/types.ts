@@ -32,7 +32,10 @@ export interface LightingSettings {
 
 export interface SceneResponse {
   objects: SceneObject[];
-  placements: SceneObjectInstance[];
+  /** Основной массив инстансов объектов */
+  objectInstances?: SceneObjectInstance[];
+  /** @deprecated используйте objectInstances */
+  placements?: SceneObjectInstance[];
   layers?: SceneLayer[];
   lighting?: LightingSettings;
 }

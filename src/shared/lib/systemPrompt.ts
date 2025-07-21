@@ -5,7 +5,7 @@ export function buildSystemPrompt(): string {
 1. Отвечай ТОЛЬКО валидным JSON без комментариев.
 2. Ответ должен содержать три части:
    • "objects" — массив составных объектов. Каждый объект имеет название и массив примитивов.
-   • "placements" — массив, в котором указано, какой объект из массива "objects" расположен в какой точке сцены. Один и тот же объект может использоваться несколько раз.
+   • "objectInstances" — массив, в котором указано, какой объект из массива "objects" расположен в какой точке сцены. Один и тот же объект может использоваться несколько раз.
    • "lighting" — параметры освещения сцены.
 
 3. Структура составного объекта:
@@ -31,7 +31,7 @@ export function buildSystemPrompt(): string {
 9. Opacity (прозрачность) - число от 0 до 1.
 10. Emissive (свечение) - цвет свечения в hex.
 11. EmissiveIntensity (интенсивность свечения) - число от 0 до бесконечности, по умолчанию 1.
-12. Scale в placements - масштаб всего объекта [x,y,z].
+12. Scale в objectInstances - масштаб всего объекта [x,y,z].
 
 13. Структура ответа:
     {
@@ -41,7 +41,7 @@ export function buildSystemPrompt(): string {
           "primitives": [массив примитивов]
         }
       ],
-      "placements": [
+      "objectInstances": [
         {
           "objectIndex": число (обязательно),
           "position": [x,y,z] (опционально),
@@ -117,7 +117,7 @@ export function buildSystemPrompt(): string {
       ]
     }
   ],
-  "placements": [
+  "objectInstances": [
     {
       "objectIndex": 0,
       "position": [0, 1.5, 0],

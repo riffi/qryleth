@@ -2,7 +2,11 @@ import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
 import { Primitive3D } from '../primitives/Primitive3D'
 import type {SceneObjectInstance} from "../../../entities/scene/types.ts";
-import {useObjectInstanceCounts, useSceneObjectsOptimized, useScenePlacementsOptimized} from "../../../features/scene/store/optimizedSelectors.ts";
+import {
+  useObjectInstanceCounts,
+  useSceneObjectsOptimized,
+  useSceneObjectInstancesOptimized
+} from '../../../features/scene/store/optimizedSelectors.ts'
 
 interface InstancedObjectsProps {
   minimumInstancesForOptimization?: number // Minimum instances before using instancing
@@ -12,32 +16,32 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
   minimumInstancesForOptimization = 3
 }) => {
   const objects = useSceneObjectsOptimized()
-  const placements = useScenePlacementsOptimized()
+  const instances = useSceneObjectInstancesOptimized()
   const instanceCounts = useObjectInstanceCounts()
 
-  // Group placements by object type for instancing
+  // Group object instances by object type for instancing
   const instanceGroups = useMemo(() => {
     const groups: { [objectIndex: number]: SceneObjectInstance[] } = {}
 
-    placements.forEach(placement => {
-      if (!groups[placement.objectIndex]) {
-        groups[placement.objectIndex] = []
+    instances.forEach(instance => {
+      if (!groups[instance.objectIndex]) {
+        groups[instance.objectIndex] = []
       }
-      groups[placement.objectIndex].push(placement)
+      groups[instance.objectIndex].push(instance)
     })
 
     // Only include objects with enough instances for optimization
     const optimizedGroups: { [objectIndex: number]: SceneObjectInstance[] } = {}
-    Object.entries(groups).forEach(([objectIndex, instancePlacements]) => {
-      if (instancePlacements.length >= minimumInstancesForOptimization) {
-        optimizedGroups[parseInt(objectIndex)] = instancePlacements
+    Object.entries(groups).forEach(([objectIndex, objInstances]) => {
+      if (objInstances.length >= minimumInstancesForOptimization) {
+        optimizedGroups[parseInt(objectIndex)] = objInstances
       }
     })
 
     return optimizedGroups
-  }, [placements, minimumInstancesForOptimization])
+  }, [instances, minimumInstancesForOptimization])
 
-  const renderInstancedGroup = (objectIndex: number, instancePlacements: SceneObjectInstance[]) => {
+  const renderInstancedGroup = (objectIndex: number, instancesGroup: SceneObjectInstance[]) => {
     const sceneObject = objects[objectIndex]
     if (!sceneObject || sceneObject.primitives.length === 0) return null
 
@@ -51,15 +55,15 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
       <group key={`instanced-${objectIndex}`}>
         <Instances
           limit={1000} // Maximum instances
-          range={instancePlacements.length}
+          range={instancesGroup.length}
         >
           <Primitive3D primitive={primitive} />
 
-          {instancePlacements.map((placement, index) => {
-            // Convert placement arrays to individual values
-            const [px, py, pz] = placement.transform?.position || [0, 0, 0]
-            const [rx, ry, rz] = placement.transform?.rotation || [0, 0, 0]
-            const [sx, sy, sz] = placement.transform?.scale || [1, 1, 1]
+          {instancesGroup.map((instance, index) => {
+            // Convert instance transform arrays to individual values
+                const [px, py, pz] = instance.transform?.position || [0, 0, 0]
+                const [rx, ry, rz] = instance.transform?.rotation || [0, 0, 0]
+                const [sx, sy, sz] = instance.transform?.scale || [1, 1, 1]
 
             return (
               <Instance
@@ -67,7 +71,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
                 position={[px, py, pz]}
                 rotation={[rx, ry, rz]}
                 scale={[sx, sy, sz]}
-                visible={placement.visible !== false}
+                visible={instance.visible !== false}
               />
             )
           })}
@@ -82,8 +86,8 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 
   return (
     <>
-      {Object.entries(instanceGroups).map(([objectIndex, instancePlacements]) =>
-        renderInstancedGroup(parseInt(objectIndex), instancePlacements)
+      {Object.entries(instanceGroups).map(([objectIndex, instancesGroup]) =>
+        renderInstancedGroup(parseInt(objectIndex), instancesGroup)
       )}
     </>
   )
@@ -98,16 +102,16 @@ export const useInstanceOptimization = (objectIndex: number, minimumInstances = 
 // Component for conditionally rendering instances vs individual objects
 interface ConditionalInstancedObjectProps {
   objectIndex: number
-  placement: SceneObjectInstance
-  placementIndex: number
+  instance: SceneObjectInstance
+  instanceIndex: number
   minimumInstancesForOptimization?: number
   children: React.ReactNode
 }
 
 export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProps> = ({
   objectIndex,
-  placement,
-  placementIndex,
+  instance,
+  instanceIndex,
   minimumInstancesForOptimization = 3,
   children
 }) => {
@@ -119,7 +123,7 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
     return null
   }
 
-  if (placement.visible === false) {
+  if (instance.visible === false) {
     return null
   }
 

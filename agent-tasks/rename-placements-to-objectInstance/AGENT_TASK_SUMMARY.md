@@ -100,10 +100,11 @@
 13. Обновить оптимизационные компоненты
 Подробности см. в [phases/phase_4_summary.md](phases/phase_4_summary.md).
 
-### Этап 5: Утилиты и API
+### Этап 5: Утилиты и API – Выполнено
 14. Обновить `src/shared/r3f/optimization/InstancedObjects.tsx`
 15. Обновить `src/shared/lib/openAIAPI.ts`
 16. Обновить `src/shared/lib/systemPrompt.ts`
+Подробности см. в [phases/phase_5_summary.md](phases/phase_5_summary.md).
 
 ### Этап 6: Документация
 17. Обновить `spec/store.md`
@@ -141,3 +142,15 @@
 - Устаревшие `placements` и связанные функции сохраняют совместимость.
 - Обновлены селекторы и оптимизированные хуки.
 - Подробности см. в [phases/phase_2_summary.md](phases/phase_2_summary.md).
+
+### Этап 3: Хуки – Выполнено
+- Все R3F-хуки используют `objectInstance` вместо `placement`.
+- Подробности см. в [phases/phase_3_summary.md](phases/phase_3_summary.md).
+
+### Этап 4: UI компоненты – Выполнено
+- Компоненты сцены обновлены на новую терминологию.
+- Подробности см. в [phases/phase_4_summary.md](phases/phase_4_summary.md).
+
+### Этап 5: Утилиты и API – Выполнено
+- Обновлены утилиты оптимизации и взаимодействия с LLM.
+- Подробности см. в [phases/phase_5_summary.md](phases/phase_5_summary.md).

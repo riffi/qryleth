@@ -207,10 +207,13 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
 
     if (parsed && typeof parsed === 'object') {
       // Новый формат с составными объектами
-      if (Array.isArray(parsed.objects) && Array.isArray(parsed.placements)) {
+      if (Array.isArray(parsed.objects) &&
+          (Array.isArray(parsed.objectInstances) || Array.isArray(parsed.placements))) {
+        const instances = parsed.objectInstances || parsed.placements || []
         return {
           objects: parsed.objects,
-          placements: parsed.placements,
+          objectInstances: instances,
+          placements: instances,
           lighting: parsed.lighting || {}
         }
       }
@@ -219,6 +222,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
       if (parsed.objects && Array.isArray(parsed.objects)) {
         return {
           objects: parsed.objects,
+          objectInstances: [],
           placements: [],
           lighting: parsed.lighting || {}
         }
@@ -232,6 +236,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
           placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       }
@@ -245,12 +250,13 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
           placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       }
     }
 
-    return { objects: [], placements: [] }
+    return { objects: [], objectInstances: [], placements: [] }
   } catch {
     // Try to extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
@@ -263,6 +269,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
           placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       } catch (e) {
