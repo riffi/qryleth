@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Stack, Paper, TextInput, Button, Text, Box, Group, ScrollArea, ActionIcon, Badge } from '@mantine/core'
-import { IconSend, IconUser, IconRobot, IconTool } from '@tabler/icons-react'
-import { fetchWithTools, AVAILABLE_TOOLS } from '../shared/lib/openAIAPI'
-import type { ChatMessage, ToolCall } from '../shared/lib/openAIAPI'
+import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge } from '@mantine/core'
+import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
+import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
+import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 
 interface Props {
   onObjectAdded: (object: any) => void

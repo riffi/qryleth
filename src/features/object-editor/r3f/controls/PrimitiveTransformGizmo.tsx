@@ -2,11 +2,11 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useObjectStore } from '../../store/objectStore'
-import { useOEPrimitiveSelection } from '../../../../hooks/objectEditor/useOEPrimitiveSelection.ts'
+import { useOEPrimitiveSelection } from '@/hooks/objectEditor/useOEPrimitiveSelection.ts'
 import type {
   PrimitiveTransformEvent,
   SelectedObject, TransformMode
-} from '../../../../entities/r3f/types'
+} from '@/entities/r3f/types.ts'
 
 export interface PrimitiveTransformGizmoProps {
   selectedPrimitive?: SelectedObject

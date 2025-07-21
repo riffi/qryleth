@@ -5,7 +5,12 @@ import * as THREE from 'three'
 import { ObjectSceneContent } from './ObjectSceneContent'
 import type { Scene3DProps } from '../../../types/r3f'
 
-export const ObjectScene3D: React.FC<Scene3DProps> = ({ className, onSceneReady }) => {
+export interface ObjectScene3DProps extends Scene3DProps {
+  className?: string
+  onSceneReady?: (scene: THREE.Scene) => void
+}
+
+export const ObjectScene3D: React.FC<ObjectScene3DProps> = ({ className, onSceneReady }) => {
   return (
     <Box className={className} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas

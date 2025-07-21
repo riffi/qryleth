@@ -1,5 +1,5 @@
 import React from 'react'
-import { PrimitiveRenderer } from '../../../../shared/r3f/primitives/PrimitiveRenderer'
+import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import {
   useObjectPrimitives,
   useObjectStore
