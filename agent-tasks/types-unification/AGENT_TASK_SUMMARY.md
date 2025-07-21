@@ -257,6 +257,7 @@ export * from './view-types'
 ```
 
 **Документация**:
+В папке /spec
 1. **TYPES_GUIDE.md**: Где найти какие типы
 2. **Import examples**: Примеры правильных импортов
 3. **Architecture rationale**: Почему типы размещены именно так
