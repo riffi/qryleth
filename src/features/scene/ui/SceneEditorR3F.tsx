@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
-import { ChatInterface } from '../../../widgets/ChatInterface'
+import { ChatInterface } from '/@/widgets/ChatInterface'
 import { Scene3D } from './Scene3D'
 import { ObjectManager } from './ObjectManager'
-import { ObjectEditorR3F } from '../../object-editor/ui/ObjectEditorR3F'
+import { ObjectEditorR3F } from '/@/features/object-editor/ui/ObjectEditorR3F'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX } from '@tabler/icons-react'
 import {
@@ -13,13 +13,13 @@ import {
   useTransformMode,
   useGridVisible
 } from '../store/sceneStore'
-import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
-import { db } from '../../../shared/lib/database'
-import MainLayout from '../../../widgets/layouts/MainLayout'
-import type { SceneObject, SceneObjectInstance } from '../../../entities/scene/types'
-import type { SceneStatus } from '../../../entities/r3f/types'
+import { useSceneHistory } from '/@/hooks/r3f/useSceneHistory'
+import { db } from '/@/shared/lib/database'
+import MainLayout from '/@/widgets/layouts/MainLayout'
+import type { SceneObject, SceneObjectInstance } from '/@/entities/scene/types'
+import type { SceneStatus } from '/@/entities/r3f/types'
 import { Link } from 'react-router-dom'
-import { generateUUID } from '../../../shared/lib/uuid'
+import { generateUUID } from '/@/shared/lib/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
