@@ -56,7 +56,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   }, [opened, objectData])
 
   const handleSave = () => {
-    if (!objectInfo) return
+    if (!objectInfo?.objectUuid) return
     const state = useObjectStore.getState()
     const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
 

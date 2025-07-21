@@ -22,14 +22,49 @@ const ObjectEditorPage: React.FC = () => {
   }, [id])
 
   const handleClose = () => navigate('/')
-  const handleSave = () => navigate('/')
+  
+  const handleSave = async (
+    objectUuid: string,
+    primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>
+  ) => {
+    if (!objectRecord) return
 
-  const objectInfo = {
-    name: objectRecord?.name || 'Новый объект',
-    count: 1,
-    visible: true,
-    objectIndex: 0
+    try {
+      // Update primitives with new positions, rotations, and scales
+      const updatedPrimitives = objectRecord.objectData.primitives.map((primitive, index) => {
+        if (primitiveStates[index]) {
+          return {
+            ...primitive,
+            position: primitiveStates[index].position,
+            rotation: primitiveStates[index].rotation,
+            scale: primitiveStates[index].scale
+          }
+        }
+        return primitive
+      })
+
+      // Create updated object data
+      const updatedObjectData = {
+        ...objectRecord.objectData,
+        primitives: updatedPrimitives
+      }
+
+      // Save to database - use the id from URL params as fallback
+      const targetUuid = id || objectUuid;
+      await db.updateObject(targetUuid, {
+        objectData: updatedObjectData
+      })
+
+      navigate('/')
+    } catch (error) {
+      console.error('Error saving object:', error)
+    }
   }
+
+  const objectInfo = objectRecord ? {
+    name: objectRecord.name,
+    objectUuid: objectRecord.uuid
+  } : undefined
 
   if (!isReady) {
     return (

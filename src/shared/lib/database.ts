@@ -3,15 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 import type {OpenAISettingsConnection} from './openAISettings'
 import type {SceneData} from "@/entities/scene/types.ts";
 import type {GfxObject} from "@/entities/object";
+import type {ConnectionRecord, ObjectRecord, SceneRecord, SettingsRecord } from '../api';
 
-// Re-export types from new shared/api location for backward compatibility
-export type {
-  BaseDbRecord,
-  SceneRecord,
-  ObjectRecord,
-  ConnectionRecord,
-  SettingsRecord
-} from '@/shared/api/types'
 
 // Database class
 export class SceneLibraryDB extends Dexie {
