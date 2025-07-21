@@ -1,5 +1,5 @@
 
-import type {GfxPrimitive} from "../primitive";
+
 import type {Vector3} from "../../shared/types/vector3.ts";
 import type {LightingSettings, SceneLayer, SceneObject, SceneObjectInstance} from "../scene/types.ts";
 
@@ -103,9 +103,9 @@ export interface SceneStoreActions {
   updateObject: (objectUuid: string, updates: Partial<SceneObject>) => void
 
   // Object instance management
-  setObjectInstances: (objectInstances: ScenePlacement[]) => void
-  addObjectInstance: (objectInstance: ScenePlacement) => void
-  updateObjectInstance: (index: number, updates: Partial<ScenePlacement>) => void
+  setObjectInstances: (objectInstances: SceneObjectInstance[]) => void
+  addObjectInstance: (objectInstance: SceneObjectInstance) => void
+  updateObjectInstance: (index: number, updates: Partial<SceneObjectInstance>) => void
   removeObjectInstance: (index: number) => void
 
   // Layer management
