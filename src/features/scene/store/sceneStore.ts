@@ -45,8 +45,6 @@ const initialState: SceneStoreState = {
   // Scene data
   objects: [],
   objectInstances: [],
-  /** @deprecated Use objectInstances */
-  placements: [],
   layers: initialLayers,
   lighting: initialLighting,
 
@@ -96,7 +94,7 @@ export const useSceneStore = create<SceneStore>()(
     removeObject: (objectUuid: string) => {
       const objects = get().objects.filter(obj => obj.uuid !== objectUuid)
       const filtered = get().objectInstances.filter(p => p.objectUuid !== objectUuid)
-      set({ objects, objectInstances: filtered, placements: filtered })
+      set({ objects, objectInstances: filtered })
       get().saveToHistory()
       get().markSceneAsModified()
     },
@@ -117,7 +115,7 @@ export const useSceneStore = create<SceneStore>()(
         uuid: p.uuid || generateUUID(),
         visible: p.visible !== false
       }))
-      set({ objectInstances: normalized, placements: normalized })
+      set({ objectInstances: normalized })
       get().saveToHistory()
     },
 
@@ -128,7 +126,7 @@ export const useSceneStore = create<SceneStore>()(
         visible: objectInstance.visible !== false
       }
       const list = [...get().objectInstances, normalized]
-      set({ objectInstances: list, placements: list })
+      set({ objectInstances: list })
       get().saveToHistory()
       get().markSceneAsModified()
     },
@@ -137,37 +135,18 @@ export const useSceneStore = create<SceneStore>()(
       const list = get().objectInstances.map((instance, i) =>
         i === index ? { ...instance, ...updates } : instance
       )
-      set({ objectInstances: list, placements: list })
+      set({ objectInstances: list })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
     removeObjectInstance: (index: number) => {
       const list = get().objectInstances.filter((_, i) => i !== index)
-      set({ objectInstances: list, placements: list })
+      set({ objectInstances: list })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
-    /** @deprecated Use setObjectInstances */
-    setPlacements: (placements: SceneObjectInstance[]) => {
-      get().setObjectInstances(placements)
-    },
-
-    /** @deprecated Use addObjectInstance */
-    addPlacement: (placement: SceneObjectInstance) => {
-      get().addObjectInstance(placement)
-    },
-
-    /** @deprecated Use updateObjectInstance */
-    updatePlacement: (index: number, updates: Partial<SceneObjectInstance>) => {
-      get().updateObjectInstance(index, updates)
-    },
-
-    /** @deprecated Use removeObjectInstance */
-    removePlacement: (index: number) => {
-      get().removeObjectInstance(index)
-    },
 
     // Layer management
     setLayers: (layers: SceneLayer[]) => {
@@ -230,7 +209,7 @@ export const useSceneStore = create<SceneStore>()(
           ? { ...inst, visible: inst.visible === false ? true : !inst.visible }
           : inst
       )
-      set({ objectInstances: list, placements: list })
+      set({ objectInstances: list })
       get().markSceneAsModified()
     },
 
@@ -269,8 +248,7 @@ export const useSceneStore = create<SceneStore>()(
       const selectedObject: SelectedObject = {
         objectUuid,
         instanceId,
-        objectInstanceIndex,
-        placementIndex: objectInstanceIndex
+        objectInstanceIndex
       }
       set({ selectedObject })
     },
@@ -290,8 +268,7 @@ export const useSceneStore = create<SceneStore>()(
       const hoveredObject: HoveredObject = {
         objectUuid,
         instanceId,
-        objectInstanceIndex,
-        placementIndex: objectInstanceIndex
+        objectInstanceIndex
       }
       set({ hoveredObject })
     },
@@ -370,7 +347,6 @@ export const useSceneStore = create<SceneStore>()(
       return {
         objects: state.objects,
         objectInstances: state.objectInstances,
-        placements: state.objectInstances,
         layers: state.layers,
         lighting: state.lighting
       }
@@ -380,7 +356,6 @@ export const useSceneStore = create<SceneStore>()(
       set({
         objects: [],
         objectInstances: [],
-        placements: [],
         layers: initialLayers,
         lighting: initialLighting,
         selectedObject: null,
@@ -460,9 +435,6 @@ export const useSceneStore = create<SceneStore>()(
 // Selectors for optimized subscriptions
 export const useSceneObjects = () => useSceneStore(state => state.objects)
 export const useSceneObjectInstances = () =>
-  useSceneStore(state => state.objectInstances)
-/** @deprecated Use useSceneObjectInstances */
-export const useScenePlacements = () =>
   useSceneStore(state => state.objectInstances)
 export const useSceneLayers = () => useSceneStore(state => state.layers)
 export const useSceneLighting = () => useSceneStore(state => state.lighting)

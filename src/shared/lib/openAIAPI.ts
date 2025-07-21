@@ -213,7 +213,6 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         return {
           objects: parsed.objects,
           objectInstances: instances,
-          placements: instances,
           lighting: parsed.lighting || {}
         }
       }
@@ -223,7 +222,6 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         return {
           objects: parsed.objects,
           objectInstances: [],
-          placements: [],
           lighting: parsed.lighting || {}
         }
       }
@@ -236,8 +234,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
-          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
-          placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       }
 
@@ -250,13 +247,12 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
-          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
-          placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       }
     }
 
-    return { objects: [], objectInstances: [], placements: [] }
+    return { objects: [], objectInstances: [] }
   } catch {
     // Try to extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
@@ -269,8 +265,7 @@ export async function fetchSceneJSON(userPrompt: string): Promise<SceneResponse>
         }))
         return {
           objects: convertedObjects,
-          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index })),
-          placements: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
+          objectInstances: convertedObjects.map((_: unknown, index: number) => ({ objectIndex: index }))
         }
       } catch (e) {
         console.error('Failed to parse extracted JSON:', e)

@@ -3,7 +3,7 @@ import { OrbitControls } from '@react-three/drei'
 import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
 import { Environment } from '../../../shared/r3f/environment/Environment'
 import { ObjectScenePrimitives } from './objects/ObjectScenePrimitives.tsx'
-import { ObjectTransformGizmo } from './controls/ObjectTransformGizmo'
+import { PrimitiveTransformGizmo } from './controls/PrimitiveTransformGizmo.tsx'
 import { useObjectLighting } from '../store/objectStore'
 
 export const ObjectSceneContent: React.FC = () => {
@@ -17,7 +17,7 @@ export const ObjectSceneContent: React.FC = () => {
       <ObjectSceneLighting />
       <Environment />
       <ObjectScenePrimitives />
-      <ObjectTransformGizmo orbitControlsRef={orbitControlsRef} />
+      <PrimitiveTransformGizmo orbitControlsRef={orbitControlsRef} />
     </>
   )
 }

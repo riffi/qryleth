@@ -4,10 +4,17 @@ import { useThree } from '@react-three/fiber'
 import { useObjectStore } from '../../store/objectStore'
 import { useOEPrimitiveSelection } from '../../../../hooks/objectEditor/useOEPrimitiveSelection.ts'
 import type {
-  PrimitiveTransformGizmoProps
+  PrimitiveTransformEvent,
+  SelectedObject, TransformMode
 } from '../../../../entities/r3f/types'
 
-export const ObjectTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
+export interface PrimitiveTransformGizmoProps {
+  selectedPrimitive?: SelectedObject
+  transformMode: TransformMode
+  onTransform?: (event: PrimitiveTransformEvent) => void
+}
+
+export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
   const { camera, gl } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedPrimitiveId = useObjectStore(state => state.selectedPrimitiveId)

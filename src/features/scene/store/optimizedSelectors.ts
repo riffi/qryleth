@@ -10,9 +10,6 @@ export const useSceneObjectsOptimized = () =>
 
 export const useSceneObjectInstancesOptimized = () =>
   useSceneStore(state => state.objectInstances, shallow)
-/** @deprecated Use useSceneObjectInstancesOptimized */
-export const useScenePlacementsOptimized = () =>
-  useSceneStore(state => state.objectInstances, shallow)
 
 export const useSceneLayersOptimized = () =>
   useSceneStore(state => state.layers, shallow)
@@ -68,14 +65,6 @@ export const useSceneActions = () => {
     addObjectInstance: store.addObjectInstance,
     updateObjectInstance: store.updateObjectInstance,
     removeObjectInstance: store.removeObjectInstance,
-    /** @deprecated */
-    setPlacements: store.setPlacements,
-    /** @deprecated */
-    addPlacement: store.addPlacement,
-    /** @deprecated */
-    updatePlacement: store.updatePlacement,
-    /** @deprecated */
-    removePlacement: store.removePlacement,
     setLayers: store.setLayers,
     createLayer: store.createLayer,
     updateLayer: store.updateLayer,

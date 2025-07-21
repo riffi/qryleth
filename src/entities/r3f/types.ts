@@ -11,8 +11,6 @@ export interface SelectedObject {
   instanceId?: string
   /** Index of the object instance within scene */
   objectInstanceIndex?: number
-  /** @deprecated use objectInstanceIndex */
-  placementIndex?: number
 }
 
 export interface HoveredObject {
@@ -20,8 +18,6 @@ export interface HoveredObject {
   instanceId?: string
   /** Index of the hovered instance */
   objectInstanceIndex?: number
-  /** @deprecated use objectInstanceIndex */
-  placementIndex?: number
 }
 
 // View modes for camera controls
@@ -44,8 +40,6 @@ export interface SceneClickEvent {
   objectUuid?: string
   instanceId?: string
   objectInstanceIndex?: number
-  /** @deprecated use objectInstanceIndex */
-  placementIndex?: number
   point: Vector3
   object?: THREE.Object3D
 }
@@ -54,8 +48,6 @@ export interface SceneHoverEvent {
   objectUuid?: string
   instanceId?: string
   objectInstanceIndex?: number
-  /** @deprecated use objectInstanceIndex */
-  placementIndex?: number
   object?: THREE.Object3D
 }
 
@@ -64,8 +56,6 @@ export interface ObjectTransformEvent {
   objectUuid: string
   instanceId?: string
   objectInstanceIndex?: number
-  /** @deprecated use objectInstanceIndex */
-  placementIndex?: number
   position: Vector3
   rotation: Vector3
   scale: Vector3
@@ -103,17 +93,6 @@ export interface LandscapeLayerProps {
 }
 
 
-export interface ObjectTransformGizmoProps {
-  selectedObject?: SelectedObject
-  transformMode: TransformMode
-  onTransform?: (event: ObjectTransformEvent) => void
-}
-
-export interface PrimitiveTransformGizmoProps {
-  selectedPrimitive?: SelectedObject
-  transformMode: TransformMode
-  onTransform?: (event: PrimitiveTransformEvent) => void
-}
 
 export interface PostProcessingProps {
   selectedObjects: THREE.Object3D[]
@@ -126,8 +105,6 @@ export interface SceneStoreState {
   objects: SceneObject[]
   /** Object instances placed within the scene */
   objectInstances: SceneObjectInstance[]
-  /** @deprecated use objectInstances */
-  placements: SceneObjectInstance[]
   layers: SceneLayer[]
   lighting: LightingSettings
 
@@ -159,14 +136,6 @@ export interface SceneStoreActions {
   addObjectInstance: (objectInstance: ScenePlacement) => void
   updateObjectInstance: (index: number, updates: Partial<ScenePlacement>) => void
   removeObjectInstance: (index: number) => void
-  /** @deprecated use setObjectInstances */
-  setPlacements: (placements: ScenePlacement[]) => void
-  /** @deprecated use addObjectInstance */
-  addPlacement: (placement: ScenePlacement) => void
-  /** @deprecated use updateObjectInstance */
-  updatePlacement: (index: number, updates: Partial<ScenePlacement>) => void
-  /** @deprecated use removeObjectInstance */
-  removePlacement: (index: number) => void
 
   // Layer management
   setLayers: (layers: SceneLayer[]) => void

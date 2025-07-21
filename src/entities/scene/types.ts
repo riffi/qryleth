@@ -34,8 +34,6 @@ export interface SceneResponse {
   objects: SceneObject[];
   /** Основной массив инстансов объектов */
   objectInstances?: SceneObjectInstance[];
-  /** @deprecated используйте objectInstances */
-  placements?: SceneObjectInstance[];
   layers?: SceneLayer[];
   lighting?: LightingSettings;
 }
