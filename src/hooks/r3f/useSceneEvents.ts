@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '../../features/scene/store/sceneStore'
-import type { UseSceneEventsReturn, SceneClickEvent } from '../../entities/r3f/types'
+import { useSceneStore } from '@/features/scene/store/sceneStore.ts'
+import type { UseSceneEventsReturn, SceneClickEvent } from '@/entities/r3f/types.ts'
 
 export const useSceneEvents = (): UseSceneEventsReturn => {
   const { gl } = useThree()

@@ -26,10 +26,10 @@ import type { SceneReference } from '../../../types/common'
 import type { LightingSettings, SceneLayer } from '../../../types/scene'
 import { SceneHeader } from './SceneHeader'
 import { LightingControls } from './LightingControls'
-import { LayerItem } from './LayerItem'
-import { LayerModals } from './LayerModals'
-import { ObjectItem } from './ObjectItem'
-import type { ObjectInfo } from './ObjectItem'
+import { SceneLayerItem } from './SceneLayerItem.tsx'
+import { SceneLayerModals } from './SceneLayerModals.tsx'
+import { SceneObjectItem } from './SceneObjectItem.tsx'
+import type { ObjectInfo } from './SceneObjectItem.tsx'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -37,7 +37,7 @@ interface ObjectManagerProps {
     onEditObject?: (objectUuid: string, instanceId?: string) => void
 }
 
-export const ObjectManager: React.FC<ObjectManagerProps> = ({
+export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
     onEditObject
 }) => {
@@ -336,7 +336,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                     const isLayerExpanded = expandedLayers.has(layer.id)
 
                                     return (
-                                        <LayerItem
+                                        <SceneLayerItem
                                             key={layer.id}
                                             layer={layer}
                                             layerObjects={layerObjects}
@@ -373,7 +373,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                                     const isExpanded = expandedItems.has(obj.objectUuid)
                                     const isSelected = selectedObject?.objectUuid === obj.objectUuid
                                     return (
-                                        <ObjectItem
+                                        <SceneObjectItem
                                             key={`${obj.name}-${obj.objectUuid}`}
                                             obj={obj}
                                             isExpanded={isExpanded}
@@ -427,7 +427,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
                 </Stack>
             </Paper>
 
-            <LayerModals
+            <SceneLayerModals
                 createLayerModalOpened={createLayerModalOpened}
                 setCreateLayerModalOpened={setCreateLayerModalOpened}
                 newLayerName={newLayerName}

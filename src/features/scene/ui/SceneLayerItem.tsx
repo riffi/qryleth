@@ -1,9 +1,9 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
 import { IconLayersLinked, IconEye, IconEyeOff, IconEdit, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import { ObjectItem } from './ObjectItem'
-import type { ObjectInfo } from './ObjectItem'
-import type { SceneLayer } from '../../../entities/scene/types'
+import { SceneObjectItem } from './SceneObjectItem.tsx'
+import type { ObjectInfo } from './SceneObjectItem.tsx'
+import type { SceneLayer } from '@/entities/scene/types.ts'
 
 
 interface LayerItemProps {
@@ -35,7 +35,7 @@ interface LayerItemProps {
     onDrop: (e: React.DragEvent, layerId: string) => void
 }
 
-export const LayerItem: React.FC<LayerItemProps> = ({
+export const SceneLayerItem: React.FC<LayerItemProps> = ({
     layer,
     layerObjects,
     isExpanded,
@@ -168,7 +168,7 @@ export const LayerItem: React.FC<LayerItemProps> = ({
                         </Text>
                     ) : (
                         layerObjects.map((obj) => (
-                            <ObjectItem
+                            <SceneObjectItem
                                 key={`${obj.name}-${obj.objectUuid}`}
                                 obj={obj}
                                 isExpanded={expandedItems.has(obj.objectUuid)}

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
 import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import { ObjectInstanceItem } from './ObjectInstanceItem'
+import { SceneObjectInstanceItem } from './SceneObjectInstanceItem.tsx'
 import type { ObjectInstance } from '../../../types/common'
 
 export interface ObjectInfo {
@@ -32,7 +32,7 @@ interface ObjectItemProps {
     onContextMenu: (e: React.MouseEvent) => void
 }
 
-export const ObjectItem: React.FC<ObjectItemProps> = ({
+export const SceneObjectItem: React.FC<ObjectItemProps> = ({
     obj,
     isExpanded,
     isSelected,
@@ -190,7 +190,7 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
                     <Stack gap="2px">
                         {obj.instances && obj.instances.length > 0 ? (
                             obj.instances.map((instance: ObjectInstance) => (
-                                <ObjectInstanceItem
+                                <SceneObjectInstanceItem
                                     key={instance.id}
                                     instance={instance}
                                     isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}

@@ -1,15 +1,15 @@
 import React, { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { PrimitiveRenderer } from '../../../shared/r3f/primitives/PrimitiveRenderer'
+import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import { useRenderMode } from '../store/sceneStore'
-import type {SceneObject, SceneObjectInstance} from "../../../entities/scene/types.ts";
+import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import type {
   ObjectTransformEvent,
   RenderMode,
   SceneClickEvent,
   SceneHoverEvent
-} from "../../../entities/r3f/types.ts";
+} from "@/entities/r3f/types.ts";
 
 export interface CompositeObjectProps {
   sceneObject: SceneObject

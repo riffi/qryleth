@@ -1,4 +1,4 @@
-import type {Transform} from "../../../shared/types/transform.ts";
+import type {Transform} from "@/shared/types/transform.ts";
 
 export interface GfxObjectInstance {
   uuid: string;

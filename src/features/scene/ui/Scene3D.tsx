@@ -4,11 +4,15 @@ import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent'
 import { useUISync, useRealTimeSync } from '../../../hooks/r3f/useUISync'
-import type { Scene3DProps } from '../../../types/r3f'
 
-export const Scene3D: React.FC<Scene3DProps> = ({ 
-  className, 
-  onSceneReady 
+interface Scene3DProps {
+  className: string,
+  onSceneReady: () => void
+}
+
+export const Scene3D: React.FC<Scene3DProps> = ({
+  className,
+  onSceneReady
 }) => {
   // Initialize UI synchronization
   useUISync()
@@ -17,15 +21,15 @@ export const Scene3D: React.FC<Scene3DProps> = ({
   return (
     <Box className={className} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
-        camera={{ 
-          position: [5, 5, 8], 
-          fov: 45, 
-          near: 0.1, 
-          far: 1000 
+        camera={{
+          position: [5, 5, 8],
+          fov: 45,
+          near: 0.1,
+          far: 1000
         }}
         shadows="soft"
-        gl={{ 
-          antialias: true, 
+        gl={{
+          antialias: true,
           alpha: true,
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -35,7 +39,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
             type: THREE.PCFSoftShadowMap
           }
         }}
-        style={{ 
+        style={{
           background: 'transparent',
           width: '100%',
           height: '100%'
@@ -45,18 +49,18 @@ export const Scene3D: React.FC<Scene3DProps> = ({
             // Set up renderer properties safely
             if (state.gl) {
               state.gl.setPixelRatio(window.devicePixelRatio)
-              
+
               // Enable shadows
               if (state.gl.shadowMap) {
                 state.gl.shadowMap.enabled = true
                 state.gl.shadowMap.type = THREE.PCFSoftShadowMap
               }
-              
+
               // Set tone mapping
               state.gl.toneMapping = THREE.ACESFilmicToneMapping
               state.gl.toneMappingExposure = 1.0
             }
-            
+
             // Notify parent that scene is ready
             onSceneReady?.()
           } catch (error) {
@@ -70,12 +74,12 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           <SceneContent />
         </Suspense>
       </Canvas>
-      
+
       <Suspense fallback={
-        <LoadingOverlay 
-          visible={true} 
-          overlayProps={{ 
-            radius: 'sm', 
+        <LoadingOverlay
+          visible={true}
+          overlayProps={{
+            radius: 'sm',
             blur: 2,
             style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }
           }}

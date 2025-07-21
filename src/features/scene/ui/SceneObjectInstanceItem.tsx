@@ -1,10 +1,11 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu } from '@mantine/core'
 import { IconEye, IconEyeOff, IconEdit, IconTrash } from '@tabler/icons-react'
-import type { ObjectInstance } from '../../../types/common'
+import type {SceneObjectInstance} from "@/entities/scene/types.ts";
+
 
 interface ObjectInstanceItemProps {
-    instance: ObjectInstance
+    instance: SceneObjectInstance
     isSelected: boolean
     onHighlight: () => void
     onClearHighlight: () => void
@@ -14,7 +15,7 @@ interface ObjectInstanceItemProps {
     onRemove: () => void
 }
 
-export const ObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
+export const SceneObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
     instance,
     isSelected,
     onHighlight,

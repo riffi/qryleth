@@ -9,7 +9,7 @@ import {
   useSceneLayers,
   useSceneStore
 } from '../store/sceneStore'
-import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
+import { useSceneEvents } from '@/hooks/r3f/useSceneEvents.ts'
 
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
-import { useSceneStore } from '../../features/scene/store/sceneStore'
-import type { UseSceneHistoryReturn } from '../../entities/r3f/types'
+import { useSceneStore } from '@/features/scene/store/sceneStore.ts'
+import type { UseSceneHistoryReturn } from '@/entities/r3f/types.ts'
 
 export const useSceneHistory = (): UseSceneHistoryReturn => {
   const undo = useSceneStore(state => state.undo)
@@ -22,7 +22,7 @@ export const useSceneHistory = (): UseSceneHistoryReturn => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only handle if not typing in input fields
-      if (event.target instanceof HTMLInputElement || 
+      if (event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement) {
         return
       }
@@ -49,7 +49,7 @@ export const useSceneHistory = (): UseSceneHistoryReturn => {
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }

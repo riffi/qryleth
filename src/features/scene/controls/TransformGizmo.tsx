@@ -2,12 +2,12 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../store/sceneStore'
-import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
+import { useObjectSelection } from '@/hooks/r3f/useObjectSelection.ts'
 import type {
   ObjectTransformEvent,
   SelectedObject,
   TransformMode
-} from '../../../entities/r3f/types'
+} from '@/entities/r3f/types.ts'
 
 export interface ObjectTransformGizmoProps {
   selectedObject?: SelectedObject

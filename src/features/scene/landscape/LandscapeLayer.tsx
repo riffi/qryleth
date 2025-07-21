@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import * as THREE from 'three'
-import type { SceneLayer } from '../../../entities/scene/types'
-import { createPerlinGeometry } from '../../../shared/lib/perlinGeometry'
+import type { SceneLayer } from '@/entities/scene/types.ts'
+import { createPerlinGeometry } from '@/shared/lib/perlinGeometry.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer

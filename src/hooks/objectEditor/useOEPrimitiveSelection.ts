@@ -3,8 +3,8 @@ import { useThree } from '@react-three/fiber'
 import {
   useObjectSelectedPrimitiveId,
   useObjectHoveredPrimitiveId
-} from '../../features/object-editor/store/objectStore'
-import type {UsePrimitiveSelectionReturn} from '../../entities/r3f/types'
+} from '@/features/object-editor/store/objectStore.ts'
+import type {UsePrimitiveSelectionReturn} from '@/entities/r3f/types.ts'
 
 export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
   const { scene } = useThree()

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { generateUUID } from '../../../shared/lib/uuid'
+import { generateUUID } from '@/shared/lib/uuid.ts'
 import type {
   SceneStore,
   SceneStoreState,
@@ -10,14 +10,14 @@ import type {
   SelectedObject,
   HoveredObject,
   CurrentScene
-} from '../../../entities/r3f/types'
+} from '@/entities/r3f/types.ts'
 import type {
   SceneObject,
   SceneObjectInstance,
   SceneLayer,
   LightingSettings
-} from '../../../entities/scene/types'
-import { normalizePrimitive } from '../../../entities/primitive'
+} from '@/entities/scene/types.ts'
+import { normalizePrimitive } from '@/entities/primitive'
 
 const initialLighting: LightingSettings = {
   ambientColor: '#404040',

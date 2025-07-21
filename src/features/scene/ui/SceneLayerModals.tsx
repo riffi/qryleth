@@ -18,7 +18,7 @@ interface LayerModalsProps {
     newLayerShape: 'plane' | 'perlin'
     setNewLayerShape: (shape: 'plane' | 'perlin') => void
     onCreateLayer: () => void
-    
+
     // Edit Layer Modal
     editLayerModalOpened: boolean
     setEditLayerModalOpened: (opened: boolean) => void
@@ -31,7 +31,7 @@ interface LayerModalsProps {
     editingLayerShape: 'plane' | 'perlin'
     setEditingLayerShape: (shape: 'plane' | 'perlin') => void
     onUpdateLayer: () => void
-    
+
     // Context Menu
     contextMenuOpened: boolean
     setContextMenuOpened: (opened: boolean) => void
@@ -40,7 +40,7 @@ interface LayerModalsProps {
     onMoveToLayer: (layerId: string) => void
 }
 
-export const LayerModals: React.FC<LayerModalsProps> = ({
+export const SceneLayerModals: React.FC<LayerModalsProps> = ({
     createLayerModalOpened,
     setCreateLayerModalOpened,
     newLayerName,
@@ -255,7 +255,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                     </Group>
                 </Stack>
             </Modal>
-            
+
             {/* Context Menu for moving objects */}
             <Menu
                 opened={contextMenuOpened}
@@ -265,7 +265,7 @@ export const LayerModals: React.FC<LayerModalsProps> = ({
                 width={200}
             >
                 <Menu.Target>
-                    <div 
+                    <div
                         style={{
                             position: 'fixed',
                             left: contextMenuPosition.x,

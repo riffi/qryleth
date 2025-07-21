@@ -1,7 +1,7 @@
 import React from 'react'
 import { EffectComposer, Outline } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
-import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
+import { useObjectSelection } from '@/hooks/r3f/useObjectSelection.ts'
 
 export interface PostProcessingProps {
   selectedObjects: THREE.Object3D[]

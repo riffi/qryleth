@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './Scene3D'
-import { ObjectManager } from './ObjectManager'
+import { SceneObjectManager } from './SceneObjectManager.tsx'
 import { ObjectEditorR3F } from '@/features/object-editor/ui/ObjectEditorR3F'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX } from '@tabler/icons-react'
@@ -459,7 +459,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             radius="md"
             style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}
           >
-            <ObjectManager
+            <SceneObjectManager
               onSaveSceneToLibrary={handleSaveSceneToLibrary}
               onEditObject={handleEditObject}
             />
