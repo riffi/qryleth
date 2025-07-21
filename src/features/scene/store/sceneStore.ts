@@ -4,13 +4,15 @@ import { generateUUID } from '@/shared/lib/uuid.ts'
 import type {
   SceneStore,
   SceneStoreState,
+  SceneMetaData
+} from '@/features/scene/model/store-types'
+import type {
   ViewMode,
   RenderMode,
   TransformMode,
   SelectedObject,
-  HoveredObject,
-  SceneMetaData
-} from '@/entities/r3f/types.ts'
+  HoveredObject
+} from '@/shared/types/ui'
 import type {
   SceneObject,
   SceneObjectInstance,

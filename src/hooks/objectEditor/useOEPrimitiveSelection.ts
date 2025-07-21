@@ -4,7 +4,7 @@ import {
   useObjectSelectedPrimitiveId,
   useObjectHoveredPrimitiveId
 } from '@/features/object-editor/store/objectStore.ts'
-import type {UsePrimitiveSelectionReturn} from '@/entities/r3f/types.ts'
+import type { UsePrimitiveSelectionReturn } from '@/features/scene/model/view-types'
 
 export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
   const { scene } = useThree()

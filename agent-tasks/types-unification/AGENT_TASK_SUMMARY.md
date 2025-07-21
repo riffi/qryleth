@@ -102,43 +102,37 @@
 
 **Результат**: ✅ **FSD-структура создана** - готовы к миграции импортов в Фазе 3
 
-### Фаза 3: Миграция Store и Feature типов ⏳ Запланировано
+### Фаза 3: Миграция Store и Feature типов ✅ Выполнено
 **Задача**: Перенести все store и feature-специфичные типы из entities в соответствующие features
 
-**Файлы для миграции**:
-- `/entities/r3f/types.ts` → `/features/scene/model/` (типы stores)
-- Store interfaces → соответствующие features
-- Hook return types → features/shared
+**Мигрированные файлы**:
+- ✅ `features/scene/store/sceneStore.ts` - обновлены импорты Store types
+- ✅ `hooks/r3f/useSceneEvents.ts` - UseSceneEventsReturn  
+- ✅ `hooks/r3f/useObjectSelection.ts` - UseObjectSelectionReturn
+- ✅ `hooks/r3f/useSceneHistory.ts` - UseSceneHistoryReturn
+- ✅ `hooks/objectEditor/useOEPrimitiveSelection.ts` - UsePrimitiveSelectionReturn
 
-**Типы для перемещения**:
+**Обновлены импорты в 11 файлах**:
 ```typescript
-// Из entities/r3f/types.ts в features/scene/model/store-types.ts:
-- SceneStoreState, SceneStoreActions, SceneStore
-- UseSceneEventsReturn, UseObjectSelectionReturn, etc.
+// Store types:
+SceneStore, SceneStoreState, SceneMetaData → @/features/scene/model/store-types
 
-// Из entities/r3f/types.ts в features/scene/model/view-types.ts:  
-- ViewMode, RenderMode, TransformMode
-- SelectedObject, HoveredObject
-- SceneMetaData, SceneStatus
+// Hook return types:  
+UseSceneEventsReturn, UseObjectSelectionReturn → @/features/scene/model/view-types
 
-// Из entities/r3f/types.ts в shared/types/ui/events.ts:
-- SceneClickEvent, SceneHoverEvent
-- ObjectTransformEvent, PrimitiveTransformEvent
+// UI types:
+ViewMode, RenderMode, TransformMode, SelectedObject → @/shared/types/ui
+SceneClickEvent, ObjectTransformEvent → @/shared/types/ui
 ```
 
-**Стратегия миграции**:
-1. **Создать новые файлы** с правильной структурой
-2. **Установить алиасы** в старых местах: `export type { SceneStore } from '@/features/scene/model'`
-3. **Обновить импорты** постепенно в небольших батчах
-4. **Сохранить обратную совместимость** через re-exports
+**Ключевые достижения**:
+- 🏗️ Store types правильно размещены в features слое
+- 📦 Hook return types в features/scene/model/view-types  
+- 🔧 Исправлено критическое нарушение в PrimitiveRenderer.tsx (shared → entities)
+- ✅ TypeScript компилируется без ошибок
+- 🔄 Обратная совместимость через временные алиасы
 
-**Критерии успеха**:
-- Все store типы в features слое  
-- Нет типов в entities/r3f/
-- Все тесты проходят
-- Приложение работает без изменений
-
-**Ожидаемый результат**: Store и feature типы корректно размещены в features слое
+**Результат**: ✅ **Store и feature типы мигрированы** - архитектура FSD соблюдена
 
 ### Фаза 4: Миграция общих UI и утилитарных типов ⏳ Запланировано
 **Задача**: Перенести общие UI типы и утилиты в shared слой с правильной категоризацией
@@ -267,7 +261,7 @@ export * from './view-types'
 ## Статус выполнения фаз
 - [x] **Фаза 1**: Анализ зависимостей и подготовка к миграции - ✅ Выполнено
 - [x] **Фаза 2**: Создание новой структуры типов - ✅ Выполнено
-- [ ] **Фаза 3**: Миграция Store и Feature типов - Запланировано
+- [x] **Фаза 3**: Миграция Store и Feature типов - ✅ Выполнено
 - [ ] **Фаза 4**: Миграция общих UI и утилитарных типов - Запланировано
 - [ ] **Фаза 5**: Обновление импортов и удаление дубликатов - Запланировано
 - [ ] **Фаза 6**: Создание барельных экспортов и документации - Запланировано
@@ -275,6 +269,7 @@ export * from './view-types'
 ## Ссылки на выполненные фазы
 - [Фаза 1: Анализ зависимостей](phases/phase_1_summary.md) - ✅ Выполнено
 - [Фаза 2: Создание структуры типов](phases/phase_2_summary.md) - ✅ Выполнено
+- [Фаза 3: Миграция Store и Feature типов](phases/phase_3_summary.md) - ✅ Выполнено
 
 ## Критические риски и меры предосторожности
 

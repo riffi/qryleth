@@ -7,7 +7,7 @@ import type {
   ObjectTransformEvent,
   SelectedObject,
   TransformMode
-} from '@/entities/r3f/types.ts'
+} from '@/shared/types/ui'
 
 export interface ObjectTransformGizmoProps {
   selectedObject?: SelectedObject

@@ -9,7 +9,7 @@ import type {
   RenderMode,
   SceneClickEvent,
   SceneHoverEvent
-} from "@/entities/r3f/types.ts";
+} from '@/shared/types/ui'
 
 export interface SceneObjectRendererProps {
   sceneObject: SceneObject
