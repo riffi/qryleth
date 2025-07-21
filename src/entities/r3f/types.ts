@@ -70,15 +70,6 @@ export interface PrimitiveTransformEvent {
 
 
 
-
-
-
-
-export interface PostProcessingProps {
-  selectedObjects: THREE.Object3D[]
-  hoveredObjects: THREE.Object3D[]
-}
-
 // Store interfaces
 export interface SceneStoreState {
   // Scene data

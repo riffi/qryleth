@@ -2,7 +2,12 @@ import React from 'react'
 import { EffectComposer, Outline } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 import { useObjectSelection } from '../../../hooks/r3f/useObjectSelection'
-import type { PostProcessingProps } from '../../../entities/r3f/types'
+
+export interface PostProcessingProps {
+  selectedObjects: THREE.Object3D[]
+  hoveredObjects: THREE.Object3D[]
+}
+
 
 export const PostProcessing: React.FC<PostProcessingProps> = ({
   selectedObjects: externalSelected,
