@@ -1,7 +1,8 @@
 
 
-import type {Vector3} from "../../shared/types/vector3.ts";
-import type {LightingSettings, SceneLayer, SceneObject, SceneObjectInstance} from "../scene/types.ts";
+import type {Vector3} from "@/shared/types/vector3.ts";
+import type { SceneLayer, SceneObject, SceneObjectInstance} from "../scene/types.ts";
+import type {LightingSettings} from "@/entities/lighting/model/types.ts";
 
 
 

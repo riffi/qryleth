@@ -1,1 +1,1 @@
-export * from './model/types.ts'
+export * from '../object/model/types.ts'

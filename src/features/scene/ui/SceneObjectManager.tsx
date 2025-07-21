@@ -22,14 +22,14 @@ import {
     Divider
 } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
-import type { SceneReference } from '../../../types/common'
-import type { LightingSettings, SceneLayer } from '../../../types/scene'
+import type { SceneLayer } from '../../../types/scene'
 import { SceneHeader } from './SceneHeader'
 import { LightingControls } from './LightingControls'
 import { SceneLayerItem } from './SceneLayerItem.tsx'
 import { SceneLayerModals } from './SceneLayerModals.tsx'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
+import type {LightingSettings} from "@/entities/lighting";
 
 interface ObjectManagerProps {
     // Optional overrides for store actions

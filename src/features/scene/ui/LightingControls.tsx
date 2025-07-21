@@ -12,7 +12,7 @@ import {
     Select
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import type { LightingSettings } from '../../../types/scene'
+import type {LightingSettings} from '@/entities/lighting'
 
 interface LightingControlsProps {
     lighting?: LightingSettings
@@ -89,7 +89,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
     // Определяем текущий пресет на основе настроек освещения
     useEffect(() => {
         if (lighting) {
-            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) => 
+            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) =>
                 preset.ambientColor === lighting.ambientColor &&
                 preset.ambientIntensity === lighting.ambientIntensity &&
                 preset.directionalColor === lighting.directionalColor &&

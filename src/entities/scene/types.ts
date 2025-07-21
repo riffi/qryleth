@@ -1,4 +1,4 @@
-import type {GfxObject} from "../object";
+import type {GfxObject} from "../lighting";
 import type {GfxObjectInstance} from "../objectInstance";
 import type {GfxLayer} from "../layer";
 
@@ -19,11 +19,5 @@ export interface SceneLayer extends GfxLayer{
   position: number;
 }
 
-export interface LightingSettings {
-  ambientColor?: string;
-  ambientIntensity?: number;
-  directionalColor?: string;
-  directionalIntensity?: number;
-  backgroundColor?: string;
-}
+
 
