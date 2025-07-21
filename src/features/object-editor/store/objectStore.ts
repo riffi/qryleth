@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import type { GfxPrimitive } from '../../../entities/primitive'
-import { normalizePrimitive } from '../../../entities/primitive'
-import type { LightingSettings } from '../../../entities/scene/types'
-import type { RenderMode, TransformMode, ViewMode } from '../../../entities/r3f/types'
+import type { GfxPrimitive } from '@/entities/primitive'
+import { normalizePrimitive } from '@/entities/primitive'
+import type { LightingSettings } from '@/entities/scene/types.ts'
+import type { RenderMode, TransformMode, ViewMode } from '@/entities/r3f/types.ts'
 
 interface ObjectStoreState {
   primitives: GfxPrimitive[]

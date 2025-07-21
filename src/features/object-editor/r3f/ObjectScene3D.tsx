@@ -3,9 +3,8 @@ import { Canvas } from '@react-three/fiber'
 import { Box } from '@mantine/core'
 import * as THREE from 'three'
 import { ObjectSceneContent } from './ObjectSceneContent'
-import type { Scene3DProps } from '../../../types/r3f'
 
-export interface ObjectScene3DProps extends Scene3DProps {
+export interface ObjectScene3DProps {
   className?: string
   onSceneReady?: (scene: THREE.Scene) => void
 }

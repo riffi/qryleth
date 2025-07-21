@@ -14,7 +14,7 @@ import {
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import { ObjectScene3D } from '../r3f/ObjectScene3D'
 import { useObjectStore, useObjectPrimitives } from '../store/objectStore'
-import type { SceneObject } from '../../../entities/scene/types'
+import type { SceneObject } from '@/entities/scene/types.ts'
 
 interface ObjectEditorR3FProps {
   opened: boolean
