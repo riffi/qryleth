@@ -9,7 +9,7 @@ export interface SceneObject extends GfxObject{
 }
 
 export interface SceneObjectInstance extends GfxObjectInstance{
-  /** Visibility of a particular placement/instance */
+  /** Visibility of a particular instance */
   visible?: boolean;
 }
 

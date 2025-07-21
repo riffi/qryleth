@@ -20,7 +20,7 @@ export const SceneObjects: React.FC = () => {
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
-  
+
   const { handleClick, handlePointerOver, handlePointerOut } = useSceneEvents()
 
   const handleObjectTransform = (event: any) => {
@@ -35,15 +35,18 @@ export const SceneObjects: React.FC = () => {
 
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
-    return selectedObject.objectUuid === objectUuid && 
+    return selectedObject.objectUuid === objectUuid &&
            selectedObject.instanceId === instanceId
   }
 
   const isHovered = (objectUuid: string, instanceId?: string) => {
     if (!hoveredObject) return false
-    return hoveredObject.objectUuid === objectUuid && 
+    return hoveredObject.objectUuid === objectUuid &&
            hoveredObject.instanceId === instanceId
   }
+
+  console.log('objectInstances', objectInstances)
+  console.log('objects', objects)
 
   return (
     <group
@@ -54,7 +57,7 @@ export const SceneObjects: React.FC = () => {
     >
       {/* Instanced objects for performance optimization */}
       <InstancedObjects minimumInstancesForOptimization={3} />
-      
+
       {/* Individual objects (not instanced) */}
       {objectInstances.map((instance, instanceIndex) => {
         const sceneObject = objects.find(obj => obj.uuid === instance.objectUuid)

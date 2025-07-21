@@ -325,7 +325,7 @@ export const useSceneStore = create<SceneStore>()(
 
         // Load scene data
         if (data.objects) state.setObjects(data.objects)
-        if (data.placements) state.setObjectInstances(data.placements)
+        if (data.objectInstances) state.setObjectInstances(data.objectInstances)
         if (data.layers) state.setLayers(data.layers)
         if (data.lighting) state.setLighting(data.lighting)
 
