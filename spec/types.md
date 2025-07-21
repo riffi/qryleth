@@ -17,7 +17,6 @@
 - **SceneObjectInstance** – экземпляр `GfxObjectInstance` c флагом видимости. Источник: `src/entities/scene/types.ts`.
 - **SceneLayer** – слой сцены с положением и признаком видимости. Источник: `src/entities/scene/types.ts`.
 - **LightingSettings** – параметры фонового и направленного освещения. Источник: `src/entities/scene/types.ts`.
-- **SceneResponse** – структура данных сцены при загрузке/сохранении (объекты, инстансы, слои, освещение). Источник: `src/entities/scene/types.ts`.
 
 ## Типы r3f и состояния сцен
 - **SelectedObject / HoveredObject** – состояние выделения объектов на канвасе. Источник: `src/entities/r3f/types.ts`.

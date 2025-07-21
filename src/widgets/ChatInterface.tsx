@@ -3,14 +3,12 @@ import { Stack, Paper, TextInput, Button, Text, Box, Group, ScrollArea, ActionIc
 import { IconSend, IconUser, IconRobot, IconTool } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '../shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '../shared/lib/openAIAPI'
-import type { SceneResponse } from '../entities/scene/types'
 
 interface Props {
-  onSceneGenerated: (scene: SceneResponse) => void
   onObjectAdded: (object: any) => void
 }
 
-export const ChatInterface: React.FC<Props> = ({ onSceneGenerated, onObjectAdded }) => {
+export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)

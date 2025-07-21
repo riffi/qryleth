@@ -16,7 +16,7 @@ import {
 import { useSceneHistory } from '../../../hooks/r3f/useSceneHistory'
 import { db } from '../../../shared/lib/database'
 import MainLayout from '../../../widgets/layouts/MainLayout'
-import type { SceneResponse, SceneObject, SceneObjectInstance } from '../../../entities/scene/types'
+import type { SceneObject, SceneObjectInstance } from '../../../entities/scene/types'
 import type { SceneStatus } from '../../../entities/r3f/types'
 import { Link } from 'react-router-dom'
 import { generateUUID } from '../../../shared/lib/uuid'
@@ -99,7 +99,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const objects = useSceneStore(state => state.objects)
-  const objectInstances = useSceneStore(state => state.objectInstances)
   const updateObject = useSceneStore(state => state.updateObject)
 
   const currentScene = useSceneStore(state => state.currentScene)
@@ -132,10 +131,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     loadScene()
   }, [uuid, isNew, loadSceneData, clearScene, setCurrentScene])
 
-
-  const handleSceneGenerated = (scene: SceneResponse) => {
-    useSceneStore.getState().loadSceneData(scene)
-  }
 
   const handleObjectAdded = (objectData: any) => {
     const { addObject, addObjectInstance } = useSceneStore.getState()
@@ -344,7 +339,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
         >
         <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
-          <ChatInterface onSceneGenerated={handleSceneGenerated} onObjectAdded={handleObjectAdded} />
+          <ChatInterface onObjectAdded={handleObjectAdded} />
         </Paper>
 
         <Paper

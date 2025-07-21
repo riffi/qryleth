@@ -27,13 +27,3 @@ export interface LightingSettings {
   backgroundColor?: string;
 }
 
-
-
-
-export interface SceneResponse {
-  objects: SceneObject[];
-  /** Основной массив инстансов объектов */
-  objectInstances?: SceneObjectInstance[];
-  layers?: SceneLayer[];
-  lighting?: LightingSettings;
-}
