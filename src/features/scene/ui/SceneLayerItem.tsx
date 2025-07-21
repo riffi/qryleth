@@ -1,6 +1,6 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
-import { IconLayersLinked, IconEye, IconEyeOff, IconEdit, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
+import { IconLayersLinked, IconEye, IconEyeOff, IconEdit, IconTrash, IconChevronDown, IconChevronRight, IconPlus, IconArchive } from '@tabler/icons-react'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
 import type { SceneLayer } from '@/entities/scene/types.ts'
@@ -28,6 +28,7 @@ interface LayerItemProps {
     onEditObject?: (objectUuid: string, instanceId?: string) => void
     onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
     onRemoveInstance?: (objectUuid: string, instanceId: string) => void
+    onAddObjectFromLibrary?: (layerId: string) => void
     onDragStart: (e: React.DragEvent, objectUuid: string) => void
     onContextMenu: (e: React.MouseEvent, objectUuid: string) => void
     onDragOver: (e: React.DragEvent, layerId: string) => void
@@ -61,7 +62,8 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
     onContextMenu,
     onDragOver,
     onDragLeave,
-    onDrop
+    onDrop,
+    onAddObjectFromLibrary
 }) => {
     return (
         <div>
@@ -134,6 +136,12 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                                 </ActionIcon>
                             </Menu.Target>
                             <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<IconPlus size={14} />}
+                                    onClick={() => onAddObjectFromLibrary?.(layer.id)}
+                                >
+                                    Добавить объект из библиотеки
+                                </Menu.Item>
                                 <Menu.Item
                                     leftSection={<IconEdit size={14} />}
                                     onClick={() => onEdit(layer)}

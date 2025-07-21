@@ -33,8 +33,11 @@ import { SceneLayerModals } from './SceneLayerModals.tsx'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
 import { SaveObjectDialog } from '@/shared/ui'
+import { AddObjectFromLibraryModal } from './AddObjectFromLibraryModal.tsx'
 import { useErrorHandler } from '@/shared/hooks'
 import type { LightingSettings } from '@/entities/lighting'
+import {generateUUID} from "@/shared/lib/uuid.ts";
+import type {ObjectRecord} from "@/shared/api";
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -66,6 +69,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [contextMenuObjectUuid, setContextMenuObjectUuid] = useState<string | null>(null)
     const [saveObjectModalOpened, setSaveObjectModalOpened] = useState(false)
     const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
+    const [addObjectModalOpened, setAddObjectModalOpened] = useState(false)
+    const [targetLayerId, setTargetLayerId] = useState<string | null>(null)
     const handleError = useErrorHandler()
 
     // R3F Zustand store data
@@ -275,6 +280,61 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         console.log('Object edit not implemented', { objectUuid, instanceId })
     }
 
+    const handleAddObjectFromLibrary = (layerId: string) => {
+        setTargetLayerId(layerId)
+        setAddObjectModalOpened(true)
+    }
+
+    const handleAddObjectToScene = async (object: ObjectRecord) => {
+        if (!targetLayerId) return
+
+        try {
+            // Create new scene object from library object
+            const newSceneObject = {
+                uuid: generateUUID(),
+                name: object.name,
+                primitives: object.objectData.primitives,
+                visible: true,
+                layerId: targetLayerId
+            }
+
+            // Add to scene
+            useSceneStore.getState().addObject(newSceneObject)
+
+            // Create initial instance
+            const newInstance = {
+                uuid: generateUUID(),
+                objectUuid: newSceneObject.uuid,
+                transform: {
+                    position: [0, 0, 0] as [number, number, number],
+                    rotation: [0, 0, 0] as [number, number, number],
+                    scale: [1, 1, 1] as [number, number, number]
+                },
+                visible: true
+            }
+
+            useSceneStore.getState().addObjectInstance(newInstance)
+
+            notifications.show({
+                title: 'Успешно!',
+                message: `Объект "${object.name}" добавлен в сцену`,
+                color: 'green',
+                icon: <IconCheck size="1rem" />,
+            })
+
+            setAddObjectModalOpened(false)
+            setTargetLayerId(null)
+
+        } catch (error) {
+            console.error('Error adding object from library:', error)
+            notifications.show({
+                title: 'Ошибка',
+                message: 'Не удалось добавить объект из библиотеки',
+                color: 'red'
+            })
+        }
+    }
+
     const handleLightingChange = (newLighting: LightingSettings) => {
         updateLighting(newLighting)
     }
@@ -411,6 +471,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             onDragOver={handleDragOver}
                                             onDragLeave={handleDragLeave}
                                             onDrop={handleDrop}
+                                            onAddObjectFromLibrary={handleAddObjectFromLibrary}
                                         />
                                     )
                                 })
@@ -516,6 +577,16 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 objectName={
                     savingObjectUuid ? sceneObjects.find(o => o.uuid === savingObjectUuid)?.name : undefined
                 }
+            />
+
+            <AddObjectFromLibraryModal
+                opened={addObjectModalOpened}
+                onClose={() => {
+                    setAddObjectModalOpened(false)
+                    setTargetLayerId(null)
+                }}
+                onAddObject={handleAddObjectToScene}
+                targetLayerId={targetLayerId}
             />
         </>
     )
