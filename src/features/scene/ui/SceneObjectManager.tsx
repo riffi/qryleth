@@ -19,9 +19,15 @@ import {
     ScrollArea,
     ActionIcon,
     Tooltip,
-    Divider
+    Divider,
+    Modal,
+    TextInput,
+    Textarea,
+    Button
 } from '@mantine/core'
-import { IconPlus } from '@tabler/icons-react'
+import { IconPlus, IconCheck, IconX } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
+import { db } from '@/shared/lib/database'
 import type { SceneLayer } from '../../../types/scene'
 import { SceneHeader } from './SceneHeader'
 import { LightingControls } from './LightingControls'
@@ -59,6 +65,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
     const [contextMenuObjectUuid, setContextMenuObjectUuid] = useState<string | null>(null)
+    const [saveObjectModalOpened, setSaveObjectModalOpened] = useState(false)
+    const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
 
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
@@ -218,7 +226,37 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleSaveObjectToLibrary = (objectUuid: string) => {
-        console.log('Save object to library not implemented', { objectUuid })
+        setSavingObjectUuid(objectUuid)
+        setSaveObjectModalOpened(true)
+    }
+
+    const handleSaveObject = async (name: string, description?: string) => {
+        if (!savingObjectUuid) return
+        const object = useSceneStore.getState().objects.find(o => o.uuid === savingObjectUuid)
+        if (!object) return
+
+        const { uuid, primitives } = object
+        const objectData = { uuid, name: object.name, primitives }
+
+        try {
+            await db.saveObject(name, objectData, description, undefined)
+            notifications.show({
+                title: 'Успешно!',
+                message: `Объект "${name}" сохранен в библиотеку`,
+                color: 'green',
+                icon: <IconCheck size="1rem" />,
+            })
+            setSaveObjectModalOpened(false)
+            setSavingObjectUuid(null)
+        } catch (error) {
+            console.error('Failed to save object:', error)
+            notifications.show({
+                title: 'Ошибка',
+                message: 'Не удалось сохранить объект',
+                color: 'red',
+                icon: <IconX size="1rem" />,
+            })
+        }
     }
 
     const handleEditObject = (objectUuid: string, instanceId?: string) => {
@@ -457,9 +495,88 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 layers={layers}
                 onMoveToLayer={handleMoveToLayer}
             />
+
+            <SaveObjectModal
+                opened={saveObjectModalOpened}
+                onClose={() => {
+                    setSaveObjectModalOpened(false)
+                    setSavingObjectUuid(null)
+                }}
+                onSave={handleSaveObject}
+                currentObjectName={
+                    savingObjectUuid ? sceneObjects.find(o => o.uuid === savingObjectUuid)?.name : undefined
+                }
+            />
         </>
     )
 }
 
 // Экспортируем интерфейс для использования в других компонентах
 export { type ObjectInfo }
+
+interface SaveObjectModalProps {
+    opened: boolean
+    onClose: () => void
+    onSave: (name: string, description?: string) => void
+    currentObjectName?: string
+}
+
+const SaveObjectModal: React.FC<SaveObjectModalProps> = ({ opened, onClose, onSave, currentObjectName }) => {
+    const [objectName, setObjectName] = useState('')
+    const [objectDescription, setObjectDescription] = useState('')
+
+    const handleSave = () => {
+        if (!objectName.trim()) {
+            notifications.show({
+                title: 'Ошибка',
+                message: 'Введите название объекта',
+                color: 'red',
+                icon: <IconX size="1rem" />,
+            })
+            return
+        }
+
+        onSave(objectName.trim(), objectDescription.trim() || undefined)
+        setObjectName('')
+        setObjectDescription('')
+    }
+
+    const handleClose = () => {
+        setObjectName('')
+        setObjectDescription('')
+        onClose()
+    }
+
+    React.useEffect(() => {
+        if (opened && currentObjectName && !objectName) {
+            setObjectName(currentObjectName)
+        }
+    }, [opened, currentObjectName, objectName])
+
+    return (
+        <Modal opened={opened} onClose={handleClose} title="Сохранить объект" size="md">
+            <Stack gap="md">
+                <TextInput
+                    label="Название объекта"
+                    placeholder="Введите название..."
+                    value={objectName}
+                    onChange={(e) => setObjectName(e.currentTarget.value)}
+                    required
+                />
+                <Textarea
+                    label="Описание (необязательно)"
+                    placeholder="Краткое описание объекта..."
+                    value={objectDescription}
+                    onChange={(e) => setObjectDescription(e.currentTarget.value)}
+                    minRows={3}
+                />
+                <Group justify="flex-end" mt="md">
+                    <Button variant="subtle" onClick={handleClose}>
+                        Отмена
+                    </Button>
+                    <Button onClick={handleSave}>Сохранить</Button>
+                </Group>
+            </Stack>
+        </Modal>
+    )
+}
