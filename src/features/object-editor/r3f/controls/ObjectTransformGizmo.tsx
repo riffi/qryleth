@@ -24,7 +24,7 @@ export const ObjectTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orb
     const rotation = obj.rotation
     const scale = obj.scale
 
-    // Update placement for the selected object
+    // Update primitive for the selected object
     updatePrimitive(selectedPrimitiveId, {
       position: [position.x, position.y, position.z],
       rotation: [rotation.x, rotation.y, rotation.z],

@@ -7,8 +7,8 @@ import { useRenderMode } from '../store/sceneStore'
 
 export const CompositeObject: React.FC<CompositeObjectProps> = ({
   sceneObject,
-  placement,
-  placementIndex,
+  instance,
+  instanceIndex,
   isSelected = false,
   isHovered = false,
   onClick,
@@ -23,9 +23,9 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     event.stopPropagation()
     if (onClick) {
       onClick({
-        objectUuid: placement.objectUuid,
-        instanceId: placement.uuid,
-        placementIndex,
+        objectUuid: instance.objectUuid,
+        instanceId: instance.uuid,
+        objectInstanceIndex: instanceIndex,
         point: event.point,
         object: event.object
       })
@@ -36,9 +36,9 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     event.stopPropagation()
     if (onHover) {
       onHover({
-        objectUuid: placement.objectUuid,
-        instanceId: placement.uuid,
-        placementIndex,
+        objectUuid: instance.objectUuid,
+        instanceId: instance.uuid,
+        objectInstanceIndex: instanceIndex,
         object: event.object
       })
     }
@@ -65,15 +65,15 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
     <group
       ref={groupRef}
       name={sceneObject.name}
-      position={placement.transform?.position || [0, 0, 0]}
-      rotation={placement.transform?.rotation || [0, 0, 0]}
-      scale={placement.transform?.scale || [1, 1, 1]}
+      position={instance.transform?.position || [0, 0, 0]}
+      rotation={instance.transform?.rotation || [0, 0, 0]}
+      scale={instance.transform?.scale || [1, 1, 1]}
       visible={visible}
       userData={{
         generated: true,
-        objectUuid: placement.objectUuid,
-        placementUuid: placement.uuid,
-        placementIndex: placementIndex,
+        objectUuid: instance.objectUuid,
+        objectInstanceUuid: instance.uuid,
+        objectInstanceIndex: instanceIndex,
         layerId: sceneObject.layerId || 'objects'
       }}
       onClick={handleClick}
@@ -87,9 +87,9 @@ export const CompositeObject: React.FC<CompositeObjectProps> = ({
           renderMode={renderMode}
           userData={{
             generated: true,
-            objectUuid: placement.objectUuid,
-            placementUuid: placement.uuid,
-            placementIndex: placementIndex,
+            objectUuid: instance.objectUuid,
+            objectInstanceUuid: instance.uuid,
+            objectInstanceIndex: instanceIndex,
             layerId: sceneObject.layerId || 'objects'
           }}
         />

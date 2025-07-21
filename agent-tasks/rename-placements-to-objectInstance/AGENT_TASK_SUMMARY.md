@@ -92,12 +92,13 @@
 8. Обновить `src/hooks/r3f/useSceneEvents.ts`
 Подробности см. в [phases/phase_3_summary.md](phases/phase_3_summary.md).
 
-### Этап 4: UI компоненты
+### Этап 4: UI компоненты – Выполнено
 9. Обновить все компоненты в `src/features/scene/ui/`
 10. Обновить все компоненты в `src/features/object-editor/`
 11. Обновить все компоненты в `src/features/scene/controls/`
 12. Обновить все компоненты в `src/features/scene/objects/`
 13. Обновить оптимизационные компоненты
+Подробности см. в [phases/phase_4_summary.md](phases/phase_4_summary.md).
 
 ### Этап 5: Утилиты и API
 14. Обновить `src/shared/r3f/optimization/InstancedObjects.tsx`

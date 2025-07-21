@@ -99,7 +99,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const objects = useSceneStore(state => state.objects)
-  const placements = useSceneStore(state => state.placements)
+  const objectInstances = useSceneStore(state => state.objectInstances)
   const updateObject = useSceneStore(state => state.updateObject)
 
   const currentScene = useSceneStore(state => state.currentScene)
@@ -138,7 +138,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleObjectAdded = (objectData: any) => {
-    const { addObject, addPlacement } = useSceneStore.getState()
+    const { addObject, addObjectInstance } = useSceneStore.getState()
     const objectUuid = generateUUID()
     const newObject: SceneObject = {
       uuid: objectUuid,
@@ -148,14 +148,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
     addObject(newObject)
 
-    const placement: SceneObjectInstance = {
+    const objectInstance: SceneObjectInstance = {
       uuid: generateUUID(),
       objectUuid,
       position: objectData.position || [0, 0, 0],
       rotation: objectData.rotation || [0, 0, 0],
       scale: objectData.scale || [1, 1, 1]
     }
-    addPlacement(placement)
+    addObjectInstance(objectInstance)
   }
 
   const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {

@@ -62,14 +62,14 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
-    const placements = useSceneStore(state => state.placements)
+    const objectInstances = useSceneStore(state => state.objectInstances)
     const storeLayers = useSceneLayersOptimized()
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
     const storeCurrentScene = useSceneStore(state => state.currentScene)
     const {
         removeObject,
-        removePlacement,
+        removeObjectInstance,
         selectObject: storeSelectObject,
         clearSelection,
         setHoveredObject,
@@ -87,23 +87,23 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
 
     const objects = React.useMemo<ObjectInfo[]>(() => {
         return sceneObjects.map((sceneObject) => {
-            const objectPlacements = placements.filter(p => p.objectUuid === sceneObject.uuid)
+            const objectInstancesList = objectInstances.filter(p => p.objectUuid === sceneObject.uuid)
             return {
                 name: sceneObject.name,
-                count: objectPlacements.length,
+                count: objectInstancesList.length,
                 visible: sceneObject.visible !== false,
                 objectUuid: sceneObject.uuid,
                 layerId: sceneObject.layerId || 'objects',
-                instances: objectPlacements.map((placement) => ({
-                    id: placement.uuid,
-                    position: placement.transform?.position || [0,0,0],
-                    rotation: placement.transform?.rotation || [0,0,0],
-                    scale: placement.transform?.scale || [1,1,1],
-                    visible: placement.visible !== false
+                instances: objectInstancesList.map((instance) => ({
+                    id: instance.uuid,
+                    position: instance.transform?.position || [0,0,0],
+                    rotation: instance.transform?.rotation || [0,0,0],
+                    scale: instance.transform?.scale || [1,1,1],
+                    visible: instance.visible !== false
                 }))
             }
         })
-    }, [sceneObjects, placements])
+    }, [sceneObjects, objectInstances])
 
     const layers = storeLayers
     const lighting = storeLighting
@@ -139,7 +139,7 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     const handleCreateLayer = () => {
         const layerName = newLayerType === 'landscape' ? 'landscape' : newLayerName.trim()
         if (newLayerType === 'object' && !layerName) return
-        
+
         storeCreateLayer({
             name: layerName,
             type: newLayerType,
@@ -198,10 +198,10 @@ export const ObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleRemoveInstance = (objectUuid: string, instanceId: string) => {
-        // instanceId теперь это просто placementUuid
-        const placementIndex = placements.findIndex(p => p.uuid === instanceId)
-        if (placementIndex !== -1) {
-            removePlacement(placementIndex)
+        // instanceId теперь это просто objectInstanceUuid
+        const instanceIndex = objectInstances.findIndex(p => p.uuid === instanceId)
+        if (instanceIndex !== -1) {
+            removeObjectInstance(instanceIndex)
             clearSelection()
         }
     }

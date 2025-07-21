@@ -1,31 +1,31 @@
 import React from 'react'
 import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
 import { InstancedObjects } from '../../../shared/r3f/optimization/InstancedObjects'
-import { 
-  useSceneObjects, 
-  useScenePlacements, 
+import {
+  useSceneObjects,
+  useSceneObjectInstances,
   useSelectedObject,
   useHoveredObject,
   useSceneLayers,
-  useSceneStore 
+  useSceneStore
 } from '../store/sceneStore'
 import { useSceneEvents } from '../../../hooks/r3f/useSceneEvents'
 
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()
-  const placements = useScenePlacements()
+  const objectInstances = useSceneObjectInstances()
   const layers = useSceneLayers()
   const selectedObject = useSelectedObject()
   const hoveredObject = useHoveredObject()
-  const updatePlacement = useSceneStore(state => state.updatePlacement)
+  const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
   
   const { handleClick, handlePointerOver, handlePointerOut } = useSceneEvents()
 
   const handleObjectTransform = (event: any) => {
-    if (event.placementIndex !== undefined) {
-      updatePlacement(event.placementIndex, {
+    if (event.objectInstanceIndex !== undefined) {
+      updateObjectInstance(event.objectInstanceIndex, {
         position: [event.position.x, event.position.y, event.position.z],
         rotation: [event.rotation.x, event.rotation.y, event.rotation.z],
         scale: [event.scale.x, event.scale.y, event.scale.z]
@@ -56,8 +56,8 @@ export const SceneObjects: React.FC = () => {
       <InstancedObjects minimumInstancesForOptimization={3} />
       
       {/* Individual objects (not instanced) */}
-      {placements.map((placement, placementIndex) => {
-        const sceneObject = objects.find(obj => obj.uuid === placement.objectUuid)
+      {objectInstances.map((instance, instanceIndex) => {
+        const sceneObject = objects.find(obj => obj.uuid === instance.objectUuid)
         if (!sceneObject) return null
 
         // Check layer visibility
@@ -65,20 +65,20 @@ export const SceneObjects: React.FC = () => {
         const layer = layers.find(l => l.id === layerId)
         const isLayerVisible = layer ? layer.visible : true
 
-        const instanceId = `${placement.objectUuid}-${placement.uuid}`
+        const instanceId = `${instance.objectUuid}-${instance.uuid}`
 
         return (
           <MemoizedCompositeObject
             key={instanceId}
             sceneObject={sceneObject}
-            placement={placement}
-            placementIndex={placementIndex}
-            isSelected={isSelected(placement.objectUuid, instanceId)}
-            isHovered={isHovered(placement.objectUuid, instanceId)}
+            instance={instance}
+            instanceIndex={instanceIndex}
+            isSelected={isSelected(instance.objectUuid, instanceId)}
+            isHovered={isHovered(instance.objectUuid, instanceId)}
             onClick={handleClick}
             onHover={handlePointerOver}
             onTransform={handleObjectTransform}
-            visible={isLayerVisible && (sceneObject.visible !== false) && (placement.visible !== false)}
+            visible={isLayerVisible && (sceneObject.visible !== false) && (instance.visible !== false)}
           />
         )
       })}

@@ -10,7 +10,7 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
   const transformControlsRef = useRef<any>()
   const selectedObject = useSceneStore(state => state.selectedObject)
   const transformMode = useSceneStore(state => state.transformMode)
-  const updatePlacement = useSceneStore(state => state.updatePlacement)
+  const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
   const { selectedObjects } = useObjectSelection()
 
@@ -25,9 +25,9 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     const rotation = obj.rotation
     const scale = obj.scale
 
-    // Update the placement in the store
-    if (selectedObject.placementIndex !== undefined) {
-      updatePlacement(selectedObject.placementIndex, {
+    // Update the object instance in the store
+    if (selectedObject.objectInstanceIndex !== undefined) {
+      updateObjectInstance(selectedObject.objectInstanceIndex, {
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
         scale: [scale.x, scale.y, scale.z]
@@ -39,7 +39,7 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
       onTransform({
         objectIndex: selectedObject.objectIndex,
         instanceId: selectedObject.instanceId,
-        placementIndex: selectedObject.placementIndex,
+        objectInstanceIndex: selectedObject.objectInstanceIndex,
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
         scale: [scale.x, scale.y, scale.z]

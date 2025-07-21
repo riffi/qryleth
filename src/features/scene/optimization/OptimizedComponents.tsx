@@ -10,8 +10,8 @@ export const MemoizedCompositeObject = React.memo<CompositeObjectProps>(
     // Custom comparison function for optimal re-rendering
     return (
       prevProps.sceneObject === nextProps.sceneObject &&
-      prevProps.placement === nextProps.placement &&
-      prevProps.placementIndex === nextProps.placementIndex &&
+      prevProps.instance === nextProps.instance &&
+      prevProps.instanceIndex === nextProps.instanceIndex &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.isHovered === nextProps.isHovered &&
       prevProps.renderMode === nextProps.renderMode &&
