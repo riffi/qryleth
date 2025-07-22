@@ -54,12 +54,12 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
     const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
     const [newLayerName, setNewLayerName] = useState('')
-    const [newLayerType, setNewLayerType] = useState<'object' | 'landscape'>('object')
+    const [newLayerType, setNewLayerType] = useState<'object' | 'landscape' | 'sea'>('object')
     const [newLayerWidth, setNewLayerWidth] = useState(10)
     const [newLayerHeight, setNewLayerHeight] = useState(10)
     const [newLayerShape, setNewLayerShape] = useState<'plane' | 'perlin'>('plane')
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
-    const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape'>('object')
+    const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape' | 'sea'>('object')
     const [editingLayerWidth, setEditingLayerWidth] = useState(10)
     const [editingLayerHeight, setEditingLayerHeight] = useState(10)
     const [editingLayerShape, setEditingLayerShape] = useState<'plane' | 'perlin'>('plane')
@@ -148,7 +148,15 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     const handleCreateLayer = () => {
-        const layerName = newLayerType === 'landscape' ? 'landscape' : newLayerName.trim()
+        let layerName = newLayerName.trim()
+        
+        // Set default names for special layer types
+        if (newLayerType === 'landscape') {
+            layerName = 'landscape'
+        } else if (newLayerType === 'sea') {
+            layerName = 'море'
+        }
+        
         if (newLayerType === 'object' && !layerName) return
 
         storeCreateLayer({
@@ -156,7 +164,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             type: newLayerType,
             visible: true,
             position: layers.length,
-            ...(newLayerType === 'landscape' && {
+            ...((newLayerType === 'landscape' || newLayerType === 'sea') && {
                 width: newLayerWidth,
                 height: newLayerHeight,
                 shape: newLayerShape
@@ -174,9 +182,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         if (!newLayerName.trim() || !editingLayerId) return
         const updates: Partial<SceneLayer> = {
             name: newLayerName.trim(),
-            width: editingLayerType === 'landscape' ? editingLayerWidth : undefined,
-            height: editingLayerType === 'landscape' ? editingLayerHeight : undefined,
-            shape: editingLayerType === 'landscape' ? editingLayerShape : undefined
+            width: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerWidth : undefined,
+            height: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerHeight : undefined,
+            shape: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerShape : undefined
         }
         storeUpdateLayer(editingLayerId, updates)
         setNewLayerName('')

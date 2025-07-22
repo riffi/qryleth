@@ -1,6 +1,7 @@
 import React from 'react'
 import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/SceneObjectRenderer.tsx'
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
+import {SeaLayer, type SeaLayerProps} from '../landscape/SeaLayer.tsx'
 
 // Memoized CompositeObject for better performance
 export const MemoizedCompositeObject = React.memo<SceneObjectRendererProps>(
@@ -35,5 +36,20 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   }
 )
 
+// Memoized SeaLayer for better performance
+export const MemoizedSeaLayer = React.memo<SeaLayerProps>(
+  SeaLayer,
+  (prevProps, nextProps) => {
+    // Custom comparison function for sea layers
+    return (
+      prevProps.layer.id === nextProps.layer.id &&
+      prevProps.layer.visible === nextProps.layer.visible &&
+      prevProps.layer.width === nextProps.layer.width &&
+      prevProps.layer.height === nextProps.layer.height
+    )
+  }
+)
+
 MemoizedCompositeObject.displayName = 'MemoizedCompositeObject'
 MemoizedLandscapeLayer.displayName = 'MemoizedLandscapeLayer'
+MemoizedSeaLayer.displayName = 'MemoizedSeaLayer'

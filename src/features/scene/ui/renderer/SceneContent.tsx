@@ -5,6 +5,7 @@ import { TransformGizmo } from '@/features/scene/ui/renderer/controls/TransformG
 import { Environment } from '../../../../shared/r3f/environment/Environment.tsx'
 import { SceneObjects } from '@/features/scene/ui/renderer/objects/SceneObjects.tsx'
 import { LandscapeLayers } from '@/features/scene/ui/renderer/landscape/LandscapeLayers.tsx'
+import { SeaLayers } from '@/features/scene/ui/renderer/landscape/SeaLayers.tsx'
 import { PostProcessing } from '@/features/scene/ui/renderer/effects/PostProcessing.tsx'
 import { useSceneStore } from '../../model/sceneStore.ts'
 import { useKeyboardShortcuts } from '../../../../hooks/r3f/useKeyboardShortcuts.ts'
@@ -28,6 +29,7 @@ export const SceneContent: React.FC = () => {
       {/* Scene objects and landscapes */}
       <SceneObjects />
       <LandscapeLayers />
+      <SeaLayers />
 
       {/* Transform controls */}
       <TransformGizmo />

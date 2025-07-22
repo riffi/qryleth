@@ -9,8 +9,8 @@ interface LayerModalsProps {
     setCreateLayerModalOpened: (opened: boolean) => void
     newLayerName: string
     setNewLayerName: (name: string) => void
-    newLayerType: 'object' | 'landscape'
-    setNewLayerType: (t: 'object' | 'landscape') => void
+    newLayerType: 'object' | 'landscape' | 'sea'
+    setNewLayerType: (t: 'object' | 'landscape' | 'sea') => void
     newLayerWidth: number
     setNewLayerWidth: (v: number) => void
     newLayerHeight: number
@@ -22,8 +22,8 @@ interface LayerModalsProps {
     // Edit Layer Modal
     editLayerModalOpened: boolean
     setEditLayerModalOpened: (opened: boolean) => void
-    editingLayerType: 'object' | 'landscape'
-    setEditingLayerType: (t: 'object' | 'landscape') => void
+    editingLayerType: 'object' | 'landscape' | 'sea'
+    setEditingLayerType: (t: 'object' | 'landscape' | 'sea') => void
     editingLayerWidth: number
     setEditingLayerWidth: (v: number) => void
     editingLayerHeight: number
@@ -92,15 +92,18 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                     label="Тип слоя"
                     data={[
                         { value: 'object', label: 'Object Layer' },
-                        { value: 'landscape', label: 'Landscape' }
+                        { value: 'landscape', label: 'Landscape' },
+                        { value: 'sea', label: 'Море' }
                     ]}
                     value={newLayerType}
                     onChange={(v) => {
-                        const newType = v as 'object' | 'landscape'
+                        const newType = v as 'object' | 'landscape' | 'sea'
                         setNewLayerType(newType)
                         // Set default name for landscape layers
                         if (newType === 'landscape') {
                             setNewLayerName('landscape')
+                        } else if (newType === 'sea') {
+                            setNewLayerName('море')
                         }
                     }}
                 />
@@ -118,7 +121,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                         autoFocus
                     />
                 )}
-                {newLayerType === 'landscape' && (
+                {(newLayerType === 'landscape' || newLayerType === 'sea') && (
                     <>
                         <Select
                             label="Форма поверхности"
@@ -200,12 +203,13 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                     label="Тип слоя"
                     data={[
                         { value: 'object', label: 'Object Layer' },
-                        { value: 'landscape', label: 'Landscape' }
+                        { value: 'landscape', label: 'Landscape' },
+                        { value: 'sea', label: 'Море' }
                     ]}
                     value={editingLayerType}
-                    onChange={(v) => setEditingLayerType(v as 'object' | 'landscape')}
+                    onChange={(v) => setEditingLayerType(v as 'object' | 'landscape' | 'sea')}
                 />
-                {editingLayerType === 'landscape' && (
+                {(editingLayerType === 'landscape' || editingLayerType === 'sea') && (
                     <>
                         <Select
                             label="Форма поверхности"

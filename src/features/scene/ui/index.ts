@@ -25,6 +25,8 @@ export * from '@/features/scene/ui/renderer/effects/PostProcessing'
 // Landscape
 export * from '@/features/scene/ui/renderer/landscape/LandscapeLayer'
 export * from '@/features/scene/ui/renderer/landscape/LandscapeLayers'
+export * from '@/features/scene/ui/renderer/landscape/SeaLayer'
+export * from '@/features/scene/ui/renderer/landscape/SeaLayers'
 
 // Lighting
 export * from '@/features/scene/ui/renderer/lighting/SceneLighting'
