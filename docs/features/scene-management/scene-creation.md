@@ -12,6 +12,10 @@ Scene creation in Qryleth combines traditional 3D editing tools with AI assistan
 
 Создание сцен в Qryleth сочетает традиционные инструменты 3D редактирования с помощью ИИ для обеспечения интуитивного и мощного опыта создания контента.
 
+Scene management code resides in `src/features/scene` with `model` and `ui` segments following FSD.
+
+Код управления сценой находится в `src/features/scene` с сегментами `model` и `ui` согласно FSD.
+
 ---
 
 ## Getting Started / Начало работы

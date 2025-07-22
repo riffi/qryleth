@@ -14,6 +14,17 @@ The Scene Editor is the core component that provides 3D scene creation and editi
 
 ---
 
+## Folder Structure / Структура папок
+
+```text
+src/features/scene/
+├─ model/   # state logic / бизнес-логика
+├─ ui/      # UI components / UI компоненты
+└─ index.ts  # public API / публичный API
+```
+
+See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for details.
+
 ## Core Components / Основные компоненты
 
 ### 🎬 SceneEditorR3F
