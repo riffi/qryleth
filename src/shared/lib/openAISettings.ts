@@ -39,7 +39,7 @@ function getDefaultConnection(): OpenAISettingsConnection {
     id: 'default',
     name: 'Default',
     provider: 'openrouter',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
+    url: 'https://openrouter.ai/api/v1',
     model: PREDEFINED_MODELS.openrouter[0],
     apiKey: ''
   }

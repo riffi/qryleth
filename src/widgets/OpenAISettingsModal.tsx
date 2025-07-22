@@ -12,8 +12,8 @@ import {
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 
 const PROVIDER_URLS = {
-  openrouter: 'https://openrouter.ai/api/v1/chat/completions',
-  openai: 'https://api.openai.com/v1/chat/completions'
+  openrouter: 'https://openrouter.ai/api/v1',
+  openai: 'https://api.openai.com/v1'
 } as const
 
 interface Props {

@@ -183,7 +183,7 @@ export async function fetchWithTools(messages: ChatMessage[], tools?: Tool[]): P
     body.tool_choice = 'auto'
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(`${url}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
