@@ -362,7 +362,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         <Container
           size="xl"
           fluid
-          h="100%"
+          h="90%"
           style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
         >
         <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
