@@ -225,42 +225,28 @@ export const ObjectPanel: React.FC<ObjectPanelProps> = ({
 - [AI Integration](../features/ai-integration/README.md) - AI assistant features
 - [Object Editing](../features/object-editing/README.md) - Object manipulation tools
 
-### Development Resources / Ресурсы разработки
+### Ресурсы разработки
 
 - [API Reference](../api/README.md) - Complete API documentation
 - [Testing Guide](../development/testing/README.md) - Testing strategies
-- [Contributing](../development/contributing.md) - How to contribute
-
 ---
 
-## Troubleshooting / Устранение неполадок
+## Устранение неполадок
 
-### Common Issues / Частые проблемы
+### Частые проблемы
 
-**Build Errors / Ошибки сборки:**
+**Ошибки сборки:**
 - Check Node.js version (18+ required)
 - Clear node_modules and reinstall dependencies
 - Verify TypeScript configuration
 
-**3D Rendering Issues / Проблемы 3D рендеринга:**
+**Проблемы 3D рендеринга:**
 - Ensure WebGL is enabled in your browser
 - Check browser console for errors
 - Verify graphics drivers are up to date
 
-**AI Assistant Not Working / ИИ ассистент не работает:**
+**ИИ ассистент не работает:**
 - Check API key configuration
 - Verify network connectivity
 - Look for errors in browser console
 
-### Getting Help / Получение помощи
-
-- Check the [documentation](../README.md)
-- Search existing GitHub issues
-- Create a new issue with detailed information
-- Join community discussions
-
----
-
-> ✨ **Ready to build amazing 3D experiences with Qryleth!**
-> 
-> ✨ **Готовы создавать удивительные 3D впечатления с Qryleth!**

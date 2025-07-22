@@ -1,38 +1,32 @@
-# Scene Creation Guide / Руководство по созданию сцен
-
-Comprehensive guide for creating and managing 3D scenes in Qryleth.
+# Руководство по созданию сцен
 
 Подробное руководство по созданию и управлению 3D сценами в Qryleth.
 
 ---
 
-## Overview / Обзор
-
-Scene creation in Qryleth combines traditional 3D editing tools with AI assistance to provide an intuitive and powerful content creation experience.
+## Обзор
 
 Создание сцен в Qryleth сочетает традиционные инструменты 3D редактирования с помощью ИИ для обеспечения интуитивного и мощного опыта создания контента.
-
-Scene management code resides in `src/features/scene` with `model` and `ui` segments following FSD.
 
 Код управления сценой находится в `src/features/scene` с сегментами `model` и `ui` согласно FSD.
 
 ---
 
-## Getting Started / Начало работы
+## Начало работы
 
-### Creating a New Scene / Создание новой сцены
+### Создание новой сцены
 
-1. **Navigate to Scene Editor** / **Перейти в редактор сцен**
+1. **Перейти в редактор сцен**
    ```
    /scene-editor (without UUID parameter)
    ```
 
-2. **Initialize Empty Scene** / **Инициализировать пустую сцену**
+2. **Инициализировать пустую сцену**
    - Scene automatically initializes with default settings
    - Empty object list and default lighting
    - Grid visible for reference
 
-3. **Set Scene Properties** / **Установить свойства сцены**
+3. **Установить свойства сцены**
    ```typescript
    // Scene is automatically named "Untitled Scene"
    // Can be renamed when saving
@@ -43,7 +37,7 @@ Scene management code resides in `src/features/scene` with `model` and `ui` segm
    }
    ```
 
-### Loading Existing Scene / Загрузка существующей сцены
+### Загрузка существующей сцены
 
 ```typescript
 // URL with scene UUID
@@ -60,17 +54,17 @@ const loadScene = async (sceneUuid: string) => {
 
 ---
 
-## Manual Scene Creation / Ручное создание сцены
+## Ручное создание сцены
 
-### Adding Objects Manually / Ручное добавление объектов
+### Ручное добавление объектов
 
-#### Using the Object Library / Использование библиотеки объектов
+#### Использование библиотеки объектов
 
-1. **Open Object Library Panel** / **Открыть панель библиотеки объектов**
-2. **Browse Available Objects** / **Просмотреть доступные объекты**
+1. **Открыть панель библиотеки объектов**
+2. **Просмотреть доступные объекты**
    - Local objects (created by user)
    - Public objects (shared community objects)
-3. **Select and Place** / **Выбрать и разместить**
+3. **Выбрать и разместить**
    ```typescript
    const addLibraryObjectToScene = (libraryObject: LibraryObject) => {
      const sceneObject = convertLibraryObjectToSceneObject(libraryObject)
@@ -79,7 +73,7 @@ const loadScene = async (sceneUuid: string) => {
    }
    ```
 
-#### Creating Primitive Objects / Создание примитивных объектов
+#### Создание примитивов
 
 ```typescript
 // Add basic primitives directly
@@ -98,9 +92,9 @@ const addPrimitive = (type: PrimitiveType) => {
 type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone'
 ```
 
-### Object Manipulation / Манипулирование объектами
+### Манипулирование объектами
 
-#### Transform Controls / Элементы управления трансформацией
+#### Элементы управления трансформацией
 
 ```typescript
 // Transform modes
