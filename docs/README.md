@@ -13,6 +13,8 @@ Welcome to the Qryleth 3D editor documentation. This documentation is available 
 
 ---
 
+## Terminology / Терминология
+- **[terminology.md](getting-started/terminology.md)** Base terminology / Основные термины проекта
 ## 🏗️ Architecture / Архитектура
 
 - **[Design Principles](architecture/design-principles.md)** - Core architectural guidelines / Основные архитектурные принципы
