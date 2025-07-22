@@ -22,7 +22,7 @@ Note that phases can be executed by different agents.
 
 When a user asks to create an agent task, you need to:
 
-1. Create a subfolder in `/agent-tasks` with the task name and a `phases` subfolder
+1. Create a subfolder in root directory `agent-tasks` with the task name and a `phases` subfolder
 2. Add to the task folder a markdown document `AGENT_TASK_SUMMARY.md`
 3. Add to `AGENT_TASK_SUMMARY.md` a link to [AGENT_TASKS.md](../../../spec/AGENT_TASKS.md) with instruction to always check requirements when executing each phase
 4. Conduct detailed code repository research, after which:
@@ -37,7 +37,7 @@ When a user asks to create an agent task, you need to:
 
 Когда пользователь просит создать агентскую задачу, необходимо:
 
-1. Создать подпапку в `/agent-tasks` с названием задачи и подпапку `phases`
+1. Создать папку задачи в корневой директории `agent-tasks` с названием задачи и подпапку `phases`
 2. Добавить в папку задачи документ `.md` `AGENT_TASK_SUMMARY.md`
 3. Добавить в `AGENT_TASK_SUMMARY.md` ссылку на [AGENT_TASKS.md](../../../spec/AGENT_TASKS.md) с инструкцией, что нужно обязательно сверяться с требованиями при выполнении каждой из фаз
 4. Провести детальное исследование кода репозитория, по результатам чего:
