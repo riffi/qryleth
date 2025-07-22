@@ -24,7 +24,7 @@ When a user asks to create an agent task, you need to:
 
 1. Create a subfolder in root directory `agent-tasks` with the task name and a `phases` subfolder
 2. Add to the task folder a markdown document `AGENT_TASK_SUMMARY.md`
-3. Add to `AGENT_TASK_SUMMARY.md` a link to [AGENT_TASKS.md](../../../spec/AGENT_TASKS.md) with instruction to always check requirements when executing each phase
+3. Add to `AGENT_TASK_SUMMARY.md` a link to [agent-tasks.md](agent-tasks.md) with instruction to always check requirements when executing each phase
 4. Conduct detailed code repository research, after which:
    - Write in `AGENT_TASK_SUMMARY.md` a detailed task execution plan, broken down by phases, plus task context, with code fragments if necessary
 5. Description of each phase should be in the form of a task statement with specific code improvements
@@ -39,7 +39,7 @@ When a user asks to create an agent task, you need to:
 
 1. Создать папку задачи в корневой директории `agent-tasks` с названием задачи и подпапку `phases`
 2. Добавить в папку задачи документ `.md` `AGENT_TASK_SUMMARY.md`
-3. Добавить в `AGENT_TASK_SUMMARY.md` ссылку на [AGENT_TASKS.md](../../../spec/AGENT_TASKS.md) с инструкцией, что нужно обязательно сверяться с требованиями при выполнении каждой из фаз
+3. Добавить в `AGENT_TASK_SUMMARY.md` ссылку на [agent-tasks.md](agent-tasks.md) с инструкцией, что нужно обязательно сверяться с требованиями при выполнении каждой из фаз
 4. Провести детальное исследование кода репозитория, по результатам чего:
    - Записать в `AGENT_TASK_SUMMARY.md` подробный план выполнения задачи, разбитый по фазам, а также контекст задачи, при необходимости - с фрагментами кода
 5. Описание каждой из фаз должно быть в виде постановки задачи с конкретными доработками кода
