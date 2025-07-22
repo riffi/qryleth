@@ -11,7 +11,8 @@ import {
   useViewMode,
   useRenderMode,
   useTransformMode,
-  useGridVisible
+  useGridVisible,
+  useSceneLayers
 } from '../model/sceneStore'
 import { useSceneHistory } from '@/hooks/r3f/useSceneHistory'
 import { db } from '@/shared/lib/database'
@@ -98,6 +99,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const transformMode = useTransformMode()
   const setTransformMode = useSceneStore(state => state.setTransformMode)
   const gridVisible = useGridVisible()
+  const layers = useSceneLayers()
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const objects = useSceneStore(state => state.objects)
@@ -136,12 +138,23 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
     const { addObject, addObjectInstance } = useSceneStore.getState()
+    
+    // Get placement coordinates from object data
+    const placementPosition = objectData.position || [0, 0, 0]
+    const [placementX, , placementZ] = placementPosition
+    
+    // Find landscape layer (prefer PerlinNoise landscape)
+    const landscapeLayer = layers.find(layer => 
+      layer.type === 'landscape' && layer.shape === 'perlin'
+    ) || layers.find(layer => layer.type === 'landscape')
 
-    const correctedObject = correctLLMGeneratedObject(objectData)
-
+    const correctedObject = correctLLMGeneratedObject(objectData, {
+      landscapeLayer,
+      placementX,
+      placementZ
+    })
 
     const objectUuid = generateUUID()
-
 
     const newObject: SceneObject = {
       uuid: objectUuid,
@@ -149,7 +162,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       primitives: correctedObject.primitives,
       layerId: 'objects'
     }
-
 
     addObject(newObject)
 

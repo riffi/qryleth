@@ -336,7 +336,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
                 value={debugResponse}
                 onChange={(e) => setDebugResponse(e.currentTarget.value)}
                 minRows={10}
-                maxRows={35}
+                maxRows={15}
                 autosize
                 style={{
                   fontFamily: 'monospace',

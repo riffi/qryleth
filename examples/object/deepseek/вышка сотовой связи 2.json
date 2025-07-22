@@ -1,0 +1,44 @@
+{
+  "name": "Сотовая вышка",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "height": 20,
+      "radius": 0.5,
+      "color": "#808080",
+      "position": [
+        0,
+        10,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 2,
+      "height": 0.2,
+      "depth": 2,
+      "color": "#606060",
+      "position": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "cone",
+      "height": 2,
+      "radius": 1,
+      "color": "#404040",
+      "position": [
+        0,
+        20,
+        0
+      ]
+    }
+  ],
+  "position": [
+    0,
+    0,
+    0
+  ]
+}

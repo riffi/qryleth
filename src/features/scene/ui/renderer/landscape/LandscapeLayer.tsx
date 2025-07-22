@@ -1,13 +1,16 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { createPerlinGeometry } from '@/shared/lib/perlinGeometry.ts'
+import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
 }
 
 export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
+  const updateLayer = useSceneStore(state => state.updateLayer)
+  
   const geometry = useMemo(() => {
     if (layer.shape === 'perlin') {
       console.log('Creating perlin geometry for layer:', layer.id)
@@ -16,12 +19,19 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         layer.height || 1,
         layer.noiseData
       )
+      
+      // Save noiseData to store if it wasn't already saved
+      if (!layer.noiseData && result.noiseData) {
+        console.log('Saving noiseData for layer:', layer.id)
+        updateLayer(layer.id, { noiseData: result.noiseData })
+      }
+      
       return result.geometry
     } else {
       console.log('Creating plane geometry for layer:', layer.id)
       return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
     }
-  }, [layer.width, layer.height, layer.shape, layer.noiseData])
+  }, [layer.width, layer.height, layer.shape, layer.noiseData, layer.id, updateLayer])
 
   const materialColor = useMemo(() => {
     if (layer.shape === 'perlin') {

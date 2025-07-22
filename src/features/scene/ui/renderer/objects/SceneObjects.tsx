@@ -45,9 +45,6 @@ export const SceneObjects: React.FC = () => {
            hoveredObject.instanceId === instanceId
   }
 
-  console.log('objectInstances', objectInstances)
-  console.log('objects', objects)
-
   return (
     <group
       onPointerMissed={() => {
