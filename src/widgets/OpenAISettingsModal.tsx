@@ -6,7 +6,8 @@ import {
   getAllConnections,
   setActiveConnection,
   upsertConnection,
-  removeConnection
+  removeConnection,
+  getProviderModels,
 } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 
@@ -145,6 +146,18 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   onChange={e => {
                     const val = e.currentTarget.value
                     setConnections(prev => prev.map(it => it.id === g.id ? { ...it, url: val } : it))
+                  }}
+                />
+                <Select
+                  label="Модель (из списка)"
+                  data={getProviderModels(g.provider).map(m => ({ value: m, label: m }))}
+                  value={g.model}
+                  clearable
+                  placeholder="Выберите модель"
+                  onChange={val => {
+                    if (val) {
+                      setConnections(prev => prev.map(it => it.id === g.id ? { ...it, model: val } : it))
+                    }
                   }}
                 />
                 <TextInput

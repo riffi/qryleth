@@ -11,13 +11,36 @@ export interface OpenAISettingsConnection {
   apiKey: string;
 }
 
+/**
+ * Предустановленные модели для каждого провайдера LLM
+ */
+export const PREDEFINED_MODELS: Record<LLMProvider, string[]> = {
+  openrouter: [
+    'deepseek/deepseek-chat-v3-0324:free',
+    'google/gemma-3-12b-it:free',
+    'moonshotai/kimi-k2:free',
+  ],
+  openai: ['gpt-4o', 'gpt-3.5-turbo'],
+  compatible: [],
+}
+
+/**
+ * Возвращает список моделей, доступных для указанного провайдера
+ */
+export function getProviderModels(provider: LLMProvider): string[] {
+  return PREDEFINED_MODELS[provider] ?? []
+}
+
+/**
+ * Создаёт стандартное подключение к LLM
+ */
 function getDefaultConnection(): OpenAISettingsConnection {
   return {
     id: 'default',
     name: 'Default',
     provider: 'openrouter',
     url: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-chat-v3-0324:free',
+    model: PREDEFINED_MODELS.openrouter[0],
     apiKey: ''
   }
 }

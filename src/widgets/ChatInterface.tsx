@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge } from '@mantine/core'
+import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select } from '@mantine/core'
 import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
+import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
+import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 
 interface Props {
   onObjectAdded: (object: any) => void
@@ -12,6 +14,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [connection, setConnection] = useState<OpenAISettingsConnection | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages are added
@@ -20,6 +23,11 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [messages])
+
+  // Загружаем активное подключение при монтировании
+  useEffect(() => {
+    getActiveConnection().then(setConnection)
+  }, [])
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
@@ -89,6 +97,14 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     }
   }
 
+  // Обновляет модель в активном подключении
+  const handleModelChange = async (model: string) => {
+    if (!connection) return
+    const updated = { ...connection, model }
+    await upsertConnection(updated)
+    setConnection(updated)
+  }
+
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
@@ -121,13 +137,30 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   return (
     <Stack h="100%" gap={0}>
       <Paper p="md" withBorder>
-        <Group justify="space-between">
-          <Text size="lg" fw={500}>
-            Чат с агентом
-          </Text>
-          <Badge color="blue" variant="light">
-            Добавление объектов
-          </Badge>
+        <Group justify="space-between" align="center">
+          <Group gap="xs" align="center">
+            <Text size="lg" fw={500}>
+              Чат с агентом
+            </Text>
+            {connection && (
+              <Badge variant="light" color="gray">
+                {connection.name}
+              </Badge>
+            )}
+          </Group>
+          <Group gap="xs" align="center">
+            {connection && (
+              <Select
+                size="xs"
+                data={getProviderModels(connection.provider).map(m => ({ value: m, label: m }))}
+                value={connection.model}
+                onChange={val => val && handleModelChange(val)}
+              />
+            )}
+            <Badge color="blue" variant="light">
+              Добавление объектов
+            </Badge>
+          </Group>
         </Group>
       </Paper>
 
