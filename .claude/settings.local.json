@@ -10,7 +10,9 @@
       "Bash(npx tsc:*)",
       "Bash(find:*)",
       "Bash(rm:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
