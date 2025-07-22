@@ -41,6 +41,7 @@ Welcome to the Qryleth 3D editor documentation. This documentation is available 
 ## ✨ Features / Функциональность
 
 ### Scene Management / Управление сценой
+- **[Overview](features/scene-management/README.md)** - Overview / общая информация
 - **[Scene Creation](features/scene-management/scene-creation.md)** - Creating and managing scenes / Создание и управление сценами
 - **[Object Placement](features/scene-management/object-placement.md)** - Object management / Управление объектами
 - **[Lighting System](features/scene-management/lighting-system.md)** - Lighting controls / Управление освещением
@@ -79,14 +80,6 @@ Welcome to the Qryleth 3D editor documentation. This documentation is available 
 
 - **[Contributing Guidelines](development/contributing.md)** - How to contribute / Как участвовать в разработке
 - **[Code Review](development/workflows/code-review.md)** - Review process / Процесс ревью кода
-
----
-
-## 🔗 Legacy Documentation / Устаревшая документация
-
-The original documentation can still be found in the `/spec` directory, but it's recommended to use this restructured documentation instead.
-
-Оригинальную документацию всё ещё можно найти в директории `/spec`, но рекомендуется использовать эту переструктурированную документацию.
 
 ---
 

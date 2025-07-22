@@ -54,9 +54,8 @@ SPA react typescript mantine three.js vite dexie
 - Возможность изменять количество и расположение инстансов объекта, массовое создание инстансов
 - Возможность управления слоем Landscape
 
-## Архитектурные принципы
+### Ссылки
+Стартовая страница документации [README.md](docs/README.md)
+Правила архитектуры описаны в [design-principles.md](docs/architecture/design-principles.md)
+Правила работы с агентскими задачами: [agent-tasks.md](docs/development/workflows/agent-tasks.md)
 
-[qryleth_architecture_guidelines.md](spec/architecture_guidelines.md)
-
-## Агентские задачи
-Правила работы с агентскими задачами: [AGENT_TASKS.md](spec/AGENT_TASKS.md)
