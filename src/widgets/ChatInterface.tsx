@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select } from '@mantine/core'
+import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select, Box } from '@mantine/core'
 import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
@@ -148,18 +148,18 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
               </Badge>
             )}
           </Group>
-          <Group gap="xs" align="center">
+          <Group gap="xs" align="center" style={{ width: '100%' }}>
             {connection && (
-              <Select
-                size="xs"
-                data={getProviderModels(connection.provider).map(m => ({ value: m, label: m }))}
-                value={connection.model}
-                onChange={val => val && handleModelChange(val)}
-              />
+              <Box style={{ width: '100%' }}>
+                <Select
+                  size="sm"
+                  w="100%"
+                  data={getProviderModels(connection.provider).map(m => ({ value: m, label: m }))}
+                  value={connection.model}
+                  onChange={val => val && handleModelChange(val)}
+                />
+              </Box>
             )}
-            <Badge color="blue" variant="light">
-              Добавление объектов
-            </Badge>
           </Group>
         </Group>
       </Paper>
