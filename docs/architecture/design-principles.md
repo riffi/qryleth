@@ -45,6 +45,8 @@ src/
 | **boundaries** | Инкапсулируют сторонние SDK/API | entities |
 
 ---
+**[Feature sliced design](feature-sliced-design.md)** — Руководство по FSD
+
 
 ## 3. Руководство для AI‑агентов
 
