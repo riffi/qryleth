@@ -85,8 +85,7 @@
 **Цель**: Обновить документацию проекта
 
 **Действия**:
-1. Создать `docs/architecture/feature-sliced-design.md` с описанием FSD
-2. Обновить документацию по scene management в `docs/features/scene-management/`
+1. Обновить документацию по scene management в `docs/features/scene-management/` Отразить в документации текущую структуру папок
 
 
 **Результат**: Актуальная документация по FSD и feature-слайсам
