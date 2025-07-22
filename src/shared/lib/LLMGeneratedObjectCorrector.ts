@@ -149,7 +149,7 @@ export const correctLLMGeneratedObject = (
   }
 
   // Calculate vertical offset to move bottom edge to target Y
-  const verticalOffset = targetY - minY;
+  const verticalOffset =  - minY;
 
   // Apply vertical offset to all primitives
   if (verticalOffset !== 0) {
@@ -165,6 +165,8 @@ export const correctLLMGeneratedObject = (
       };
     });
   }
+
+  newObject.position = [options?.placementX, targetY, options?.placementZ]
 
   return newObject;
 }

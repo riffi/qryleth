@@ -38,6 +38,7 @@ import {
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
 import {correctLLMGeneratedObject} from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
+import {getRandomPlacement} from "@/shared/lib/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -138,15 +139,17 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
     const { addObject, addObjectInstance } = useSceneStore.getState()
-    
-    // Get placement coordinates from object data
-    const placementPosition = objectData.position || [0, 0, 0]
-    const [placementX, , placementZ] = placementPosition
-    
+
     // Find landscape layer (prefer PerlinNoise landscape)
-    const landscapeLayer = layers.find(layer => 
+    const landscapeLayer = layers.find(layer =>
       layer.type === 'landscape' && layer.shape === 'perlin'
     ) || layers.find(layer => layer.type === 'landscape')
+
+    // Generate placement position using Random strategy
+    const placementResult = getRandomPlacement(landscapeLayer)
+    const [placementX, , placementZ] = placementResult.position
+
+    console.log(`Placing object using ${placementResult.strategy} strategy at:`, placementResult.position)
 
     const correctedObject = correctLLMGeneratedObject(objectData, {
       landscapeLayer,
@@ -168,9 +171,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     const objectInstance: SceneObjectInstance = {
       uuid: generateUUID(),
       objectUuid,
-      position: correctedObject.position || [0, 0, 0],
-      rotation: correctedObject.rotation || [0, 0, 0],
-      scale: objectData.scale || [1, 1, 1]
+      transform:{
+        position: correctedObject.position || [0, 0, 0],
+        rotation: correctedObject.rotation || [0, 0, 0],
+        scale: objectData.scale || [1, 1, 1]
+      }
     }
     addObjectInstance(objectInstance)
   }
