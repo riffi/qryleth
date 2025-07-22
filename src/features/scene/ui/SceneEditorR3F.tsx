@@ -35,6 +35,8 @@ import {
   IconResize
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
+import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
+import {correctLLMGeneratedObject} from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -132,22 +134,30 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
 
 
-  const handleObjectAdded = (objectData: any) => {
+  const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
     const { addObject, addObjectInstance } = useSceneStore.getState()
+
+    const correctedObject = correctLLMGeneratedObject(objectData)
+
+
     const objectUuid = generateUUID()
+
+
     const newObject: SceneObject = {
       uuid: objectUuid,
-      name: objectData.name,
-      primitives: objectData.primitives,
+      name: correctedObject.name,
+      primitives: correctedObject.primitives,
       layerId: 'objects'
     }
+
+
     addObject(newObject)
 
     const objectInstance: SceneObjectInstance = {
       uuid: generateUUID(),
       objectUuid,
-      position: objectData.position || [0, 0, 0],
-      rotation: objectData.rotation || [0, 0, 0],
+      position: correctedObject.position || [0, 0, 0],
+      rotation: correctedObject.rotation || [0, 0, 0],
       scale: objectData.scale || [1, 1, 1]
     }
     addObjectInstance(objectInstance)

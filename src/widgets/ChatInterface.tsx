@@ -5,9 +5,11 @@ import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
+import type {GFXObjectWithTransform} from "@/entities";
+
 
 interface Props {
-  onObjectAdded: (object: any) => void
+  onObjectAdded: (object: GFXObjectWithTransform) => void
 }
 
 export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
