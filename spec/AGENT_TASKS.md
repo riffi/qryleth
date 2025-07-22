@@ -35,5 +35,5 @@
 
 ### Примечания
 - При формировании списка фаз и их описания необходимо подробно описывать планируемые действия, так как разные агенты могут не очень хорошо понимать контекст.
-- При анализе необходимо сверяться с [qryleth_architecture_guidelines.md](qryleth_architecture_guidelines.md)
+- При анализе необходимо сверяться с [qryleth_architecture_guidelines.md](architecture_guidelines.md)
 - После выполнения каждой из фаз добавляй в AGENT_TASK_SUMMARY.md ссылку на md файл фазы

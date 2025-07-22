@@ -1,6 +1,6 @@
 # Агентская задача: Унификация системы типов данных
 
-> ⚠️ **ОБЯЗАТЕЛЬНО**: При выполнении каждой фазы необходимо сверяться с требованиями из [../../docs/AGENT_TASKS.md](../../docs/AGENT_TASKS.md) и [../../docs/qryleth_architecture_guidelines.md](../../docs/qryleth_architecture_guidelines.md)
+> ⚠️ **ОБЯЗАТЕЛЬНО**: При выполнении каждой фазы необходимо сверяться с требованиями из [../../docs/AGENT_TASKS.md](../../spec/AGENT_TASKS.md) и [../../docs/qryleth_architecture_guidelines.md](../../spec/architecture_guidelines.md)
 
 ## Описание задачи
 
