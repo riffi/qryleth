@@ -1,0 +1,91 @@
+{
+  "name": "Вышка сотовой связи",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "height": 30,
+      "radius": 1,
+      "color": "#808080",
+      "position": [
+        0,
+        15,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 10,
+      "height": 2,
+      "depth": 10,
+      "color": "#a9a9a9",
+      "position": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 2,
+      "height": 5,
+      "depth": 2,
+      "color": "#808080",
+      "position": [
+        0,
+        5,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 8,
+      "height": 1,
+      "depth": 8,
+      "color": "#a9a9a9",
+      "position": [
+        0,
+        7.5,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 1,
+      "height": 3,
+      "depth": 1,
+      "color": "#808080",
+      "position": [
+        0,
+        10,
+        0
+      ]
+    },
+    {
+      "type": "box",
+      "width": 6,
+      "height": 1,
+      "depth": 6,
+      "color": "#a9a9a9",
+      "position": [
+        0,
+        12.5,
+        0
+      ]
+    }
+  ],
+  "position": [
+    0,
+    0,
+    0
+  ],
+  "rotation": [
+    0,
+    0,
+    0
+  ],
+  "scale": [
+    1,
+    1,
+    1
+  ]
+}
