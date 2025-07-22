@@ -1,5 +1,5 @@
 import React from 'react'
-import {useGridVisible} from "../../../features/scene/model/sceneStore.ts";
+import { useGridVisible } from '@/features/scene';
 
 export const GridHelper: React.FC = () => {
   const gridVisible = useGridVisible()

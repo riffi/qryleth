@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useState } from 'react'
-import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
+import { useSceneStore } from '@/features/scene'
 import {
   useSceneObjectsOptimized,
   useSceneObjectInstancesOptimized,
   useSelectionState
-} from '@/features/scene/model/optimizedSelectors.ts'
+} from '@/features/scene'
 
 /**
  * Hook for synchronizing UI state with 3D scene state

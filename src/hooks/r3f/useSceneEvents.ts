@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
-import type { UseSceneEventsReturn } from '@/features/scene/model/view-types'
+import { useSceneStore } from '@/features/scene'
+import type { UseSceneEventsReturn } from '@/features/scene'
 import type { SceneClickEvent } from '@/shared/types/ui'
 
 export const useSceneEvents = (): UseSceneEventsReturn => {

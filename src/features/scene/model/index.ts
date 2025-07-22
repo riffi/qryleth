@@ -1,10 +1,8 @@
 /**
- * Scene feature model exports
- * 
- * Все типы, связанные с feature scene:
- * - Store types
- * - View types  
- * - Scene-specific business logic types
+ * Экспорт модели фичи сцены.
+ *
+ * Содержит типы стора, типы представления
+ * и бизнес-логику, необходимую для работы сцены.
  */
 
 export * from './store-types'

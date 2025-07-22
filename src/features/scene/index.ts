@@ -1,5 +1,5 @@
 /**
- * Public API for the scene feature
+ * Публичное API фичи сцены
  */
 
 export * from './model'
