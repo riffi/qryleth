@@ -250,7 +250,7 @@ import type { SceneRecord, ObjectRecord } from '@/shared/api'
 - [Фаза 6: Барельные экспорты и документация](phases/phase_6_summary.md) - ✅ Выполнено
 
 ## Созданная документация
-- [TYPES_GUIDE.md](spec/TYPES_GUIDE.md) - Полное руководство по унифицированной системе типов
+- [TYPES_GUIDE.md](../../spec/TYPES_GUIDE.md) - Полное руководство по унифицированной системе типов
 - [MIGRATION_GUIDE.md](spec/MIGRATION_GUIDE.md) - Руководство по безопасной миграции типов
 
 ## Критические риски и меры предосторожности
