@@ -1,13 +1,13 @@
 /**
  * Scene View типы
- * 
+ *
  * UI типы, специфичные для scene feature:
  * - Hook return types
  * - Component props types
  * - Scene-specific UI state
  */
 
-import type { SceneStore, SceneStoreState, SceneStoreActions } from './store-types'
+
 import type { SelectedObject, HoveredObject, SceneClickEvent, SceneHoverEvent, ObjectTransformEvent, PrimitiveTransformEvent } from '@/shared/types/ui'
 
 // Hook return types
