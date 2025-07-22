@@ -1,11 +1,13 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu } from '@mantine/core'
 import { IconEye, IconEyeOff, IconEdit, IconTrash } from '@tabler/icons-react'
-import type {SceneObjectInstance} from "@/entities/scene/types.ts";
+import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 
 
 interface ObjectInstanceItemProps {
     instance: SceneObjectInstance
+    index: number
+    object: SceneObject
     isSelected: boolean
     onHighlight: () => void
     onClearHighlight: () => void
@@ -17,6 +19,8 @@ interface ObjectInstanceItemProps {
 
 export const SceneObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
     instance,
+    object,
+    index,
     isSelected,
     onHighlight,
     onClearHighlight,
@@ -49,7 +53,7 @@ export const SceneObjectInstanceItem: React.FC<ObjectInstanceItemProps> = ({
                 <Group gap="xs" style={{ flex: 1 }}>
                     <Box w={6} h={6} style={{ backgroundColor: 'var(--mantine-color-blue-5)', borderRadius: '50%' }} />
                     <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
-                        {instance.id}
+                        {object.name} {index + 1}
                     </Text>
                     <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
                         ({instance.position[0].toFixed(1)}, {instance.position[1].toFixed(1)}, {instance.position[2].toFixed(1)})

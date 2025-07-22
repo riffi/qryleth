@@ -192,6 +192,8 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                             obj.instances.map((instance: ObjectInstance) => (
                                 <SceneObjectInstanceItem
                                     key={instance.id}
+                                    object={obj}
+                                    index={obj.instances?.indexOf(instance)}
                                     instance={instance}
                                     isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}
                                     onHighlight={() => onHighlight(obj.objectUuid, instance.id)}
