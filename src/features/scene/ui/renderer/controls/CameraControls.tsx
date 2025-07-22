@@ -1,8 +1,8 @@
 import React from 'react'
 import { OrbitControls } from '@react-three/drei'
-import { useViewMode } from '../model/sceneStore'
-import { WalkControls } from './WalkControls'
-import { FlyControls } from './FlyControls'
+import { useViewMode } from '../../../model/sceneStore.ts'
+import { WalkControls } from './WalkControls.tsx'
+import { FlyControls } from './FlyControls.tsx'
 
 export const CameraControls: React.FC = () => {
   const viewMode = useViewMode()

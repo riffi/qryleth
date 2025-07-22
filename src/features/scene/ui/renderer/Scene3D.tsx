@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
-import { SceneContent } from './SceneContent'
+import { SceneContent } from './SceneContent.tsx'
 import { useUISync, useRealTimeSync } from '@/hooks/r3f/useUISync.ts'
 
 interface Scene3DProps {

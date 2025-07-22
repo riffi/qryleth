@@ -1,6 +1,6 @@
 import React from 'react'
 import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/SceneObjectRenderer.tsx'
-import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer'
+import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
 
 // Memoized CompositeObject for better performance
 export const MemoizedCompositeObject = React.memo<SceneObjectRendererProps>(

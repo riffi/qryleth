@@ -1,12 +1,35 @@
-export * from './AddObjectFromLibraryModal.tsx'
-export * from './LightingControls.tsx'
-export * from './Scene3D.tsx'
-export * from './SceneContent.tsx'
+export * from './objectManager/AddObjectFromLibraryModal.tsx'
+export * from './objectManager/LightingControls.tsx'
+export * from './renderer/Scene3D.tsx'
+export * from './renderer/SceneContent.tsx'
 export * from './SceneEditorR3F.tsx'
-export * from './SceneHeader.tsx'
-export * from './SceneLayerItem.tsx'
-export * from './SceneLayerModals.tsx'
-export * from './SceneObjectInstanceItem.tsx'
-export * from './SceneObjectItem.tsx'
-export * from './SceneObjectManager.tsx'
+export * from './objectManager/SceneHeader.tsx'
+export * from './objectManager/SceneLayerItem.tsx'
+export * from './objectManager/SceneLayerModals.tsx'
+export * from './objectManager/SceneObjectInstanceItem.tsx'
+export * from './objectManager/SceneObjectItem.tsx'
+export * from './objectManager/SceneObjectManager.tsx'
+
+// Controls
+export * from '@/features/scene/ui/renderer/controls/CameraControls'
+export * from '@/features/scene/ui/renderer/controls/FlyControls'
+export * from '@/features/scene/ui/renderer/controls/WalkControls'
+export * from '@/features/scene/ui/renderer/controls/TransformGizmo'
+
+// Effects
+export * from '@/features/scene/ui/renderer/effects/PostProcessing'
+
+// Landscape
+export * from '@/features/scene/ui/renderer/landscape/LandscapeLayer'
+export * from '@/features/scene/ui/renderer/landscape/LandscapeLayers'
+
+// Lighting
+export * from '@/features/scene/ui/renderer/lighting/SceneLighting'
+
+// Objects
+export * from '@/features/scene/ui/renderer/objects/SceneObjectRenderer.tsx'
+export * from '@/features/scene/ui/renderer/objects/SceneObjects'
+
+// Optimization helpers
+export * from '@/features/scene/ui/renderer/optimization/OptimizedComponents'
 

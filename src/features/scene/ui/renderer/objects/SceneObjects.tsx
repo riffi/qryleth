@@ -1,6 +1,6 @@
 import React from 'react'
-import { MemoizedCompositeObject } from '../optimization/OptimizedComponents'
-import { InstancedObjects } from '../../../shared/r3f/optimization/InstancedObjects'
+import { MemoizedCompositeObject } from '../optimization/OptimizedComponents.tsx'
+import { InstancedObjects } from '../../../../../shared/r3f/optimization/InstancedObjects.tsx'
 import {
   useSceneObjects,
   useSceneObjectInstances,
@@ -8,7 +8,7 @@ import {
   useHoveredObject,
   useSceneLayers,
   useSceneStore
-} from '../model/sceneStore'
+} from '../../../model/sceneStore.ts'
 import { useSceneEvents } from '@/hooks/r3f/useSceneEvents.ts'
 
 export const SceneObjects: React.FC = () => {

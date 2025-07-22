@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import {
     useSceneStore
-} from '../model/sceneStore'
+} from '../../model/sceneStore.ts'
 import {
     useSceneObjectsOptimized,
     useSceneLayersOptimized,
     useSceneMetadata,
     useSelectionState,
     useSceneActions
-} from '../model/optimizedSelectors'
+} from '../../model/optimizedSelectors.ts'
 import {
     Paper,
     Stack,
@@ -24,10 +24,10 @@ import {
 } from '@mantine/core'
 import { IconPlus, IconCheck, IconX } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
-import { db } from '@/shared/lib/database'
+import { db } from '@/shared/lib/database.ts'
 import type { SceneLayer } from '../../../types/scene'
-import { SceneHeader } from './SceneHeader'
-import { LightingControls } from './LightingControls'
+import { SceneHeader } from './SceneHeader.tsx'
+import { LightingControls } from './LightingControls.tsx'
 import { SceneLayerItem } from './SceneLayerItem.tsx'
 import { SceneLayerModals } from './SceneLayerModals.tsx'
 import { SceneObjectItem } from './SceneObjectItem.tsx'

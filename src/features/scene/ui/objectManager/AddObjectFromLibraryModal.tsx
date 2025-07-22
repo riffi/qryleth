@@ -15,7 +15,7 @@ import {
   Tooltip
 } from '@mantine/core'
 import { IconSearch, IconCalendar, IconCube, IconX } from '@tabler/icons-react'
-import { db, type ObjectRecord } from '@/shared/lib/database'
+import { db, type ObjectRecord } from '@/shared/lib/database.ts'
 import { notifications } from '@mantine/notifications'
 
 interface AddObjectFromLibraryModalProps {
@@ -94,7 +94,7 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
           leftSection={<IconSearch size={16} />}
           style={{ flex: 1 }}
         />
-        
+
         <ScrollArea style={{ height: 'calc(70vh - 120px)' }}>
           {filteredObjects.length === 0 ? (
             <Box ta="center" py="xl">
@@ -129,20 +129,20 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
-                      
+
                       <Group gap="xs">
                         <IconCalendar size={14} />
                         <Text size="xs" c="dimmed">
                           {formatDate(object.updatedAt)}
                         </Text>
                       </Group>
-                      
+
                       <Group gap="xs" mt="xs">
                         <Badge color="blue" variant="light" size="sm">
                           {object.objectData.primitives.length} примитивов
                         </Badge>
                       </Group>
-                      
+
                       <Group gap="xs" mt="xs">
                         <Button
                           size="xs"
