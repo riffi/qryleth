@@ -4,8 +4,9 @@ import { IconPlus, IconTrash, IconCheck, IconEdit } from '@tabler/icons-react'
 import { nanoid } from 'nanoid'
 import {
   getAllConnections,
-  saveConnections,
-  setActiveConnection
+  setActiveConnection,
+  upsertConnection,
+  removeConnection
 } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 
@@ -33,7 +34,9 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
     }
   }, [opened])
 
+  // Добавляет новое соединение и переводит его в режим редактирования
   const handleAdd = () => {
+    if (editingId !== null) return
     const id = nanoid()
     setConnections(prev => [
       ...prev,
@@ -49,14 +52,25 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
     setEditingId(id)
   }
 
-  const handleSave = async () => {
-    await saveConnections(connections, activeId)
-    if (activeId) await setActiveConnection(activeId)
-    onClose()
+  // Сохраняет выбор активного соединения
+  const handleActivate = async (id: string) => {
+    setActiveId(id)
+    await setActiveConnection(id)
   }
 
-  const handleRemove = (id: string) => {
+  // Завершает редактирование и сохраняет изменения в хранилище
+  const handleDone = async (id: string) => {
+    setEditingId(null)
+    const connection = connections.find(c => c.id === id)
+    if (connection) {
+      await upsertConnection(connection)
+    }
+  }
+
+  // Удаляет соединение и синхронно обновляет хранилище
+  const handleRemove = async (id: string) => {
     setConnections(prev => prev.filter(g => g.id !== id))
+    await removeConnection(id)
     if (activeId === id) {
       setActiveId(undefined)
     }
@@ -76,14 +90,19 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                 <Button
                   size="xs"
                   variant={activeId === g.id ? 'filled' : 'outline'}
-                  onClick={() => setActiveId(g.id)}
+                  onClick={() => handleActivate(g.id)}
                   leftSection={<IconCheck size="0.9rem" />}
                 >
                   Активировать
                 </Button>
               </Group>
               <Group>
-                <ActionIcon variant="subtle" color="blue" onClick={() => setEditingId(g.id)}>
+                <ActionIcon
+                  variant="subtle"
+                  color="blue"
+                  disabled={editingId !== null && editingId !== g.id}
+                  onClick={() => setEditingId(g.id)}
+                >
                   <IconEdit size="1rem" />
                 </ActionIcon>
                 <ActionIcon color="red" variant="subtle" onClick={() => handleRemove(g.id)}>
@@ -145,18 +164,20 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   }}
                 />
                 <Group justify="flex-end">
-                  <Button size="xs" onClick={() => setEditingId(null)}>Готово</Button>
+                  <Button size="xs" onClick={() => handleDone(g.id)}>Готово</Button>
                 </Group>
               </Stack>
             )}
           </Paper>
         ))}
-        <Button leftSection={<IconPlus size="1rem" />} variant="light" onClick={handleAdd}>
+        <Button
+          leftSection={<IconPlus size="1rem" />}
+          variant="light"
+          onClick={handleAdd}
+          disabled={editingId !== null}
+        >
           Добавить соединение с LLM
         </Button>
-        <Group justify="flex-end">
-          <Button onClick={handleSave}>Сохранить</Button>
-        </Group>
       </Stack>
     </Modal>
   )
