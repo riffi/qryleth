@@ -13,7 +13,7 @@ Welcome to the Qryleth 3D editor documentation. This documentation is available 
 
 ---
 
-## Terminology / Терминология
+## 📚 Terminology / Терминология
 - **[terminology.md](getting-started/terminology.md)** Base terminology / Основные термины проекта
 ## 🏗️ Architecture / Архитектура
 
@@ -23,7 +23,7 @@ Welcome to the Qryleth 3D editor documentation. This documentation is available 
 
 ---
 
-## 📚 API Reference / Справочник API
+## 🔌 API Reference / Справочник API
 
 ### Types / Типы
 - **[Type System Overview](api/types/README.md)** - Complete type system guide / Полное руководство по системе типов
