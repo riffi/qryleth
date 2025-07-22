@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { ObjectEditorR3F } from '@/features/object-editor/ui/ObjectEditorR3F'
+import { Box, Group, Title } from '@mantine/core'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 
 const ObjectEditorPage: React.FC = () => {
@@ -22,7 +23,7 @@ const ObjectEditorPage: React.FC = () => {
   }, [id])
 
   const handleClose = () => navigate('/')
-  
+
   const handleSave = async (
     objectUuid: string,
     primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>
@@ -76,13 +77,16 @@ const ObjectEditorPage: React.FC = () => {
 
   return (
     <MainLayout>
-      <ObjectEditorR3F
-        opened={isReady}
-        onClose={handleClose}
-        onSave={handleSave}
-        objectInfo={objectInfo}
-        objectData={objectRecord?.objectData}
-      />
+      <Box h="calc(100vh)" style={{ display: 'flex', flexDirection: 'column' }}>
+        <Box style={{ flex: 1 }}>
+          <ObjectEditorR3F
+            onClose={handleClose}
+            onSave={handleSave}
+            objectInfo={objectInfo}
+            objectData={objectRecord?.objectData}
+          />
+        </Box>
+      </Box>
     </MainLayout>
   )
 }

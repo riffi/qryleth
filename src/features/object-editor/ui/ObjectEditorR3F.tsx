@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Modal,
   Paper,
   Box,
   Stack,
@@ -17,7 +16,6 @@ import { useObjectStore, useObjectPrimitives } from '../store/objectStore'
 import type { SceneObject } from '@/entities/scene/types.ts'
 
 interface ObjectEditorR3FProps {
-  opened: boolean
   onClose: () => void
   onSave: (
     objectUuid: string,
@@ -28,10 +26,12 @@ interface ObjectEditorR3FProps {
   objectData?: SceneObject
 }
 
-
-
+/**
+ * Редактор объекта на базе React Three Fiber.
+ * Используется как самостоятельный компонент без модального окна.
+ * Управление открытием/закрытием осуществляется родительским компонентом.
+ */
 export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
-  opened,
   onClose,
   onSave,
   objectInfo,
@@ -43,18 +43,22 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const [renderMode, setRenderMode] = useState<'solid' | 'wireframe'>('solid')
 
-  // Initialize object store with primitives only
+  // Инициализация хранилища примитивов при получении данных объекта
   useEffect(() => {
-    if (!opened || !objectData) return
+    if (!objectData) return
+
     useObjectStore.getState().clearScene()
-
-
-    useObjectStore.getState().setPrimitives(objectData.primitives.map(p => ({ ...p })))
+    useObjectStore.getState().setPrimitives(
+      objectData.primitives.map(p => ({ ...p }))
+    )
 
     setSelectedPrimitive(0)
     useObjectStore.getState().selectPrimitive(0)
-  }, [opened, objectData])
+  }, [objectData])
 
+  /**
+   * Сохраняет изменения и передаёт их во внешний обработчик.
+   */
   const handleSave = () => {
     if (!objectInfo?.objectUuid) return
     const state = useObjectStore.getState()
@@ -72,29 +76,23 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     onClose()
   }
 
+  /**
+   * Выбор активного примитива для редактирования.
+   */
   const handleSelectPrimitive = (index: number) => {
     setSelectedPrimitive(index)
     useObjectStore.getState().selectPrimitive(index)
   }
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      fullScreen
-      title={
-        <Group gap="sm">
-          <Title order={3}>{objectInfo ? `Редактор объекта: ${objectInfo.name}` : 'Новый объект'}</Title>
-          {renderMode === 'wireframe' && (
-            <Badge color="orange" variant="light">
-              Wireframe
-            </Badge>
-          )}
-        </Group>
-      }
-      styles={{ body: { height: 'calc(100vh - 120px)', padding: 0 }, content: { height: '100vh' }, header: { padding: '1rem' } }}
-    >
-      <Box style={{ height: '100%', display: 'flex' }}>
+    <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Group gap="sm" p="md">
+        <Title order={3}>{objectInfo ? `Редактор объекта: ${objectInfo.name}` : 'Новый объект'}</Title>
+        {renderMode === 'wireframe' && (
+          <Badge color="orange" variant="light">Wireframe</Badge>
+        )}
+      </Group>
+      <Box style={{ flex: 1, display: 'flex' }}>
         <Paper
           shadow="sm"
           p="md"
@@ -147,6 +145,6 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
           <ObjectScene3D />
         </Box>
       </Box>
-    </Modal>
+    </Box>
   )
 }

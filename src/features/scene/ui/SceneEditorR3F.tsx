@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Title } from '@mantine/core'
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
@@ -468,14 +468,20 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       </Container>
       </MainLayout>
       <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
-      <ObjectEditorR3F
+      <Modal
         opened={editorOpened}
         onClose={() => setEditorOpened(false)}
-        objectInfo={editingObjectInfo}
-        instanceId={editingObject?.instanceId}
-        objectData={editingObjectData}
-        onSave={handleSaveObjectEdit}
-      />
+        fullScreen
+        styles={{ body: { height: 'calc(100vh - 120px)', padding: 0 }, content: { height: '100vh' }, header: { padding: '1rem' } }}
+      >
+        <ObjectEditorR3F
+          onClose={() => setEditorOpened(false)}
+          objectInfo={editingObjectInfo}
+          instanceId={editingObject?.instanceId}
+          objectData={editingObjectData}
+          onSave={handleSaveObjectEdit}
+        />
+      </Modal>
       <SaveSceneModal
         opened={saveSceneModalOpened}
         onClose={() => setSaveSceneModalOpened(false)}
