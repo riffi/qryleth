@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { useSceneStore } from '../store/sceneStore'
+import { useSceneStore } from '../model/sceneStore'
 
 export const WalkControls: React.FC = () => {
   const { camera, gl, scene } = useThree()

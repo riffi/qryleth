@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { useSceneStore } from '@/features/scene/store/sceneStore.ts'
+import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import type { UseSceneHistoryReturn } from '@/features/scene/model/view-types'
 
 export const useSceneHistory = (): UseSceneHistoryReturn => {

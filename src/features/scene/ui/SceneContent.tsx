@@ -6,7 +6,7 @@ import { Environment } from '../../../shared/r3f/environment/Environment'
 import { SceneObjects } from '../objects/SceneObjects'
 import { LandscapeLayers } from '../landscape/LandscapeLayers'
 import { PostProcessing } from '../effects/PostProcessing'
-import { useSceneStore } from '../store/sceneStore'
+import { useSceneStore } from '../model/sceneStore'
 import { useKeyboardShortcuts } from '../../../hooks/r3f/useKeyboardShortcuts'
 
 export const SceneContent: React.FC = () => {

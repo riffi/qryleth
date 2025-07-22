@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSceneLayers } from '../store/sceneStore'
+import { useSceneLayers } from '../model/sceneStore'
 import { MemoizedLandscapeLayer } from '../optimization/OptimizedComponents'
 
 export const LandscapeLayers: React.FC = () => {

@@ -6,7 +6,7 @@ import {
   useObjectInstanceCounts,
   useSceneObjectsOptimized,
   useSceneObjectInstancesOptimized
-} from '@/features/scene/store/optimizedSelectors'
+} from '@/features/scene/model/optimizedSelectors'
 
 interface InstancedObjectsProps {
   minimumInstancesForOptimization?: number // Minimum instances before using instancing

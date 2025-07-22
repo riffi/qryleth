@@ -12,7 +12,7 @@ import {
   useRenderMode,
   useTransformMode,
   useGridVisible
-} from '../store/sceneStore'
+} from '../model/sceneStore'
 import { useSceneHistory } from '@/hooks/r3f/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'

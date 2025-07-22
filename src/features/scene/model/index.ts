@@ -9,3 +9,5 @@
 
 export * from './store-types'
 export * from './view-types'
+export * from './sceneStore'
+export * from './optimizedSelectors'

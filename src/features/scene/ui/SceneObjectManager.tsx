@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import {
     useSceneStore
-} from '../store/sceneStore'
+} from '../model/sceneStore'
 import {
     useSceneObjectsOptimized,
     useSceneLayersOptimized,
     useSceneMetadata,
     useSelectionState,
     useSceneActions
-} from '../store/optimizedSelectors'
+} from '../model/optimizedSelectors'
 import {
     Paper,
     Stack,

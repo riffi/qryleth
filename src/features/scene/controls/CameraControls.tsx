@@ -1,6 +1,6 @@
 import React from 'react'
 import { OrbitControls } from '@react-three/drei'
-import { useViewMode } from '../store/sceneStore'
+import { useViewMode } from '../model/sceneStore'
 import { WalkControls } from './WalkControls'
 import { FlyControls } from './FlyControls'
 

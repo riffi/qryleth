@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '@/features/scene/store/sceneStore.ts'
+import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import * as THREE from 'three'
 
 export const useKeyboardShortcuts = () => {
