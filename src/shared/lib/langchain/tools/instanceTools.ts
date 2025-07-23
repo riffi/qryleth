@@ -7,10 +7,9 @@ import { z } from 'zod'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 
 /**
- * Схема валидации для добавления экземпляра объекта
+ * Схема валидации для параметров одного экземпляра
  */
-const addInstanceSchema = z.object({
-  objectUuid: z.string().min(1, 'Object UUID is required'),
+const instanceParamsSchema = z.object({
   position: z.array(z.number()).length(3).optional().default([0, 0, 0]),
   rotation: z.array(z.number()).length(3).optional().default([0, 0, 0]),
   scale: z.array(z.number()).length(3).optional().default([1, 1, 1]),
@@ -18,19 +17,43 @@ const addInstanceSchema = z.object({
 })
 
 /**
+ * Схема валидации для добавления экземпляра объекта (одного или нескольких)
+ */
+const addInstanceSchema = z.object({
+  objectUuid: z.string().min(1, 'Object UUID is required'),
+  // Для одного экземпляра
+  position: z.array(z.number()).length(3).optional().default([0, 0, 0]),
+  rotation: z.array(z.number()).length(3).optional().default([0, 0, 0]),
+  scale: z.array(z.number()).length(3).optional().default([1, 1, 1]),
+  visible: z.boolean().optional().default(true),
+  // Для массового создания - массив параметров экземпляров
+  instances: z.array(instanceParamsSchema).optional(),
+  // Количество экземпляров для случайного размещения
+  count: z.number().min(1).max(100).optional()
+})
+
+/**
  * Инструмент для добавления экземпляра существующего объекта на сцену
  */
 export const addObjectInstanceTool = new DynamicStructuredTool({
   name: 'add_object_instance',
-  description: `Добавить экземпляр существующего объекта на сцену.
+  description: `Добавить один или несколько экземпляров существующего объекта на сцену.
+
+Режимы работы:
+1. Одиночный экземпляр: указать только objectUuid и опциональные параметры трансформации
+2. Массив экземпляров: указать objectUuid и массив instances с параметрами для каждого экземпляра
+3. Множественные случайные экземпляры: указать objectUuid и count для создания заданного количества экземпляров со случайными позициями
+
 Параметры:
 - objectUuid: uuid_объекта_из_сцены (обязательный)
-- position: [x, y, z] (опционально, по умолчанию [0, 0, 0])
-- rotation: [x, y, z] (опционально, по умолчанию [0, 0, 0] в радианах)
-- scale: [x, y, z] (опционально, по умолчанию [1, 1, 1])
-- visible: true/false (опционально, по умолчанию true)
+- position: [x, y, z] (для одиночного экземпляра, по умолчанию [0, 0, 0])
+- rotation: [x, y, z] (для одиночного экземпляра, по умолчанию [0, 0, 0] в радианах)
+- scale: [x, y, z] (для одиночного экземпляра, по умолчанию [1, 1, 1])
+- visible: true/false (для одиночного экземпляра, по умолчанию true)
+- instances: массив объектов с параметрами для каждого экземпляра (position, rotation, scale, visible)
+- count: количество экземпляров для случайного размещения (1-100)
 
-Возвращает информацию о созданном экземпляре или ошибку.
+Возвращает информацию о созданных экземплярах или ошибку.
 Перед использованием рекомендуется получить список объектов через get_scene_objects.`,
   schema: addInstanceSchema,
   func: async (input) => {
@@ -50,27 +73,84 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
         })
       }
 
-      // Добавляем экземпляр
-      const result = SceneAPI.addObjectInstance(
-        validatedParams.objectUuid,
-        validatedParams.position as [number, number, number],
-        validatedParams.rotation as [number, number, number],
-        validatedParams.scale as [number, number, number],
-        validatedParams.visible
-      )
+      // Определяем режим работы и создаем список экземпляров для добавления
+      let instancesToCreate: Array<{
+        position: [number, number, number]
+        rotation: [number, number, number]
+        scale: [number, number, number]
+        visible: boolean
+      }> = []
 
-      if (result.success) {
+      if (validatedParams.instances && validatedParams.instances.length > 0) {
+        // Режим: массив экземпляров
+        instancesToCreate = validatedParams.instances.map(inst => ({
+          position: inst.position as [number, number, number],
+          rotation: inst.rotation as [number, number, number],
+          scale: inst.scale as [number, number, number],
+          visible: inst.visible
+        }))
+      } else if (validatedParams.count && validatedParams.count > 1) {
+        // Режим: множественные случайные экземпляры
+        for (let i = 0; i < validatedParams.count; i++) {
+          instancesToCreate.push({
+            position: [
+              (Math.random() - 0.5) * 20, // случайная позиция в диапазоне -10 до 10
+              (Math.random() - 0.5) * 20,
+              (Math.random() - 0.5) * 20
+            ],
+            rotation: validatedParams.rotation as [number, number, number],
+            scale: validatedParams.scale as [number, number, number],
+            visible: validatedParams.visible
+          })
+        }
+      } else {
+        // Режим: одиночный экземпляр
+        instancesToCreate.push({
+          position: validatedParams.position as [number, number, number],
+          rotation: validatedParams.rotation as [number, number, number],
+          scale: validatedParams.scale as [number, number, number],
+          visible: validatedParams.visible
+        })
+      }
+
+      // Создаем экземпляры
+      const results = []
+      const errors = []
+
+      for (const instanceParams of instancesToCreate) {
+        const result = SceneAPI.addObjectInstance(
+          validatedParams.objectUuid,
+          instanceParams.position,
+          instanceParams.rotation,
+          instanceParams.scale,
+          instanceParams.visible
+        )
+
+        if (result.success) {
+          results.push({
+            instanceUuid: result.instanceUuid,
+            objectUuid: result.objectUuid,
+            parameters: instanceParams
+          })
+        } else {
+          errors.push(result.error)
+        }
+      }
+
+      // Возвращаем результат
+      if (results.length > 0) {
         return JSON.stringify({
           success: true,
-          instanceUuid: result.instanceUuid,
-          objectUuid: result.objectUuid,
-          parameters: validatedParams,
-          message: 'Object instance added successfully'
+          instanceCount: results.length,
+          instances: results,
+          errors: errors.length > 0 ? errors : undefined,
+          message: `Successfully created ${results.length} instance(s)${errors.length > 0 ? ` with ${errors.length} error(s)` : ''}`
         })
       } else {
         return JSON.stringify({
           success: false,
-          error: result.error
+          error: 'Failed to create any instances',
+          details: errors
         })
       }
     } catch (error) {
