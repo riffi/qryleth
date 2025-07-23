@@ -1,31 +1,24 @@
 import React from 'react'
 import { EffectComposer, Outline } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
-import { useObjectSelection } from '../../../lib/hooks/useObjectSelection'
-
-export interface PostProcessingProps {
-  selectedObjects: THREE.Object3D[]
-  hoveredObjects: THREE.Object3D[]
-}
+import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
 
 
-export const PostProcessing: React.FC<PostProcessingProps> = ({
-  selectedObjects: externalSelected,
-  hoveredObjects: externalHovered
-}) => {
-  const { selectedMeshes, hoveredObjects } = useObjectSelection()
 
-  // Use external objects if provided, otherwise use from hook
-  const finalSelectedObjects = externalSelected || selectedMeshes
-  const finalHoveredObjects = externalHovered || hoveredObjects
+
+export const PostProcessing: React.FC = () => {
+  const { selectedMeshes, hoveredMeshes } = useMeshSelection()
+
+
+  console.log("finalSelectedObjects", selectedMeshes)
 
   return (
     <EffectComposer>
 
       {/* Hover outline effect (green) */}
-      {finalHoveredObjects.length > 0 && (
+      {hoveredMeshes.length > 0 && (
         <Outline
-          selection={finalHoveredObjects}
+          selection={hoveredMeshes}
           edgeStrength={3}
           edgeGlow={0.5}
           edgeThickness={2}
@@ -39,9 +32,9 @@ export const PostProcessing: React.FC<PostProcessingProps> = ({
       )}
 
       {/* Selection outline effect (orange) */}
-      {finalSelectedObjects.length > 0 && (
+      {selectedMeshes.length > 0 && (
         <Outline
-          selection={finalSelectedObjects}
+          selection={selectedMeshes}
           edgeStrength={4}
           edgeGlow={0.8}
           edgeThickness={3}

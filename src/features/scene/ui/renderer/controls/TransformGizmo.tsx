@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
-import { useObjectSelection } from '../../../lib/hooks/useObjectSelection'
+import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
 import type {
   ObjectTransformEvent,
   SelectedObject,
@@ -22,7 +22,7 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
   const transformMode = useSceneStore(state => state.transformMode)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
-  const { selectedMeshes } = useObjectSelection()
+  const { selectedMeshes } = useMeshSelection()
 
 
   const handleObjectChange = () => {

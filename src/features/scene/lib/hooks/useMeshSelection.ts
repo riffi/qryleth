@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber'
 import { useSelectedObject, useHoveredObject } from '@/features/scene'
 import type {HoveredObject, SelectedObject} from "@/shared/types";
 
-export interface UseObjectSelectionReturn {
+export interface UseMeshSelectionReturn {
   selectedObject: SelectedObject | null
   hoveredObject: HoveredObject | null
   selectObject: (objectUuid: string, instanceId?: string) => void
@@ -11,9 +11,10 @@ export interface UseObjectSelectionReturn {
   setHoveredObject: (objectUuid: string, instanceId?: string) => void
   clearHover: () => void
   selectedMeshes:  THREE.Object3D[]
+  hoveredMeshes:  THREE.Object3D[]
 }
 
-export const useObjectSelection = (): UseObjectSelectionReturn => {
+export const useMeshSelection = (): UseMeshSelectionReturn => {
   const { scene } = useThree()
   const selectedObject = useSelectedObject()
   const hoveredObject = useHoveredObject()
@@ -42,7 +43,7 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
     return objects
   }, [selectedObject, scene])
 
-  const hoveredObjects = useMemo(() => {
+  const hoveredMeshes = useMemo(() => {
     if (!hoveredObject || !scene) return []
 
     const objects: THREE.Object3D[] = []
@@ -81,7 +82,7 @@ export const useObjectSelection = (): UseObjectSelectionReturn => {
 
   return {
     selectedMeshes,
-    hoveredObjects,
+    hoveredMeshes,
     isSelected,
     isHovered
   }
