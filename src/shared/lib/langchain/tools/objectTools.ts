@@ -45,7 +45,7 @@ const ObjectSchema = z.object({
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции.',
+    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. в position указываются центры примитивов',
     schema: ObjectSchema,
     func: async (input): Promise<string> => {
       try {
