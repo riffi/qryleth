@@ -364,8 +364,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         <Container
           size="xl"
           fluid
-          h="100%"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)' }}
+          h="calc(100vh - 60px - 2 * var(--mantine-spacing-sm))"
+          style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)', maxHeight: 'calc(100vh - 60px - 2 * var(--mantine-spacing-sm))', overflow: 'hidden' }}
         >
         <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
           <ChatInterface onObjectAdded={handleObjectAdded} />
@@ -486,7 +486,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <Paper
             shadow="sm"
             radius="md"
-            style={{ width: 350, flexShrink: 0, maxHeight: height + 60, overflow: 'auto' }}
+            style={{ width: 350, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
           >
             <SceneObjectManager
               onSaveSceneToLibrary={handleSaveSceneToLibrary}

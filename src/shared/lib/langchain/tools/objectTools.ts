@@ -49,9 +49,10 @@ export const createAddNewObjectTool = () => {
     schema: ObjectSchema,
     func: async (input: Record<string, any>): Promise<string> => {
       try {
+        debugger
         // Валидация входных данных
         const validatedInput = ObjectSchema.parse(input)
-        
+
         // Преобразование примитивов в GfxPrimitive формат
         const primitives: GfxPrimitive[] = validatedInput.primitives.map(primitive => {
           const gfxPrimitive: GfxPrimitive = {
@@ -72,11 +73,11 @@ export const createAddNewObjectTool = () => {
             ...(primitive.emissive !== undefined && { emissive: primitive.emissive }),
             ...(primitive.emissiveIntensity !== undefined && { emissiveIntensity: primitive.emissiveIntensity }),
             // Трансформации
-            ...(primitive.position !== undefined && { 
-              position: primitive.position as [number, number, number] 
+            ...(primitive.position !== undefined && {
+              position: primitive.position as [number, number, number]
             }),
-            ...(primitive.rotation !== undefined && { 
-              rotation: primitive.rotation as [number, number, number] 
+            ...(primitive.rotation !== undefined && {
+              rotation: primitive.rotation as [number, number, number]
             })
           }
           return gfxPrimitive
@@ -87,14 +88,14 @@ export const createAddNewObjectTool = () => {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,
-          ...(validatedInput.position && { 
-            position: validatedInput.position as [number, number, number] 
+          ...(validatedInput.position && {
+            position: validatedInput.position as [number, number, number]
           }),
-          ...(validatedInput.rotation && { 
-            rotation: validatedInput.rotation as [number, number, number] 
+          ...(validatedInput.rotation && {
+            rotation: validatedInput.rotation as [number, number, number]
           }),
-          ...(validatedInput.scale && { 
-            scale: validatedInput.scale as [number, number, number] 
+          ...(validatedInput.scale && {
+            scale: validatedInput.scale as [number, number, number]
           })
         }
 
@@ -107,11 +108,11 @@ export const createAddNewObjectTool = () => {
 
       } catch (error) {
         console.error('Ошибка при создании объекта:', error)
-        
-        const errorMessage = error instanceof z.ZodError 
+
+        const errorMessage = error instanceof z.ZodError
           ? `Ошибка валидации: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
           : `Ошибка создания объекта: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
-          
+
         return JSON.stringify({
           success: false,
           error: errorMessage,

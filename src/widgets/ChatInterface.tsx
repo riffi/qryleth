@@ -231,7 +231,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   }
 
   return (
-    <Stack h="100%" gap={0} style={{ maxHeight: '100%', overflowY: 'scroll' }}>
+    <Stack h="100%" gap={0} style={{ display: 'flex', flexDirection: 'column' }}>
       <Paper p="md" withBorder>
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center">
@@ -270,7 +270,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
           </Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="chat" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Tabs.Panel value="chat" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
           <ScrollArea flex={1} p="md" ref={scrollAreaRef}>
             <Stack gap="sm">
               {messages.length === 0 && (
@@ -353,7 +353,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
           </Paper>
         </Tabs.Panel>
 
-        <Tabs.Panel value="debug" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Tabs.Panel value="debug" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
           <Stack flex={1} gap="md" p="md">
             <Paper p="md" withBorder>
               <Text size="sm" mb="sm" fw={500}>
