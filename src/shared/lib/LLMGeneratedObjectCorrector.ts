@@ -1,33 +1,7 @@
 import type {GFXObjectWithTransform, GfxPrimitive} from "@/entities";
-import type {SceneLayer} from "@/entities/scene/types";
 
-const queryHeightAtCoordinate = (
-  layer: SceneLayer,
-  worldX: number,
-  worldZ: number
-): number => {
-  if (layer.type !== 'landscape' || layer.shape !== 'perlin' || !layer.noiseData) {
-    return 0; // Default height for non-perlin landscapes
-  }
 
-  const width = layer.width || 1;
-  const height = layer.height || 1;
-  const segments = 64; // Same as in createPerlinGeometry
 
-  // Convert world coordinates to noise array indices
-  const noiseX = Math.floor(((worldX + width / 2) / width) * segments);
-  const noiseZ = Math.floor(((worldZ + height / 2) / height) * segments);
-
-  // Clamp to valid bounds
-  const clampedX = Math.max(0, Math.min(segments, noiseX));
-  const clampedZ = Math.max(0, Math.min(segments, noiseZ));
-
-  // Get noise value
-  const noiseIndex = clampedZ * (segments + 1) + clampedX;
-  const noiseValue = layer.noiseData[noiseIndex] || 0;
-
-  return noiseValue * 4; // Same multiplier as geometry creation
-};
 
 const getPrimitiveBottomY = (primitive: GfxPrimitive): number => {
   const position = primitive.position || [0, 0, 0];
@@ -110,15 +84,12 @@ const getPrimitiveBottomY = (primitive: GfxPrimitive): number => {
   return centerY + minY;
 };
 
+
+
 export const correctLLMGeneratedObject = (
   object: GFXObjectWithTransform,
-  options?: {
-    landscapeLayer?: SceneLayer;
-    placementX?: number;
-    placementZ?: number;
-  }
 ) => {
-  console.log(options?.landscapeLayer)
+
   const newObject = {...object};
 
   // Apply existing cylinder rotation correction
@@ -135,18 +106,7 @@ export const correctLLMGeneratedObject = (
   // Calculate the minimum Y coordinate (bottom edge) of all primitives
   const minY = Math.min(...newObject.primitives.map(getPrimitiveBottomY));
 
-  // Calculate target Y position
-  let targetY = 0; // Default: place on y=0
 
-  // If landscape layer and placement coordinates are provided, place on landscape
-  if (options?.landscapeLayer && options.placementX !== undefined && options.placementZ !== undefined) {
-    const landscapeHeight = queryHeightAtCoordinate(
-      options.landscapeLayer,
-      options.placementX,
-      options.placementZ
-    );
-    targetY = landscapeHeight;
-  }
 
   // Calculate vertical offset to move bottom edge to target Y
   const verticalOffset =  - minY;
@@ -165,8 +125,6 @@ export const correctLLMGeneratedObject = (
       };
     });
   }
-
-  newObject.position = [options?.placementX, targetY, options?.placementZ]
 
   return newObject;
 }

@@ -37,8 +37,10 @@ import {
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
-import {correctLLMGeneratedObject} from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
-import {getRandomPlacement} from "@/shared/lib/ObjectPlacementUtils.ts";
+import {
+  correctLLMGeneratedObject,
+} from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
+import {getRandomPlacement, placeInstance} from "@/shared/lib/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -137,25 +139,40 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
 
 
-  const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
-    const { addObject, addObjectInstance } = useSceneStore.getState()
-
+  const addInstanceToScene = (objectUuid: string, objectData: GFXObjectWithTransform) => {
     // Find landscape layer (prefer PerlinNoise landscape)
     const landscapeLayer = layers.find(layer =>
-      layer.type === 'landscape' && layer.shape === 'perlin'
+        layer.type === 'landscape' && layer.shape === 'perlin'
     ) || layers.find(layer => layer.type === 'landscape')
 
     // Generate placement position using Random strategy
     const placementResult = getRandomPlacement(landscapeLayer)
     const [placementX, , placementZ] = placementResult.position
 
-    console.log(`Placing object using ${placementResult.strategy} strategy at:`, placementResult.position)
-
-    const correctedObject = correctLLMGeneratedObject(objectData, {
+    const placedObject = placeInstance(objectData, {
       landscapeLayer,
       placementX,
       placementZ
     })
+
+    const { addObjectInstance } = useSceneStore.getState()
+
+    const objectInstance: SceneObjectInstance = {
+      uuid: generateUUID(),
+      objectUuid,
+      transform:{
+        position: placedObject.position || [0, 0, 0],
+        rotation: placedObject.rotation || [0, 0, 0],
+        scale: placedObject.scale || [1, 1, 1]
+      }
+    }
+    addObjectInstance(objectInstance)
+  }
+
+  const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
+    const { addObject } = useSceneStore.getState()
+
+    const correctedObject = correctLLMGeneratedObject(objectData)
 
     const objectUuid = generateUUID()
 
@@ -167,17 +184,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
 
     addObject(newObject)
-
-    const objectInstance: SceneObjectInstance = {
-      uuid: generateUUID(),
-      objectUuid,
-      transform:{
-        position: correctedObject.position || [0, 0, 0],
-        rotation: correctedObject.rotation || [0, 0, 0],
-        scale: objectData.scale || [1, 1, 1]
-      }
-    }
-    addObjectInstance(objectInstance)
+    addInstanceToScene(objectUuid, correctedObject)
   }
 
   const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
