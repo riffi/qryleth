@@ -27,7 +27,11 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+      scrollAreaRef.current?.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth', // по желанию
+      });
+      //scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [messages])
 
@@ -260,7 +264,11 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
         </Group>
       </Paper>
 
-      <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'chat')} flex={1}>
+      <Tabs
+          value={activeTab}
+          onChange={(value) => setActiveTab(value || 'chat')}
+          flex={1}
+      >
         <Tabs.List>
           <Tabs.Tab value="chat">
             Чат
@@ -271,7 +279,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
         </Tabs.List>
 
         <Tabs.Panel value="chat" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
-          <ScrollArea flex={1} p="md" ref={scrollAreaRef}>
+          <ScrollArea flex={1} p="md" ref={scrollAreaRef} style={{flexGrow: 2}}>
             <Stack gap="sm">
               {messages.length === 0 && (
                 <Paper p="md" withBorder style={{ backgroundColor: '#4e4e4e' }}>
@@ -331,7 +339,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
             </Stack>
           </ScrollArea>
 
-          <Paper p="md" withBorder>
+          <Paper p="md" flex={1} withBorder style={{flexGrow: 0}}>
             <Group gap="sm">
               <TextInput
                 flex={1}

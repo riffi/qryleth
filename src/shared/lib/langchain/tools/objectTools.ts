@@ -20,7 +20,7 @@ const PrimitiveSchema = z.object({
   // Pyramid parameters
   baseSize: z.number().optional(),
   // Material properties
-  color: z.string().optional(),
+  color: z.string(),
   opacity: z.number().min(0).max(1).optional(),
   emissive: z.string().optional(),
   emissiveIntensity: z.number().min(0).optional(),
@@ -31,7 +31,7 @@ const PrimitiveSchema = z.object({
 
 // Схема валидации для объекта
 const ObjectSchema = z.object({
-  name: z.string(),
+  name: z.string().describe("Имя объекта на русском"),
   primitives: z.array(PrimitiveSchema),
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
