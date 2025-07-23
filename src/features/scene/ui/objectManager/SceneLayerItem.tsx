@@ -1,204 +1,220 @@
 import React from 'react'
-import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
-import { IconLayersLinked, IconEye, IconEyeOff, IconEdit, IconTrash, IconChevronDown, IconChevronRight, IconPlus, IconArchive } from '@tabler/icons-react'
-import { SceneObjectItem } from './SceneObjectItem.tsx'
-import type { ObjectInfo } from './SceneObjectItem.tsx'
-import type { SceneLayer } from '@/entities/scene/types.ts'
+import {Group, Text, Box, ActionIcon, Menu, Collapse, Stack} from '@mantine/core'
+import {
+  IconLayersLinked,
+  IconEye,
+  IconEyeOff,
+  IconEdit,
+  IconTrash,
+  IconChevronDown,
+  IconChevronRight,
+  IconPlus,
+  IconArchive
+} from '@tabler/icons-react'
+import {SceneObjectItem} from './SceneObjectItem.tsx'
+import type {ObjectInfo} from '@/features/scene'
+import type {SceneLayer} from '@/entities/scene/types.ts'
 
 
 interface LayerItemProps {
-    layer: SceneLayer
-    layerObjects: ObjectInfo[]
-    isExpanded: boolean
-    expandedItems: Set<string>
-    selectedObject?: {objectUuid: string, instanceId?: string} | null
-    dragOverLayerId: string | null
-    onToggleExpanded: (layerId: string) => void
-    onToggleVisibility: (layerId: string) => void
-    onEdit: (layer: SceneLayer) => void
-    onDelete: (layerId: string) => void
-    onEditSize?: (layer: SceneLayer) => void
-    onToggleObjectExpanded: (objectUuid: string) => void
-    onHighlightObject?: (objectUuid: string, instanceId?: string) => void
-    onClearHighlight?: () => void
-    onSelectObject?: (objectUuid: string, instanceId?: string) => void
-    onToggleObjectVisibility?: (objectUuid: string) => void
-    onRemoveObject?: (objectUuid: string) => void
-    onSaveObjectToLibrary?: (objectUuid: string) => void
-    onEditObject?: (objectUuid: string, instanceId?: string) => void
-    onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
-    onRemoveInstance?: (objectUuid: string, instanceId: string) => void
-    onAddObjectFromLibrary?: (layerId: string) => void
-    onDragStart: (e: React.DragEvent, objectUuid: string) => void
-    onContextMenu: (e: React.MouseEvent, objectUuid: string) => void
-    onDragOver: (e: React.DragEvent, layerId: string) => void
-    onDragLeave: (e: React.DragEvent) => void
-    onDrop: (e: React.DragEvent, layerId: string) => void
+  layer: SceneLayer,
+  layerObjects: ObjectInfo[],
+  isExpanded: boolean,
+  expandedItems: Set<string>,
+  selectedObject?: { objectUuid: string, instanceId?: string } | null,
+  dragOverLayerId: string | null,
+  onToggleExpanded: (layerId: string) => void,
+  onToggleVisibility: (layerId: string) => void,
+  onEdit: (layer: SceneLayer) => void,
+  onDelete: (layerId: string) => void,
+  onEditSize?: (layer: SceneLayer) => void,
+  onToggleObjectExpanded: (objectUuid: string) => void,
+  onHighlightObject?: (objectUuid: string, instanceId?: string) => void,
+  onClearHighlight?: () => void,
+  onSelectObject?: (objectUuid: string, instanceId?: string) => void,
+  onToggleObjectVisibility?: (objectUuid: string) => void,
+  onRemoveObject?: (objectUuid: string) => void,
+  onSaveObjectToLibrary?: (objectUuid: string) => void,
+  onEditObject?: (objectUuid: string, instanceId?: string) => void,
+  onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void,
+  onRemoveInstance?: (objectUuid: string, instanceId: string) => void,
+  onAddObjectFromLibrary?: (layerId: string) => void,
+  onDragStart: (e: React.DragEvent, objectUuid: string) => void,
+  onContextMenu: (e: React.MouseEvent, objectUuid: string) => void,
+  onDragOver: (e: React.DragEvent, layerId: string) => void,
+  onDragLeave: (e: React.DragEvent) => void,
+  onDrop: (e: React.DragEvent, layerId: string) => void,
+  onExportObject?: (objectUuid: string) => void
 }
 
 export const SceneLayerItem: React.FC<LayerItemProps> = ({
-    layer,
-    layerObjects,
-    isExpanded,
-    expandedItems,
-    selectedObject,
-    dragOverLayerId,
-    onToggleExpanded,
-    onToggleVisibility,
-    onEdit,
-    onDelete,
-    onEditSize,
-    onToggleObjectExpanded,
-    onHighlightObject,
-    onClearHighlight,
-    onSelectObject,
-    onToggleObjectVisibility,
-    onRemoveObject,
-    onSaveObjectToLibrary,
-    onEditObject,
-    onToggleInstanceVisibility,
-    onRemoveInstance,
-    onDragStart,
-    onContextMenu,
-    onDragOver,
-    onDragLeave,
-    onDrop,
-    onAddObjectFromLibrary
-}) => {
-    return (
-        <div>
-            <Box
-                style={{
-                    backgroundColor: dragOverLayerId === layer.id
-                        ? 'var(--mantine-color-blue-8)'
-                        : 'transparent',
-                    marginBottom: '0px',
-                    borderRadius: '4px',
-                    padding: '8px 4px',
-                    border: dragOverLayerId === layer.id
-                        ? '1px dashed var(--mantine-color-blue-4)'
-                        : '1px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.1s ease'
-                }}
-                onDragOver={(e) => onDragOver(e, layer.id)}
-                onDragLeave={onDragLeave}
-                onDrop={(e) => onDrop(e, layer.id)}
-            >
-                <Group justify="space-between" align="center" gap="xs">
-                    <Group gap="xs" style={{ flex: 1 }}>
-                        <ActionIcon
-                            size="xs"
-                            variant="transparent"
-                            onClick={() => onToggleExpanded(layer.id)}
-                            style={{
-                                width: '16px',
-                                height: '16px',
-                                minWidth: '16px'
-                            }}
-                        >
-                            {isExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
-                        </ActionIcon>
-                        <IconLayersLinked size={14} color="var(--mantine-color-blue-4)" />
-                        <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
-                            {layer.name}
-                        </Text>
-                        <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
-                            ({layerObjects.length})
-                        </Text>
-                    </Group>
-                    <Group gap="xs">
-                        <ActionIcon
-                            size="xs"
-                            variant="transparent"
-                            onClick={() => onToggleVisibility(layer.id)}
-                            style={{
-                                width: '16px',
-                                height: '16px',
-                                minWidth: '16px'
-                            }}
-                        >
-                            {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-                        </ActionIcon>
-                        <Menu shadow="md" width={200}>
-                            <Menu.Target>
-                                <ActionIcon
-                                    size="xs"
-                                    variant="transparent"
-                                    style={{
-                                        width: '16px',
-                                        height: '16px',
-                                        minWidth: '16px'
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <Text size="xs" fw={700}>⋮</Text>
-                                </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                                <Menu.Item
-                                    leftSection={<IconPlus size={14} />}
-                                    onClick={() => onAddObjectFromLibrary?.(layer.id)}
-                                >
-                                    Добавить объект из библиотеки
-                                </Menu.Item>
-                                <Menu.Item
-                                    leftSection={<IconEdit size={14} />}
-                                    onClick={() => onEdit(layer)}
-                                >
-                                    Переименовать
-                                </Menu.Item>
-                                {layer.type === 'landscape' && onEditSize && (
-                                    <Menu.Item onClick={() => onEditSize(layer)}>
-                                        Изменить размер
-                                    </Menu.Item>
-                                )}
-                                {layer.id !== 'objects' && (
-                                    <Menu.Item
-                                        leftSection={<IconTrash size={14} />}
-                                        color="red"
-                                        onClick={() => onDelete(layer.id)}
-                                    >
-                                        Удалить слой
-                                    </Menu.Item>
-                                )}
-                            </Menu.Dropdown>
-                        </Menu>
-                    </Group>
-                </Group>
-            </Box>
+                                                           layer,
+                                                           layerObjects,
+                                                           isExpanded,
+                                                           expandedItems,
+                                                           selectedObject,
+                                                           dragOverLayerId,
+                                                           onToggleExpanded,
+                                                           onToggleVisibility,
+                                                           onEdit,
+                                                           onDelete,
+                                                           onEditSize,
+                                                           onToggleObjectExpanded,
+                                                           onHighlightObject,
+                                                           onClearHighlight,
+                                                           onSelectObject,
+                                                           onToggleObjectVisibility,
+                                                           onRemoveObject,
+                                                           onSaveObjectToLibrary,
+                                                           onEditObject,
+                                                           onToggleInstanceVisibility,
+                                                           onRemoveInstance,
+                                                           onDragStart,
+                                                           onContextMenu,
+                                                           onDragOver,
+                                                           onDragLeave,
+                                                           onDrop,
+                                                           onAddObjectFromLibrary,
+                                                           onExportObject
+                                                         }) => {
+  return (
+      <div>
+        <Box
+            style={{
+              backgroundColor: dragOverLayerId === layer.id
+                  ? 'var(--mantine-color-blue-8)'
+                  : 'transparent',
+              marginBottom: '0px',
+              borderRadius: '4px',
+              padding: '8px 4px',
+              border: dragOverLayerId === layer.id
+                  ? '1px dashed var(--mantine-color-blue-4)'
+                  : '1px solid transparent',
+              cursor: 'pointer',
+              transition: 'all 0.1s ease'
+            }}
+            onDragOver={(e) => onDragOver(e, layer.id)}
+            onDragLeave={onDragLeave}
+            onDrop={(e) => onDrop(e, layer.id)}
+        >
+          <Group justify="space-between" align="center" gap="xs">
+            <Group gap="xs" style={{flex: 1}}>
+              <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  onClick={() => onToggleExpanded(layer.id)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    minWidth: '16px'
+                  }}
+              >
+                {isExpanded ? <IconChevronDown size={12}/> : <IconChevronRight size={12}/>}
+              </ActionIcon>
+              <IconLayersLinked size={14} color="var(--mantine-color-blue-4)"/>
+              <Text size="xs" fw={500} style={{userSelect: 'none'}}>
+                {layer.name}
+              </Text>
+              <Text size="xs" c="dimmed" style={{fontSize: '10px'}}>
+                ({layerObjects.length})
+              </Text>
+            </Group>
+            <Group gap="xs">
+              <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  onClick={() => onToggleVisibility(layer.id)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    minWidth: '16px'
+                  }}
+              >
+                {layer.visible ? <IconEye size={12}/> : <IconEyeOff size={12}/>}
+              </ActionIcon>
+              <Menu shadow="md" width={200}>
+                <Menu.Target>
+                  <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        minWidth: '16px'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                  >
+                    <Text size="xs" fw={700}>⋮</Text>
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item
+                      leftSection={<IconPlus size={14}/>}
+                      onClick={() => onAddObjectFromLibrary?.(layer.id)}
+                  >
+                    Добавить объект из библиотеки
+                  </Menu.Item>
+                  <Menu.Item
+                      leftSection={<IconEdit size={14}/>}
+                      onClick={() => onEdit(layer)}
+                  >
+                    Переименовать
+                  </Menu.Item>
+                  {layer.type === 'landscape' && onEditSize && (
+                      <Menu.Item onClick={() => onEditSize(layer)}>
+                        Изменить размер
+                      </Menu.Item>
+                  )}
+                  {layer.id !== 'objects' && (
+                      <Menu.Item
+                          leftSection={<IconTrash size={14}/>}
+                          color="red"
+                          onClick={() => onDelete(layer.id)}
+                      >
+                        Удалить слой
+                      </Menu.Item>
+                  )}
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+          </Group>
+        </Box>
 
-            <Collapse in={isExpanded}>
-                <Stack gap="0px" pl="lg">
-                    {layerObjects.length === 0 ? (
-                        <Text size="xs" c="dimmed" ta="center" py="sm">
-                            Пустой слой
-                        </Text>
-                    ) : (
-                        layerObjects.map((obj) => (
-                            <SceneObjectItem
-                                key={`${obj.name}-${obj.objectUuid}`}
-                                obj={obj}
-                                isExpanded={expandedItems.has(obj.objectUuid)}
-                                isSelected={selectedObject?.objectUuid === obj.objectUuid}
-                                selectedObject={selectedObject}
-                                onToggleExpanded={() => onToggleObjectExpanded(obj.objectUuid)}
-                                onHighlight={onHighlightObject || (() => {})}
-                                onClearHighlight={() => onClearHighlight?.()}
-                                onSelect={onSelectObject || (() => {})}
-                                onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectUuid)}
-                                onRemove={() => onRemoveObject?.(obj.objectUuid)}
-                                onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectUuid)}
-                                onEdit={onEditObject || (() => {})}
-                                onToggleInstanceVisibility={onToggleInstanceVisibility}
-                                onRemoveInstance={onRemoveInstance}
-                                onDragStart={(e) => onDragStart(e, obj.objectUuid)}
-                                onContextMenu={(e) => onContextMenu(e, obj.objectUuid)}
-                            />
-                        ))
-                    )}
-                </Stack>
-            </Collapse>
-        </div>
-    )
+        <Collapse in={isExpanded}>
+          <Stack gap="0px" pl="lg">
+            {layerObjects.length === 0 ? (
+                <Text size="xs" c="dimmed" ta="center" py="sm">
+                  Пустой слой
+                </Text>
+            ) : (
+                layerObjects.map((obj) => (
+                    <SceneObjectItem
+                        key={`${obj.name}-${obj.objectUuid}`}
+                        obj={obj}
+                        isExpanded={expandedItems.has(obj.objectUuid)}
+                        isSelected={selectedObject?.objectUuid === obj.objectUuid}
+                        selectedObject={selectedObject}
+                        onToggleExpanded={() => onToggleObjectExpanded(obj.objectUuid)}
+                        onHighlight={onHighlightObject || (() => {
+                        })}
+                        onClearHighlight={() => onClearHighlight?.()}
+                        onSelect={onSelectObject || (() => {
+                        })}
+                        onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectUuid)}
+                        onRemove={() => onRemoveObject?.(obj.objectUuid)}
+                        onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectUuid)}
+                        onEdit={onEditObject || (() => {
+                        })}
+                        onToggleInstanceVisibility={onToggleInstanceVisibility}
+                        onRemoveInstance={onRemoveInstance}
+                        onDragStart={(e) => onDragStart(e, obj.objectUuid)}
+                        onContextMenu={(e) => onContextMenu(e, obj.objectUuid)}
+                        onExport={onExportObject}
+                    />
+                ))
+            )}
+          </Stack>
+        </Collapse>
+      </div>
+  )
 }

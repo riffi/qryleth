@@ -38,6 +38,7 @@ import { useErrorHandler } from '@/shared/hooks'
 import type { LightingSettings } from '@/entities/lighting'
 import {generateUUID} from "@/shared/lib/uuid.ts";
 import type {ObjectRecord} from "@/shared/api";
+import { downloadJson } from '@/shared/lib/downloadJson.ts'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -149,14 +150,14 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
     const handleCreateLayer = () => {
         let layerName = newLayerName.trim()
-        
+
         // Set default names for special layer types
         if (newLayerType === 'landscape') {
             layerName = 'landscape'
         } else if (newLayerType === 'sea') {
             layerName = 'море'
         }
-        
+
         if (newLayerType === 'object' && !layerName) return
 
         storeCreateLayer({
@@ -279,6 +280,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 handleError(error, 'Не удалось сохранить объект')
             }
         }
+    }
+
+    /**
+     * Выгрузить выбранный объект в JSON файл
+     * @param objectUuid UUID объекта, который требуется выгрузить
+     */
+    const handleExportObject = (objectUuid: string) => {
+        const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
+        if (!object) return
+        const data = { uuid: object.uuid, name: object.name, primitives: object.primitives }
+        downloadJson(`${object.name}-${object.uuid}.json`, data)
     }
 
     const handleEditObject = (objectUuid: string, instanceId?: string) => {
@@ -451,6 +463,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
                                     return (
                                         <SceneLayerItem
+                                            onExportObject={handleExportObject}
                                             key={layer.id}
                                             layer={layer}
                                             layerObjects={layerObjects}
@@ -502,6 +515,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             onRemove={() => handleRemoveObject(obj.objectUuid)}
                                             onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectUuid)}
                                             onEdit={handleEditObject}
+                                            onExport={handleExportObject}
                                             onToggleInstanceVisibility={handleToggleInstanceVisibility}
                                             onRemoveInstance={handleRemoveInstance}
                                             onDragStart={(e) => handleDragStart(e, obj.objectUuid)}

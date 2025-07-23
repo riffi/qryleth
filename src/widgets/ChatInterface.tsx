@@ -52,7 +52,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
           // Добавляем сообщение об успешном добавлении
           const successMessage: ChatMessage = {
             role: 'assistant',
-            content: `✅ Объект "${object.name}" был добавлен в сцену через LangChain.`,
+            content: `✅ Объект "${object.name}" был добавлен в сцену.`,
             timestamp: new Date()
           }
           setMessages(prev => [...prev, successMessage])
