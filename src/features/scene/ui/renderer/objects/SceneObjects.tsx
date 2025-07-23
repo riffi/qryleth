@@ -9,7 +9,7 @@ import {
   useSceneLayers,
   useSceneStore
 } from '@/features/scene'
-import { useSceneEvents } from '@/hooks/r3f/useSceneEvents.ts'
+import { useSceneEvents } from '../../../lib/hooks/useSceneEvents'
 
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()
@@ -66,8 +66,8 @@ export const SceneObjects: React.FC = () => {
         const isLayerVisible = layer ? layer.visible : true
 
         // Check complete visibility (layer, object, instance)
-        const isCompletelyVisible = isLayerVisible && 
-                                   (sceneObject.visible !== false) && 
+        const isCompletelyVisible = isLayerVisible &&
+                                   (sceneObject.visible !== false) &&
                                    (instance.visible !== false)
 
         // Don't render hidden objects at all to exclude them from ray casting

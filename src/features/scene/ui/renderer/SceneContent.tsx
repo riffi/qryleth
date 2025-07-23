@@ -8,7 +8,7 @@ import { LandscapeLayers } from '@/features/scene/ui/renderer/landscape/Landscap
 import { SeaLayers } from '@/features/scene/ui/renderer/landscape/SeaLayers.tsx'
 import { PostProcessing } from '@/features/scene/ui/renderer/effects/PostProcessing.tsx'
 import { useSceneStore } from '../../model/sceneStore.ts'
-import { useKeyboardShortcuts } from '../../../../hooks/r3f/useKeyboardShortcuts.ts'
+import { useKeyboardShortcuts } from '../../lib/hooks/useKeyboardShortcuts'
 
 export const SceneContent: React.FC = () => {
   const lighting = useSceneStore(state => state.lighting)

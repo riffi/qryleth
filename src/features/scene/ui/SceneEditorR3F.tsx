@@ -14,7 +14,7 @@ import {
   useGridVisible,
   useSceneLayers
 } from '../model/sceneStore'
-import { useSceneHistory } from '@/hooks/r3f/useSceneHistory'
+import { useSceneHistory } from '../lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'

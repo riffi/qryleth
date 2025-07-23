@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent.tsx'
-import { useUISync, useRealTimeSync } from '@/hooks/r3f/useUISync.ts'
+import { useUISync, useRealTimeSync } from '@/shared/lib/hooks/useUISync'
 
 interface Scene3DProps {
   className: string,

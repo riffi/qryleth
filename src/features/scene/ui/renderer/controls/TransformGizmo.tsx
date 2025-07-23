@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
-import { useObjectSelection } from '@/hooks/r3f/useObjectSelection.ts'
+import { useObjectSelection } from '../../../lib/hooks/useObjectSelection'
 import type {
   ObjectTransformEvent,
   SelectedObject,
