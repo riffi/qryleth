@@ -165,12 +165,100 @@ const queryHeightAtCoordinate = (
   return heightValue;
 };
 
+/**
+ * Calculate surface normal at given coordinates for perlin terrain
+ */
+const calculateSurfaceNormal = (
+    layer: SceneLayer,
+    worldX: number,
+    worldZ: number
+): Vector3 => {
+  if (layer.type !== 'landscape' || layer.shape !== 'perlin' || !layer.noiseData) {
+    return [0, 1, 0]; // Default upward normal
+  }
+
+  const width = layer.width || 1;
+  const height = layer.height || 1;
+  const segments = 64;
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  
+  // Sample neighboring heights to calculate gradient
+  // Use a larger sample distance for more stable gradient calculation
+  const sampleDistance = 0.5; // Increased from 0.1 for better gradient estimation
+  
+  const heightCenter = queryHeightAtCoordinate(layer, worldX, worldZ);
+  const heightLeft = queryHeightAtCoordinate(layer, worldX - sampleDistance, worldZ);
+  const heightRight = queryHeightAtCoordinate(layer, worldX + sampleDistance, worldZ);
+  const heightBack = queryHeightAtCoordinate(layer, worldX, worldZ - sampleDistance);
+  const heightFront = queryHeightAtCoordinate(layer, worldX, worldZ + sampleDistance);
+  
+  // Calculate gradients (slopes)
+  const gradientX = (heightRight - heightLeft) / (2 * sampleDistance);
+  const gradientZ = (heightFront - heightBack) / (2 * sampleDistance);
+  
+  // Calculate normal vector using cross product method
+  // Create two tangent vectors on the surface
+  const tangentX: Vector3 = [2 * sampleDistance, heightRight - heightLeft, 0];
+  const tangentZ: Vector3 = [0, heightFront - heightBack, 2 * sampleDistance];
+  
+  // Calculate normal as cross product of tangent vectors
+  const normal: Vector3 = [
+    tangentX[1] * tangentZ[2] - tangentX[2] * tangentZ[1],  // X component
+    tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],  // Y component  
+    tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]   // Z component
+  ];
+  
+  // Normalize the vector
+  const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+  if (length > 0) {
+    normal[0] /= length;
+    normal[1] /= length;
+    normal[2] /= length;
+  }
+  
+  return normal;
+};
+
+/**
+ * Convert surface normal to rotation angles
+ * This aligns the Y-axis (up vector) of the object with the surface normal
+ */
+const normalToRotation = (normal: Vector3): Vector3 => {
+  const [nx, ny, nz] = normal;
+  
+  // Ensure the normal is normalized
+  const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
+  if (length === 0) return [0, 0, 0];
+  
+  const normalizedX = nx / length;
+  const normalizedY = ny / length;
+  const normalizedZ = nz / length;
+  
+  // More robust calculation using atan2 for better precision
+  // Calculate rotation angles to align Y-axis with normal
+  
+  // X rotation (pitch) - rotation around X axis
+  // This tilts the object forward/backward based on Z component of normal
+  const rotationX = Math.atan2(-normalizedZ, normalizedY);
+  
+  // Z rotation (roll) - rotation around Z axis  
+  // This tilts the object left/right based on X component of normal
+  const rotationZ = Math.atan2(normalizedX, normalizedY);
+  
+  // Y rotation (yaw) - keep it 0 for natural alignment
+  const rotationY = 0;
+  
+  return [rotationX, rotationY, rotationZ];
+};
+
 export const placeInstance = (
     instance: SceneObjectInstance,
     options?: {
       landscapeLayer?: SceneLayer;
       placementX?: number;
       placementZ?: number;
+      alignToTerrain?: boolean;
     })=> {
   const newInstance = {...instance};
   
@@ -186,6 +274,7 @@ export const placeInstance = (
   
   // Calculate target Y position
   let targetY = 0; // Default: place on y=0
+  let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
 
   // If landscape layer and placement coordinates are provided, place on landscape
   if (options?.landscapeLayer) {
@@ -194,11 +283,31 @@ export const placeInstance = (
         placementX,
         placementZ
     );
+    
+    // If alignToTerrain is enabled, calculate surface normal and align object
+    if (options.alignToTerrain) {
+      const surfaceNormal = calculateSurfaceNormal(
+        options.landscapeLayer,
+        placementX,
+        placementZ
+      );
+      
+      const terrainRotation = normalToRotation(surfaceNormal);
+      
+      // Combine original rotation with terrain alignment
+      // Add terrain rotation to existing rotation
+      finalRotation = [
+        (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
+        (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
+        (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
+      ];
+    }
   }
 
   newInstance.transform = {
     ...newInstance.transform,
-    position: [placementX, targetY, placementZ]
+    position: [placementX, targetY, placementZ],
+    rotation: finalRotation as [number, number, number]
   }
   return newInstance
 }

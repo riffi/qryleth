@@ -31,7 +31,9 @@ const addInstanceSchema = z.object({
   // Для массового создания - массив параметров экземпляров
   instances: z.array(instanceParamsSchema).optional(),
   // Количество экземпляров для случайного размещения
-  count: z.number().min(1).max(100).optional()
+  count: z.number().min(1).max(100).optional(),
+  // Выравнивание по поверхности ландшафта
+  alignToTerrain: z.boolean().optional().default(false)
 })
 
 /**
@@ -54,6 +56,7 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
 - visible: true/false (для одиночного экземпляра, по умолчанию true)
 - instances: массив объектов с параметрами для каждого экземпляра (position, rotation, scale, visible)
 - count: количество экземпляров для случайного размещения (1-100)
+- alignToTerrain: true/false (выравнивать объекты перпендикулярно к поверхности ландшафта, по умолчанию false)
 
 Возвращает информацию о созданных экземплярах или ошибку.
 Перед использованием рекомендуется получить список объектов через get_scene_objects.`,
@@ -111,11 +114,14 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
           }
           
           // Используем placeInstance для получения правильной позиции
-          const placedInstance = placeInstance(tempInstance, { landscapeLayer })
+          const placedInstance = placeInstance(tempInstance, { 
+            landscapeLayer,
+            alignToTerrain: validatedParams.alignToTerrain
+          })
           
           instancesToCreate.push({
             position: placedInstance.transform.position,
-            rotation: validatedParams.rotation as [number, number, number],
+            rotation: placedInstance.transform.rotation,
             scale: validatedParams.scale as [number, number, number],
             visible: validatedParams.visible
           })
