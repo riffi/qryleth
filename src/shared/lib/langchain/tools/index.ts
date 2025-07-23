@@ -21,18 +21,28 @@ export {
   addNewObjectTool
 } from './objectTools'
 
-// Список всех доступных инструментов для регистрации
-export const allSceneTools = [
-  // Информационные инструменты
-  getSceneObjectsTool,
-  getSceneStatsTool,
-  findObjectByNameTool,
-  
-  // Инструменты управления экземплярами
-  addObjectInstanceTool,
-  canAddInstanceTool,
-  getObjectInstancesTool,
-  
-  // Инструменты создания объектов
-  addNewObjectTool
-]
+/**
+ * Функция для получения всех доступных инструментов сцены
+ * Используется для избежания проблем с circular imports
+ */
+export function getAllSceneTools() {
+  // Импортируем инструменты динамически
+  const sceneTools = require('./sceneTools')
+  const instanceTools = require('./instanceTools')  
+  const objectTools = require('./objectTools')
+
+  return [
+    // Информационные инструменты
+    sceneTools.getSceneObjectsTool,
+    sceneTools.getSceneStatsTool,
+    sceneTools.findObjectByNameTool,
+    
+    // Инструменты управления экземплярами
+    instanceTools.addObjectInstanceTool,
+    instanceTools.canAddInstanceTool,
+    instanceTools.getObjectInstancesTool,
+    
+    // Инструменты создания объектов
+    objectTools.addNewObjectTool
+  ]
+}

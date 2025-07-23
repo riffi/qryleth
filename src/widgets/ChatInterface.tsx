@@ -3,6 +3,7 @@ import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, B
 import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS, executeLangChainTool } from '@/shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
+import { langChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 import type {GFXObjectWithTransform} from "@/entities";
@@ -30,9 +31,44 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     }
   }, [messages])
 
-  // Загружаем активное подключение при монтировании
+  // Загружаем активное подключение и инициализируем LangChain сервис при монтировании
   useEffect(() => {
-    getActiveConnection().then(setConnection)
+    const initializeServices = async () => {
+      const activeConnection = await getActiveConnection()
+      setConnection(activeConnection)
+      
+      // Инициализируем LangChain сервис
+      try {
+        await langChainChatService.initialize()
+        
+        // Устанавливаем callback для добавления объектов
+        langChainChatService.setObjectAddedCallback((object: GFXObjectWithTransform) => {
+          onObjectAdded(object)
+          
+          // Добавляем сообщение об успешном добавлении
+          const successMessage: ChatMessage = {
+            role: 'assistant',
+            content: `✅ Объект "${object.name}" был добавлен в сцену через LangChain.`,
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, successMessage])
+        })
+        
+        console.log('LangChain сервис инициализирован с инструментами:', langChainChatService.getRegisteredTools())
+      } catch (error) {
+        console.error('Ошибка инициализации LangChain сервиса:', error)
+        
+        // Добавляем сообщение об ошибке инициализации для пользователя
+        const errorMessage: ChatMessage = {
+          role: 'assistant',
+          content: `❌ Ошибка инициализации чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, errorMessage])
+      }
+    }
+    
+    initializeServices()
   }, [])
 
   const handleSendMessage = async () => {
@@ -49,20 +85,17 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     setIsLoading(true)
 
     try {
-      // Always use tools for all messages
-      const chatResponse = await fetchWithTools([...messages, userMessage], AVAILABLE_TOOLS)
+      // Используем LangChain агент для обработки сообщений
+      const langChainResponse = await langChainChatService.chat([...messages, userMessage])
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: chatResponse.message,
+        content: langChainResponse.message,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      // Handle tool calls
-      if (chatResponse.toolCalls && chatResponse.toolCalls.length > 0) {
-        await handleToolCalls(chatResponse.toolCalls)
-      }
+      // LangChain автоматически обрабатывает инструменты, дополнительная обработка не требуется
     } catch (error) {
       console.error('Chat error:', error)
       const errorMessage: ChatMessage = {
@@ -76,19 +109,19 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     }
   }
 
+  // LangChain автоматически обрабатывает вызовы инструментов через агент
+  // Эта функция сохранена для обратной совместимости с debug режимом
   const handleToolCalls = async (toolCalls: ToolCall[]) => {
     for (const toolCall of toolCalls) {
       if (toolCall.function.name === 'add_new_object') {
         try {
           const args = JSON.parse(toolCall.function.arguments)
-          // Используем LangChain инструмент вместо прямого вызова onObjectAdded
           const gfxObject = await executeLangChainTool('add_new_object', args)
           onObjectAdded(gfxObject)
 
-          // Add tool result message
           const toolMessage: ChatMessage = {
             role: 'assistant',
-            content: `✅ Объект "${gfxObject.name}" был добавлен в сцену через LangChain.`,
+            content: `✅ Объект "${gfxObject.name}" был добавлен в сцену через LangChain (debug режим).`,
             timestamp: new Date()
           }
           setMessages(prev => [...prev, toolMessage])
@@ -105,12 +138,27 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     }
   }
 
-  // Обновляет модель в активном подключении
+  // Обновляет модель в активном подключении и переинициализирует LangChain сервис
   const handleModelChange = async (model: string) => {
     if (!connection) return
     const updated = { ...connection, model }
     await upsertConnection(updated)
     setConnection(updated)
+    
+    // Переинициализируем LangChain сервис с новой моделью
+    try {
+      await langChainChatService.updateConnection()
+      console.log('LangChain сервис обновлен с новой моделью:', model)
+    } catch (error) {
+      console.error('Ошибка обновления LangChain сервиса:', error)
+      // Добавляем сообщение об ошибке смены модели
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: `❌ Ошибка смены модели: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    }
   }
 
   const handleKeyPress = (event: React.KeyboardEvent) => {

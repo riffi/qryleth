@@ -8,17 +8,43 @@ import { getLangChainBaseUrl } from '../openAISettings'
 export function createChatModel(config: LangChainConfig): ChatOpenAI {
   const { connection, temperature = 0.7, maxTokens = 4000 } = config
 
-  const chatModel = new ChatOpenAI({
-    model: connection.model,
-    temperature,
-    maxTokens,
-    openAIApiKey: connection.apiKey,
-    configuration: {
-      baseURL: getLangChainBaseUrl(connection),
-    },
-  })
+  // Validate connection has required fields
+  if (!connection) {
+    throw new Error('Connection is required for LangChain chat model')
+  }
 
-  return chatModel
+  if (!connection.apiKey || connection.apiKey.trim() === '') {
+    throw new Error(
+      `API ключ не настроен для подключения "${connection.name}". ` +
+      'Пожалуйста, настройте API ключ в настройках подключений.'
+    )
+  }
+
+  if (!connection.model || connection.model.trim() === '') {
+    throw new Error(
+      `Модель не выбрана для подключения "${connection.name}". ` +
+      'Пожалуйста, выберите модель в настройках подключений.'
+    )
+  }
+
+  try {
+    const chatModel = new ChatOpenAI({
+      model: connection.model,
+      temperature,
+      maxTokens,
+      openAIApiKey: connection.apiKey,
+      configuration: {
+        baseURL: getLangChainBaseUrl(connection),
+      },
+    })
+
+    return chatModel
+  } catch (error) {
+    throw new Error(
+      `Ошибка создания LangChain модели: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}. ` +
+      'Проверьте настройки подключения.'
+    )
+  }
 }
 
 /**

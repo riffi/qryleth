@@ -7,7 +7,12 @@ import { createChatModel, DEFAULT_LANGCHAIN_CONFIG } from './config'
 import type {LangChainTool, LangChainChatResponse, ChatSession, ToolExecutionResult} from './types'
 import { adaptMessagesToLangChain, adaptLangChainResponse } from './adapters'
 import type {ChatMessage} from '../openAIAPI'
-import { allSceneTools } from './tools'
+import { getAllSceneTools } from './tools'
+import type {GFXObjectWithTransform} from '@/entities'
+
+// Типы для callback функций
+export type ToolCallback = (toolName: string, result: any) => void
+export type ObjectAddedCallback = (object: GFXObjectWithTransform) => void
 
 /**
  * LangChain chat service for handling AI conversations with tools
@@ -16,6 +21,8 @@ export class LangChainChatService {
   private chatModel: ChatOpenAI | null = null
   private tools: DynamicTool[] = []
   private toolExecutors: Map<string, (args: any) => Promise<ToolExecutionResult>> = new Map()
+  private objectAddedCallback: ObjectAddedCallback | null = null
+  private toolCallback: ToolCallback | null = null
 
   /**
    * Initialize the chat service with current connection settings
@@ -54,10 +61,26 @@ export class LangChainChatService {
   }
 
   /**
-   * Register a DynamicTool instance directly
+   * Register a DynamicTool instance directly with callback support
    */
   registerDynamicTool(tool: DynamicTool): void {
-    this.tools.push(tool)
+    // Wrap the original func to handle callbacks
+    const originalFunc = tool.func
+    const wrappedTool = new DynamicTool({
+      name: tool.name,
+      description: tool.description,  
+      schema: tool.schema,
+      func: async (args: any) => {
+        const result = await originalFunc(args)
+        
+        // Handle callbacks after tool execution
+        this.handleToolResult(tool.name, result)
+        
+        return result
+      }
+    })
+    
+    this.tools.push(wrappedTool)
   }
 
   /**
@@ -68,7 +91,8 @@ export class LangChainChatService {
     this.clearTools()
     
     // Register all scene tools
-    allSceneTools.forEach(tool => {
+    const sceneTools = getAllSceneTools()
+    sceneTools.forEach(tool => {
       this.registerDynamicTool(tool)
     })
   }
@@ -152,6 +176,43 @@ export class LangChainChatService {
    */
   async updateConnection(): Promise<void> {
     await this.initialize()
+  }
+
+  /**
+   * Set callback for object added events
+   */
+  setObjectAddedCallback(callback: ObjectAddedCallback | null): void {
+    this.objectAddedCallback = callback
+  }
+
+  /**
+   * Set general tool callback
+   */
+  setToolCallback(callback: ToolCallback | null): void {
+    this.toolCallback = callback
+  }
+
+  /**
+   * Handle tool execution results and trigger callbacks
+   */
+  private handleToolResult(toolName: string, result: string): void {
+    try {
+      const parsedResult = JSON.parse(result)
+      
+      // Call general tool callback
+      if (this.toolCallback) {
+        this.toolCallback(toolName, parsedResult)
+      }
+      
+      // Handle specific tool results
+      if (toolName === 'add_new_object' && parsedResult.success && parsedResult.object) {
+        if (this.objectAddedCallback) {
+          this.objectAddedCallback(parsedResult.object)
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка обработки результата инструмента:', error)
+    }
   }
 }
 
