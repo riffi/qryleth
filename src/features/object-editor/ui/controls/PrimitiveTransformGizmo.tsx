@@ -15,6 +15,10 @@ export interface PrimitiveTransformGizmoProps {
   onTransform?: (event: PrimitiveTransformEvent) => void
 }
 
+/**
+ * Gizmo для трансформации выбранного примитива.
+ * Синхронизирует изменения с состоянием стора и блокирует OrbitControls во время перетаскивания.
+ */
 export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
   const { camera, gl } = useThree()
   const transformControlsRef = useRef<any>()

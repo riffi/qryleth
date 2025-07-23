@@ -5,6 +5,9 @@ import {
   useObjectStore
 } from '../../model/objectStore'
 
+/**
+ * Отрисовывает примитивы выбранного объекта и обрабатывает их выбор.
+ */
 export const ObjectScenePrimitives: React.FC = () => {
   const primitives = useObjectPrimitives()
   const clearSelection = useObjectStore(state => state.clearSelection)

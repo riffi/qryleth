@@ -14,7 +14,7 @@ import {
   ActionIcon
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize, IconRefresh } from '@tabler/icons-react'
-import { ObjectScene3D } from '../r3f/ObjectScene3D'
+import { ObjectScene3D } from './ObjectScene3D'
 import {
   useObjectStore,
   useObjectPrimitives,

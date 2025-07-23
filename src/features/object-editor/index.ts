@@ -3,4 +3,4 @@
  */
 
 export * from './model'
-export { ObjectEditorR3F } from './ui/ObjectEditorR3F'
+export * from './ui'

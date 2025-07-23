@@ -9,6 +9,10 @@ export interface ObjectScene3DProps {
   onSceneReady?: (scene: THREE.Scene) => void
 }
 
+/**
+ * Компонент, отвечающий за отображение холста Three.js и содержимого сцены.
+ * Вызывает колбэк onSceneReady после полной инициализации сцены.
+ */
 export const ObjectScene3D: React.FC<ObjectScene3DProps> = ({ className, onSceneReady }) => {
   return (
     <Box className={className} style={{ position: 'relative', width: '100%', height: '100%' }}>

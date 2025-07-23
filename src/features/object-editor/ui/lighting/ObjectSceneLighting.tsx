@@ -1,6 +1,10 @@
 import React from 'react'
 import { useObjectLighting } from '../../model/objectStore'
 
+/**
+ * Настройки освещения сцены в редакторе объектов.
+ * Значения берутся из состояния objectStore.
+ */
 export const ObjectSceneLighting: React.FC = () => {
   const lighting = useObjectLighting()
   return (

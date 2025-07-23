@@ -6,6 +6,10 @@ import { ObjectScenePrimitives } from './objects/ObjectScenePrimitives.tsx'
 import { PrimitiveTransformGizmo } from './controls/PrimitiveTransformGizmo.tsx'
 import { useObjectLighting } from '../model/objectStore'
 
+/**
+ * Содержимое сцены редактора объектов: освещение, окружение и примитивы.
+ * Также подключает контролы трансформации и управление камерой.
+ */
 export const ObjectSceneContent: React.FC = () => {
   const lighting = useObjectLighting()
   const orbitControlsRef = useRef<any>()
