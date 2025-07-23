@@ -39,8 +39,8 @@ import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
 import {
   correctLLMGeneratedObject,
-} from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
-import {placeInstance} from "@/shared/lib/ObjectPlacementUtils.ts";
+} from "../lib/correction/LLMGeneratedObjectCorrector.ts";
+import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {

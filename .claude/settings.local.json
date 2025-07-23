@@ -12,7 +12,8 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(tree:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(move:*)"
     ],
     "deny": []
   }
