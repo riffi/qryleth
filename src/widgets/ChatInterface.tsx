@@ -36,15 +36,15 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     const initializeServices = async () => {
       const activeConnection = await getActiveConnection()
       setConnection(activeConnection)
-      
+
       // Инициализируем LangChain сервис
       try {
         await langChainChatService.initialize()
-        
+
         // Устанавливаем callback для добавления объектов
         langChainChatService.setObjectAddedCallback((object: GFXObjectWithTransform) => {
           onObjectAdded(object)
-          
+
           // Добавляем сообщение об успешном добавлении
           const successMessage: ChatMessage = {
             role: 'assistant',
@@ -53,11 +53,11 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
           }
           setMessages(prev => [...prev, successMessage])
         })
-        
+
         console.log('LangChain сервис инициализирован с инструментами:', langChainChatService.getRegisteredTools())
       } catch (error) {
         console.error('Ошибка инициализации LangChain сервиса:', error)
-        
+
         // Добавляем сообщение об ошибке инициализации для пользователя
         const errorMessage: ChatMessage = {
           role: 'assistant',
@@ -67,7 +67,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
         setMessages(prev => [...prev, errorMessage])
       }
     }
-    
+
     initializeServices()
   }, [])
 
@@ -144,7 +144,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     const updated = { ...connection, model }
     await upsertConnection(updated)
     setConnection(updated)
-    
+
     // Переинициализируем LangChain сервис с новой моделью
     try {
       await langChainChatService.updateConnection()
@@ -231,7 +231,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   }
 
   return (
-    <Stack h="100%" gap={0}>
+    <Stack h="100%" gap={0} style={{ maxHeight: '100%', overflow: 'scroll' }}>
       <Paper p="md" withBorder>
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center">
