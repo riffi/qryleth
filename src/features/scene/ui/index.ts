@@ -19,8 +19,6 @@ export * from '@/features/scene/ui/renderer/controls/FlyControls'
 export * from '@/features/scene/ui/renderer/controls/WalkControls'
 export * from '@/features/scene/ui/renderer/controls/TransformGizmo'
 
-// Effects
-export * from '@/features/scene/ui/renderer/effects/PostProcessing'
 
 // Landscape
 export * from '@/features/scene/ui/renderer/landscape/LandscapeLayer'

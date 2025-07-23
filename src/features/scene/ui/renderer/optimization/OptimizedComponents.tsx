@@ -3,8 +3,8 @@ import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/Sce
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
 import {SeaLayer, type SeaLayerProps} from '../landscape/SeaLayer.tsx'
 
-// Memoized CompositeObject for better performance
-export const MemoizedCompositeObject = React.memo<SceneObjectRendererProps>(
+// Memoized  for better performance
+export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
   SceneObjectRenderer,
   (prevProps, nextProps) => {
     // Custom comparison function for optimal re-rendering
@@ -50,6 +50,6 @@ export const MemoizedSeaLayer = React.memo<SeaLayerProps>(
   }
 )
 
-MemoizedCompositeObject.displayName = 'MemoizedCompositeObject'
+MemoizedSceneObject.displayName = 'MemoizedSceneObject'
 MemoizedLandscapeLayer.displayName = 'MemoizedLandscapeLayer'
 MemoizedSeaLayer.displayName = 'MemoizedSeaLayer'

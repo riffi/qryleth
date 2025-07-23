@@ -1,5 +1,5 @@
 import React from 'react'
-import { MemoizedCompositeObject } from '@/features/scene'
+import { MemoizedSceneObject } from '@/features/scene'
 import { InstancedObjects } from '@/shared/r3f/optimization/InstancedObjects.tsx'
 import {
   useSceneObjects,
@@ -78,7 +78,7 @@ export const SceneObjects: React.FC = () => {
         const instanceId = `${instance.objectUuid}-${instance.uuid}`
 
         return (
-          <MemoizedCompositeObject
+          <MemoizedSceneObject
             key={instanceId}
             sceneObject={sceneObject}
             instance={instance}
