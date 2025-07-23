@@ -18,17 +18,15 @@ export interface ObjectTransformGizmoProps {
 export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransform }) => {
   const { scene, camera, gl, controls } = useThree()
   const transformControlsRef = useRef<any>()
-  const selectedObject = useSceneStore(state => state.selectedObject)
+  const selectionMetadata = useSceneStore(state => state.selectedObject)
   const transformMode = useSceneStore(state => state.transformMode)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
-  const { selectedObjects } = useObjectSelection()
+  const { selectedMeshes } = useObjectSelection()
 
-  // Find the target object for transform controls
-  const targetObject = selectedObjects.length > 0 ? selectedObjects[0] : undefined
 
   const handleObjectChange = () => {
-    if (!transformControlsRef.current?.object || !selectedObject) return
+    if (!transformControlsRef.current?.object || !selectionMetadata) return
 
     const obj = transformControlsRef.current.object
     const position = obj.position
@@ -36,8 +34,8 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     const scale = obj.scale
 
     // Update the object instance in the store
-    if (selectedObject.objectInstanceIndex !== undefined) {
-      updateObjectInstance(selectedObject.objectInstanceIndex, {
+    if (selectionMetadata.objectInstanceIndex !== undefined) {
+      updateObjectInstance(selectionMetadata.objectInstanceIndex, {
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
         scale: [scale.x, scale.y, scale.z]
@@ -47,9 +45,9 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     // Call external transform handler if provided
     if (onTransform) {
       onTransform({
-        objectIndex: selectedObject.objectIndex,
-        instanceId: selectedObject.instanceId,
-        objectInstanceIndex: selectedObject.objectInstanceIndex,
+        objectIndex: selectionMetadata.objectIndex,
+        instanceId: selectionMetadata.instanceId,
+        objectInstanceIndex: selectionMetadata.objectInstanceIndex,
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
         scale: [scale.x, scale.y, scale.z]
@@ -82,17 +80,17 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
       controls.removeEventListener('objectChange', handleObjectChange)
       controls.removeEventListener('dragging-changed', handleDraggingChanged)
     }
-  }, [selectedObject])
+  }, [selectionMetadata])
 
   // Don't render if no object is selected
-  if (!targetObject || !selectedObject) {
+  if (selectedMeshes.length === 0 || !selectionMetadata) {
     return null
   }
 
   return (
     <TransformControls
       ref={transformControlsRef}
-      object={targetObject}
+      object={selectedMeshes[0]}
       mode={transformMode}
       camera={camera}
       gl={gl}

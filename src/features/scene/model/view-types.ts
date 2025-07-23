@@ -18,14 +18,7 @@ export interface UseSceneEventsReturn {
   onPrimitiveTransform: (event: PrimitiveTransformEvent) => void
 }
 
-export interface UseObjectSelectionReturn {
-  selectedObject: SelectedObject | null
-  hoveredObject: HoveredObject | null
-  selectObject: (objectUuid: string, instanceId?: string) => void
-  clearSelection: () => void
-  setHoveredObject: (objectUuid: string, instanceId?: string) => void
-  clearHover: () => void
-}
+
 
 export interface UsePrimitiveSelectionReturn {
   selectedPrimitive: {

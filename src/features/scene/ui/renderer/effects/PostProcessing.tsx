@@ -13,10 +13,10 @@ export const PostProcessing: React.FC<PostProcessingProps> = ({
   selectedObjects: externalSelected,
   hoveredObjects: externalHovered
 }) => {
-  const { selectedObjects, hoveredObjects } = useObjectSelection()
+  const { selectedMeshes, hoveredObjects } = useObjectSelection()
 
   // Use external objects if provided, otherwise use from hook
-  const finalSelectedObjects = externalSelected || selectedObjects
+  const finalSelectedObjects = externalSelected || selectedMeshes
   const finalHoveredObjects = externalHovered || hoveredObjects
 
   return (
