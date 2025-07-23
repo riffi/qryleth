@@ -5,6 +5,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
+import { placeInstance } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { useSceneStore } from '@/features/scene/model/sceneStore'
 
 /**
  * Схема валидации для параметров одного экземпляра
@@ -91,13 +93,28 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
         }))
       } else if (validatedParams.count && validatedParams.count > 1) {
         // Режим: множественные случайные экземпляры
+        // Получаем landscape layer для корректного размещения
+        const state = useSceneStore.getState()
+        const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
+        
         for (let i = 0; i < validatedParams.count; i++) {
+          // Создаем временный экземпляр для использования placeInstance
+          const tempInstance = {
+            uuid: '', // временное значение
+            objectUuid: validatedParams.objectUuid,
+            transform: {
+              position: [0, 0, 0] as [number, number, number],
+              rotation: validatedParams.rotation as [number, number, number],
+              scale: validatedParams.scale as [number, number, number]
+            },
+            visible: validatedParams.visible
+          }
+          
+          // Используем placeInstance для получения правильной позиции
+          const placedInstance = placeInstance(tempInstance, { landscapeLayer })
+          
           instancesToCreate.push({
-            position: [
-              (Math.random() - 0.5) * 20, // случайная позиция в диапазоне -10 до 10
-              (Math.random() - 0.5) * 20,
-              (Math.random() - 0.5) * 20
-            ],
+            position: placedInstance.transform.position,
             rotation: validatedParams.rotation as [number, number, number],
             scale: validatedParams.scale as [number, number, number],
             visible: validatedParams.visible
