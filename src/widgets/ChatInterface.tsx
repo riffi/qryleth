@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select, Box, Tabs, Textarea } from '@mantine/core'
 import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
-import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
+import { fetchWithTools, AVAILABLE_TOOLS, executeLangChainTool } from '@/shared/lib/openAIAPI'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
@@ -81,12 +81,14 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
       if (toolCall.function.name === 'add_new_object') {
         try {
           const args = JSON.parse(toolCall.function.arguments)
-          onObjectAdded(args)
+          // Используем LangChain инструмент вместо прямого вызова onObjectAdded
+          const gfxObject = await executeLangChainTool('add_new_object', args)
+          onObjectAdded(gfxObject)
 
           // Add tool result message
           const toolMessage: ChatMessage = {
             role: 'assistant',
-            content: `✅ Объект "${args.name}" был добавлен в сцену.`,
+            content: `✅ Объект "${gfxObject.name}" был добавлен в сцену через LangChain.`,
             timestamp: new Date()
           }
           setMessages(prev => [...prev, toolMessage])
@@ -143,16 +145,18 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
     }
   }
 
-  const handleApplyDebugObject = () => {
+  const handleApplyDebugObject = async () => {
     try {
       const objectData = JSON.parse(debugResponse)
       if (objectData.error) {
         console.error('Cannot apply object with error:', objectData.error)
         return
       }
-      onObjectAdded(objectData)
+      // Используем LangChain инструмент для создания объекта из debug данных
+      const gfxObject = await executeLangChainTool('add_new_object', objectData)
+      onObjectAdded(gfxObject)
     } catch (error) {
-      console.error('Failed to parse debug response:', error)
+      console.error('Failed to apply debug object:', error)
     }
   }
 

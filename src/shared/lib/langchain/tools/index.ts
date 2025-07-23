@@ -16,6 +16,11 @@ export {
   getObjectInstancesTool
 } from './instanceTools'
 
+// Object creation tools
+export {
+  addNewObjectTool
+} from './objectTools'
+
 // Список всех доступных инструментов для регистрации
 export const allSceneTools = [
   // Информационные инструменты
@@ -26,5 +31,8 @@ export const allSceneTools = [
   // Инструменты управления экземплярами
   addObjectInstanceTool,
   canAddInstanceTool,
-  getObjectInstancesTool
+  getObjectInstancesTool,
+  
+  // Инструменты создания объектов
+  addNewObjectTool
 ]

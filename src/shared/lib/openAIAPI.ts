@@ -1,4 +1,5 @@
 import { getActiveConnection } from './openAISettings'
+import { addNewObjectTool } from './langchain/tools/objectTools'
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -162,6 +163,29 @@ export const AVAILABLE_TOOLS: Tool[] = [
   }
 ]
 
+/**
+ * Выполняет LangChain инструмент add_new_object для обратной совместимости
+ * Используется в ChatInterface до полного перехода на LangChain
+ */
+export async function executeLangChainTool(toolName: string, args: any): Promise<any> {
+  if (toolName === 'add_new_object') {
+    try {
+      const result = await addNewObjectTool.func(args)
+      const parsed = JSON.parse(result)
+      
+      if (parsed.success) {
+        return parsed.object
+      } else {
+        throw new Error(parsed.error || 'Ошибка выполнения инструмента')
+      }
+    } catch (error) {
+      console.error('LangChain tool execution error:', error)
+      throw error
+    }
+  }
+  
+  throw new Error(`Неизвестный инструмент: ${toolName}`)
+}
 
 export async function fetchWithTools(messages: ChatMessage[], tools?: Tool[]): Promise<ChatResponse> {
   const { url, model, apiKey } = await getActiveConnection()
