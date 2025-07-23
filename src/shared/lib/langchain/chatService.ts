@@ -7,6 +7,7 @@ import { createChatModel, DEFAULT_LANGCHAIN_CONFIG } from './config'
 import type {LangChainTool, LangChainChatResponse, ChatSession, ToolExecutionResult} from './types'
 import { adaptMessagesToLangChain, adaptLangChainResponse } from './adapters'
 import type {ChatMessage} from '../openAIAPI'
+import { allSceneTools } from './tools'
 
 /**
  * LangChain chat service for handling AI conversations with tools
@@ -25,6 +26,9 @@ export class LangChainChatService {
       connection,
       ...DEFAULT_LANGCHAIN_CONFIG,
     })
+    
+    // Auto-register scene tools
+    this.registerSceneTools()
   }
 
   /**
@@ -47,6 +51,26 @@ export class LangChainChatService {
 
     this.tools.push(dynamicTool)
     this.toolExecutors.set(tool.name, executor)
+  }
+
+  /**
+   * Register a DynamicTool instance directly
+   */
+  registerDynamicTool(tool: DynamicTool): void {
+    this.tools.push(tool)
+  }
+
+  /**
+   * Register all scene tools
+   */
+  registerSceneTools(): void {
+    // Clear existing tools first
+    this.clearTools()
+    
+    // Register all scene tools
+    allSceneTools.forEach(tool => {
+      this.registerDynamicTool(tool)
+    })
   }
 
   /**
@@ -114,6 +138,13 @@ export class LangChainChatService {
       console.error('LangChain chat error:', error)
       throw new Error(`Chat failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
+  }
+
+  /**
+   * Get list of registered tools for debugging
+   */
+  getRegisteredTools(): string[] {
+    return this.tools.map(tool => tool.name)
   }
 
   /**
