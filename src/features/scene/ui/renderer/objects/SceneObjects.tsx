@@ -65,6 +65,16 @@ export const SceneObjects: React.FC = () => {
         const layer = layers.find(l => l.id === layerId)
         const isLayerVisible = layer ? layer.visible : true
 
+        // Check complete visibility (layer, object, instance)
+        const isCompletelyVisible = isLayerVisible && 
+                                   (sceneObject.visible !== false) && 
+                                   (instance.visible !== false)
+
+        // Don't render hidden objects at all to exclude them from ray casting
+        if (!isCompletelyVisible) {
+          return null
+        }
+
         const instanceId = `${instance.objectUuid}-${instance.uuid}`
 
         return (
@@ -78,7 +88,7 @@ export const SceneObjects: React.FC = () => {
             onClick={handleClick}
             onHover={handlePointerOver}
             onTransform={handleObjectTransform}
-            visible={isLayerVisible && (sceneObject.visible !== false) && (instance.visible !== false)}
+            visible={true}
           />
         )
       })}

@@ -5,7 +5,8 @@ import type { SceneObjectInstance } from '@/entities/scene/types'
 import {
   useObjectInstanceCounts,
   useSceneObjectsOptimized,
-  useSceneObjectInstancesOptimized
+  useSceneObjectInstancesOptimized,
+  useSceneLayers
 } from '@/features/scene'
 
 interface InstancedObjectsProps {
@@ -18,6 +19,26 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
   const objects = useSceneObjectsOptimized()
   const instances = useSceneObjectInstancesOptimized()
   const instanceCounts = useObjectInstanceCounts()
+  const layers = useSceneLayers()
+
+  // Helper function to check if instance is visible
+  const isInstanceVisible = (instance: SceneObjectInstance, objectIndex: number) => {
+    const sceneObject = objects[objectIndex]
+    if (!sceneObject) return false
+
+    // Check layer visibility
+    const layerId = sceneObject.layerId || 'objects'
+    const layer = layers.find(l => l.id === layerId)
+    const isLayerVisible = layer ? layer.visible : true
+
+    // Check object visibility
+    const isObjectVisible = sceneObject.visible !== false
+
+    // Check instance visibility
+    const isInstanceVisibleFlag = instance.visible !== false
+
+    return isLayerVisible && isObjectVisible && isInstanceVisibleFlag
+  }
 
   // Group object instances by object type for instancing
   const instanceGroups = useMemo(() => {
@@ -39,7 +60,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
     })
 
     return optimizedGroups
-  }, [instances, minimumInstancesForOptimization])
+  }, [instances, minimumInstancesForOptimization, layers, objects])
 
   const renderInstancedGroup = (objectIndex: number, instancesGroup: SceneObjectInstance[]) => {
     const sceneObject = objects[objectIndex]
@@ -60,6 +81,11 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
           <Primitive3D primitive={primitive} />
 
           {instancesGroup.map((instance, index) => {
+            // Check if instance should be rendered
+            if (!isInstanceVisible(instance, objectIndex)) {
+              return null
+            }
+
             // Convert instance transform arrays to individual values
                 const [px, py, pz] = instance.transform?.position || [0, 0, 0]
                 const [rx, ry, rz] = instance.transform?.rotation || [0, 0, 0]
@@ -71,7 +97,7 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
                 position={[px, py, pz]}
                 rotation={[rx, ry, rz]}
                 scale={[sx, sy, sz]}
-                visible={instance.visible !== false}
+                visible={true}
               />
             )
           })}
@@ -116,6 +142,8 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
   children
 }) => {
   const shouldUseInstancing = useInstanceOptimization(objectIndex, minimumInstancesForOptimization)
+  const objects = useSceneObjectsOptimized()
+  const layers = useSceneLayers()
 
   // If this object should use instancing, don't render individual instance
   // It will be handled by InstancedObjects component
@@ -123,7 +151,19 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
     return null
   }
 
-  if (instance.visible === false) {
+  // Check complete visibility (layer, object, instance)
+  const sceneObject = objects[objectIndex]
+  if (!sceneObject) return null
+
+  const layerId = sceneObject.layerId || 'objects'
+  const layer = layers.find(l => l.id === layerId)
+  const isLayerVisible = layer ? layer.visible : true
+  const isObjectVisible = sceneObject.visible !== false
+  const isInstanceVisibleFlag = instance.visible !== false
+
+  const isCompletelyVisible = isLayerVisible && isObjectVisible && isInstanceVisibleFlag
+
+  if (!isCompletelyVisible) {
     return null
   }
 
