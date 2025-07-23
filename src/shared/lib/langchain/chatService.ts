@@ -33,7 +33,7 @@ export class LangChainChatService {
       connection,
       ...DEFAULT_LANGCHAIN_CONFIG,
     })
-    
+
     // Auto-register scene tools
     this.registerSceneTools()
   }
@@ -68,18 +68,18 @@ export class LangChainChatService {
     const originalFunc = tool.func
     const wrappedTool = new DynamicTool({
       name: tool.name,
-      description: tool.description,  
+      description: tool.description,
       schema: tool.schema,
       func: async (args: any) => {
         const result = await originalFunc(args)
-        
+
         // Handle callbacks after tool execution
         this.handleToolResult(tool.name, result)
-        
+
         return result
       }
     })
-    
+
     this.tools.push(wrappedTool)
   }
 
@@ -89,7 +89,7 @@ export class LangChainChatService {
   registerSceneTools(): void {
     // Clear existing tools first
     this.clearTools()
-    
+
     // Register all scene tools
     const sceneTools = getAllSceneTools()
     sceneTools.forEach(tool => {
@@ -112,7 +112,6 @@ export class LangChainChatService {
     if (!this.chatModel) {
       throw new Error('Chat service not initialized. Call initialize() first.')
     }
-
     try {
       // If no tools are registered, use simple chat
       if (this.tools.length === 0) {
@@ -128,6 +127,7 @@ export class LangChainChatService {
         ['human', '{input}'],
         ['placeholder', '{agent_scratchpad}'],
       ])
+
 
       const agent = await createToolCallingAgent({
         llm: this.chatModel,
@@ -198,12 +198,12 @@ export class LangChainChatService {
   private handleToolResult(toolName: string, result: string): void {
     try {
       const parsedResult = JSON.parse(result)
-      
+
       // Call general tool callback
       if (this.toolCallback) {
         this.toolCallback(toolName, parsedResult)
       }
-      
+
       // Handle specific tool results
       if (toolName === 'add_new_object' && parsedResult.success && parsedResult.object) {
         if (this.objectAddedCallback) {

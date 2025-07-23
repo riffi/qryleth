@@ -1,6 +1,6 @@
-import { ChatOpenAI } from '@langchain/openai'
+import {ChatOpenAI} from '@langchain/openai'
 import type {LangChainConfig} from './types'
-import { getLangChainBaseUrl } from '../openAISettings'
+import {getLangChainBaseUrl} from '../openAISettings'
 
 /**
  * Creates a LangChain ChatOpenAI instance from our connection settings
@@ -28,17 +28,16 @@ export function createChatModel(config: LangChainConfig): ChatOpenAI {
   }
 
   try {
-    const chatModel = new ChatOpenAI({
+    return new ChatOpenAI({
       model: connection.model,
       temperature,
       maxTokens,
-      openAIApiKey: connection.apiKey,
+      apiKey: connection.apiKey,
       configuration: {
+        apiKey: connection.apiKey,
         baseURL: getLangChainBaseUrl(connection),
       },
     })
-
-    return chatModel
   } catch (error) {
     throw new Error(
       `Ошибка создания LangChain модели: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}. ` +
