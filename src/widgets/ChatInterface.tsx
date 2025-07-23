@@ -279,7 +279,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
         </Tabs.List>
 
         <Tabs.Panel value="chat" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
-          <ScrollArea flex={1} p="md" ref={scrollAreaRef} style={{flexGrow: 2}}>
+          <ScrollArea flex={1} p="md" ref={scrollAreaRef} style={{flexGrow: 10, flexShrink: 1}}>
             <Stack gap="sm">
               {messages.length === 0 && (
                 <Paper p="md" withBorder style={{ backgroundColor: '#4e4e4e' }}>
@@ -339,7 +339,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
             </Stack>
           </ScrollArea>
 
-          <Paper p="md" flex={1} withBorder style={{flexGrow: 0}}>
+          <Paper p="md" flex={1} withBorder style={{flexShrink: 0}}>
             <Group gap="sm">
               <TextInput
                 flex={1}
