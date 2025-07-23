@@ -149,21 +149,32 @@ export const placeInstance = (
       placementZ?: number;
     })=> {
   const newInstance = {...instance};
+  
+  let placementX: number | undefined = options?.placementX;
+  let placementZ: number | undefined = options?.placementZ;
+  
+  // If no placement coordinates provided, use random placement
+  if (placementX === undefined || placementZ === undefined) {
+    const randomPlacement = getRandomPlacement(options?.landscapeLayer);
+    placementX = randomPlacement.position[0];
+    placementZ = randomPlacement.position[2];
+  }
+  
   // Calculate target Y position
   let targetY = 0; // Default: place on y=0
 
   // If landscape layer and placement coordinates are provided, place on landscape
-  if (options?.landscapeLayer && options.placementX !== undefined && options.placementZ !== undefined) {
+  if (options?.landscapeLayer) {
     targetY = queryHeightAtCoordinate(
         options.landscapeLayer,
-        options.placementX,
-        options.placementZ
+        placementX,
+        placementZ
     );
   }
 
   newInstance.transform = {
     ...newInstance.transform,
-    position: [options?.placementX, targetY, options?.placementZ]
+    position: [placementX, targetY, placementZ]
   }
   return newInstance
 }

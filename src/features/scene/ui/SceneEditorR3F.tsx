@@ -40,7 +40,7 @@ import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
 import {
   correctLLMGeneratedObject,
 } from "@/shared/lib/LLMGeneratedObjectCorrector.ts";
-import {getRandomPlacement, placeInstance} from "@/shared/lib/ObjectPlacementUtils.ts";
+import {placeInstance} from "@/shared/lib/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -155,18 +155,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       }
     }
 
-    // Generate placement position using Random strategy
-    const placementResult = getRandomPlacement(landscapeLayer)
-    const [placementX, , placementZ] = placementResult.position
-
     const placedInstance = placeInstance(objectInstance, {
-      landscapeLayer,
-      placementX,
-      placementZ
+      landscapeLayer
     })
 
     const { addObjectInstance } = useSceneStore.getState()
-
 
     addObjectInstance(placedInstance)
   }
