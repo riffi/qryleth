@@ -2,7 +2,7 @@
  * LangChain инструменты для работы с экземплярами объектов сцены
  */
 
-import { DynamicTool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 
@@ -20,36 +20,23 @@ const addInstanceSchema = z.object({
 /**
  * Инструмент для добавления экземпляра существующего объекта на сцену
  */
-export const addObjectInstanceTool = new DynamicTool({
+export const addObjectInstanceTool = new DynamicStructuredTool({
   name: 'add_object_instance',
   description: `Добавить экземпляр существующего объекта на сцену.
-Параметры (JSON):
-{
-  "objectUuid": "uuid_объекта_из_сцены",     // обязательный
-  "position": [x, y, z],                     // опционально, по умолчанию [0, 0, 0]
-  "rotation": [x, y, z],                     // опционально, по умолчанию [0, 0, 0] (в радианах)
-  "scale": [x, y, z],                        // опционально, по умолчанию [1, 1, 1]
-  "visible": true/false                      // опционально, по умолчанию true
-}
+Параметры:
+- objectUuid: uuid_объекта_из_сцены (обязательный)
+- position: [x, y, z] (опционально, по умолчанию [0, 0, 0])
+- rotation: [x, y, z] (опционально, по умолчанию [0, 0, 0] в радианах)
+- scale: [x, y, z] (опционально, по умолчанию [1, 1, 1])
+- visible: true/false (опционально, по умолчанию true)
 
 Возвращает информацию о созданном экземпляре или ошибку.
 Перед использованием рекомендуется получить список объектов через get_scene_objects.`,
-  
-  func: async (input: string) => {
+  schema: addInstanceSchema,
+  func: async (input) => {
     try {
-      // Парсим и валидируем входные данные
-      let params: any
-      try {
-        params = JSON.parse(input)
-      } catch {
-        return JSON.stringify({
-          error: 'Invalid JSON format. Expected: {"objectUuid": "...", "position": [x,y,z], ...}',
-          success: false
-        })
-      }
-
-      // Валидируем параметры
-      const validatedParams = addInstanceSchema.parse(params)
+      // Валидация уже выполнена схемой
+      const validatedParams = input
       
       // Проверяем существование объекта
       if (!SceneAPI.canAddInstance(validatedParams.objectUuid)) {
@@ -110,24 +97,16 @@ export const addObjectInstanceTool = new DynamicTool({
 /**
  * Инструмент для предварительной проверки возможности добавления экземпляра
  */
-export const canAddInstanceTool = new DynamicTool({
+export const canAddInstanceTool = new DynamicStructuredTool({
   name: 'can_add_instance',
   description: `Проверить, можно ли добавить экземпляр объекта с указанным UUID.
-Параметр: {"objectUuid": "uuid_объекта"}
+Параметр: objectUuid - UUID объекта
 Возвращает информацию о возможности добавления экземпляра и детали объекта.`,
-  
-  func: async (input: string) => {
+  schema: z.object({
+    objectUuid: z.string().describe('UUID объекта для проверки')
+  }),
+  func: async ({ objectUuid }: { objectUuid: string }) => {
     try {
-      let objectUuid: string
-      
-      // Парсим параметр
-      try {
-        const parsed = JSON.parse(input)
-        objectUuid = parsed.objectUuid || input.trim()
-      } catch {
-        objectUuid = input.trim()
-      }
-
       if (!objectUuid) {
         return JSON.stringify({
           error: 'Object UUID is required',
@@ -163,24 +142,16 @@ export const canAddInstanceTool = new DynamicTool({
 /**
  * Инструмент для получения информации о существующих экземплярах объекта
  */
-export const getObjectInstancesTool = new DynamicTool({
+export const getObjectInstancesTool = new DynamicStructuredTool({
   name: 'get_object_instances',
   description: `Получить список всех экземпляров указанного объекта.
-Параметр: {"objectUuid": "uuid_объекта"}
+Параметр: objectUuid - UUID объекта
 Возвращает массив экземпляров с их трансформациями и свойствами.`,
-  
-  func: async (input: string) => {
+  schema: z.object({
+    objectUuid: z.string().describe('UUID объекта для получения экземпляров')
+  }),
+  func: async ({ objectUuid }: { objectUuid: string }) => {
     try {
-      let objectUuid: string
-      
-      // Парсим параметр
-      try {
-        const parsed = JSON.parse(input)
-        objectUuid = parsed.objectUuid || input.trim()
-      } catch {
-        objectUuid = input.trim()
-      }
-
       if (!objectUuid) {
         return JSON.stringify({
           error: 'Object UUID is required',

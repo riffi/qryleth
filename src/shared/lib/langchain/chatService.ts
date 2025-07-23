@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai'
-import { DynamicTool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { AgentExecutor, createToolCallingAgent } from 'langchain/agents'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { getActiveConnection } from '../openAISettings'
@@ -19,7 +19,7 @@ export type ObjectAddedCallback = (object: GFXObjectWithTransform) => void
  */
 export class LangChainChatService {
   private chatModel: ChatOpenAI | null = null
-  private tools: DynamicTool[] = []
+  private tools: DynamicStructuredTool[] = []
   private toolExecutors: Map<string, (args: any) => Promise<ToolExecutionResult>> = new Map()
   private objectAddedCallback: ObjectAddedCallback | null = null
   private toolCallback: ToolCallback | null = null
@@ -42,7 +42,7 @@ export class LangChainChatService {
    * Register a tool with its execution function
    */
   registerTool(tool: LangChainTool, executor: (args: any) => Promise<ToolExecutionResult>): void {
-    const dynamicTool = new DynamicTool({
+    const dynamicTool = new DynamicStructuredTool({
       name: tool.name,
       description: tool.description,
       schema: tool.schema,
@@ -63,10 +63,10 @@ export class LangChainChatService {
   /**
    * Register a DynamicTool instance directly with callback support
    */
-  registerDynamicTool(tool: DynamicTool): void {
+  registerDynamicTool(tool: DynamicStructuredTool): void {
     // Wrap the original func to handle callbacks
     const originalFunc = tool.func
-    const wrappedTool = new DynamicTool({
+    const wrappedTool = new DynamicStructuredTool({
       name: tool.name,
       description: tool.description,
       schema: tool.schema,

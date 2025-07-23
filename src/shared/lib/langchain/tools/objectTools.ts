@@ -1,4 +1,4 @@
-import { DynamicTool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
@@ -43,15 +43,14 @@ const ObjectSchema = z.object({
  * Адаптированный из существующего add_new_object инструмента
  */
 export const createAddNewObjectTool = () => {
-  return new DynamicTool({
+  return new DynamicStructuredTool({
     name: 'add_new_object',
     description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции.',
     schema: ObjectSchema,
-    func: async (input: Record<string, any>): Promise<string> => {
+    func: async (input): Promise<string> => {
       try {
-        debugger
-        // Валидация входных данных
-        const validatedInput = ObjectSchema.parse(input)
+        // Валидация входных данных уже выполнена схемой
+        const validatedInput = input
 
         // Преобразование примитивов в GfxPrimitive формат
         const primitives: GfxPrimitive[] = validatedInput.primitives.map(primitive => {

@@ -2,14 +2,14 @@
  * LangChain инструменты для работы со сценой
  */
 
-import { DynamicTool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 
 /**
  * Инструмент для получения списка объектов сцены
  */
-export const getSceneObjectsTool = new DynamicTool({
+export const getSceneObjectsTool = new DynamicStructuredTool({
   name: 'get_scene_objects',
   description: `Получить информацию обо всех объектах в текущей сцене. 
 Возвращает список объектов с их основными характеристиками:
@@ -23,8 +23,8 @@ export const getSceneObjectsTool = new DynamicTool({
 - instanceCount: количество экземпляров
 
 Также возвращает общую статистику сцены и информацию о слоях.`,
-  
-  func: async (input: string) => {
+  schema: z.object({}),
+  func: async (input) => {
     try {
       // Инструмент не требует параметров, но LangChain может передать пустую строку
       const sceneOverview = SceneAPI.getSceneOverview()
@@ -55,7 +55,7 @@ export const getSceneObjectsTool = new DynamicTool({
 /**
  * Инструмент для получения статистики сцены
  */
-export const getSceneStatsTool = new DynamicTool({
+export const getSceneStatsTool = new DynamicStructuredTool({
   name: 'get_scene_stats',
   description: `Получить статистику текущей сцены:
 - Общее количество объектов, экземпляров и слоев
@@ -63,8 +63,8 @@ export const getSceneStatsTool = new DynamicTool({
 - Список всех типов примитивов, используемых в сцене
 
 Полезно для быстрого анализа состояния сцены.`,
-  
-  func: async (input: string) => {
+  schema: z.object({}),
+  func: async (input) => {
     try {
       const stats = SceneAPI.getSceneStats()
       return JSON.stringify(stats, null, 2)
@@ -81,26 +81,19 @@ export const getSceneStatsTool = new DynamicTool({
 /**
  * Инструмент для поиска объекта по имени
  */
-export const findObjectByNameTool = new DynamicTool({
+export const findObjectByNameTool = new DynamicStructuredTool({
   name: 'find_object_by_name',
   description: `Найти объект в сцене по его имени или части имени. 
 Поиск нечувствителен к регистру.
 Параметр: {"name": "название объекта или его часть"}
 Возвращает информацию о первом найденном объекте или null если объект не найден.`,
-  
-  func: async (input: string) => {
+  schema: z.object({
+    name: z.string().describe('Название объекта или его часть для поиска')
+  }),
+  func: async ({ name }: { name: string }) => {
     try {
-      let searchName: string
+      const searchName = name
       
-      // Попробуем распарсить как JSON
-      try {
-        const parsed = JSON.parse(input)
-        searchName = parsed.name || input
-      } catch {
-        // Если не JSON, используем как есть
-        searchName = input.trim()
-      }
-
       if (!searchName) {
         return JSON.stringify({
           error: 'Search name is required',
