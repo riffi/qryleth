@@ -4,14 +4,25 @@ import {
   useObjectSelectedPrimitiveId,
   useObjectHoveredPrimitiveId
 } from '@/features/object-editor'
-import type { UsePrimitiveSelectionReturn } from '@/features/scene'
+
+
+export interface UsePrimitiveSelectionReturn {
+  selectedPrimitive: {
+    objectUuid: string
+    primitiveIndex: number
+    instanceId?: string
+  } | null
+  selectPrimitive: (objectUuid: string, primitiveIndex: number, instanceId?: string) => void
+  clearPrimitiveSelection: () => void
+  selectedMeshes: THREE.Object3D[]
+}
 
 export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
   const { scene } = useThree()
   const selectedId = useObjectSelectedPrimitiveId()
   const hoveredId = useObjectHoveredPrimitiveId()
 
-  const selectedObjects = useMemo(() => {
+  const selectedMeshes = useMemo(() => {
     if (selectedId === null || !scene) return []
     const objects: THREE.Object3D[] = []
     scene.traverse(child => {
@@ -37,5 +48,5 @@ export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
 
   const isHovered = (index: number) => hoveredId === index
 
-  return { selectedObjects, hoveredObjects, isSelected, isHovered }
+  return { selectedMeshes, hoveredObjects, isSelected, isHovered }
 }

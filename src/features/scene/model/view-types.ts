@@ -20,15 +20,7 @@ export interface UseSceneEventsReturn {
 
 
 
-export interface UsePrimitiveSelectionReturn {
-  selectedPrimitive: {
-    objectUuid: string
-    primitiveIndex: number
-    instanceId?: string
-  } | null
-  selectPrimitive: (objectUuid: string, primitiveIndex: number, instanceId?: string) => void
-  clearPrimitiveSelection: () => void
-}
+
 
 export interface UseSceneHistoryReturn {
   canUndo: boolean

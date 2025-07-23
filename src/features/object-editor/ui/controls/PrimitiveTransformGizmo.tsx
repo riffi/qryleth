@@ -25,9 +25,9 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   const selectedPrimitiveId = useObjectStore(state => state.selectedPrimitiveId)
   const transformMode = useObjectStore(state => state.transformMode)
   const updatePrimitive = useObjectStore(state => state.updatePrimitive)
-  const { selectedObjects } = useOEPrimitiveSelection()
+  const { selectedMeshes } = useOEPrimitiveSelection()
 
-  const targetObject = selectedObjects.length > 0 ? selectedObjects[0] : undefined
+  const targetMesh = selectedMeshes.length > 0 ? selectedMeshes[0] : undefined
 
   const handlePrimitiveChange = () => {
     if (!transformControlsRef.current?.object || selectedPrimitiveId === null) return
@@ -91,7 +91,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   return (
     <TransformControls
       ref={transformControlsRef}
-      object={targetObject}
+      object={targetMesh}
       mode={transformMode}
       camera={camera}
       gl={gl}
