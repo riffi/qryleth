@@ -7,7 +7,7 @@
  * - SceneStore - комбинированный тип
  */
 
-import type { ViewMode, RenderMode, SelectedObject, HoveredObject } from '@/shared/types/ui'
+import type { ViewMode, RenderMode, TransformMode, SelectedObject, HoveredObject } from '@/shared/types/ui'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import type { LightingSettings } from '@/entities/lighting/model/types'
 import type { GfxObject } from '@/entities/object/model/types'
@@ -32,6 +32,8 @@ export interface SceneStoreState {
   lighting: LightingSettings
   viewMode: ViewMode
   renderMode: RenderMode
+  transformMode: TransformMode
+  gridVisible: boolean
   history: any[] // TODO: Define proper history type
   historyIndex: number
 }
@@ -39,16 +41,19 @@ export interface SceneStoreState {
 // Store actions interface
 export interface SceneStoreActions {
   // Object management
-  addObject: (object: GfxObject) => void
+  setObjects: (objects: SceneObject[]) => void
+  addObject: (object: SceneObject) => void
   removeObject: (uuid: string) => void
-  updateObject: (uuid: string, updates: Partial<GfxObject>) => void
+  updateObject: (uuid: string, updates: Partial<SceneObject>) => void
 
   // Instance management
-  addObjectInstance: (instance: Omit<SceneObjectInstance, 'uuid'>) => void
+  setObjectInstances: (objectInstances: SceneObjectInstance[]) => void
+  addObjectInstance: (instance: SceneObjectInstance) => void
   removeObjectInstance: (index: number) => void
   updateObjectInstance: (index: number, updates: Partial<SceneObjectInstance>) => void
 
   // Layer management
+  setLayers: (layers: SceneLayer[]) => void
   createLayer: (layer: Omit<SceneLayer, 'id'>) => void
   updateLayer: (layerId: string, updates: Partial<SceneLayer>) => void
   deleteLayer: (layerId: string) => void
@@ -62,14 +67,28 @@ export interface SceneStoreActions {
   clearHover: () => void
 
   // Scene state
-  updateSceneMetaData: (metadata: Partial<SceneMetaData>) => void
-  updateLighting: (lighting: LightingSettings) => void
+  setSceneMetadata: (metadata: SceneMetaData) => void
+  markSceneAsModified: () => void
+  setLighting: (lighting: LightingSettings) => void
+  updateLighting: (updates: Partial<LightingSettings>) => void
   setViewMode: (mode: ViewMode) => void
   setRenderMode: (mode: RenderMode) => void
+  setTransformMode: (mode: TransformMode) => void
+  toggleGridVisibility: () => void
 
   // Visibility
   toggleObjectVisibility: (objectUuid: string) => void
   toggleInstanceVisibility: (objectUuid: string, instanceId: string) => void
+
+  // Scene data management
+  getCurrentSceneData: () => {
+    objects: SceneObject[]
+    objectInstances: SceneObjectInstance[]
+    layers: SceneLayer[]
+    lighting: LightingSettings
+  }
+  clearScene: () => void
+  loadSceneData: (data: any, sceneName?: string, sceneUuid?: string) => void
 
   // History
   saveToHistory: () => void
