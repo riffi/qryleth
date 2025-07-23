@@ -1,6 +1,5 @@
-import type { Vector3 } from '@/shared/types/vector3'
-import type { SceneLayer } from '@/entities/scene/types'
-import type {GFXObjectWithTransform} from "@/entities";
+import type {Vector3} from '@/shared/types/vector3'
+import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 
 export type PlacementStrategy = 'Random' | 'Center' | 'Origin' | 'Custom'
 
@@ -143,26 +142,28 @@ const queryHeightAtCoordinate = (
 };
 
 export const placeInstance = (
-    object: GFXObjectWithTransform,
+    instance: SceneObjectInstance,
     options?: {
       landscapeLayer?: SceneLayer;
       placementX?: number;
       placementZ?: number;
     })=> {
-  const newObject = {...object};
+  const newInstance = {...instance};
   // Calculate target Y position
   let targetY = 0; // Default: place on y=0
 
   // If landscape layer and placement coordinates are provided, place on landscape
   if (options?.landscapeLayer && options.placementX !== undefined && options.placementZ !== undefined) {
-    const landscapeHeight = queryHeightAtCoordinate(
+    targetY = queryHeightAtCoordinate(
         options.landscapeLayer,
         options.placementX,
         options.placementZ
     );
-    targetY = landscapeHeight;
   }
 
-  newObject.position = [options?.placementX, targetY, options?.placementZ]
-  return newObject
+  newInstance.transform = {
+    ...newInstance.transform,
+    position: [options?.placementX, targetY, options?.placementZ]
+  }
+  return newInstance
 }

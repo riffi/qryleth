@@ -145,11 +145,21 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         layer.type === 'landscape' && layer.shape === 'perlin'
     ) || layers.find(layer => layer.type === 'landscape')
 
+    const objectInstance: SceneObjectInstance = {
+      uuid: generateUUID(),
+      objectUuid,
+      transform: {
+        position: objectData.position || [0, 0, 0],
+        rotation: objectData.rotation || [0, 0, 0],
+        scale: objectData.scale || [1, 1, 1]
+      }
+    }
+
     // Generate placement position using Random strategy
     const placementResult = getRandomPlacement(landscapeLayer)
     const [placementX, , placementZ] = placementResult.position
 
-    const placedObject = placeInstance(objectData, {
+    const placedInstance = placeInstance(objectInstance, {
       landscapeLayer,
       placementX,
       placementZ
@@ -157,16 +167,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
     const { addObjectInstance } = useSceneStore.getState()
 
-    const objectInstance: SceneObjectInstance = {
-      uuid: generateUUID(),
-      objectUuid,
-      transform:{
-        position: placedObject.position || [0, 0, 0],
-        rotation: placedObject.rotation || [0, 0, 0],
-        scale: placedObject.scale || [1, 1, 1]
-      }
-    }
-    addObjectInstance(objectInstance)
+
+    addObjectInstance(placedInstance)
   }
 
   const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
