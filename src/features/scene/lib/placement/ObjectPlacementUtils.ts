@@ -125,6 +125,8 @@ const queryHeightAtCoordinate = (
   const width = layer.width || 1;
   const height = layer.height || 1;
   const segments = 64; // Same as in createPerlinGeometry
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
 
   // Convert world coordinates to noise array indices
   const noiseX = Math.floor(((worldX + width / 2) / width) * segments);
@@ -138,7 +140,29 @@ const queryHeightAtCoordinate = (
   const noiseIndex = clampedZ * (segments + 1) + clampedX;
   const noiseValue = layer.noiseData[noiseIndex] || 0;
 
-  return noiseValue * 4; // Same multiplier as geometry creation
+  // Apply the same fade-out logic as in perlinGeometry.ts
+  // Calculate distance from edges (0 at edge, 1 at center)
+  const distFromLeftEdge = (worldX + halfWidth) / width;
+  const distFromRightEdge = (halfWidth - worldX) / width;
+  const distFromTopEdge = (worldZ + halfHeight) / height;
+  const distFromBottomEdge = (halfHeight - worldZ) / height;
+  
+  // Find minimum distance to any edge
+  const edgeDistance = Math.min(distFromLeftEdge, distFromRightEdge, distFromTopEdge, distFromBottomEdge);
+  
+  // Create fade-out factor (0 at edges, 1 towards center)
+  const fadeOutDistance = 0.15; // 15% of the terrain from edges will fade to 0
+  const fadeFactor = Math.max(0, Math.min(1, edgeDistance / fadeOutDistance));
+  
+  // Apply noise with fade-out effect
+  let heightValue = noiseValue * 4 * fadeFactor;
+  
+  // Ensure edges are at 0 or below
+  if (fadeFactor === 0) {
+    heightValue = Math.min(0, heightValue);
+  }
+
+  return heightValue;
 };
 
 export const placeInstance = (
