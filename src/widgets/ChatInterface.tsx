@@ -231,7 +231,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   }
 
   return (
-    <Stack h="100%" gap={0} style={{ maxHeight: '100%', overflow: 'scroll' }}>
+    <Stack h="100%" gap={0} style={{ maxHeight: '100%', overflowY: 'scroll' }}>
       <Paper p="md" withBorder>
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center">
