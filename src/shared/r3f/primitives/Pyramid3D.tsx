@@ -11,7 +11,7 @@ interface Pyramid3DProps {
 export const Pyramid3D: React.FC<Pyramid3DProps> = ({ primitive, materialProps, meshProps }) => {
   const baseSize = primitive.baseSize || 1
   const height = primitive.height || 2
-  const radius = baseSize / 2
+  const radius = baseSize / Math.SQRT2;
 
   // Pyramid is a cone with 4 sides, rotated 45 degrees
   const modifiedMeshProps = {

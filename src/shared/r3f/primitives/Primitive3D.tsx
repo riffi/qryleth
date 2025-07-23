@@ -60,7 +60,7 @@ export const Primitive3D: React.FC<Primitive3DProps> = ({ primitive }) => {
         return (
           <coneGeometry
             args={[
-              size?.radius || 0.5,
+              size?.baseSize || 0.5,
               size?.height || 1,
               4 // 4 sides for pyramid
             ]}

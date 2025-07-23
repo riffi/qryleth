@@ -100,6 +100,12 @@ export const correctLLMGeneratedObject = (
         rotation: [0, 0, -Math.PI/2]
       };
     }
+    // if (prim.type === 'box'){
+    //   return {
+    //     ...prim,
+    //     rotation: [0, -Math.PI/2,0]
+    //   };
+    // }
     return prim;
   });
 
