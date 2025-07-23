@@ -1,5 +1,5 @@
 import React from 'react'
-import { useObjectLighting } from '../../store/objectStore'
+import { useObjectLighting } from '../../model/objectStore'
 
 export const ObjectSceneLighting: React.FC = () => {
   const lighting = useObjectLighting()

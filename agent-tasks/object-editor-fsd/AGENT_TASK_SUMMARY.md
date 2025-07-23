@@ -56,7 +56,7 @@ src/features/object-editor/
 - Создание папки `model/`
 
 ### Фаза 2: Реорганизация store в model сегмент
-**Статус:** Ожидает выполнения
+**Статус:** Выполнено
 
 **Описание:**
 - Переместить `store/objectStore.ts` в `model/objectStore.ts`
@@ -70,6 +70,8 @@ src/features/object-editor/
   - `src/features/object-editor/ui/ObjectEditorR3F.tsx`
   - `src/hooks/objectEditor/useOEPrimitiveSelection.ts`
   - Другие файлы, использующие objectStore
+
+**Результаты:** см. [Фаза 2](phases/phase_2_summary.md)
 
 ### Фаза 3: Реорганизация R3F компонентов в ui сегмент 
 **Статус:** Ожидает выполнения
@@ -131,10 +133,11 @@ src/features/object-editor/
 
 ## Статус выполнения фаз
 - [x] **Фаза 1**: Создание публичного API и подготовка структуры - Выполнено
-- [ ] **Фаза 2**: Реорганизация store в model сегмент
+- [x] **Фаза 2**: Реорганизация store в model сегмент - Выполнено
 - [ ] **Фаза 3**: Реорганизация R3F компонентов в ui сегмент
 - [ ] **Фаза 4**: Создание lib сегмента (если необходимо)
 - [ ] **Фаза 5**: Финализация публичного API и тестирование
 
 ## Ссылки на выполненные фазы
 - [Фаза 1](phases/phase_1_summary.md)
+- [Фаза 2](phases/phase_2_summary.md)

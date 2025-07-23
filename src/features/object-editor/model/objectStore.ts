@@ -48,26 +48,36 @@ export const useObjectStore = create<ObjectStore>()(
     selectedPrimitiveId: null,
     hoveredPrimitiveId: null,
 
+    // Устанавливает список примитивов, приводя их к нормализованному виду
     setPrimitives: (primitives: GfxPrimitive[]) =>
       set({ primitives: primitives.map(normalizePrimitive) }),
+    // Добавляет новый примитив в хранилище
     addPrimitive: (primitive: GfxPrimitive) =>
       set(state => ({
         primitives: [...state.primitives, normalizePrimitive(primitive)]
       })),
+    // Обновляет примитив по индексу
     updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) =>
       set(state => ({ primitives: state.primitives.map((p, i) => (i === index ? { ...p, ...updates } : p)) })),
+    // Заменяет настройки освещения
     setLighting: (lighting: LightingSettings) => set({ lighting }),
+    // Меняет режим отображения
     setRenderMode: (mode: RenderMode) => set({ renderMode: mode }),
+    // Устанавливает активный режим трансформации
     setTransformMode: (mode: TransformMode) => set({ transformMode: mode }),
+    // Выбирает примитив по индексу
     selectPrimitive: (index: number) => set({ selectedPrimitiveId: index }),
+    // Записывает ID наведённого примитива
     setHoveredPrimitive: (index: number | null) => set({ hoveredPrimitiveId: index }),
+    // Снимает выделение
     clearSelection: () => set({ selectedPrimitiveId: null }),
+    // Очищает сцену и сбрасывает освещение
     clearScene: () =>
       set({ primitives: [], lighting: initialLighting, selectedPrimitiveId: null, hoveredPrimitiveId: null })
   }))
 )
 
-// Selectors
+// Селекторы состояния стора объекта
 export const useObjectPrimitives = () => useObjectStore(s => s.primitives)
 export const useObjectLighting = () => useObjectStore(s => s.lighting)
 export const useObjectSelectedPrimitiveId = () => useObjectStore(s => s.selectedPrimitiveId)

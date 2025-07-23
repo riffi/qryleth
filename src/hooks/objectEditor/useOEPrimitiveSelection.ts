@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber'
 import {
   useObjectSelectedPrimitiveId,
   useObjectHoveredPrimitiveId
-} from '@/features/object-editor/store/objectStore.ts'
+} from '@/features/object-editor'
 import type { UsePrimitiveSelectionReturn } from '@/features/scene'
 
 export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {

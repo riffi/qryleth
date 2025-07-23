@@ -3,7 +3,7 @@ import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx
 import {
   useObjectPrimitives,
   useObjectStore
-} from '../../store/objectStore'
+} from '../../model/objectStore'
 
 export const ObjectScenePrimitives: React.FC = () => {
   const primitives = useObjectPrimitives()

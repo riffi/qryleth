@@ -4,7 +4,7 @@ import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
 import { Environment } from '../../../shared/r3f/environment/Environment'
 import { ObjectScenePrimitives } from './objects/ObjectScenePrimitives.tsx'
 import { PrimitiveTransformGizmo } from './controls/PrimitiveTransformGizmo.tsx'
-import { useObjectLighting } from '../store/objectStore'
+import { useObjectLighting } from '../model/objectStore'
 
 export const ObjectSceneContent: React.FC = () => {
   const lighting = useObjectLighting()

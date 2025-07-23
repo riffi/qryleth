@@ -15,11 +15,11 @@ import {
 } from '@mantine/core'
 import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize, IconRefresh } from '@tabler/icons-react'
 import { ObjectScene3D } from '../r3f/ObjectScene3D'
-import { 
-  useObjectStore, 
-  useObjectPrimitives, 
-  useObjectSelectedPrimitiveId 
-} from '../store/objectStore'
+import {
+  useObjectStore,
+  useObjectPrimitives,
+  useObjectSelectedPrimitiveId
+} from '../model/objectStore'
 import type { SceneObject } from '@/entities/scene/types.ts'
 
 interface ObjectEditorR3FProps {

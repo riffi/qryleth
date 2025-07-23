@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { useObjectStore } from '../../store/objectStore'
+import { useObjectStore } from '../../model/objectStore'
 import { useOEPrimitiveSelection } from '@/hooks/objectEditor/useOEPrimitiveSelection.ts'
 import type {
   PrimitiveTransformEvent,
