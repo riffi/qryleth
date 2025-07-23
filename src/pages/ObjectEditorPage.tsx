@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
-import { ObjectEditorR3F } from '@/features/object-editor/ui/ObjectEditorR3F'
+import { ObjectEditorR3F } from '@/features/object-editor'
 import { Box, Group, Title } from '@mantine/core'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 

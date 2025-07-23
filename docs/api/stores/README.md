@@ -121,10 +121,10 @@ const SceneEditor: React.FC = () => {
 
 ## Object Editor Store / Хранилище редактора объектов
 
-**Location**: `src/features/object-editor/store/objectStore.ts`  
+**Location**: `src/features/object-editor/model/objectStore.ts`
 **Purpose**: Manages object editing state
 
-**Местоположение**: `src/features/object-editor/store/objectStore.ts`  
+**Местоположение**: `src/features/object-editor/model/objectStore.ts`
 **Назначение**: Отвечает за редактирование объектов
 
 ### State Properties / Свойства состояния
@@ -157,7 +157,7 @@ interface ObjectStoreState {
 ### Usage Example / Пример использования
 
 ```typescript
-import { useObjectStore } from '@/features/object-editor/store'
+import { useObjectStore } from '@/features/object-editor'
 
 const ObjectEditor: React.FC = () => {
   const {
