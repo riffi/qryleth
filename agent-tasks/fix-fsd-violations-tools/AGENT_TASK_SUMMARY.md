@@ -183,7 +183,7 @@ features/object-editor/lib/ai/tools/
 
 - ✅ **Фаза 1**: **Выполнено** - Создана система динамической регистрации tools, убрана зависимость chatService от конкретных features. [Подробности](phases/phase_1_summary.md)
 - ✅ **Фаза 2**: **Выполнено** - Scene-специфичные tools перемещены в features/scene/lib/ai/tools/, создан провайдер инструментов. [Подробности](phases/phase_2_summary.md)
-- ⏳ **Фаза 3**: Ожидает выполнения
+- ✅ **Фаза 3**: **Выполнено** - Object tool перемещен в features/scene. [Подробности](phases/phase_3_summary.md)
 - ⏳ **Фаза 4**: Ожидает выполнения
 - ⏳ **Фаза 5**: Ожидает выполнения
 - ⏳ **Фаза 6**: Ожидает выполнения
@@ -219,3 +219,9 @@ features/object-editor/lib/ai/tools/
 
 **Измененные файлы**:
 - `src/features/scene/index.ts` - добавлен экспорт AI функций
+
+### Фаза 3 - Результаты выполнения
+- Перемещен `objectTools.ts` в `src/features/scene/lib/ai/tools/`
+- Обновлены экспорты в `tools/index.ts`
+- `sceneToolProvider` регистрирует `addNewObjectTool`
+- Устранено нарушение FSD за счет переноса кода из shared в feature

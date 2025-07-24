@@ -13,3 +13,8 @@ export {
   canAddInstanceTool,
   getObjectInstancesTool
 } from './instanceTools'
+
+export {
+  createAddNewObjectTool,
+  addNewObjectTool
+} from './objectTools'
