@@ -13,7 +13,8 @@ import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 
 const PROVIDER_URLS = {
   openrouter: 'https://openrouter.ai/api/v1',
-  openai: 'https://api.openai.com/v1'
+  openai: 'https://api.openai.com/v1',
+  moonshot: 'https://api.moonshot.ai/v1'
 } as const
 
 interface Props {
@@ -127,7 +128,8 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                   data={[
                     { value: 'openrouter', label: 'OpenRouter' },
                     { value: 'openai', label: 'OpenAi' },
-                    { value: 'compatible', label: 'OpenAi compatible provider' }
+                    { value: 'compatible', label: 'OpenAi compatible provider' },
+                    { value: 'moonshot', label: 'Moonshot' }
                   ]}
                   value={g.provider}
                   onChange={(val) => {
@@ -135,7 +137,7 @@ export const OpenAISettingsModal: React.FC<Props> = ({ opened, onClose }) => {
                     setConnections(prev => prev.map(it => it.id === g.id ? {
                       ...it,
                       provider,
-                      url: provider === 'compatible' ? it.url : PROVIDER_URLS[provider]
+                      url: provider === 'compatible' ? it.url : PROVIDER_URLS[provider as keyof typeof PROVIDER_URLS] || it.url
                     } : it))
                   }}
                 />

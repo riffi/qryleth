@@ -1,6 +1,6 @@
 import { db } from './database'
 
-export type LLMProvider = 'openrouter' | 'openai' | 'compatible'
+export type LLMProvider = 'openrouter' | 'openai' | 'compatible' | 'moonshot'
 
 export interface OpenAISettingsConnection {
   id: string;
@@ -22,6 +22,7 @@ export const PREDEFINED_MODELS: Record<LLMProvider, string[]> = {
   ],
   openai: ['gpt-4o', 'gpt-3.5-turbo'],
   compatible: [],
+  moonshot: ['kimi-k2-0711-preview'],
 }
 
 /**
@@ -117,7 +118,8 @@ export function isLangChainCompatible(connection: OpenAISettingsConnection): boo
   // LangChain works with OpenAI-compatible APIs
   return connection.provider === 'openai' || 
          connection.provider === 'openrouter' || 
-         connection.provider === 'compatible'
+         connection.provider === 'compatible' ||
+         connection.provider === 'moonshot'
 }
 
 /**

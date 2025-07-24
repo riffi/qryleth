@@ -50,7 +50,7 @@
 
 ### Интеграция ИИ
 - **[LLM Integration](features/ai-integration/llm-integration.md)** - Настройка языковой модели
-- **[Tool Calling](features/ai-integration/tool-calling.md)** - Система инструментов ИИ
+- **[Provider Connections](features/ai-integration/provider-connections.md)** - Управление подключениями к LLM
 
 ---
 
