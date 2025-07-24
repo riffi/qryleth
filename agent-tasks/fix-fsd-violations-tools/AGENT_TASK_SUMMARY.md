@@ -136,7 +136,7 @@ shared/    ← НЕ МОЖЕТ импортировать features
 **Цель**: Очистить старые файлы и протестировать исправления
 
 **Задачи**:
-- Удалить пустую папку `src/shared/lib/langchain/tools/`
+- Удалить папку `src/shared/lib/langchain/tools/`
 - Обновить ChatInterface для работы с новой системой регистрации tools
 - Запустить сборку проекта и убедиться в отсутствии ошибок
 - Протестировать работу AI Assistant в SceneEditor и ObjectEditor
