@@ -1,6 +1,6 @@
-import React from 'react'
-import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput, ColorInput } from '@mantine/core'
-import { IconLayersLinked } from '@tabler/icons-react'
+import React, {useCallback, useEffect, useState} from 'react'
+import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput, ColorInput, ActionIcon } from '@mantine/core'
+import { IconLayersLinked, IconSettings } from '@tabler/icons-react'
 import type { SceneLayer } from '../../../types/scene'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 
@@ -50,6 +50,12 @@ interface LayerModalsProps {
     onMoveToLayer: (layerId: string) => void
 }
 
+const presets = [
+  {id: 1, title: 'Маленький', width: 10, height: 10 },
+  {id: 2, title: 'Средний', width: 100, height: 100 },
+  {id: 3, title: 'Большой', width: 1000, height: 1000 },
+]
+
 export const SceneLayerModals: React.FC<LayerModalsProps> = ({
     createLayerModalOpened,
     setCreateLayerModalOpened,
@@ -85,6 +91,34 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
     layers,
     onMoveToLayer
 }) => {
+    /**
+     * Флаг отображения ручных настроек размера ландшафта.
+     * При false показываются только пресеты размеров.
+     */
+    const [showSizeConfig, setShowSizeConfig] = useState(false)
+
+
+
+    const [currentPreset, setCurrentPreset] = useState<number>(0)
+
+  const applyPreset = useCallback((presetId: number) => {
+    const preset = presets.find((p) => p.id === presetId)
+
+    if (!preset) return
+    setCurrentPreset(presetId)
+
+    setNewLayerWidth(preset.width)
+    setNewLayerHeight(preset.height)
+  }, [setNewLayerHeight, setNewLayerWidth])
+
+  useEffect(() => {
+    applyPreset(2)
+  }, [applyPreset]);
+
+    /**
+     * Применить выбранный пресет размера для нового слоя.
+     * @param presetId
+     */
     return (
         <>
             {/* Create Layer Modal */}
@@ -136,7 +170,56 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                         autoFocus
                     />
                 )}
-                {(newLayerType === 'landscape' || newLayerType === 'sea') && (
+                {newLayerType === 'landscape' && (
+                    <>
+                        <Select
+                            label="Форма поверхности"
+                            data={[
+                                { value: 'plane', label: 'Плоская поверхность' },
+                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                            ]}
+                            value={newLayerShape}
+                            onChange={(v) => setNewLayerShape(v as 'plane' | 'perlin')}
+                        />
+                        <ColorInput
+                            label="Цвет поверхности"
+                            value={newLayerColor}
+                            onChange={setNewLayerColor}
+                            withEyeDropper={false}
+                        />
+                        <Group gap="xs" align="center">
+                            {presets.map((preset) => (
+                                <Button size="xs" onClick={() => applyPreset(preset.id)} variant={currentPreset === preset.id ? "outlined" : "default"}>
+                                  {preset.title}
+                                </Button>
+                            ))}
+                            <ActionIcon
+                                size="sm"
+                                variant={showSizeConfig ? 'filled' : 'default'}
+                                onClick={() => setShowSizeConfig(prev => !prev)}
+                            >
+                                <IconSettings size={16} />
+                            </ActionIcon>
+                        </Group>
+                        {showSizeConfig && (
+                            <Group gap="sm">
+                                <NumberInput
+                                    label="Ширина, м"
+                                    value={newLayerWidth}
+                                    onChange={(val) => setNewLayerWidth(val || 1)}
+                                    min={1}
+                                />
+                                <NumberInput
+                                    label="Длина, м"
+                                    value={newLayerHeight}
+                                    onChange={(val) => setNewLayerHeight(val || 1)}
+                                    min={1}
+                                />
+                            </Group>
+                        )}
+                    </>
+                )}
+                {newLayerType === 'sea' && (
                     <>
                         <Select
                             label="Форма поверхности"
