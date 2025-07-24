@@ -2,7 +2,8 @@ import React, { useMemo } from 'react'
 import * as THREE from 'three'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
-import {createPerlinGeometry} from "@/features/scene/lib/geometry/perlinGeometry.ts";
+import { createPerlinGeometry } from '@/features/scene/lib/geometry/perlinGeometry.ts'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
@@ -45,7 +46,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     if (layer.shape === 'perlin') {
       return new THREE.Color('#4a7c59')
     } else {
-      return new THREE.Color('#318731')
+      return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
     }
   }, [layer.shape, layer.color])
 

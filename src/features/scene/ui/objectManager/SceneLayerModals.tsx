@@ -2,6 +2,7 @@ import React from 'react'
 import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput, ColorInput } from '@mantine/core'
 import { IconLayersLinked } from '@tabler/icons-react'
 import type { SceneLayer } from '../../../types/scene'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
@@ -178,7 +179,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                                 setNewLayerWidth(10)
                                 setNewLayerHeight(10)
                                 setNewLayerShape('plane')
-                                setNewLayerColor('#318731')
+                                setNewLayerColor(DEFAULT_LANDSCAPE_COLOR)
                             }}
                         >
                             Отмена
@@ -203,7 +204,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                     setEditingLayerWidth(10)
                     setEditingLayerHeight(10)
                     setEditingLayerShape('plane')
-                    setEditingLayerColor('#318731')
+                    setEditingLayerColor(DEFAULT_LANDSCAPE_COLOR)
                 }}
                 title="Редактировать слой"
                 size="sm"
@@ -274,7 +275,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                                 setEditingLayerWidth(10)
                                 setEditingLayerHeight(10)
                                 setEditingLayerShape('plane')
-                                setEditingLayerColor('#318731')
+                                setEditingLayerColor(DEFAULT_LANDSCAPE_COLOR)
                             }}
                         >
                             Отмена

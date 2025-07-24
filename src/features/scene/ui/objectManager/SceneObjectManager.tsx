@@ -39,6 +39,7 @@ import {generateUUID} from "@/shared/lib/uuid.ts";
 import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -59,13 +60,13 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [newLayerWidth, setNewLayerWidth] = useState(10)
     const [newLayerHeight, setNewLayerHeight] = useState(10)
     const [newLayerShape, setNewLayerShape] = useState<'plane' | 'perlin'>('plane')
-    const [newLayerColor, setNewLayerColor] = useState<string>('#318731')
+    const [newLayerColor, setNewLayerColor] = useState<string>(DEFAULT_LANDSCAPE_COLOR)
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
     const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape' | 'sea'>('object')
     const [editingLayerWidth, setEditingLayerWidth] = useState(10)
     const [editingLayerHeight, setEditingLayerHeight] = useState(10)
     const [editingLayerShape, setEditingLayerShape] = useState<'plane' | 'perlin'>('plane')
-    const [editingLayerColor, setEditingLayerColor] = useState<string>('#318731')
+    const [editingLayerColor, setEditingLayerColor] = useState<string>(DEFAULT_LANDSCAPE_COLOR)
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -183,7 +184,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setNewLayerWidth(10)
         setNewLayerHeight(10)
         setNewLayerShape('plane')
-        setNewLayerColor('#318731')
+        setNewLayerColor(DEFAULT_LANDSCAPE_COLOR)
         setCreateLayerModalOpened(false)
     }
 
@@ -217,7 +218,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setEditingLayerWidth(layer.width || 10)
         setEditingLayerHeight(layer.height || 10)
         setEditingLayerShape(layer.shape || 'plane')
-        setEditingLayerColor(layer.color || '#318731')
+        setEditingLayerColor(layer.color || DEFAULT_LANDSCAPE_COLOR)
         setEditLayerModalOpened(true)
     }
 
