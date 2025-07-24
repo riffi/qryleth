@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
-import { ObjectEditorR3F, useObjectStore } from '@/features/object-editor'
-import { Box, Group, Title } from '@mantine/core'
+import { ObjectEditorR3F } from '@/features/object-editor'
+import { Box } from '@mantine/core'
 import { db, type ObjectRecord } from '@/shared/lib/database'
+import type { GfxObject } from '@/entities/object'
 
 const ObjectEditorPage: React.FC = () => {
   const { id } = useParams()
@@ -24,37 +25,12 @@ const ObjectEditorPage: React.FC = () => {
 
   const handleClose = () => navigate('/')
 
-  const handleSave = async (
-    objectUuid: string,
-    primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>
-  ) => {
+  const handleSave = async (object: GfxObject) => {
     if (!objectRecord) return
 
     try {
-      // Update primitives with new positions, rotations, and scales
-      const storePrimitives = useObjectStore.getState().primitives
-      const updatedPrimitives = storePrimitives.map((primitive, index) => {
-        if (primitiveStates[index]) {
-          return {
-            ...primitive,
-            position: primitiveStates[index].position,
-            rotation: primitiveStates[index].rotation,
-            scale: primitiveStates[index].scale
-          }
-        }
-        return primitive
-      })
-
-      // Create updated object data
-      const updatedObjectData = {
-        ...objectRecord.objectData,
-        primitives: updatedPrimitives
-      }
-
-      // Save to database - use the id from URL params as fallback
-      const targetUuid = id || objectUuid;
-      await db.updateObject(targetUuid, {
-        objectData: updatedObjectData
+      await db.updateObject(object.uuid, {
+        objectData: object
       })
 
       navigate('/')

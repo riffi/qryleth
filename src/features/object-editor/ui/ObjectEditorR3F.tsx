@@ -7,14 +7,14 @@ import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
 import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type { GfxObject } from '@/entities/object'
 import { useObjectEditorToolRegistration } from '@/features/object-editor'
-import type {Vector3} from "@/shared/types";
 
 interface ObjectEditorR3FProps {
   onClose: () => void
-  onSave: (
-    objectUuid: string,
-    primitiveStates: Record<number, { position: Vector3; rotation: Vector3; scale: Vector3 }>
-  ) => void
+  /**
+   * Колбэк сохранения редактируемого объекта
+   * @param object итоговый объект с обновлёнными примитивами
+   */
+  onSave: (object: GfxObject) => void
   /** Данные редактируемого объекта */
   objectData?: GfxObject
 }
@@ -52,19 +52,14 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
    * Сохраняет изменения и передаёт их во внешний обработчик.
    */
   const handleSave = () => {
-    if (!objectData?.uuid) return
+    if (!objectData) return
     const state = useObjectStore.getState()
-    const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
+    const updatedObject: GfxObject = {
+      ...objectData,
+      primitives: state.primitives.map(p => ({ ...p }))
+    }
 
-    state.primitives.forEach((p, idx) => {
-      primitiveStates[idx] = {
-        position: (p.position || [0, 0, 0]) as [number, number, number],
-        rotation: (p.rotation || [0, 0, 0]) as [number, number, number],
-        scale: (p.scale || [1, 1, 1]) as [number, number, number]
-      }
-    })
-
-    onSave(objectData.uuid, primitiveStates)
+    onSave(updatedObject)
     onClose()
   }
 

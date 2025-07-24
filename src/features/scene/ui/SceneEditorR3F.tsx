@@ -255,43 +255,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     setEditorOpened(true)
   }
 
-  const handleSaveObjectEdit = (
-    objectUuid: string,
-    primitiveStates: {
-      [key: number]: {
-        position: [number, number, number]
-        rotation: [number, number, number]
-        scale: [number, number, number]
-      }
-    }
-  ) => {
-    const object = objects.find(obj => obj.uuid === objectUuid)
-    if (!object) return
-
-    const updatedPrimitives = object.primitives.map((primitive, index) => {
-      const state = primitiveStates[index]
-      if (!state) return primitive
-      const updated = { ...primitive }
-      updated.position = [
-        state.position[0],
-        state.position[1],
-        state.position[2]
-      ]
-      updated.rotation = [
-        state.rotation[0],
-        state.rotation[1],
-        state.rotation[2]
-      ]
-      updated.scale = [
-        state.scale[0],
-        state.scale[1],
-        state.scale[2]
-      ]
-
-      return updated
-    })
-
-    updateObject(objectUuid, { primitives: updatedPrimitives })
+  const handleSaveObjectEdit = (object: GfxObject) => {
+    updateObject(object.uuid, { primitives: object.primitives })
 
     notifications.show({
       title: 'Успешно!',
