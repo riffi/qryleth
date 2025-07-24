@@ -20,6 +20,7 @@ import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds
 } from '../model/objectStore'
+import { getPrimitiveDisplayName } from '@/entities/primitive'
 import type { SceneObject } from '@/entities/scene/types.ts'
 
 interface ObjectEditorR3FProps {
@@ -218,7 +219,10 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
             <MultiSelect
               value={selectedPrimitiveIds.map(i => i.toString())}
               onChange={(values) => handleSelectPrimitives(values.map(v => parseInt(v)))}
-              data={primitives.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
+              data={primitives.map((p, i) => ({
+                value: i.toString(),
+                label: getPrimitiveDisplayName(p, i)
+              }))}
               size="sm"
             />
             <SegmentedControl

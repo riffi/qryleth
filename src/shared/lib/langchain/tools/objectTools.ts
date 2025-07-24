@@ -3,12 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
-
-// Генерирует осмысленное имя примитива по умолчанию.
-// Используется, если ассистент не прислал название примитива.
-function generatePrimitiveName(type: GfxPrimitive['type'], index: number): string {
-  return `${type}-${index}`
-}
+import { generatePrimitiveName } from '@/entities/primitive'
 
 // Схема валидации для примитива
 const PrimitiveSchema = z.object({
