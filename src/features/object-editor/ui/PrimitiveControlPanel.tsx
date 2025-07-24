@@ -4,8 +4,6 @@ import {
   Box,
   Stack,
   Group,
-  MultiSelect,
-  SegmentedControl,
   Button,
   Text,
   ActionIcon,
@@ -203,17 +201,8 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
     >
       <Stack gap="sm" style={{ height: '100%' }}>
         <Group>
-          <Text size="lg" fw={500}>Примитивы</Text>
+          <Text size="lg" fw={500}>Трансформации</Text>
         </Group>
-        <MultiSelect
-          value={selectedPrimitiveIds.map(i => i.toString())}
-          onChange={(values) => handleSelectPrimitives(values.map(v => parseInt(v)))}
-          data={primitives.map((p, i) => ({
-            value: i.toString(),
-            label: getPrimitiveDisplayName(p, i)
-          }))}
-          size="sm"
-        />
 
         {selectedPrimitiveData && (
           <Stack gap="md" mt="md">

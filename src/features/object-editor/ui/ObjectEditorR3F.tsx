@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
 import { ObjectScene3D } from './ObjectScene3D'
 import { PrimitiveControlPanel } from './PrimitiveControlPanel'
+import { PrimitiveManager } from './PrimitiveManager'
 import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
 import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type { SceneObject } from '@/entities/scene/types.ts'
@@ -129,6 +130,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
           </Box>
           <ObjectScene3D />
         </Box>
+        <PrimitiveManager />
       </Box>
     </Box>
   )
