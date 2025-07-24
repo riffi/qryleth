@@ -11,7 +11,7 @@ import {
   ActionIcon,
   NumberInput
 } from '@mantine/core'
-import { IconX, IconCheck, IconArrowRightBar, IconRotate, IconResize, IconRefresh } from '@tabler/icons-react'
+import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
 import {
   useObjectStore,
   useObjectPrimitives,
@@ -45,8 +45,6 @@ const degToRad = (deg: number): number => (deg * Math.PI) / 180
 export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ onClose, onSave }) => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
-  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
-  const [renderMode, setRenderMode] = useState<'solid' | 'wireframe'>('solid')
 
   /**
    * Выбор активного примитива для редактирования.
@@ -216,31 +214,7 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
           }))}
           size="sm"
         />
-        <SegmentedControl
-          value={transformMode}
-          onChange={(v) => {
-            setTransformMode(v as any)
-            useObjectStore.getState().setTransformMode(v as any)
-          }}
-          data={[
-            { value: 'translate', label: <IconArrowRightBar size={16} /> },
-            { value: 'rotate', label: <IconRotate size={16} /> },
-            { value: 'scale', label: <IconResize size={16} /> }
-          ]}
-          size="xs"
-        />
-        <SegmentedControl
-          value={renderMode}
-          onChange={(v) => {
-            setRenderMode(v as any)
-            useObjectStore.getState().setRenderMode(v as any)
-          }}
-          data={[
-            { value: 'solid', label: 'Solid' },
-            { value: 'wireframe', label: 'Wireframe' }
-          ]}
-          size="xs"
-        />
+
         {selectedPrimitiveData && (
           <Stack gap="md" mt="md">
             <TransformBlock

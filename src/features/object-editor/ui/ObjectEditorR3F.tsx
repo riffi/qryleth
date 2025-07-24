@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
-import { Box, Group, Badge, Title } from '@mantine/core'
+import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
 import { ObjectScene3D } from './ObjectScene3D'
 import { PrimitiveControlPanel } from './PrimitiveControlPanel'
 import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
+import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type { SceneObject } from '@/entities/scene/types.ts'
 import { useObjectEditorToolRegistration } from '@/features/object-editor'
 import type {Vector3} from "@/shared/types";
@@ -31,6 +32,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   // Регистрируем инструменты редактора объектов при монтировании
   useObjectEditorToolRegistration()
   const renderMode = useObjectRenderMode()
+  const transformMode = useObjectStore(s => s.transformMode)
+  const setTransformMode = useObjectStore(s => s.setTransformMode)
+  const setRenderMode = useObjectStore(s => s.setRenderMode)
 
   // Инициализация хранилища примитивов при получении данных объекта
   useEffect(() => {
@@ -75,6 +79,54 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       <Box style={{ flex: 1, display: 'flex' }}>
         <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
         <Box style={{ flex: 1, position: 'relative' }}>
+          <Box
+            style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 }}
+          >
+            <Group gap="xs">
+              <Group gap="xs">
+                <Tooltip label="Перемещение">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'translate' ? 'filled' : 'light'}
+                    color="blue"
+                    onClick={() => setTransformMode('translate')}
+                  >
+                    <IconArrowRightBar size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Поворот">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'rotate' ? 'filled' : 'light'}
+                    color="green"
+                    onClick={() => setTransformMode('rotate')}
+                  >
+                    <IconRotate size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Масштаб">
+                  <ActionIcon
+                    size="md"
+                    variant={transformMode === 'scale' ? 'filled' : 'light'}
+                    color="orange"
+                    onClick={() => setTransformMode('scale')}
+                  >
+                    <IconResize size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+
+              <SegmentedControl
+                value={renderMode}
+                onChange={(v) => setRenderMode(v as 'solid' | 'wireframe')}
+                data={[
+                  { value: 'solid', label: 'Solid' },
+                  { value: 'wireframe', label: 'Wireframe' }
+                ]}
+                size="xs"
+              />
+            </Group>
+          </Box>
           <ObjectScene3D />
         </Box>
       </Box>
