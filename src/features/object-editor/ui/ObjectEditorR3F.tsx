@@ -4,6 +4,7 @@ import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 import { PrimitiveManager } from './PrimitiveManager/PrimitiveManager.tsx'
 import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
+import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
 import type { GfxObject } from '@/entities/object'
 import { useObjectEditorToolRegistration } from '@/features/object-editor'
@@ -31,6 +32,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
 }) => {
   // Регистрируем инструменты редактора объектов при монтировании
   useObjectEditorToolRegistration()
+  // Подключаем обработку горячих клавиш (Ctrl+A для выбора всех примитивов)
+  useOEKeyboardShortcuts()
   const renderMode = useObjectRenderMode()
   const transformMode = useObjectStore(s => s.transformMode)
   const setTransformMode = useObjectStore(s => s.setTransformMode)

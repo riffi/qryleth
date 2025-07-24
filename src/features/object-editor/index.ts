@@ -7,3 +7,5 @@ export * from './ui'
 
 // AI интеграция
 export { registerObjectEditorTools, unregisterObjectEditorTools, useObjectEditorToolRegistration } from './lib/ai'
+// Хуки
+export { useOEKeyboardShortcuts } from './lib/hooks/useOEKeyboardShortcuts'
