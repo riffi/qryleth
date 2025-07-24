@@ -107,12 +107,11 @@ export const PrimitiveManager: React.FC = () => {
         width: 280,
         height: '100%',
         borderRadius: 0,
-        borderLeft: '1px solid var(--mantine-color-gray-3)'
       }}
     >
       <Stack gap={0} style={{ height: '100%' }}>
         {/* Заголовок */}
-        <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+        <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>
           <Group justify="space-between">
             <Text size="lg" fw={500}>Примитивы</Text>
             <Badge variant="light" color="blue" size="sm">
@@ -145,7 +144,7 @@ export const PrimitiveManager: React.FC = () => {
 
         {/* Статус выбора */}
         {selectedPrimitiveIds.length > 0 && (
-          <Box p="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
+          <Box p="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-8)' }}>
             <Text size="xs" c="dimmed">
               Выбрано: {selectedPrimitiveIds.length} примитив(ов)
             </Text>
