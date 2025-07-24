@@ -39,7 +39,12 @@ const PrimitiveItem: React.FC<{
         padding: '8px 12px',
         borderRadius: 4,
         cursor: 'pointer',
-        backgroundColor: isSelected ? 'var(--mantine-color-blue-1)' : 'transparent',
+        backgroundColor: isSelected
+          ? 'var(--mantine-color-blue-9)'
+          : 'transparent',
+        border: isSelected
+          ? '1px solid var(--mantine-color-blue-6)'
+          : '1px solid transparent',
         transition: 'all 0.15s ease'
       }}
       onClick={() => onSelect(index)}
@@ -49,20 +54,10 @@ const PrimitiveItem: React.FC<{
       <Group gap="xs" wrap="nowrap">
         {(() => {
           const Icon = getPrimitiveIcon(primitive.type)
-          return (
-            <Icon
-              size={16}
-              color={isSelected ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-gray-6)'}
-            />
-          )
+          return <Icon size={16} color="var(--mantine-color-blue-4)" />
         })()}
 
-        <Text
-          size="sm"
-          style={{ flex: 1 }}
-          fw={isSelected ? 500 : 400}
-          c={isSelected ? 'blue' : undefined}
-        >
+        <Text size="sm" style={{ flex: 1 }} fw={500}>
           {getPrimitiveDisplayName(primitive, index)}
         </Text>
 

@@ -25,12 +25,11 @@ export const ObjectScene3D: React.FC<ObjectScene3DProps> = ({ className, onScene
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1,
-          shadowMap: { enabled: true, type: THREE.PCFSoftShadowMap }
         }}
         style={{ background: 'transparent', width: '100%', height: '100%' }}
         onCreated={(state) => {
           state.gl.setPixelRatio(window.devicePixelRatio)
-          state.gl.shadowMap.enabled = true
+          state.gl.shadowMap.enabled = false
           state.gl.shadowMap.type = THREE.PCFSoftShadowMap
           state.gl.toneMapping = THREE.ACESFilmicToneMapping
           state.gl.toneMappingExposure = 1

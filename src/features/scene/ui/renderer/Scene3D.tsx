@@ -34,10 +34,6 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
-          shadowMap: {
-            enabled: true,
-            type: THREE.PCFSoftShadowMap
-          }
         }}
         style={{
           background: 'transparent',
