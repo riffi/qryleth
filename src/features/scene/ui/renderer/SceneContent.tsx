@@ -8,6 +8,7 @@ import { LandscapeLayers } from '@/features/scene/ui/renderer/landscape/Landscap
 import { SeaLayers } from '@/features/scene/ui/renderer/landscape/SeaLayers.tsx'
 import { useSceneStore } from '../../model/sceneStore.ts'
 import { useKeyboardShortcuts } from '../../lib/hooks/useKeyboardShortcuts'
+import { Sky } from '@react-three/drei'
 
 export const SceneContent: React.FC = () => {
   const lighting = useSceneStore(state => state.lighting)
@@ -29,7 +30,7 @@ export const SceneContent: React.FC = () => {
       <SceneObjects />
       <LandscapeLayers />
       <SeaLayers />
-
+      <Sky distance={450000}  sunPosition={[500, 150, -1000]} inclination={0} azimuth={0.25} turbidity={0.1}/>
       {/* Transform controls */}
       <TransformGizmo />
 
