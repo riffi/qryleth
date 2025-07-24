@@ -88,7 +88,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                 onContextMenu={onContextMenu}
             >
                 <Group justify="space-between" align="center" gap="xs">
-                    <Group gap="xs" style={{ flex: 1 }}>
+                    <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                         <ActionIcon
                             size="xs"
                             variant="transparent"
@@ -108,11 +108,23 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                 <IconChevronRight size={12} />
                             )}
                         </ActionIcon>
-                        <IconCube size={12} color="var(--mantine-color-blue-4)" />
-                        <Text size="xs" fw={500} lineClamp={1} style={{ userSelect: 'none' }}>
+                        <IconCube size={12} color="var(--mantine-color-blue-4)" style={{ flexShrink: 0 }} />
+                        <Text 
+                            size="xs" 
+                            fw={500} 
+                            lineClamp={1} 
+                            style={{ 
+                                userSelect: 'none',
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
                             {obj.name}
                         </Text>
-                        <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
+                        <Text size="xs" c="dimmed" style={{ fontSize: '10px', flexShrink: 0 }}>
                             ({obj.count})
                         </Text>
                     </Group>

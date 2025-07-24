@@ -443,7 +443,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
     return (
         <>
-            <Paper shadow="sm" radius="md" p="sm" style={{ width: 280, height: '100%' }}>
+            <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
                     <Title order={4} c="gray.6" size="md">
                         Сцена
