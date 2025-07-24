@@ -7,6 +7,8 @@ import type { GfxPrimitive } from '@/entities'
 // Схема валидации для примитива
 const PrimitiveSchema = z.object({
   type: z.enum(['box', 'sphere', 'cylinder', 'cone', 'pyramid', 'plane']),
+  // Читаемое имя примитива
+  name: z.string().optional(),
   // Box parameters
   width: z.number().optional(),
   height: z.number().optional(),
@@ -57,6 +59,7 @@ export const createAddNewObjectTool = () => {
           const gfxPrimitive: GfxPrimitive = {
             uuid: uuidv4(),
             type: primitive.type,
+            ...(primitive.name !== undefined && { name: primitive.name }),
             // Геометрические параметры
             ...(primitive.width !== undefined && { width: primitive.width }),
             ...(primitive.height !== undefined && { height: primitive.height }),

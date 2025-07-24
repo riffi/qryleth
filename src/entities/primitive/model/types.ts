@@ -2,6 +2,8 @@ import type { Vector3 } from "../../../shared/types/vector3.ts";
 
 export interface GfxPrimitive {
   type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane';
+  /** Название примитива */
+  name?: string;
   width?: number;
   height?: number;
   depth?: number;
