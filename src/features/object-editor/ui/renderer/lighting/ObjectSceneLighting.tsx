@@ -1,5 +1,5 @@
 import React from 'react'
-import { useObjectLighting } from '../../model/objectStore'
+import { useObjectLighting } from '../../../model/objectStore.ts'
 
 /**
  * Настройки освещения сцены в редакторе объектов.

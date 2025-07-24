@@ -3,7 +3,7 @@ import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx
 import {
   useObjectPrimitives,
   useObjectStore
-} from '../../model/objectStore'
+} from '../../../model/objectStore.ts'
 
 /**
  * Отрисовывает примитивы выбранного объекта и обрабатывает их выбор.

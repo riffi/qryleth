@@ -1,10 +1,10 @@
 import React, { useRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
-import { ObjectSceneLighting } from './lighting/ObjectSceneLighting'
-import { Environment } from '../../../shared/r3f/environment/Environment'
-import { ObjectScenePrimitives } from './objects/ObjectScenePrimitives.tsx'
-import { PrimitiveTransformGizmo } from './controls/PrimitiveTransformGizmo.tsx'
-import { useObjectLighting } from '../model/objectStore'
+import { ObjectSceneLighting } from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting.tsx'
+import { Environment } from '../../../../shared/r3f/environment/Environment.tsx'
+import { ObjectScenePrimitives } from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives.tsx'
+import { PrimitiveTransformGizmo } from '@/features/object-editor/ui/renderer/controls/PrimitiveTransformGizmo.tsx'
+import { useObjectLighting } from '../../model/objectStore.ts'
 
 /**
  * Содержимое сцены редактора объектов: освещение, окружение и примитивы.

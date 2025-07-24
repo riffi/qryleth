@@ -14,7 +14,7 @@ import {
   useObjectStore,
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds
-} from '../model/objectStore'
+} from '../../model/objectStore.ts'
 import { getPrimitiveDisplayName } from '@/entities/primitive'
 
 export interface PrimitiveControlPanelProps {

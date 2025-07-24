@@ -2,8 +2,8 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useObjectStore } from '../../model/objectStore'
-import { useOEPrimitiveSelection } from '../../lib/hooks/useOEPrimitiveSelection'
+import { useObjectStore } from '../../../model/objectStore.ts'
+import { useOEPrimitiveSelection } from '../../../lib/hooks/useOEPrimitiveSelection.ts'
 import type {
   PrimitiveTransformEvent,
   SelectedObject,
@@ -30,7 +30,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const groupCenter = useMemo(() => {
     if (selectedMeshes.length === 0) return new THREE.Vector3()
-    
+
     const center = new THREE.Vector3()
     selectedMeshes.forEach(mesh => {
       center.add(mesh.position)
@@ -41,16 +41,16 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const groupHelper = useMemo(() => {
     if (selectedMeshes.length === 0) return null
-    
+
     const helper = new THREE.Object3D()
-    helper.position.copy(groupCenter)  
+    helper.position.copy(groupCenter)
     helper.userData.isGroupHelper = true
     return helper
   }, [groupCenter, selectedMeshes.length])
 
   useEffect(() => {
     if (!scene) return
-    
+
     if (selectedPrimitiveIds.length > 1 && groupHelper && !groupHelper.parent) {
       groupHelper.position.copy(groupCenter)
       scene.add(groupHelper)
@@ -64,26 +64,26 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     }
   }, [selectedPrimitiveIds.length, groupHelper, groupCenter, scene])
 
-  const initialTransforms = useRef<Map<number, { 
-    position: THREE.Vector3; 
-    rotation: THREE.Euler; 
+  const initialTransforms = useRef<Map<number, {
+    position: THREE.Vector3;
+    rotation: THREE.Euler;
     scale: THREE.Vector3;
     relativeToGroup: THREE.Vector3;
   }>>(new Map())
-  const initialGroupTransform = useRef<{ 
-    position: THREE.Vector3; 
-    rotation: THREE.Euler; 
-    scale: THREE.Vector3 
+  const initialGroupTransform = useRef<{
+    position: THREE.Vector3;
+    rotation: THREE.Euler;
+    scale: THREE.Vector3
   }>()
 
   const handlePrimitiveChange = useCallback(() => {
     if (!transformControlsRef.current?.object || selectedPrimitiveIds.length === 0 || !initialGroupTransform.current) return
-    
+
     const gizmoObject = transformControlsRef.current.object
     const currentGroupPos = gizmoObject.position
     const currentGroupRot = gizmoObject.rotation
     const currentGroupScale = gizmoObject.scale
-    
+
     const deltaPos = currentGroupPos.clone().sub(initialGroupTransform.current.position)
     const deltaRot = new THREE.Euler(
       currentGroupRot.x - initialGroupTransform.current.rotation.x,
@@ -99,16 +99,16 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     selectedPrimitiveIds.forEach(id => {
       const init = initialTransforms.current.get(id)
       if (!init) return
-      
+
       let newPos = init.position.clone()
-      
+
       if (transformMode === 'translate') {
         newPos.add(deltaPos)
       } else if (transformMode === 'rotate') {
         const relativePos = init.relativeToGroup.clone()
         relativePos.applyEuler(deltaRot)
         newPos = initialGroupTransform.current.position.clone().add(relativePos)
-        
+
         const newRot = new THREE.Euler(
           init.rotation.x + deltaRot.x,
           init.rotation.y + deltaRot.y,
@@ -124,7 +124,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         const relativePos = init.relativeToGroup.clone()
         relativePos.multiply(scaleRatio)
         newPos = initialGroupTransform.current.position.clone().add(relativePos)
-        
+
         const newScale = init.scale.clone().multiply(scaleRatio)
         updatePrimitive(id, {
           position: [newPos.x, newPos.y, newPos.z],
@@ -133,7 +133,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         })
         return
       }
-      
+
       updatePrimitive(id, {
         position: [newPos.x, newPos.y, newPos.z],
         rotation: [init.rotation.x, init.rotation.y, init.rotation.z],
@@ -150,17 +150,17 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const handleMouseDown = useCallback(() => {
     initialTransforms.current.clear()
-    
+
     if (selectedPrimitiveIds.length === 1) {
       const mesh = selectedMeshes[0]
       if (!mesh) return
-      
+
       initialGroupTransform.current = {
         position: mesh.position.clone(),
         rotation: mesh.rotation.clone(),
         scale: mesh.scale.clone()
       }
-      
+
       initialTransforms.current.set(mesh.userData.primitiveIndex, {
         position: mesh.position.clone(),
         rotation: mesh.rotation.clone(),
@@ -173,7 +173,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         rotation: groupHelper.rotation.clone(),
         scale: groupHelper.scale.clone()
       }
-      
+
       selectedMeshes.forEach(mesh => {
         const relativeToGroup = mesh.position.clone().sub(groupHelper.position)
         initialTransforms.current.set(mesh.userData.primitiveIndex, {
@@ -184,7 +184,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         })
       })
     }
-    
+
     if (orbitControlsRef?.current) {
       orbitControlsRef.current.enabled = false
     }

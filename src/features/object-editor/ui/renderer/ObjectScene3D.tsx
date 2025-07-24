@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Box } from '@mantine/core'
 import * as THREE from 'three'
-import { ObjectSceneContent } from './ObjectSceneContent'
+import { ObjectSceneContent } from './ObjectSceneContent.tsx'
 
 export interface ObjectScene3DProps {
   className?: string

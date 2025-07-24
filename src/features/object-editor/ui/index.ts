@@ -2,10 +2,10 @@
  * Экспорт UI-компонентов фичи редактирования объекта.
  */
 export * from './ObjectEditorR3F'
-export * from './ObjectScene3D'
-export * from './ObjectSceneContent'
-export * from './controls/PrimitiveTransformGizmo'
-export * from './lighting/ObjectSceneLighting'
-export * from './objects/ObjectScenePrimitives'
-export * from './PrimitiveControlPanel'
+export * from './renderer/ObjectScene3D.tsx'
+export * from './renderer/ObjectSceneContent.tsx'
+export * from '@/features/object-editor/ui/renderer/controls/PrimitiveTransformGizmo'
+export * from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting'
+export * from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives'
+export * from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 

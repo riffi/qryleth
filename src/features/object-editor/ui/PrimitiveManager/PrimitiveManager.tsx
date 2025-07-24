@@ -16,7 +16,7 @@ import {
   useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId,
   useObjectStore
-} from '../model/objectStore'
+} from '../../model/objectStore.ts'
 import { getPrimitiveDisplayName, getPrimitiveIcon } from '@/entities/primitive'
 import type { GfxPrimitive } from '@/entities/primitive'
 
