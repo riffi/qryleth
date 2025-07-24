@@ -63,10 +63,6 @@ const ObjectEditorPage: React.FC = () => {
     }
   }
 
-  const objectInfo = objectRecord ? {
-    name: objectRecord.name,
-    objectUuid: objectRecord.uuid
-  } : undefined
 
   if (!isReady) {
     return (
@@ -83,7 +79,6 @@ const ObjectEditorPage: React.FC = () => {
           <ObjectEditorR3F
             onClose={handleClose}
             onSave={handleSave}
-            objectInfo={objectInfo}
             objectData={objectRecord?.objectData}
           />
         </Box>

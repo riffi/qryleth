@@ -301,16 +301,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     })
   }
 
-  const editingObjectInfo = React.useMemo(() => {
-    if (!editingObject) return undefined
-    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
-    if (!obj) return undefined
-    return {
-      name: obj.name,
-      objectUuid: editingObject.objectUuid,
-   }
-  }, [editingObject, objects])
-
   const editingObjectData = React.useMemo(() => {
     if (!editingObject) return undefined
     const obj = objects.find(o => o.uuid === editingObject.objectUuid)
@@ -379,7 +369,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             <ChatInterface onObjectAdded={handleObjectAdded} onCollapse={() => setChatCollapsed(true)} />
           </Paper>
         )}
-        
+
         {chatCollapsed && (
           <Box
             style={{
@@ -539,8 +529,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       >
         <ObjectEditorR3F
           onClose={() => setEditorOpened(false)}
-          objectInfo={editingObjectInfo}
-          instanceId={editingObject?.instanceId}
           objectData={editingObjectData}
           onSave={handleSaveObjectEdit}
         />

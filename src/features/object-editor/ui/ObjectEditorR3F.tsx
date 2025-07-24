@@ -5,7 +5,7 @@ import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlP
 import { PrimitiveManager } from './PrimitiveManager/PrimitiveManager.tsx'
 import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
 import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
-import type { SceneObject } from '@/entities/scene/types.ts'
+import type { GfxObject } from '@/entities/object'
 import { useObjectEditorToolRegistration } from '@/features/object-editor'
 import type {Vector3} from "@/shared/types";
 
@@ -15,8 +15,8 @@ interface ObjectEditorR3FProps {
     objectUuid: string,
     primitiveStates: Record<number, { position: Vector3; rotation: Vector3; scale: Vector3 }>
   ) => void
-  objectInfo?: { name: string; objectUuid: string }
-  objectData?: SceneObject
+  /** Данные редактируемого объекта */
+  objectData?: GfxObject
 }
 
 /**
@@ -27,7 +27,6 @@ interface ObjectEditorR3FProps {
 export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   onClose,
   onSave,
-  objectInfo,
   objectData
 }) => {
   // Регистрируем инструменты редактора объектов при монтировании
@@ -53,7 +52,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
    * Сохраняет изменения и передаёт их во внешний обработчик.
    */
   const handleSave = () => {
-    if (!objectInfo?.objectUuid) return
+    if (!objectData?.uuid) return
     const state = useObjectStore.getState()
     const primitiveStates: Record<number, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }> = {}
 
@@ -65,14 +64,14 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       }
     })
 
-    onSave(objectInfo.objectUuid, primitiveStates)
+    onSave(objectData.uuid, primitiveStates)
     onClose()
   }
 
   return (
     <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Group gap="sm" p="md">
-        <Title order={3}>{objectInfo ? `Редактор объекта: ${objectInfo.name}` : 'Новый объект'}</Title>
+        <Title order={3}>{objectData ? `Редактор объекта: ${objectData.name}` : 'Новый объект'}</Title>
         {renderMode === 'wireframe' && (
           <Badge color="orange" variant="light">Wireframe</Badge>
         )}
