@@ -184,7 +184,7 @@ features/object-editor/lib/ai/tools/
 - ✅ **Фаза 1**: **Выполнено** - Создана система динамической регистрации tools, убрана зависимость chatService от конкретных features. [Подробности](phases/phase_1_summary.md)
 - ✅ **Фаза 2**: **Выполнено** - Scene-специфичные tools перемещены в features/scene/lib/ai/tools/, создан провайдер инструментов. [Подробности](phases/phase_2_summary.md)
 - ✅ **Фаза 3**: **Выполнено** - Object tool перемещен в features/scene. [Подробности](phases/phase_3_summary.md)
-- ⏳ **Фаза 4**: Ожидает выполнения
+- ✅ **Фаза 4**: **Выполнено** - Создана инфраструктура object-editor tools. [Подробности](phases/phase_4_summary.md)
 - ⏳ **Фаза 5**: Ожидает выполнения
 - ⏳ **Фаза 6**: Ожидает выполнения
 - ⏳ **Фаза 7**: Ожидает выполнения
@@ -225,3 +225,8 @@ features/object-editor/lib/ai/tools/
 - Обновлены экспорты в `tools/index.ts`
 - `sceneToolProvider` регистрирует `addNewObjectTool`
 - Устранено нарушение FSD за счет переноса кода из shared в feature
+
+### Фаза 4 - Результаты выполнения
+- Создана директория `src/features/object-editor/lib/ai/` с подпапкой `tools`
+- Реализован `objectEditorToolProvider` и функции регистрации инструментов
+- Публичный API object-editor дополнен экспортами функций регистрации
