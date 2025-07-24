@@ -57,7 +57,7 @@ const PrimitiveItem: React.FC<{
           return <Icon size={16} color="var(--mantine-color-blue-4)" />
         })()}
 
-        <Text size="sm" style={{ flex: 1 }} fw={500}>
+        <Text size="sm" style={{ flex: 1, userSelect: 'none' }} fw={500}>
           {getPrimitiveDisplayName(primitive, index)}
         </Text>
 
@@ -123,6 +123,11 @@ export const PrimitiveManager: React.FC = () => {
     lastSelectedRef.current = index
   }
 
+  /**
+   * Обработчик наведения курсора на примитив.
+   * Передает индекс выделяемого элемента в zustand‑хранилище.
+   * @param index индекс примитива или null, если курсор покинул элемент
+   */
   const handlePrimitiveHover = (index: number | null) => {
     setHoveredPrimitive(index)
   }
@@ -134,13 +139,16 @@ export const PrimitiveManager: React.FC = () => {
         width: 280,
         height: '100%',
         borderRadius: 0,
+        userSelect: 'none'
       }}
     >
       <Stack gap={0} style={{ height: '100%' }}>
         {/* Заголовок */}
         <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>
           <Group justify="space-between">
-            <Text size="lg" fw={500}>Примитивы</Text>
+            <Text size="lg" fw={500} style={{ userSelect: 'none' }}>
+              Примитивы
+            </Text>
             <Badge variant="light" color="blue" size="sm">
               {primitives.length}
             </Badge>
@@ -162,7 +170,13 @@ export const PrimitiveManager: React.FC = () => {
               />
             ))}
             {primitives.length === 0 && (
-              <Text size="sm" c="dimmed" ta="center" mt="xl">
+              <Text
+                size="sm"
+                c="dimmed"
+                ta="center"
+                mt="xl"
+                style={{ userSelect: 'none' }}
+              >
                 Нет примитивов
               </Text>
             )}
@@ -172,7 +186,7 @@ export const PrimitiveManager: React.FC = () => {
         {/* Статус выбора */}
         {selectedPrimitiveIds.length > 0 && (
           <Box p="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-8)' }}>
-            <Text size="xs" c="dimmed">
+            <Text size="xs" c="dimmed" style={{ userSelect: 'none' }}>
               Выбрано: {selectedPrimitiveIds.length} примитив(ов)
             </Text>
           </Box>

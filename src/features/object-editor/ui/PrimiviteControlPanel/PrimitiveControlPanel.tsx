@@ -151,7 +151,7 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
             if (e.key === 'Enter') commitValue()
           }}
           step={property === 'scale' ? 0.1 : property === 'rotation' ? 1 : 0.01}
-          precision={property === 'rotation' ? 1 : 2}
+          decimalScale={property === 'rotation' ? 1 : 2}
           styles={{
             input: {
               textAlign: 'center',
