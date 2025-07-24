@@ -23,8 +23,8 @@ export * from '@/features/scene/ui/renderer/controls/TransformGizmo'
 // Landscape
 export * from '@/features/scene/ui/renderer/landscape/LandscapeLayer'
 export * from '@/features/scene/ui/renderer/landscape/LandscapeLayers'
-export * from '@/features/scene/ui/renderer/landscape/SeaLayer'
-export * from '@/features/scene/ui/renderer/landscape/SeaLayers'
+export * from '@/features/scene/ui/renderer/landscape/WaterLayer'
+export * from '@/features/scene/ui/renderer/landscape/WaterLayers'
 
 // Lighting
 export * from '@/features/scene/ui/renderer/lighting/SceneLighting'

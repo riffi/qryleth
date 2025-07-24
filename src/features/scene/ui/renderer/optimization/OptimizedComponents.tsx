@@ -1,7 +1,7 @@
 import React from 'react'
 import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/SceneObjectRenderer.tsx'
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
-import {SeaLayer, type SeaLayerProps} from '../landscape/SeaLayer.tsx'
+import {WaterLayer, type WaterLayerProps} from '../landscape/WaterLayer.tsx'
 
 // Memoized  for better performance
 export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
@@ -36,11 +36,11 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   }
 )
 
-// Memoized SeaLayer for better performance
-export const MemoizedSeaLayer = React.memo<SeaLayerProps>(
-  SeaLayer,
+// Memoized WaterLayer for better performance
+export const MemoizedWaterLayer = React.memo<WaterLayerProps>(
+  WaterLayer,
   (prevProps, nextProps) => {
-    // Custom comparison function for sea layers
+    // Custom comparison function for water layers
     return (
       prevProps.layer.id === nextProps.layer.id &&
       prevProps.layer.visible === nextProps.layer.visible &&
@@ -52,4 +52,4 @@ export const MemoizedSeaLayer = React.memo<SeaLayerProps>(
 
 MemoizedSceneObject.displayName = 'MemoizedSceneObject'
 MemoizedLandscapeLayer.displayName = 'MemoizedLandscapeLayer'
-MemoizedSeaLayer.displayName = 'MemoizedSeaLayer'
+MemoizedWaterLayer.displayName = 'MemoizedWaterLayer'

@@ -3,11 +3,15 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 
-export interface SeaLayerProps {
+/**
+ * Отрисовывает слой воды на сцене.
+ * Создаёт плоскость с шейдером имитации водной поверхности и анимирует её.
+ */
+export interface WaterLayerProps {
   layer: SceneLayer
 }
 
-export const SeaLayer: React.FC<SeaLayerProps> = ({ layer }) => {
+export const WaterLayer: React.FC<WaterLayerProps> = ({ layer }) => {
   const meshRef = useRef<THREE.Mesh>(null)
 
   const geometry = useMemo(() => {
@@ -103,7 +107,7 @@ export const SeaLayer: React.FC<SeaLayerProps> = ({ layer }) => {
       userData={{
         generated: true,
         layerId: layer.id,
-        layerType: 'sea'
+        layerType: 'water'
       }}
     />
   )

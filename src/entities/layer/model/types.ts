@@ -1,7 +1,7 @@
 export interface GfxLayer {
   id: string;
   name: string;
-  type?: 'object' | 'landscape' | 'sea';
+  type?: 'object' | 'landscape' | 'water';
   width?: number;
   height?: number;
   shape?: 'plane' | 'perlin';
