@@ -173,7 +173,7 @@ features/object-editor/lib/ai/tools/
 ## Статус выполнения
 
 - ✅ **Фаза 1**: **Выполнено** - Создана система динамической регистрации tools, убрана зависимость chatService от конкретных features. [Подробности](phases/phase_1_summary.md)
-- ⏳ **Фаза 2**: Ожидает выполнения  
+- ✅ **Фаза 2**: **Выполнено** - Scene-специфичные tools перемещены в features/scene/lib/ai/tools/, создан провайдер инструментов. [Подробности](phases/phase_2_summary.md)
 - ⏳ **Фаза 3**: Ожидает выполнения
 - ⏳ **Фаза 4**: Ожидает выполнения
 - ⏳ **Фаза 5**: Ожидает выполнения
@@ -193,3 +193,19 @@ features/object-editor/lib/ai/tools/
 **Измененные файлы**:
 - `src/shared/lib/langchain/types.ts` - добавлены интерфейсы
 - `src/shared/lib/langchain/chatService.ts` - динамическая регистрация tools
+
+### Фаза 2 - Результаты выполнения
+- Создана структура AI инструментов в `features/scene/lib/ai/tools/`
+- Перемещены `sceneTools.ts` и `instanceTools.ts` в правильный слой FSD
+- Обновлены импорты для работы внутри features слоя
+- Создан `sceneToolProvider` с функциями регистрации/отмены регистрации
+- **Критическое достижение**: исправлены нарушения FSD в scene-related tools
+
+**Новые файлы**:
+- `src/features/scene/lib/ai/tools/sceneTools.ts` - инструменты работы со сценой
+- `src/features/scene/lib/ai/tools/instanceTools.ts` - инструменты работы с экземплярами
+- `src/features/scene/lib/ai/tools/index.ts` - экспорт инструментов
+- `src/features/scene/lib/ai/index.ts` - провайдер и регистрация
+
+**Измененные файлы**:
+- `src/features/scene/index.ts` - добавлен экспорт AI функций
