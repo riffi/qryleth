@@ -7,4 +7,5 @@ export * from './ObjectSceneContent'
 export * from './controls/PrimitiveTransformGizmo'
 export * from './lighting/ObjectSceneLighting'
 export * from './objects/ObjectScenePrimitives'
+export * from './PrimitiveControlPanel'
 
