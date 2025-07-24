@@ -53,7 +53,12 @@ export const SceneObjects: React.FC = () => {
       }}
     >
       {/* Instanced objects for performance optimization */}
-      <InstancedObjects minimumInstancesForOptimization={3} />
+      <InstancedObjects
+        objects={objects}
+        instances={objectInstances}
+        layers={layers}
+        minimumInstancesForOptimization={3}
+      />
 
       {/* Individual objects (not instanced) */}
       {objectInstances.map((instance, instanceIndex) => {

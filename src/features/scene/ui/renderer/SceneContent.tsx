@@ -6,12 +6,13 @@ import { Environment } from '../../../../shared/r3f/environment/Environment.tsx'
 import { SceneObjects } from '@/features/scene/ui/renderer/objects/SceneObjects.tsx'
 import { LandscapeLayers } from '@/features/scene/ui/renderer/landscape/LandscapeLayers.tsx'
 import { WaterLayers } from '@/features/scene/ui/renderer/landscape/WaterLayers.tsx'
-import { useSceneStore } from '../../model/sceneStore.ts'
+import { useSceneStore, useGridVisible } from '../../model/sceneStore.ts'
 import { useKeyboardShortcuts } from '../../lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
 
 export const SceneContent: React.FC = () => {
   const lighting = useSceneStore(state => state.lighting)
+  const gridVisible = useGridVisible()
 
   // Enable keyboard shortcuts
   useKeyboardShortcuts()
@@ -24,7 +25,7 @@ export const SceneContent: React.FC = () => {
       {/* Core scene components */}
       <SceneLighting />
       <CameraControls />
-      <Environment />
+      <Environment gridVisible={gridVisible} />
 
       {/* Scene objects and landscapes */}
       <SceneObjects />

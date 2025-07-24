@@ -1,25 +1,32 @@
 import React, { useMemo } from 'react'
 import { Instances, Instance } from '@react-three/drei'
 import { Primitive3D } from '../primitives/Primitive3D'
-import type { SceneObjectInstance } from '@/entities/scene/types'
-import {
-  useObjectInstanceCounts,
-  useSceneObjectsOptimized,
-  useSceneObjectInstancesOptimized,
-  useSceneLayers
-} from '@/features/scene'
+import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 
 interface InstancedObjectsProps {
-  minimumInstancesForOptimization?: number // Minimum instances before using instancing
+  /** Список объектов сцены */
+  objects: SceneObject[]
+  /** Экземпляры объектов */
+  instances: SceneObjectInstance[]
+  /** Слои сцены */
+  layers: SceneLayer[]
+  /** Минимальное количество экземпляров для оптимизации */
+  minimumInstancesForOptimization?: number
 }
 
 export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
+  objects,
+  instances,
+  layers,
   minimumInstancesForOptimization = 3
 }) => {
-  const objects = useSceneObjectsOptimized()
-  const instances = useSceneObjectInstancesOptimized()
-  const instanceCounts = useObjectInstanceCounts()
-  const layers = useSceneLayers()
+  const instanceCounts = useMemo(() => {
+    const counts: Record<number, number> = {}
+    instances.forEach((inst) => {
+      counts[inst.objectIndex] = (counts[inst.objectIndex] || 0) + 1
+    })
+    return counts
+  }, [instances])
 
   // Helper function to check if instance is visible
   const isInstanceVisible = (instance: SceneObjectInstance, objectIndex: number) => {
@@ -120,8 +127,11 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 }
 
 // Hook to check if an object should use instancing
-export const useInstanceOptimization = (objectIndex: number, minimumInstances = 3): boolean => {
-  const instanceCounts = useObjectInstanceCounts()
+export const useInstanceOptimization = (
+  objectIndex: number,
+  instanceCounts: Record<number, number>,
+  minimumInstances = 3
+): boolean => {
   return (instanceCounts[objectIndex] || 0) >= minimumInstances
 }
 
@@ -131,6 +141,9 @@ interface ConditionalInstancedObjectProps {
   instance: SceneObjectInstance
   instanceIndex: number
   minimumInstancesForOptimization?: number
+  objects: SceneObject[]
+  layers: SceneLayer[]
+  instanceCounts: Record<number, number>
   children: React.ReactNode
 }
 
@@ -139,11 +152,16 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
   instance,
   instanceIndex,
   minimumInstancesForOptimization = 3,
-  children
+  children,
+  objects,
+  layers,
+  instanceCounts
 }) => {
-  const shouldUseInstancing = useInstanceOptimization(objectIndex, minimumInstancesForOptimization)
-  const objects = useSceneObjectsOptimized()
-  const layers = useSceneLayers()
+  const shouldUseInstancing = useInstanceOptimization(
+    objectIndex,
+    instanceCounts,
+    minimumInstancesForOptimization
+  )
 
   // If this object should use instancing, don't render individual instance
   // It will be handled by InstancedObjects component
@@ -170,3 +188,4 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
   // Otherwise render as individual object
   return <>{children}</>
 }
+

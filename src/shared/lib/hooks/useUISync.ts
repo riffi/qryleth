@@ -1,27 +1,43 @@
 import { useEffect, useCallback, useState } from 'react'
-import { useSceneStore } from '@/features/scene'
-import {
-  useSceneObjectsOptimized,
-  useSceneObjectInstancesOptimized,
-  useSelectionState
-} from '@/features/scene'
+
+/** Интерфейс параметров синхронизации UI и сцены */
+export interface UISyncParams<State> {
+  /** Текущий список объектов сцены */
+  objects: any[]
+  /** Экземпляры объектов на сцене */
+  objectInstances: any[]
+  /** Выделенный пользователем объект */
+  selectedObject: any
+  /** Объект под курсором */
+  hoveredObject: any
+  /** Набор действий для работы со сценой */
+  actions: {
+    selectObject: (objectIndex: number, instanceId?: string) => void
+    clearSelection: () => void
+    setHoveredObject: (objectIndex: number, instanceId?: string) => void
+    clearHover: () => void
+    markSceneAsModified: () => void
+  }
+}
 
 /**
- * Hook for synchronizing UI state with 3D scene state
- * Handles bidirectional communication between UI components and R3F scene
+ * Хук для синхронизации состояния UI и трехмерной сцены.
+ * Обеспечивает двусторонний обмен событиями между компонентами интерфейса и R3F-сценой.
  */
-export const useUISync = () => {
-  const objects = useSceneObjectsOptimized()
-  const objectInstances = useSceneObjectInstancesOptimized()
-  const { selectedObject, hoveredObject } = useSelectionState()
-
+export const useUISync = ({
+  objects,
+  objectInstances,
+  selectedObject,
+  hoveredObject,
+  actions
+}: UISyncParams<any>) => {
   const {
     selectObject,
     clearSelection,
     setHoveredObject,
     clearHover,
     markSceneAsModified
-  } = useSceneStore.getState()
+  } = actions
 
   // Sync selection state with UI components
   useEffect(() => {
@@ -199,12 +215,21 @@ export const useR3FSceneListener = () => {
 /**
  * Real-time sync hook that ensures immediate updates between UI and 3D scene
  */
-export const useRealTimeSync = () => {
-  const store = useSceneStore()
+export interface RealTimeSyncStore<State> {
+  /** Подписка на изменения состояния */
+  subscribe: (listener: (state: State, prevState: State) => void) => () => void
+  /** Получить текущее состояние */
+  getState: () => State
+}
 
-  // Subscribe to store changes and immediately dispatch UI events
+/**
+ * Хук для трансляции изменений store в R3F-сцену в реальном времени.
+ */
+export const useRealTimeSync = <State,>(store: RealTimeSyncStore<State>) => {
+
+  // Подписываемся на изменения хранилища и транслируем их в UI
   useEffect(() => {
-    const unsubscribe = useSceneStore.subscribe((state) => {
+    const unsubscribe = store.subscribe((state) => {
       // Dispatch real-time updates
       const event = new CustomEvent('r3f:realTimeUpdate', {
         detail: {
@@ -222,7 +247,7 @@ export const useRealTimeSync = () => {
     })
 
     return unsubscribe
-  }, [])
+  }, [store])
 
   return {
     // Force sync function for manual synchronization

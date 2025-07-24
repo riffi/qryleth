@@ -1,10 +1,12 @@
 import React from 'react'
-import { useGridVisible } from '@/features/scene';
+/** Свойства компонента GridHelper */
+interface GridHelperProps {
+  /** Показывать ли сетку */
+  visible: boolean
+}
 
-export const GridHelper: React.FC = () => {
-  const gridVisible = useGridVisible()
-
-  if (!gridVisible) return null
+export const GridHelper: React.FC<GridHelperProps> = ({ visible }) => {
+  if (!visible) return null
 
   return (
     <gridHelper
@@ -13,3 +15,4 @@ export const GridHelper: React.FC = () => {
     />
   )
 }
+
