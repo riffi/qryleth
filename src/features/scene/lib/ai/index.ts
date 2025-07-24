@@ -2,6 +2,7 @@
  * Scene AI integration module
  */
 
+import React from 'react'
 import type { ToolProvider } from '@/shared/lib/langchain/types'
 import { toolRegistry } from '@/shared/lib/langchain/toolRegistry'
 import {
@@ -43,4 +44,17 @@ export function registerSceneTools(): void {
  */
 export function unregisterSceneTools(): void {
   toolRegistry.unregisterProvider('scene')
+}
+
+/**
+ * React-хук для автоматической регистрации инструментов сцены
+ * Вызывает регистрацию при монтировании и отмену регистрации при размонтировании
+ */
+export function useSceneToolRegistration(): void {
+  // Регистрация выполняется один раз при монтировании компонента
+  React.useEffect(() => {
+    registerSceneTools()
+    // Отписка при размонтировании компонента
+    return () => unregisterSceneTools()
+  }, [])
 }

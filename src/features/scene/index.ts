@@ -8,5 +8,5 @@ export * from './ui'
 export * from './constants'
 
 // AI интеграция
-export { registerSceneTools, unregisterSceneTools } from './lib/ai'
+export { registerSceneTools, unregisterSceneTools, useSceneToolRegistration } from './lib/ai'
 

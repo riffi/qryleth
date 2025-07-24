@@ -3,7 +3,8 @@ import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Gr
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
-import { ObjectEditorR3F } from '@/features/object-editor'
+import { ObjectEditorR3F, useObjectEditorToolRegistration } from '@/features/object-editor'
+import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX } from '@tabler/icons-react'
 import {
@@ -87,6 +88,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   uuid,
   isNew = false
 }) => {
+  // Автоматическая регистрация инструментов сцены и редактора объектов
+  useSceneToolRegistration()
+  useObjectEditorToolRegistration()
   // Initialize scene history for undo/redo and get controls
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 

@@ -22,6 +22,7 @@ import {
 } from '../model/objectStore'
 import { getPrimitiveDisplayName } from '@/entities/primitive'
 import type { SceneObject } from '@/entities/scene/types.ts'
+import { useObjectEditorToolRegistration } from '@/features/object-editor'
 
 interface ObjectEditorR3FProps {
   onClose: () => void
@@ -60,6 +61,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   instanceId,
   objectData
 }) => {
+  // Регистрируем инструменты редактора объектов при монтировании
+  useObjectEditorToolRegistration()
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
