@@ -40,6 +40,7 @@ import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -154,6 +155,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     /**
      * Создать новый слой сцены на основе введённых параметров.
      * Цвет слоя сохраняется в поле `color` и используется при рендеринге.
+     * При создании перлин-слоя автоматически корректирует позиции всех объектов.
      */
     const handleCreateLayer = () => {
         let layerName = newLayerName.trim()
@@ -167,7 +169,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
         if (newLayerType === 'object' && !layerName) return
 
-        storeCreateLayer({
+        const layerData = {
             name: layerName,
             type: newLayerType,
             visible: true,
@@ -178,7 +180,31 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 height: newLayerHeight,
                 shape: newLayerShape
             })
-        })
+        }
+
+        storeCreateLayer(layerData)
+
+        // If creating a perlin landscape layer, adjust all object instances
+        if (newLayerType === 'landscape' && newLayerShape === 'perlin') {
+            // Get the created layer ID (it's generated in store)
+            const createdLayers = useSceneStore.getState().layers
+            const createdLayer = createdLayers[createdLayers.length - 1]
+            
+            if (createdLayer) {
+                // Delay the adjustment to ensure the layer is fully created with noise data
+                setTimeout(() => {
+                    const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
+                    if (result.success && result.adjustedCount && result.adjustedCount > 0) {
+                        notifications.show({
+                            title: 'Объекты скорректированы',
+                            message: `Позиции ${result.adjustedCount} объектов скорректированы под рельеф Perlin Noise`,
+                            color: 'green'
+                        })
+                    }
+                }, 100)
+            }
+        }
+
         setNewLayerName('')
         setNewLayerType('object')
         setNewLayerWidth(10)

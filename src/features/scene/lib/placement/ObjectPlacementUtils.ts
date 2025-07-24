@@ -311,3 +311,47 @@ export const placeInstance = (
   }
   return newInstance
 }
+
+/**
+ * Adjusts all object instances in the scene to match perlin noise terrain
+ */
+export const adjustAllInstancesForPerlinTerrain = (
+  instances: SceneObjectInstance[],
+  perlinLayer: SceneLayer
+): SceneObjectInstance[] => {
+  if (!perlinLayer || 
+      perlinLayer.type !== 'landscape' || 
+      perlinLayer.shape !== 'perlin' || 
+      !perlinLayer.noiseData) {
+    return instances
+  }
+
+  const layerWidth = perlinLayer.width || 1
+  const layerHeight = perlinLayer.height || 1
+  const halfWidth = layerWidth / 2
+  const halfHeight = layerHeight / 2
+
+  return instances.map(instance => {
+    if (!instance.transform?.position) {
+      return instance
+    }
+
+    const [x, currentY, z] = instance.transform.position
+
+    // Check if instance is within terrain bounds
+    if (x < -halfWidth || x > halfWidth || z < -halfHeight || z > halfHeight) {
+      return instance // Outside terrain bounds, don't adjust
+    }
+
+    // Calculate new Y position based on terrain height
+    const terrainY = queryHeightAtCoordinate(perlinLayer, x, z)
+
+    return {
+      ...instance,
+      transform: {
+        ...instance.transform,
+        position: [x, terrainY, z] as Vector3
+      }
+    }
+  })
+}

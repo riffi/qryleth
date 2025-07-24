@@ -10,7 +10,7 @@ import type { Transform } from '@/shared/types/transform'
 import type { GfxPrimitive } from '@/entities'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 
 /**
  * Simplified scene object info for agent tools
@@ -315,6 +315,53 @@ export class SceneAPI {
       return {
         success: false,
         error: `Failed to add object with transform: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Adjust all object instances for perlin noise terrain when a perlin layer is added
+   */
+  static adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string } {
+    try {
+      const state = useSceneStore.getState()
+      const { objectInstances, layers, setObjectInstances } = state
+
+      // Find the perlin layer
+      const perlinLayer = layers.find(layer => 
+        layer.id === perlinLayerId && 
+        layer.type === 'landscape' && 
+        layer.shape === 'perlin'
+      )
+
+      if (!perlinLayer) {
+        return {
+          success: false,
+          error: `Perlin layer with ID ${perlinLayerId} not found`
+        }
+      }
+
+      // Adjust all instances
+      const adjustedInstances = adjustAllInstancesForPerlinTerrain(objectInstances, perlinLayer)
+      
+      // Count how many were actually adjusted
+      const adjustedCount = adjustedInstances.filter((instance, index) => {
+        const original = objectInstances[index]
+        return instance.transform?.position?.[1] !== original.transform?.position?.[1]
+      }).length
+
+      // Update the store
+      setObjectInstances(adjustedInstances)
+
+      return {
+        success: true,
+        adjustedCount
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to adjust instances for perlin terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
   }
