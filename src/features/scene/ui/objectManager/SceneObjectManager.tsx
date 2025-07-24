@@ -19,10 +19,9 @@ import {
     ScrollArea,
     ActionIcon,
     Tooltip,
-    Divider,
-    Button
+    Divider
 } from '@mantine/core'
-import { IconPlus, IconCheck, IconX } from '@tabler/icons-react'
+import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 import type { SceneLayer } from '../../../types/scene'
@@ -39,6 +38,7 @@ import type { LightingSettings } from '@/entities/lighting'
 import {generateUUID} from "@/shared/lib/uuid.ts";
 import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
+import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 
 interface ObjectManagerProps {
     // Optional overrides for store actions
@@ -293,6 +293,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         downloadJson(`${object.name}-${object.uuid}.json`, data)
     }
 
+    /**
+     * Копировать объект в буфер обмена в формате JSON
+     * @param objectUuid UUID объекта, который требуется скопировать
+     */
+    const handleCopyObject = async (objectUuid: string) => {
+        const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
+        if (!object) return
+        const data = { uuid: object.uuid, name: object.name, primitives: object.primitives }
+        await copyJsonToClipboard(data)
+    }
+
     const handleEditObject = (objectUuid: string, instanceId?: string) => {
         if (onEditObject) return onEditObject(objectUuid, instanceId)
         storeSelectObject(objectUuid, instanceId)
@@ -464,6 +475,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                     return (
                                         <SceneLayerItem
                                             onExportObject={handleExportObject}
+                                            onCopyObject={handleCopyObject}
                                             key={layer.id}
                                             layer={layer}
                                             layerObjects={layerObjects}
@@ -516,6 +528,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectUuid)}
                                             onEdit={handleEditObject}
                                             onExport={handleExportObject}
+                                            onCopy={handleCopyObject}
                                             onToggleInstanceVisibility={handleToggleInstanceVisibility}
                                             onRemoveInstance={handleRemoveInstance}
                                             onDragStart={(e) => handleDragStart(e, obj.objectUuid)}

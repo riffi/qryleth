@@ -8,8 +8,7 @@ import {
   IconTrash,
   IconChevronDown,
   IconChevronRight,
-  IconPlus,
-  IconArchive
+  IconPlus
 } from '@tabler/icons-react'
 import {SceneObjectItem} from './SceneObjectItem.tsx'
 import type {ObjectInfo} from '@/features/scene'
@@ -44,7 +43,8 @@ interface LayerItemProps {
   onDragOver: (e: React.DragEvent, layerId: string) => void,
   onDragLeave: (e: React.DragEvent) => void,
   onDrop: (e: React.DragEvent, layerId: string) => void,
-  onExportObject?: (objectUuid: string) => void
+  onExportObject?: (objectUuid: string) => void,
+  onCopyObject?: (objectUuid: string) => void
 }
 
 export const SceneLayerItem: React.FC<LayerItemProps> = ({
@@ -71,11 +71,12 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                                                            onRemoveInstance,
                                                            onDragStart,
                                                            onContextMenu,
-                                                           onDragOver,
-                                                           onDragLeave,
-                                                           onDrop,
-                                                           onAddObjectFromLibrary,
-                                                           onExportObject
+                                                          onDragOver,
+                                                          onDragLeave,
+                                                          onDrop,
+                                                          onAddObjectFromLibrary,
+                                                          onExportObject,
+                                                          onCopyObject
                                                          }) => {
   return (
       <div>
@@ -210,6 +211,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                         onDragStart={(e) => onDragStart(e, obj.objectUuid)}
                         onContextMenu={(e) => onContextMenu(e, obj.objectUuid)}
                         onExport={onExportObject}
+                        onCopy={onCopyObject}
                     />
                 ))
             )}

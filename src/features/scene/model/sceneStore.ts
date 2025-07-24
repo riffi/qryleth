@@ -22,11 +22,11 @@ import { normalizePrimitive } from '@/entities/primitive'
 import type {LightingSettings} from "@/entities/lighting"
 
 const initialLighting: LightingSettings = {
-  ambientColor: '#404040',
+  ambientColor: '#87CEEB',
   ambientIntensity: 0.6,
-  directionalColor: '#ffffff',
+  directionalColor: '#FFD700',
   directionalIntensity: 1.0,
-  backgroundColor: '#222222'
+  backgroundColor: '#87CEEB'
 }
 
 const initialLayers: SceneLayer[] = [

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconChevronDown, IconChevronRight, IconDownload } from '@tabler/icons-react'
+import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconChevronDown, IconChevronRight, IconDownload, IconCopy } from '@tabler/icons-react'
 import { SceneObjectInstanceItem } from './SceneObjectInstanceItem.tsx'
 import type { ObjectInstance } from '../../../types/common'
 
@@ -27,6 +27,7 @@ interface ObjectItemProps {
     onSaveToLibrary: () => void
     onEdit: (objectUuid: string, instanceId?: string) => void
     onExport: (objectUuid: string) => void
+    onCopy: (objectUuid: string) => void
     onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
     onRemoveInstance?: (objectUuid: string, instanceId: string) => void
     onDragStart: (e: React.DragEvent) => void
@@ -47,6 +48,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
     onSaveToLibrary,
     onEdit,
     onExport,
+    onCopy,
     onToggleInstanceVisibility,
     onRemoveInstance,
     onDragStart,
@@ -178,6 +180,15 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     }}
                                 >
                                     Выгрузить JSON
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconCopy size={14} />}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onCopy(obj.objectUuid)
+                                    }}
+                                >
+                                    Копировать JSON
                                 </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item

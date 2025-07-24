@@ -18,7 +18,7 @@ export const SceneContent: React.FC = () => {
   return (
     <>
       {/* Set scene background */}
-      <color attach="background" args={[lighting.backgroundColor || '#222222']} />
+      <color attach="background" args={[lighting.backgroundColor || '#87CEEB']} />
 
       {/* Core scene components */}
       <SceneLighting />

@@ -8,14 +8,14 @@ export const SceneLighting: React.FC = () => {
     <>
       {/* Ambient Light */}
       <ambientLight
-        color={lighting.ambientColor || '#404040'}
+        color={lighting.ambientColor || '#87CEEB'}
         intensity={lighting.ambientIntensity || 0.6}
       />
 
       {/* Directional Light with shadows */}
       <directionalLight
         position={[10, 10, 10]}
-        color={lighting.directionalColor || '#ffffff'}
+        color={lighting.directionalColor || '#FFD700'}
         intensity={lighting.directionalIntensity || 1.0}
         castShadow
         shadow-mapSize-width={2048}
