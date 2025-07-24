@@ -7,7 +7,8 @@ import {
   Button,
   Text,
   ActionIcon,
-  NumberInput
+  NumberInput,
+  ColorInput
 } from '@mantine/core'
 import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
 import {
@@ -93,6 +94,18 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   }
 
   const selectedPrimitiveData = getSelectedPrimitive()
+
+  /**
+   * Обновляет цвет выделенного примитива.
+   * @param color новый цвет в формате HEX
+   */
+  const handleColorChange = (color: string) => {
+    if (selectedPrimitiveIds.length === 1) {
+      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
+        color
+      })
+    }
+  }
 
   /**
    * Поле ввода трансформаций. Применяет значение по завершению ввода.
@@ -221,6 +234,15 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
               property="scale"
               values={selectedPrimitiveData.scale || [1, 1, 1]}
             />
+            <Box>
+              <Text size="sm" fw={500} mb="xs">Цвет</Text>
+              <ColorInput
+                size="xs"
+                value={selectedPrimitiveData.color || '#cccccc'}
+                onChange={handleColorChange}
+                withEyeDropper={false}
+              />
+            </Box>
           </Stack>
         )}
         {selectedPrimitiveIds.length > 1 && (
