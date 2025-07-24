@@ -336,21 +336,22 @@ export const adjustAllInstancesForPerlinTerrain = (
       return instance
     }
 
-    const [x, currentY, z] = instance.transform.position
+    const [originalX, currentY, originalZ] = instance.transform.position
 
     // Check if instance is within terrain bounds
-    if (x < -halfWidth || x > halfWidth || z < -halfHeight || z > halfHeight) {
+    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfHeight || originalZ > halfHeight) {
       return instance // Outside terrain bounds, don't adjust
     }
 
     // Calculate new Y position based on terrain height
-    const terrainY = queryHeightAtCoordinate(perlinLayer, x, z)
+    const terrainY = queryHeightAtCoordinate(perlinLayer, originalX, originalZ)
 
+    // Important: preserve original X and Z coordinates exactly
     return {
       ...instance,
       transform: {
         ...instance.transform,
-        position: [x, terrainY, z] as Vector3
+        position: [originalX, terrainY, originalZ] as Vector3
       }
     }
   })

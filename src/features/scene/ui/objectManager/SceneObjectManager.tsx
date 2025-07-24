@@ -191,17 +191,29 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             const createdLayer = createdLayers[createdLayers.length - 1]
             
             if (createdLayer) {
-                // Delay the adjustment to ensure the layer is fully created with noise data
-                setTimeout(() => {
-                    const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
-                    if (result.success && result.adjustedCount && result.adjustedCount > 0) {
-                        notifications.show({
-                            title: 'Объекты скорректированы',
-                            message: `Позиции ${result.adjustedCount} объектов скорректированы под рельеф Perlin Noise`,
-                            color: 'green'
-                        })
+                // Retry adjustment until noiseData is available
+                const attemptAdjustment = (attempt = 1, maxAttempts = 10) => {
+                    const currentLayer = useSceneStore.getState().layers.find(l => l.id === createdLayer.id)
+                    
+                    if (currentLayer?.noiseData) {
+                        const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
+                        if (result.success && result.adjustedCount && result.adjustedCount > 0) {
+                            notifications.show({
+                                title: 'Объекты скорректированы',
+                                message: `Позиции ${result.adjustedCount} объектов скорректированы под рельеф Perlin Noise`,
+                                color: 'green'
+                            })
+                        }
+                    } else if (attempt < maxAttempts) {
+                        // Wait longer between attempts
+                        setTimeout(() => attemptAdjustment(attempt + 1, maxAttempts), 200 * attempt)
+                    } else {
+                        console.warn('Failed to adjust objects: noiseData not available after', maxAttempts, 'attempts')
                     }
-                }, 100)
+                }
+                
+                // Start first attempt after short delay
+                setTimeout(() => attemptAdjustment(), 100)
             }
         }
 
