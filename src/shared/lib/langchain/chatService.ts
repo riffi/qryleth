@@ -122,7 +122,11 @@ export class LangChainChatService {
 
       // Create agent with tools
       const prompt = ChatPromptTemplate.fromMessages([
-        ['system', 'You are a helpful assistant that can use tools to interact with a 3D scene.'],
+        [
+          'system',
+          'You are a helpful assistant that can use tools to interact with a 3D scene. ' +
+            'When creating primitives always generate meaningful Russian names.'
+        ],
         ['placeholder', '{chat_history}'],
         ['human', '{input}'],
         ['placeholder', '{agent_scratchpad}'],

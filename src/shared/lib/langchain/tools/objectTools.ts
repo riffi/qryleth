@@ -4,11 +4,18 @@ import { v4 as uuidv4 } from 'uuid'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 
+// Генерирует осмысленное имя примитива по умолчанию.
+// Используется, если ассистент не прислал название примитива.
+function generatePrimitiveName(type: GfxPrimitive['type'], index: number): string {
+  return `${type}-${index}`
+}
+
 // Схема валидации для примитива
 const PrimitiveSchema = z.object({
   type: z.enum(['box', 'sphere', 'cylinder', 'cone', 'pyramid', 'plane']),
-  // Читаемое имя примитива
-  name: z.string().optional(),
+  // Читаемое имя примитива. Может отсутствовать, тогда будет сгенерировано
+  // автоматически
+  name: z.string().min(1).optional(),
   // Box parameters
   width: z.number().optional(),
   height: z.number().optional(),
@@ -55,11 +62,13 @@ export const createAddNewObjectTool = () => {
         const validatedInput = input
 
         // Преобразование примитивов в GfxPrimitive формат
-        const primitives: GfxPrimitive[] = validatedInput.primitives.map(primitive => {
+        const primitives: GfxPrimitive[] = validatedInput.primitives.map((primitive, index) => {
           const gfxPrimitive: GfxPrimitive = {
             uuid: uuidv4(),
             type: primitive.type,
-            ...(primitive.name !== undefined && { name: primitive.name }),
+            name: primitive.name && primitive.name.trim() !== ''
+              ? primitive.name
+              : generatePrimitiveName(primitive.type, index + 1),
             // Геометрические параметры
             ...(primitive.width !== undefined && { width: primitive.width }),
             ...(primitive.height !== undefined && { height: primitive.height }),

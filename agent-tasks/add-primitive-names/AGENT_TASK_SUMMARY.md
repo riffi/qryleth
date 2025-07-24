@@ -123,7 +123,7 @@ export interface GfxPrimitive {
 ## Статус выполнения
 
 - ✅**Фаза 1**: Выполнена ([phases/phase_1_summary.md](phases/phase_1_summary.md))
--  **Фаза 2**: Запланирована
+- ✅**Фаза 2**: Выполнена ([phases/phase_2_summary.md](phases/phase_2_summary.md))
 -  **Фаза 3**: Запланирована
 -  **Фаза 4**: Запланирована
 -  **Фаза 5**: Запланирована
