@@ -147,14 +147,72 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const selectedPrimitiveData = getSelectedPrimitive()
 
   /**
+   * Поле ввода трансформаций. Применяет значение по завершению ввода.
+   */
+  const TransformInput: React.FC<{
+    label: string
+    property: 'position' | 'rotation' | 'scale'
+    index: 0 | 1 | 2
+    value: number
+    onCommit: (
+      property: 'position' | 'rotation' | 'scale',
+      axis: 0 | 1 | 2,
+      value: number
+    ) => void
+  }> = ({ label, property, index, value, onCommit }) => {
+    const [inputValue, setInputValue] = useState<number>(value)
+
+    // Синхронизация локального состояния при изменении значения из хранилища
+    useEffect(() => {
+      setInputValue(value)
+    }, [value])
+
+    // Передача нового значения в хранилище
+    const commitValue = () => {
+      onCommit(property, index, inputValue)
+    }
+
+    return (
+      <Box style={{ flex: 1 }}>
+        <Text size="xs" c="dimmed" mb={2}>{label}</Text>
+        <NumberInput
+          size="xs"
+          value={property === 'rotation' ? radToDeg(inputValue) : inputValue}
+          onChange={(val) => {
+            const num =
+              property === 'rotation'
+                ? degToRad(Number(val) || 0)
+                : Number(val) || 0
+            setInputValue(num)
+          }}
+          onBlur={commitValue}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitValue()
+          }}
+          step={property === 'scale' ? 0.1 : property === 'rotation' ? 1 : 0.01}
+          precision={property === 'rotation' ? 1 : 2}
+          styles={{
+            input: {
+              textAlign: 'center',
+              fontSize: '11px',
+              height: '24px',
+              minHeight: '24px'
+            }
+          }}
+        />
+      </Box>
+    )
+  }
+
+  /**
    * Компонент блока управления трансформациями в Unity-стиле
    */
-  const TransformBlock = ({ 
-    label, 
-    property, 
-    values, 
-    labels = ['X', 'Y', 'Z'] 
-  }: { 
+  const TransformBlock = ({
+    label,
+    property,
+    values,
+    labels = ['X', 'Y', 'Z']
+  }: {
     label: string
     property: 'position' | 'rotation' | 'scale'
     values: [number, number, number]
@@ -163,9 +221,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     <Box>
       <Group justify="space-between" mb="xs">
         <Text size="sm" fw={500}>{label}</Text>
-        <ActionIcon 
-          size="xs" 
-          variant="subtle" 
+        <ActionIcon
+          size="xs"
+          variant="subtle"
           color="gray"
           onClick={() => resetTransform(property)}
         >
@@ -174,30 +232,14 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       </Group>
       <Group gap="xs">
         {values.map((value, index) => (
-          <Box key={index} style={{ flex: 1 }}>
-            <Text size="xs" c="dimmed" mb={2}>{labels[index]}</Text>
-            <NumberInput
-              size="xs"
-              value={property === 'rotation' ? radToDeg(value) : value}
-              onChange={(val) =>
-                updatePrimitiveTransform(
-                  property,
-                  index as 0 | 1 | 2,
-                  property === 'rotation' ? degToRad(Number(val) || 0) : Number(val) || 0
-                )
-              }
-              step={property === 'scale' ? 0.1 : property === 'rotation' ? 1 : 0.01}
-              precision={property === 'rotation' ? 1 : 2}
-              styles={{
-                input: {
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  height: '24px',
-                  minHeight: '24px'
-                }
-              }}
-            />
-          </Box>
+          <TransformInput
+            key={index}
+            index={index as 0 | 1 | 2}
+            label={labels[index]}
+            property={property}
+            value={value}
+            onCommit={updatePrimitiveTransform}
+          />
         ))}
       </Group>
     </Box>
