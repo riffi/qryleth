@@ -8,8 +8,6 @@ export const useKeyboardShortcuts = () => {
   const selectedObject = useSceneStore(state => state.selectedObject)
   const objectInstances = useSceneStore(state => state.objectInstances)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
-  const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
-  const saveToHistory = useSceneStore(state => state.saveToHistory)
   const clearSelection = useSceneStore(state => state.clearSelection)
   const setTransformMode = useSceneStore(state => state.setTransformMode)
   const undo = useSceneStore(state => state.undo)
@@ -205,8 +203,7 @@ export const useKeyboardShortcuts = () => {
       if (needsUpdate) {
         event.preventDefault()
         updateObjectInstance(selectedObject.objectInstanceIndex, newObjectInstance)
-        markSceneAsModified()
-        saveToHistory()
+        // Note: updateObjectInstance already calls saveToHistory() and markSceneAsModified()
       }
     }
 
@@ -219,8 +216,6 @@ export const useKeyboardShortcuts = () => {
     selectedObject,
     objectInstances,
     updateObjectInstance,
-    markSceneAsModified,
-    saveToHistory,
     clearSelection,
     setTransformMode,
     undo,

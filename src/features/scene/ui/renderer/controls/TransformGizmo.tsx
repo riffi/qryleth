@@ -21,7 +21,6 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
   const selectionMetadata = useSceneStore(state => state.selectedObject)
   const transformMode = useSceneStore(state => state.transformMode)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
-  const markSceneAsModified = useSceneStore(state => state.markSceneAsModified)
   const { selectedMeshes } = useMeshSelection()
 
 
@@ -61,12 +60,8 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
       ;(controls as any).enabled = !event.value
     }
 
-    // Save to history and mark as modified when dragging ends
-    if (!event.value) {
-      markSceneAsModified()
-      // Save to history would be called here
-      useSceneStore.getState().saveToHistory()
-    }
+    // Note: updateObjectInstance already calls saveToHistory() and markSceneAsModified()
+    // No need to call them here to avoid duplication
   }
 
   useEffect(() => {
