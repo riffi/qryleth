@@ -10,20 +10,21 @@ import {
   Box,
   Tooltip
 } from '@mantine/core'
-import { IconEye, IconEyeOff, IconCube } from '@tabler/icons-react'
+import { IconEye, IconEyeOff } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId,
   useObjectStore
 } from '../model/objectStore'
-import { getPrimitiveDisplayName } from '@/entities/primitive'
+import { getPrimitiveDisplayName, getPrimitiveIcon } from '@/entities/primitive'
+import type { GfxPrimitive } from '@/entities/primitive'
 
 /**
  * Элемент примитива в списке PrimitiveManager
  */
 const PrimitiveItem: React.FC<{
-  primitive: any
+  primitive: GfxPrimitive
   index: number
   isSelected: boolean
   isHovered: boolean
@@ -46,7 +47,15 @@ const PrimitiveItem: React.FC<{
       onMouseLeave={() => onHover(null)}
     >
       <Group gap="xs" wrap="nowrap">
-        <IconCube size={16} color={isSelected ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-gray-6)'} />
+        {(() => {
+          const Icon = getPrimitiveIcon(primitive.type)
+          return (
+            <Icon
+              size={16}
+              color={isSelected ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-gray-6)'}
+            />
+          )
+        })()}
 
         <Text
           size="sm"
