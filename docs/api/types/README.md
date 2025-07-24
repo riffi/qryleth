@@ -1,6 +1,4 @@
-# Type System Overview / Обзор системы типов
-
-Complete guide to Qryleth's unified type system based on Feature-Sliced Design principles.
+# Обзор системы типов
 
 Полное руководство по унифицированной системе типов Qryleth, основанной на принципах Feature-Sliced Design.
 
@@ -8,9 +6,7 @@ Complete guide to Qryleth's unified type system based on Feature-Sliced Design p
 
 ## Architecture Overview / Обзор архитектуры
 
-After migration (phases 1-5), all types in the project are organized according to **Feature-Sliced Design (FSD)** principles:
-
-После миграции (фазы 1-5) все типы в проекте организованы согласно принципам **Feature-Sliced Design (FSD)**:
+Все типы в проекте организованы согласно принципам **Feature-Sliced Design (FSD)**:
 
 ```
 src/
@@ -33,12 +29,10 @@ src/
 
 ---
 
-## Type Categories / Категории типов
+## Категории типов
 
-### 1. 🏗️ Domain Entities (`@/entities`)
+### 1. 🏗️ Доменные типы (`@/entities`)
 
-**Purpose**: Business domain entities of the application  
-**Import**: `import type { ... } from '@/entities'`
 
 **Назначение**: Бизнес-доменные сущности приложения  
 **Импорт**: `import type { ... } from '@/entities'`
@@ -58,7 +52,7 @@ import type { GfxObject } from '@/entities/object'
 import type { SceneObjectInstance } from '@/entities/scene/types'
 ```
 
-**Usage Examples / Примеры использования**:
+**Примеры использования**:
 ```typescript
 // Creating a primitive / Создание примитива
 const createBox = (): GfxPrimitive => ({
@@ -78,10 +72,23 @@ const processObject = (object: GfxObject) => {
 }
 ```
 
-### 2. 🔧 Core Utilities (`@/shared/types/core`)
+### GfxPrimitive
 
-**Purpose**: Base utility types for the entire application  
-**Import**: `import type { ... } from '@/shared/types/core'`
+Структура примитива содержит читаемое имя в поле `name`:
+
+```typescript
+interface GfxPrimitive {
+  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane'
+  /** Читаемое имя примитива */
+  name?: string
+  // ...другие параметры
+}
+```
+
+Поле `name` используется в редакторе объектов и заполняется автоматически,
+если имя не задано при создании примитива.
+
+### 2. 🔧 Core Utilities (`@/shared/types/core`)
 
 **Назначение**: Базовые утилитарные типы для всего приложения  
 **Импорт**: `import type { ... } from '@/shared/types/core'`
@@ -110,8 +117,6 @@ const applyTransform = (transform: Transform) => {
 
 ### 3. 🎨 UI Types (`@/shared/types/ui`)
 
-**Purpose**: Types for user interface  
-**Import**: `import type { ... } from '@/shared/types/ui'`
 
 **Назначение**: Типы для пользовательского интерфейса  
 **Импорт**: `import type { ... } from '@/shared/types/ui'`
@@ -129,15 +134,13 @@ import type {
 } from '@/shared/types/ui'
 ```
 
-See detailed documentation in [UI Types](ui-types.md), [Shared Types](shared-types.md), and [Entities](entities.md).
-
 Подробная документация в [UI типы](ui-types.md), [Общие типы](shared-types.md) и [Сущности](entities.md).
 
 ---
 
-## Import Patterns / Паттерны импортов
+## Паттерны импортов
 
-### ✅ Recommended Patterns / Рекомендуемые паттерны
+### ✅ Рекомендуемые паттерны
 
 ```typescript
 // 1. Barrel exports (preferred) / Предпочтительно
@@ -154,7 +157,7 @@ import type { ... } from '...'  // ✅ Correct
 import { type ... } from '...'  // ✅ Also correct
 ```
 
-### ❌ Avoid / Избегайте
+### ❌ Избегайте
 
 ```typescript
 // 1. Relative paths / Относительные пути
@@ -169,9 +172,9 @@ import type { SceneStore } from '@/features/scene/model'  // ❌ in entities lay
 
 ---
 
-## Architecture Rules / Архитектурные правила
+## Архитектурные правила
 
-### 📋 Layer Access Rules / Правила доступа слоев
+### 📋 Правила доступа слоев
 
 ```
 entities/    ← self-sufficient, no dependencies / самодостаточны
@@ -183,14 +186,14 @@ features/    ← can import from shared and entities
 app/         ← can import from all layers / может импортировать из всех слоев
 ```
 
-### 🚫 Prohibited Imports / Запрещенные импорты
+### 🚫 Запрещенные импорты
 
 - **entities** → features ❌
 - **entities** → shared ❌  
 - **shared** → features ❌
 - Circular dependencies / Циклические зависимости ❌
 
-### ✅ Allowed Imports / Разрешенные импорты
+### ✅ Разрешенные импорты
 
 - **features** → entities ✅
 - **features** → shared ✅
@@ -199,9 +202,9 @@ app/         ← can import from all layers / может импортирова�
 
 ---
 
-## Migration Guide / Руководство по миграции
+## Руководство по миграции
 
-### When Adding New Types / При добавлении новых типов
+### При добавлении новых типов
 
 1. **Determine the layer** according to FSD:
    - Domain logic → `entities/`
@@ -230,7 +233,7 @@ app/         ← can import from all layers / может импортирова�
 
 ---
 
-## Tools and Automation / Инструменты и автоматизация
+## Инструменты и автоматизация
 
 ### TypeScript Configuration
 
@@ -250,7 +253,7 @@ app/         ← can import from all layers / может импортирова�
 }
 ```
 
-### Lint Rules (recommended / рекомендуется)
+### Lint Rules (рекомендуется)
 
 ```json
 // .eslintrc.json
@@ -264,9 +267,8 @@ app/         ← can import from all layers / может импортирова�
 
 ---
 
-## Conclusion / Заключение
+## Заключение
 
-The unified type system provides:
 
 Унифицированная система типов обеспечивает:
 
@@ -276,11 +278,9 @@ The unified type system provides:
 - ⚡ **Performance** - type-only imports
 - 🛡️ **Safety** - prevention of architectural violations
 
-For questions, refer to this guide or the architectural principles in [Design Principles](../../architecture/design-principles.md).
-
 При возникновении вопросов обращайтесь к этому руководству или к архитектурным принципам в [Принципы проектирования](../../architecture/design-principles.md).
 
-## Related Documentation / Связанная документация
+## Связанная документация
 
 - [Entities Types](entities.md) - Domain entity types
 - [Shared Types](shared-types.md) - Common utility types
