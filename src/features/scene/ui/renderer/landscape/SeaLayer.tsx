@@ -9,7 +9,7 @@ export interface SeaLayerProps {
 
 export const SeaLayer: React.FC<SeaLayerProps> = ({ layer }) => {
   const meshRef = useRef<THREE.Mesh>(null)
-  
+
   const geometry = useMemo(() => {
     return new THREE.PlaneGeometry(layer.width || 10, layer.height || 10, 64, 64)
   }, [layer.width, layer.height])
