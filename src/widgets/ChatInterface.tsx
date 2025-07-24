@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select, Box, Tabs, Textarea } from '@mantine/core'
 import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
-import { fetchWithTools, AVAILABLE_TOOLS, executeLangChainTool } from '@/shared/lib/openAIAPI'
+import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
+import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { langChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
@@ -23,6 +24,18 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   const [debugResponse, setDebugResponse] = useState('')
   const [isDebugLoading, setIsDebugLoading] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Выполняет инструмент add_new_object и возвращает созданный объект
+   */
+  const executeAddNewObject = async (args: any): Promise<GFXObjectWithTransform> => {
+    const result = await addNewObjectTool.func(args)
+    const parsed = JSON.parse(result)
+    if (parsed.success && parsed.object) {
+      return parsed.object as GFXObjectWithTransform
+    }
+    throw new Error(parsed.error || 'Ошибка выполнения инструмента')
+  }
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -120,7 +133,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
       if (toolCall.function.name === 'add_new_object') {
         try {
           const args = JSON.parse(toolCall.function.arguments)
-          const gfxObject = await executeLangChainTool('add_new_object', args)
+          const gfxObject = await executeAddNewObject(args)
           onObjectAdded(gfxObject)
 
           const toolMessage: ChatMessage = {
@@ -205,7 +218,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
         return
       }
       // Используем LangChain инструмент для создания объекта из debug данных
-      const gfxObject = await executeLangChainTool('add_new_object', objectData)
+      const gfxObject = await executeAddNewObject(objectData)
       onObjectAdded(gfxObject)
     } catch (error) {
       console.error('Failed to apply debug object:', error)
