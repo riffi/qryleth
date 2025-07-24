@@ -59,11 +59,13 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [newLayerWidth, setNewLayerWidth] = useState(10)
     const [newLayerHeight, setNewLayerHeight] = useState(10)
     const [newLayerShape, setNewLayerShape] = useState<'plane' | 'perlin'>('plane')
+    const [newLayerColor, setNewLayerColor] = useState<string>('#318731')
     const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
     const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape' | 'sea'>('object')
     const [editingLayerWidth, setEditingLayerWidth] = useState(10)
     const [editingLayerHeight, setEditingLayerHeight] = useState(10)
     const [editingLayerShape, setEditingLayerShape] = useState<'plane' | 'perlin'>('plane')
+    const [editingLayerColor, setEditingLayerColor] = useState<string>('#318731')
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -148,6 +150,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         })
     }
 
+    /**
+     * Создать новый слой сцены на основе введённых параметров.
+     * Цвет слоя сохраняется в поле `color` и используется при рендеринге.
+     */
     const handleCreateLayer = () => {
         let layerName = newLayerName.trim()
 
@@ -165,6 +171,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             type: newLayerType,
             visible: true,
             position: layers.length,
+            color: newLayerColor,
             ...((newLayerType === 'landscape' || newLayerType === 'sea') && {
                 width: newLayerWidth,
                 height: newLayerHeight,
@@ -176,16 +183,22 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setNewLayerWidth(10)
         setNewLayerHeight(10)
         setNewLayerShape('plane')
+        setNewLayerColor('#318731')
         setCreateLayerModalOpened(false)
     }
 
+    /**
+     * Обновить параметры выбранного слоя.
+     * Передает новые значения в zustand‑хранилище, включая цвет поверхности.
+     */
     const handleUpdateLayer = () => {
         if (!newLayerName.trim() || !editingLayerId) return
         const updates: Partial<SceneLayer> = {
             name: newLayerName.trim(),
             width: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerWidth : undefined,
             height: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerHeight : undefined,
-            shape: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerShape : undefined
+            shape: (editingLayerType === 'landscape' || editingLayerType === 'sea') ? editingLayerShape : undefined,
+            color: editingLayerColor
         }
         storeUpdateLayer(editingLayerId, updates)
         setNewLayerName('')
@@ -193,6 +206,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setEditLayerModalOpened(false)
     }
 
+    /**
+     * Открыть модальное окно редактирования слоя и заполнить поля текущими значениями.
+     * Цвет слоя также подставляется в поле выбора цвета.
+     */
     const openEditLayerModal = (layer: SceneLayer) => {
         setEditingLayerId(layer.id)
         setNewLayerName(layer.name)
@@ -200,6 +217,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setEditingLayerWidth(layer.width || 10)
         setEditingLayerHeight(layer.height || 10)
         setEditingLayerShape(layer.shape || 'plane')
+        setEditingLayerColor(layer.color || '#318731')
         setEditLayerModalOpened(true)
     }
 
@@ -582,6 +600,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 setNewLayerHeight={setNewLayerHeight}
                 newLayerShape={newLayerShape}
                 setNewLayerShape={setNewLayerShape}
+                newLayerColor={newLayerColor}
+                setNewLayerColor={setNewLayerColor}
                 onCreateLayer={handleCreateLayer}
                 editLayerModalOpened={editLayerModalOpened}
                 setEditLayerModalOpened={setEditLayerModalOpened}
@@ -593,6 +613,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 setEditingLayerHeight={setEditingLayerHeight}
                 editingLayerShape={editingLayerShape}
                 setEditingLayerShape={setEditingLayerShape}
+                editingLayerColor={editingLayerColor}
+                setEditingLayerColor={setEditingLayerColor}
                 onUpdateLayer={handleUpdateLayer}
                 contextMenuOpened={contextMenuOpened}
                 setContextMenuOpened={setContextMenuOpened}

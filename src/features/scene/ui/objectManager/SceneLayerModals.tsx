@@ -1,7 +1,12 @@
 import React from 'react'
-import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput } from '@mantine/core'
+import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput, ColorInput } from '@mantine/core'
 import { IconLayersLinked } from '@tabler/icons-react'
 import type { SceneLayer } from '../../../types/scene'
+
+/**
+ * Модальные окна для создания и редактирования слоёв сцены.
+ * Позволяют выбрать тип слоя, его размеры и цвет поверхности.
+ */
 
 interface LayerModalsProps {
     // Create Layer Modal
@@ -17,6 +22,8 @@ interface LayerModalsProps {
     setNewLayerHeight: (v: number) => void
     newLayerShape: 'plane' | 'perlin'
     setNewLayerShape: (shape: 'plane' | 'perlin') => void
+    newLayerColor: string
+    setNewLayerColor: (color: string) => void
     onCreateLayer: () => void
 
     // Edit Layer Modal
@@ -30,6 +37,8 @@ interface LayerModalsProps {
     setEditingLayerHeight: (v: number) => void
     editingLayerShape: 'plane' | 'perlin'
     setEditingLayerShape: (shape: 'plane' | 'perlin') => void
+    editingLayerColor: string
+    setEditingLayerColor: (color: string) => void
     onUpdateLayer: () => void
 
     // Context Menu
@@ -53,6 +62,8 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
     setNewLayerHeight,
     newLayerShape,
     setNewLayerShape,
+    newLayerColor,
+    setNewLayerColor,
     onCreateLayer,
     editLayerModalOpened,
     setEditLayerModalOpened,
@@ -64,6 +75,8 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
     setEditingLayerHeight,
     editingLayerShape,
     setEditingLayerShape,
+    editingLayerColor,
+    setEditingLayerColor,
     onUpdateLayer,
     contextMenuOpened,
     setContextMenuOpened,
@@ -83,6 +96,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                     setNewLayerWidth(10)
                     setNewLayerHeight(10)
                     setNewLayerShape('plane')
+                    setNewLayerColor('#379f34')
                 }}
                 title="Создать новый слой"
                 size="sm"
@@ -132,6 +146,12 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                             value={newLayerShape}
                             onChange={(v) => setNewLayerShape(v as 'plane' | 'perlin')}
                         />
+                        <ColorInput
+                            label="Цвет поверхности"
+                            value={newLayerColor}
+                            onChange={setNewLayerColor}
+                            withEyeDropper={false}
+                        />
                         <Group gap="sm">
                             <NumberInput
                                 label="Ширина, м"
@@ -158,6 +178,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                                 setNewLayerWidth(10)
                                 setNewLayerHeight(10)
                                 setNewLayerShape('plane')
+                                setNewLayerColor('#318731')
                             }}
                         >
                             Отмена
@@ -182,6 +203,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                     setEditingLayerWidth(10)
                     setEditingLayerHeight(10)
                     setEditingLayerShape('plane')
+                    setEditingLayerColor('#318731')
                 }}
                 title="Редактировать слой"
                 size="sm"
@@ -220,6 +242,12 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                             value={editingLayerShape}
                             onChange={(v) => setEditingLayerShape(v as 'plane' | 'perlin')}
                         />
+                        <ColorInput
+                            label="Цвет поверхности"
+                            value={editingLayerColor}
+                            onChange={setEditingLayerColor}
+                            withEyeDropper={false}
+                        />
                         <Group gap="sm">
                             <NumberInput
                                 label="Ширина, м"
@@ -246,6 +274,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                                 setEditingLayerWidth(10)
                                 setEditingLayerHeight(10)
                                 setEditingLayerShape('plane')
+                                setEditingLayerColor('#318731')
                             }}
                         >
                             Отмена

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo } from 'react'
 import * as THREE from 'three'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
@@ -8,6 +8,11 @@ export interface LandscapeLayerProps {
   layer: SceneLayer
 }
 
+/**
+ * Компонент отрисовки ландшафтного слоя.
+ * Принимает слой сцены и создаёт соответствующую геометрию и материал.
+ * Цвет материала берётся из свойства `color` слоя, вне зависимости от его формы.
+ */
 export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const updateLayer = useSceneStore(state => state.updateLayer)
 
@@ -34,12 +39,15 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   }, [layer.width, layer.height, layer.shape, layer.noiseData, layer.id, updateLayer])
 
   const materialColor = useMemo(() => {
-    if (layer.shape === 'perlin') {
-      return 0x4a7c59 // Realistic green for perlin landscapes
-    } else {
-      return 0x8B4513 // Brown for plane landscapes
+    if (layer.color) {
+      return new THREE.Color(layer.color)
     }
-  }, [layer.shape])
+    if (layer.shape === 'perlin') {
+      return new THREE.Color('#4a7c59')
+    } else {
+      return new THREE.Color('#318731')
+    }
+  }, [layer.shape, layer.color])
 
   const rotation = useMemo(() => {
     if (layer.shape === 'perlin') {

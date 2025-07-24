@@ -6,4 +6,5 @@ export interface GfxLayer {
   height?: number;
   shape?: 'plane' | 'perlin';
   noiseData?: number[];
+  color?: string;
 }
