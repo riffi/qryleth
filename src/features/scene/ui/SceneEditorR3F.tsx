@@ -40,9 +40,6 @@ import {
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
-import {
-  correctLLMGeneratedObject,
-} from "../lib/correction/LLMGeneratedObjectCorrector.ts";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {
@@ -171,23 +168,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     addObjectInstance(placedInstance)
   }
 
-  const handleObjectAdded = (objectData: GFXObjectWithTransform) => {
-    const { addObject } = useSceneStore.getState()
-
-    const correctedObject = correctLLMGeneratedObject(objectData)
-
-    const objectUuid = generateUUID()
-
-    const newObject: SceneObject = {
-      uuid: objectUuid,
-      name: correctedObject.name,
-      primitives: correctedObject.primitives,
-      layerId: 'objects'
-    }
-
-    addObject(newObject)
-    addInstanceToScene(objectUuid, correctedObject)
-  }
 
   const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
     try {
@@ -337,7 +317,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         >
         {!chatCollapsed && (
           <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
-            <ChatInterface onObjectAdded={handleObjectAdded} onCollapse={() => setChatCollapsed(true)} />
+            <ChatInterface onCollapse={() => setChatCollapsed(true)} />
           </Paper>
         )}
 

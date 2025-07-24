@@ -12,7 +12,6 @@ import type {GFXObjectWithTransform} from '@/entities'
 
 // Типы для callback функций
 export type ToolCallback = (toolName: string, result: any) => void
-export type ObjectAddedCallback = (object: GFXObjectWithTransform) => void
 
 /**
  * LangChain chat service for handling AI conversations with tools
@@ -21,7 +20,6 @@ export class LangChainChatService {
   private chatModel: ChatOpenAI | null = null
   private tools: DynamicStructuredTool[] = []
   private toolExecutors: Map<string, (args: any) => Promise<ToolExecutionResult>> = new Map()
-  private objectAddedCallback: ObjectAddedCallback | null = null
   private toolCallback: ToolCallback | null = null
 
   /**
@@ -36,7 +34,7 @@ export class LangChainChatService {
 
     // Load tools from registry
     this.loadToolsFromRegistry()
-    
+
     // Subscribe to tool registry changes
     toolRegistry.onToolsChange(() => {
       this.loadToolsFromRegistry()
@@ -129,8 +127,8 @@ export class LangChainChatService {
       const prompt = ChatPromptTemplate.fromMessages([
         [
           'system',
-          'You are a helpful assistant that can use tools to interact with a 3D scene. ' +
-            'When creating primitives always generate meaningful Russian names.'
+          'You are a helpful assistant that can use tools to interact with a 3D scene. When user wants to add new object to scene, first search existing objects in a library, if not found - create it.' +
+          'When creating primitives always generate meaningful Russian names.'
         ],
         ['placeholder', '{chat_history}'],
         ['human', '{input}'],
@@ -194,12 +192,6 @@ export class LangChainChatService {
     return toolRegistry
   }
 
-  /**
-   * Set callback for object added events
-   */
-  setObjectAddedCallback(callback: ObjectAddedCallback | null): void {
-    this.objectAddedCallback = callback
-  }
 
   /**
    * Set general tool callback
@@ -220,12 +212,6 @@ export class LangChainChatService {
         this.toolCallback(toolName, parsedResult)
       }
 
-      // Handle specific tool results
-      if (toolName === 'add_new_object' && parsedResult.success && parsedResult.object) {
-        if (this.objectAddedCallback) {
-          this.objectAddedCallback(parsedResult.object)
-        }
-      }
     } catch (error) {
       console.error('Ошибка обработки результата инструмента:', error)
     }

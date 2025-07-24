@@ -107,10 +107,22 @@ export const createAddNewObjectTool = () => {
           })
         }
 
-        // Возвращаем JSON строку с объектом для обработки в ChatInterface
+        // Использовать новый метод SceneAPI для добавления объекта
+        const result = SceneAPI.addObjectWithTransform(newObject)
+
+        if (!result.success) {
+          return JSON.stringify({
+            success: false,
+            error: result.error,
+            message: `Не удалось добавить объект "${validatedInput.name}" в сцену: ${result.error}`
+          })
+        }
+
         return JSON.stringify({
           success: true,
           object: newObject,
+          objectUuid: result.objectUuid,
+          instanceUuid: result.instanceUuid,
           message: `Объект "${validatedInput.name}" создан с ${primitives.length} примитивами`
         })
 
@@ -231,6 +243,17 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
         })
       }
 
+      // Использовать новый метод SceneAPI для добавления объекта
+      const result = SceneAPI.addObjectWithTransform(newObject)
+
+      if (!result.success) {
+        return JSON.stringify({
+          success: false,
+          error: result.error,
+          message: `Не удалось добавить объект "${objectRecord.name}" в сцену: ${result.error}`
+        })
+      }
+
       return JSON.stringify({
         success: true,
         object: newObject,
@@ -239,6 +262,8 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
           name: objectRecord.name,
           description: objectRecord.description
         },
+        objectUuid: result.objectUuid,
+        instanceUuid: result.instanceUuid,
         message: `Объект "${objectRecord.name}" добавлен в сцену из библиотеки`
       })
 

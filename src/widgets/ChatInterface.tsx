@@ -13,15 +13,13 @@ import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { langChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
-import type {GFXObjectWithTransform} from "@/entities";
 
 
 interface Props {
-  onObjectAdded: (object: GFXObjectWithTransform) => void
   onCollapse?: () => void
 }
 
-export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) => {
+export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -65,17 +63,32 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
       try {
         await langChainChatService.initialize()
 
-        // Устанавливаем callback для добавления объектов
-        langChainChatService.setObjectAddedCallback((object: GFXObjectWithTransform) => {
-          onObjectAdded(object)
-
-          // Добавляем сообщение об успешном добавлении
-          const successMessage: ChatMessage = {
-            role: 'assistant',
-            content: `✅ Объект "${object.name}" был добавлен в сцену.`,
-            timestamp: new Date()
+        // Устанавливаем общий callback для инструментов
+        langChainChatService.setToolCallback((toolName: string, result: any) => {
+          // Обрабатываем успешное добавление объектов
+          if (toolName === 'add_new_object') {
+            if (result.success && result.object) {
+              // Добавляем сообщение об успешном добавлении
+              const successMessage: ChatMessage = {
+                role: 'assistant',
+                content: `✅ Новый объект "${result.object.name}" был добавлен в сцену.`,
+                timestamp: new Date()
+              }
+              setMessages(prev => [...prev, successMessage])
+            }
           }
-          setMessages(prev => [...prev, successMessage])
+          if (toolName === 'add_object_from_library') {
+            if (result.success && result.object) {
+              // Добавляем сообщение об успешном добавлении
+              const successMessage: ChatMessage = {
+                role: 'assistant',
+                content: `📘 Объект "${result.object.name}" из библиотеки был добавлен в сцену.`,
+                timestamp: new Date()
+              }
+              setMessages(prev => [...prev, successMessage])
+            }
+          }
+
         })
 
         console.log('LangChain сервис инициализирован с инструментами:', langChainChatService.getRegisteredTools())

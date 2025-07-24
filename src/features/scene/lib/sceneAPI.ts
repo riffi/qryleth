@@ -8,6 +8,9 @@ import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxPrimitive } from '@/entities'
+import type { GFXObjectWithTransform } from '@/entities/object/model/types'
+import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
+import { placeInstance } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 
 /**
  * Simplified scene object info for agent tools
@@ -58,6 +61,16 @@ export interface AddInstanceResult {
   success: boolean
   instanceUuid?: string
   objectUuid?: string
+  error?: string
+}
+
+/**
+ * Result of adding object with transform operation
+ */
+export interface AddObjectWithTransformResult {
+  success: boolean
+  objectUuid?: string
+  instanceUuid?: string
   error?: string
 }
 
@@ -241,6 +254,68 @@ export class SceneAPI {
       primitiveTypes: [...new Set(
         overview.objects.flatMap(obj => obj.primitiveTypes)
       )]
+    }
+  }
+
+  /**
+   * Добавить объект с трансформацией в сцену
+   * Объединяет функциональность handleObjectAdded из SceneEditorR3F
+   */
+  static addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult {
+    try {
+      const state = useSceneStore.getState()
+      const { addObject, addObjectInstance, layers } = state
+
+      // Применить коррекцию для LLM-сгенерированных объектов
+      const correctedObject = correctLLMGeneratedObject(objectData)
+
+      // Генерировать UUID для объекта
+      const objectUuid = generateUUID()
+
+      // Создать объект сцены
+      const newObject: SceneObject = {
+        uuid: objectUuid,
+        name: correctedObject.name,
+        primitives: correctedObject.primitives,
+        layerId: 'objects'
+      }
+
+      // Добавить объект в store
+      addObject(newObject)
+
+      // Найти подходящий landscape слой (логика из addInstanceToScene)
+      const perlinLandscape = layers.find(layer => 
+        layer.type === 'landscape' && layer.shape === 'perlin'
+      )
+      const anyLandscape = layers.find(layer => layer.type === 'landscape')
+      const landscapeLayer = perlinLandscape || anyLandscape || null
+
+      // Создать экземпляр объекта
+      const instanceUuid = generateUUID()
+      const newInstance: SceneObjectInstance = {
+        uuid: instanceUuid,
+        objectUuid: objectUuid,
+        transform: correctedObject,
+        visible: true
+      }
+
+      // Разместить экземпляр с учетом ландшафта
+      const placedInstance = placeInstance(newInstance, landscapeLayer)
+
+      // Добавить экземпляр в store
+      addObjectInstance(placedInstance)
+
+      return {
+        success: true,
+        objectUuid: objectUuid,
+        instanceUuid: instanceUuid
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to add object with transform: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
     }
   }
 }
