@@ -85,21 +85,26 @@ shared/    ← НЕ МОЖЕТ импортировать features
 - `src/features/scene-editor/lib/ai/tools/index.ts` (создать)
 - `src/features/scene-editor/lib/ai/index.ts` (создать)
 
-### Фаза 3: Создание object-editor tools
-**Цель**: Создать инфраструктуру для object-editor AI tools
-
-**Задачи**:
-- Переместить `objectTools.ts` в `features/object-editor/lib/ai/tools/`
-- Создать функцию регистрации tools для object-editor
-- Подготовить структуру для будущих object-editor tools
+### Фаза 3: перемещение тула создания объекта 
+- переместить `objectTools.ts` в `features/scene-editor/lib/ai/tools/`
 - Обновить импорты в перемещенном файле
 
 **Файлы для перемещения/создания**:
-- `src/shared/lib/langchain/tools/objectTools.ts` → `src/features/object-editor/lib/ai/tools/objectTools.ts`
+- `src/shared/lib/langchain/tools/objectTools.ts` → `src/features/scene-editor/lib/ai/tools/objectTools.ts`
+
+
+### Фаза 4: Создание object-editor tools
+**Цель**: Создать инфраструктуру для object-editor AI tools
+
+**Задачи**:
+- Создать функцию регистрации tools для object-editor
+- Подготовить структуру для будущих object-editor tools
+
+**Файлы для перемещения/создания**:
 - `src/features/object-editor/lib/ai/tools/index.ts` (создать)
 - `src/features/object-editor/lib/ai/index.ts` (создать)
 
-### Фаза 4: Интеграция tools в features
+### Фаза 5: Интеграция tools в features
 **Цель**: Настроить регистрацию tools в соответствующих features
 
 **Задачи**:
@@ -113,7 +118,7 @@ shared/    ← НЕ МОЖЕТ импортировать features
 - `src/features/object-editor/index.ts`
 - Компоненты, инициализирующие features
 
-### Фаза 5: Исправление других нарушений FSD в shared
+### Фаза 6: Исправление других нарушений FSD в shared
 **Цель**: Исправить оставшиеся нарушения FSD в shared слое
 
 **Задачи**:
@@ -127,7 +132,7 @@ shared/    ← НЕ МОЖЕТ импортировать features
 - `src/shared/r3f/environment/GridHelper.tsx`
 - `src/shared/r3f/optimization/InstancedObjects.tsx`
 
-### Фаза 6: Очистка и тестирование
+### Фаза 7: Очистка и тестирование
 **Цель**: Очистить старые файлы и протестировать исправления
 
 **Задачи**:
@@ -140,6 +145,9 @@ shared/    ← НЕ МОЖЕТ импортировать features
 **Файлы для удаления/изменения**:
 - `src/shared/lib/langchain/tools/` (папка целиком)
 - `src/widgets/ChatInterface.tsx` (обновить при необходимости)
+
+### Фаза 8: Доработка документации
+- Скорректировать соответствующие разделы docs согласно результатам текущей доработки
 
 ## Архитектурные принципы
 
@@ -160,9 +168,10 @@ shared/lib/langchain/
 features/scene-editor/lib/ai/tools/
 ├── sceneTools.ts ✅ может импортировать features
 └── instanceTools.ts ✅ может импортировать features
+└── objectTools.ts ✅ может импортировать entities и features
 
 features/object-editor/lib/ai/tools/
-└── objectTools.ts ✅ может импортировать entities и features
+
 ```
 
 ## Связанные файлы
@@ -178,6 +187,7 @@ features/object-editor/lib/ai/tools/
 - ⏳ **Фаза 4**: Ожидает выполнения
 - ⏳ **Фаза 5**: Ожидает выполнения
 - ⏳ **Фаза 6**: Ожидает выполнения
+- ⏳ **Фаза 7**: Ожидает выполнения
 
 ## Контекст выполнения
 
