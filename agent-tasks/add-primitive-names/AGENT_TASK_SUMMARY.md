@@ -92,7 +92,7 @@ export interface GfxPrimitive {
 
 Фаза выполнена. Итоги: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### Фаза 4: Обновление существующих примитивов 
+### Фаза 4: Обновление существующих примитивов
 **Цель**: Обеспечить корректную работу с существующими примитивами, у которых нет поля `name`
 
 **Задачи**:
@@ -104,6 +104,8 @@ export interface GfxPrimitive {
 - `src/features/object-editor/model/objectStore.ts`
 - Другие файлы, работающие с примитивами
 - Тесты (при наличии)
+
+Фаза выполнена. Итоги: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### Фаза 5: Финальное тестирование и документация 
 **Цель**: Протестировать функциональность и обновить документацию
@@ -127,5 +129,5 @@ export interface GfxPrimitive {
 - ✅**Фаза 1**: Выполнена ([phases/phase_1_summary.md](phases/phase_1_summary.md))
 - ✅**Фаза 2**: Выполнена ([phases/phase_2_summary.md](phases/phase_2_summary.md))
 - ✅**Фаза 3**: Выполнена ([phases/phase_3_summary.md](phases/phase_3_summary.md))
--  **Фаза 4**: Запланирована
+- ✅**Фаза 4**: Выполнена ([phases/phase_4_summary.md](phases/phase_4_summary.md))
 -  **Фаза 5**: Запланирована

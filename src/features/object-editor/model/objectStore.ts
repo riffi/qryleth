@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { GfxPrimitive } from '@/entities/primitive'
-import { normalizePrimitive } from '@/entities/primitive'
+import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { RenderMode, TransformMode, ViewMode } from '@/shared/types/ui'
 import type {LightingSettings} from "@/entities/lighting/model/types.ts";
 
@@ -50,17 +50,24 @@ export const useObjectStore = create<ObjectStore>()(
     selectedPrimitiveIds: [],
     hoveredPrimitiveId: null,
 
-    // Устанавливает список примитивов, приводя их к нормализованному виду
+    // Устанавливает список примитивов, нормализуя их
+    // и заполняя отсутствующие имена
     setPrimitives: (primitives: GfxPrimitive[]) =>
-      set({ primitives: primitives.map(normalizePrimitive) }),
+      set({ primitives: ensurePrimitiveNames(primitives.map(normalizePrimitive)) }),
     // Добавляет новый примитив в хранилище
     addPrimitive: (primitive: GfxPrimitive) =>
-      set(state => ({
-        primitives: [...state.primitives, normalizePrimitive(primitive)]
-      })),
+      set(state => {
+        const list = [...state.primitives, normalizePrimitive(primitive)]
+        return { primitives: ensurePrimitiveNames(list) }
+      }),
     // Обновляет примитив по индексу
     updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) =>
-      set(state => ({ primitives: state.primitives.map((p, i) => (i === index ? { ...p, ...updates } : p)) })),
+      set(state => {
+        const list = state.primitives.map((p, i) =>
+          i === index ? { ...p, ...updates } : p
+        )
+        return { primitives: ensurePrimitiveNames(list) }
+      }),
     // Заменяет настройки освещения
     setLighting: (lighting: LightingSettings) => set({ lighting }),
     // Меняет режим отображения

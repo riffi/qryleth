@@ -24,3 +24,19 @@ export function getPrimitiveDisplayName(primitive: GfxPrimitive, index: number):
     ? primitive.name
     : generatePrimitiveName(primitive.type, index + 1)
 }
+
+/**
+ * Заполняет отсутствующие имена примитивов в списке.
+ * Позволяет корректно работать со старыми данными,
+ * где поле {@link GfxPrimitive.name} могло отсутствовать.
+ *
+ * @param primitives массив примитивов для обработки
+ * @returns новый массив примитивов с гарантированными именами
+ */
+export function ensurePrimitiveNames(primitives: GfxPrimitive[]): GfxPrimitive[] {
+  return primitives.map((p, i) =>
+    p.name && p.name.trim() !== ''
+      ? p
+      : { ...p, name: generatePrimitiveName(p.type, i + 1) }
+  )
+}
