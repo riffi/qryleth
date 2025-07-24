@@ -11,6 +11,7 @@ import {
   ColorInput
 } from '@mantine/core'
 import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
+import type { NumberFormatValues, SourceInfo } from 'react-number-format'
 import {
   useObjectStore,
   useObjectPrimitives,
@@ -139,12 +140,17 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
         <NumberInput
           size="xs"
           value={property === 'rotation' ? radToDeg(inputValue) : inputValue}
-          onChange={(val) => {
+          onValueChange={(vals: NumberFormatValues, info: SourceInfo) => {
             const num =
               property === 'rotation'
-                ? degToRad(Number(val) || 0)
-                : Number(val) || 0
+                ? degToRad(Number(vals.value) || 0)
+                : Number(vals.value) || 0
             setInputValue(num)
+            // Если изменение произошло через стрелки или кнопки шага,
+            // обновляем состояние немедленно
+            if (info.source !== 'event') {
+              onCommit(property, index, num)
+            }
           }}
           onBlur={commitValue}
           onKeyDown={(e) => {
