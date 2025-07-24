@@ -326,8 +326,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         <Container
           size="xl"
           fluid
-          h="calc(100vh - 60px - 2 * var(--mantine-spacing-sm))"
-          style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)', maxHeight: 'calc(100vh - 60px - 2 * var(--mantine-spacing-sm))', overflow: 'hidden' }}
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            width: '100%',
+            gap: 'var(--mantine-spacing-sm)',
+            height: '100%',
+            overflow: 'hidden'
+        }}
         >
         {!chatCollapsed && (
           <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>

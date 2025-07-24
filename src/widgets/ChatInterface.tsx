@@ -255,7 +255,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
   }
 
   return (
-    <Stack h="100%" gap={0} style={{ display: 'flex', flexDirection: 'column' }}>
+    <Stack  gap={0} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',  height: '100%',  minHeight: 0,   }}>
       <Paper p="md" withBorder>
 
         <Group justify="space-between" align="center" >
@@ -301,7 +301,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
       <Tabs
           value={activeTab}
           onChange={(value) => setActiveTab(value || 'chat')}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '0' }}
       >
         <Tabs.List>
           <Tabs.Tab value="chat">
@@ -312,8 +312,8 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
           </Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="chat" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <ScrollArea flex={1} p="md" ref={scrollAreaRef} style={{ flex: 1, minHeight: 0 }}>
+        <Tabs.Panel value="chat" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'  }}>
+          <ScrollArea p="md" ref={scrollAreaRef} style={{ flex: 1, minHeight: 0 }}>
             <Stack gap="sm">
               {messages.length === 0 && (
                 <Paper p="md" withBorder style={{ backgroundColor: '#4e4e4e' }}>
@@ -395,8 +395,9 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
           </Paper>
         </Tabs.Panel>
 
-        <Tabs.Panel value="debug" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}>
-          <Stack flex={1} gap="md" p="md">
+        <Tabs.Panel value="debug" style={{ flex: 1, display: 'flex',
+          flexDirection: 'column', overflow: 'hidden' }}>
+          <Stack gap="md" p="md" style={{ flex: 1, minHeight: 0 }}>
             <Paper p="md" withBorder>
               <Text size="sm" mb="sm" fw={500}>
                 Промпт для агента:

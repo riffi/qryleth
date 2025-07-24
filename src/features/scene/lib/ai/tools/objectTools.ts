@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 import { generatePrimitiveName } from '@/entities/primitive'
+import { db } from '@/shared/lib/database'
+import {SceneAPI} from "@/features/scene/lib/sceneAPI.ts";
 
 // Схема валидации для примитива
 const PrimitiveSchema = z.object({
@@ -133,3 +135,121 @@ export const createAddNewObjectTool = () => {
  * Создает инструмент add_new_object для регистрации в LangChain сервисе
  */
 export const addNewObjectTool = createAddNewObjectTool()
+
+/**
+ * LangChain инструмент для поиска объектов в библиотеке
+ */
+export const searchObjectsInLibraryTool = new DynamicStructuredTool({
+  name: 'search_objects_in_library',
+  description: 'Выполняет поиск объектов в библиотеке по названию или описанию. Возвращает список найденных объектов с их характеристиками.',
+  schema: z.object({
+    query: z.string().describe('Поисковый запрос (название или описание объекта)')
+  }),
+  func: async (input): Promise<string> => {
+    try {
+      const allObjects = await db.getAllObjects()
+
+      const filteredObjects = allObjects.filter(object =>
+        object.name.toLowerCase().includes(input.query.toLowerCase()) ||
+        (object.description?.toLowerCase().includes(input.query.toLowerCase()) ?? false)
+      )
+
+      if (filteredObjects.length === 0) {
+        return JSON.stringify({
+          success: true,
+          objects: [],
+          message: `По запросу "${input.query}" объекты не найдены`
+        })
+      }
+
+      const objectsInfo = filteredObjects.map(object => ({
+        uuid: object.uuid,
+        name: object.name,
+        description: object.description,
+        primitivesCount: object.objectData.primitives.length,
+        updatedAt: object.updatedAt.toISOString()
+      }))
+
+      return JSON.stringify({
+        success: true,
+        objects: objectsInfo,
+        message: `Найдено ${filteredObjects.length} объектов по запросу "${input.query}"`
+      })
+
+    } catch (error) {
+      console.error('Ошибка при поиске объектов в библиотеке:', error)
+
+      return JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        message: `Не удалось выполнить поиск объектов: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
+      })
+    }
+  }
+})
+
+/**
+ * LangChain инструмент для добавления объекта из библиотеки в сцену
+ */
+export const addObjectFromLibraryTool = new DynamicStructuredTool({
+  name: 'add_object_from_library',
+  description: 'Добавляет существующий объект из библиотеки в текущую сцену. Использует UUID объекта для его загрузки и добавления.',
+  schema: z.object({
+    objectUuid: z.string().describe('UUID объекта из библиотеки'),
+    position: z.array(z.number()).length(3).optional().describe('Позиция объекта в сцене [x, y, z]'),
+    rotation: z.array(z.number()).length(3).optional().describe('Поворот объекта [rx, ry, rz] в радианах'),
+    scale: z.array(z.number()).length(3).optional().describe('Масштаб объекта [sx, sy, sz]')
+  }),
+  func: async (input): Promise<string> => {
+    try {
+      const objectRecord = await db.getObject(input.objectUuid)
+
+      if (!objectRecord) {
+        return JSON.stringify({
+          success: false,
+          error: 'Объект не найден',
+          message: `Объект с UUID ${input.objectUuid} не найден в библиотеке`
+        })
+      }
+
+      // Создаем новый объект на основе данных из библиотеки
+      const newObject: GFXObjectWithTransform = {
+        uuid: uuidv4(), // Новый UUID для экземпляра в сцене
+        name: objectRecord.name,
+        primitives: objectRecord.objectData.primitives.map(primitive => ({
+          ...primitive,
+          uuid: uuidv4() // Новые UUID для примитивов
+        })),
+        ...(input.position && {
+          position: input.position as [number, number, number]
+        }),
+        ...(input.rotation && {
+          rotation: input.rotation as [number, number, number]
+        }),
+        ...(input.scale && {
+          scale: input.scale as [number, number, number]
+        })
+      }
+
+      return JSON.stringify({
+        success: true,
+        object: newObject,
+        sourceObject: {
+          uuid: objectRecord.uuid,
+          name: objectRecord.name,
+          description: objectRecord.description
+        },
+        message: `Объект "${objectRecord.name}" добавлен в сцену из библиотеки`
+      })
+
+    } catch (error) {
+      console.error('Ошибка при добавлении объекта из библиотеки:', error)
+
+      return JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        message: `Не удалось добавить объект из библиотеки: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
+      })
+    }
+  }
+})

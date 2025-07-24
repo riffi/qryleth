@@ -16,5 +16,7 @@ export {
 
 export {
   createAddNewObjectTool,
-  addNewObjectTool
+  addNewObjectTool,
+  searchObjectsInLibraryTool,
+  addObjectFromLibraryTool
 } from './objectTools'

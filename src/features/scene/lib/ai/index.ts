@@ -13,7 +13,9 @@ import {
   canAddInstanceTool,
   getObjectInstancesTool,
   createAddNewObjectTool,
-  addNewObjectTool
+  addNewObjectTool,
+  searchObjectsInLibraryTool,
+  addObjectFromLibraryTool
 } from './tools'
 
 /**
@@ -28,7 +30,9 @@ export const sceneToolProvider: ToolProvider = {
     addObjectInstanceTool,
     canAddInstanceTool,
     getObjectInstancesTool,
-    addNewObjectTool
+    addNewObjectTool,
+    searchObjectsInLibraryTool,
+    addObjectFromLibraryTool
   ]
 }
 
