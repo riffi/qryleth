@@ -7,7 +7,7 @@ import { createChatModel, DEFAULT_LANGCHAIN_CONFIG } from './config'
 import type {LangChainTool, LangChainChatResponse, ChatSession, ToolExecutionResult} from './types'
 import { adaptMessagesToLangChain, adaptLangChainResponse } from './adapters'
 import type {ChatMessage} from '../openAIAPI'
-import { getAllSceneTools } from './tools'
+import { toolRegistry } from './toolRegistry'
 import type {GFXObjectWithTransform} from '@/entities'
 
 // Типы для callback функций
@@ -34,8 +34,13 @@ export class LangChainChatService {
       ...DEFAULT_LANGCHAIN_CONFIG,
     })
 
-    // Auto-register scene tools
-    this.registerSceneTools()
+    // Load tools from registry
+    this.loadToolsFromRegistry()
+    
+    // Subscribe to tool registry changes
+    toolRegistry.onToolsChange(() => {
+      this.loadToolsFromRegistry()
+    })
   }
 
   /**
@@ -84,15 +89,15 @@ export class LangChainChatService {
   }
 
   /**
-   * Register all scene tools
+   * Load all tools from registry
    */
-  registerSceneTools(): void {
+  loadToolsFromRegistry(): void {
     // Clear existing tools first
     this.clearTools()
 
-    // Register all scene tools
-    const sceneTools = getAllSceneTools()
-    sceneTools.forEach(tool => {
+    // Load all tools from registry
+    const allTools = toolRegistry.getAllTools()
+    allTools.forEach(tool => {
       this.registerDynamicTool(tool)
     })
   }
@@ -180,6 +185,13 @@ export class LangChainChatService {
    */
   async updateConnection(): Promise<void> {
     await this.initialize()
+  }
+
+  /**
+   * Get the tool registry for external access
+   */
+  getToolRegistry() {
+    return toolRegistry
   }
 
   /**
