@@ -88,16 +88,39 @@ export const PrimitiveManager: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
-  const { selectPrimitive, togglePrimitiveSelection, setHoveredPrimitive } = useObjectStore()
+  const {
+    selectPrimitive,
+    togglePrimitiveSelection,
+    setHoveredPrimitive,
+    setSelectedPrimitives
+  } = useObjectStore()
 
+  // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
+  const lastSelectedRef = React.useRef<number | null>(null)
+
+  /**
+   * Обработчик клика по примитиву. Поддерживает одиночное, множественное
+   * (Ctrl) и диапазонное (Shift) выделение.
+   * @param index индекс примитива в списке
+   */
   const handlePrimitiveSelect = (index: number) => {
-    // Поддержка множественного выбора с Ctrl
     const event = window.event as KeyboardEvent
-    if (event?.ctrlKey || event?.metaKey) {
+
+    if (event?.shiftKey && lastSelectedRef.current !== null) {
+      // Диапазонное выделение между последним выбранным элементом и текущим
+      const start = Math.min(lastSelectedRef.current, index)
+      const end = Math.max(lastSelectedRef.current, index)
+      const range = Array.from({ length: end - start + 1 }, (_, i) => start + i)
+      setSelectedPrimitives(range)
+    } else if (event?.ctrlKey || event?.metaKey) {
+      // Множественный выбор с Ctrl или Cmd
       togglePrimitiveSelection(index)
     } else {
+      // Одиночный выбор
       selectPrimitive(index)
     }
+
+    lastSelectedRef.current = index
   }
 
   const handlePrimitiveHover = (index: number | null) => {
