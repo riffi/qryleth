@@ -149,7 +149,7 @@ interface ObjectStoreState {
 #### 🎯 Primitive Selection / Выбор примитивов
 ```typescript
 interface ObjectStoreState {
-  selectedPrimitiveId: number | null  // Selected primitive / Выделенный примитив
+  selectedPrimitiveIds: number[]      // Selected primitives / Выделенные примитивы
   hoveredPrimitiveId: number | null   // Primitive under cursor / Примитив под курсором
 }
 ```
@@ -162,10 +162,10 @@ import { useObjectStore } from '@/features/object-editor'
 const ObjectEditor: React.FC = () => {
   const {
     primitives,
-    selectedPrimitiveId,
+    selectedPrimitiveIds,
     transformMode,
     addPrimitive,
-    selectPrimitive,
+    setSelectedPrimitives,
     setTransformMode
   } = useObjectStore()
 

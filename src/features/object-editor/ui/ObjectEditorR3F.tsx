@@ -4,7 +4,7 @@ import {
   Box,
   Stack,
   Group,
-  Select,
+  MultiSelect,
   SegmentedControl,
   Button,
   Badge,
@@ -18,7 +18,7 @@ import { ObjectScene3D } from './ObjectScene3D'
 import {
   useObjectStore,
   useObjectPrimitives,
-  useObjectSelectedPrimitiveId
+  useObjectSelectedPrimitiveIds
 } from '../model/objectStore'
 import type { SceneObject } from '@/entities/scene/types.ts'
 
@@ -60,7 +60,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   objectData
 }) => {
   const primitives = useObjectPrimitives()
-  const selectedPrimitiveId = useObjectSelectedPrimitiveId()
+  const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const [renderMode, setRenderMode] = useState<'solid' | 'wireframe'>('solid')
 
@@ -99,15 +99,15 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   /**
    * Выбор активного примитива для редактирования.
    */
-  const handleSelectPrimitive = (index: number) => {
-    useObjectStore.getState().selectPrimitive(index)
+  const handleSelectPrimitives = (indices: number[]) => {
+    useObjectStore.getState().setSelectedPrimitives(indices)
   }
 
   /**
    * Получение текущих трансформаций выбранного примитива
    */
   const getSelectedPrimitive = () => {
-    return selectedPrimitiveId !== null ? primitives[selectedPrimitiveId] || null : null
+    return selectedPrimitiveIds.length === 1 ? primitives[selectedPrimitiveIds[0]] || null : null
   }
 
   /**
@@ -121,8 +121,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const newValue = [...currentValue] as [number, number, number]
     newValue[axis] = value
 
-    if (selectedPrimitiveId !== null) {
-      useObjectStore.getState().updatePrimitive(selectedPrimitiveId, {
+    if (selectedPrimitiveIds.length === 1) {
+      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
         [property]: newValue
       })
     }
@@ -132,9 +132,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
    * Сброс трансформаций
    */
   const resetTransform = (property: 'position' | 'rotation' | 'scale') => {
-    if (selectedPrimitiveId !== null) {
+    if (selectedPrimitiveIds.length === 1) {
       const defaultValue = property === 'scale' ? [1, 1, 1] : [0, 0, 0]
-      useObjectStore.getState().updatePrimitive(selectedPrimitiveId, {
+      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
         [property]: defaultValue
       })
     }
@@ -215,9 +215,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
         >
           <Stack gap="sm">
             <Title order={4}>Примитивы</Title>
-            <Select
-              value={selectedPrimitiveId?.toString() || ''}
-              onChange={(v) => v && handleSelectPrimitive(parseInt(v))}
+            <MultiSelect
+              value={selectedPrimitiveIds.map(i => i.toString())}
+              onChange={(values) => handleSelectPrimitives(values.map(v => parseInt(v)))}
               data={primitives.map((_, i) => ({ value: i.toString(), label: `Примитив ${i + 1}` }))}
               size="sm"
             />
@@ -266,6 +266,11 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
                   values={selectedPrimitiveData.scale || [1, 1, 1]}
                 />
               </Stack>
+            )}
+            {selectedPrimitiveIds.length > 1 && (
+              <Text size="sm" c="dimmed" mt="md">
+                Выбрано {selectedPrimitiveIds.length} примитивов
+              </Text>
             )}
 
             <Group gap="xs" mt="auto">

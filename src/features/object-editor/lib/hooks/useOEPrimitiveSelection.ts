@@ -1,37 +1,33 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import {
-  useObjectSelectedPrimitiveId,
+  useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId
 } from '@/features/object-editor'
 
 
 export interface UsePrimitiveSelectionReturn {
-  selectedPrimitive: {
-    objectUuid: string
-    primitiveIndex: number
-    instanceId?: string
-  } | null
-  selectPrimitive: (objectUuid: string, primitiveIndex: number, instanceId?: string) => void
-  clearPrimitiveSelection: () => void
   selectedMeshes: THREE.Object3D[]
+  hoveredObjects: THREE.Object3D[]
+  isSelected: (index: number) => boolean
+  isHovered: (index: number) => boolean
 }
 
 export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
   const { scene } = useThree()
-  const selectedId = useObjectSelectedPrimitiveId()
+  const selectedIds = useObjectSelectedPrimitiveIds()
   const hoveredId = useObjectHoveredPrimitiveId()
 
   const selectedMeshes = useMemo(() => {
-    if (selectedId === null || !scene) return []
+    if (!scene || selectedIds.length === 0) return []
     const objects: THREE.Object3D[] = []
     scene.traverse(child => {
-      if (child.userData.generated && child.userData.primitiveIndex === selectedId) {
+      if (child.userData.generated && selectedIds.includes(child.userData.primitiveIndex)) {
         objects.push(child)
       }
     })
     return objects
-  }, [selectedId, scene])
+  }, [selectedIds, scene])
 
   const hoveredObjects = useMemo(() => {
     if (hoveredId === null || !scene) return []
@@ -44,7 +40,7 @@ export const useOEPrimitiveSelection = (): UsePrimitiveSelectionReturn => {
     return objects
   }, [hoveredId, scene])
 
-  const isSelected = (index: number) => selectedId === index
+  const isSelected = (index: number) => selectedIds.includes(index)
 
   const isHovered = (index: number) => hoveredId === index
 

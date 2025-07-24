@@ -16,7 +16,12 @@ export const ObjectScenePrimitives: React.FC = () => {
   const handleObjectClick = (event: any) => {
     event.stopPropagation()
     const primitiveIndex = event.object.userData.primitiveIndex
-    useObjectStore.getState().selectPrimitive(primitiveIndex)
+    const store = useObjectStore.getState()
+    if (event.shiftKey) {
+      store.togglePrimitiveSelection(primitiveIndex)
+    } else {
+      store.selectPrimitive(primitiveIndex)
+    }
   }
 
   return (

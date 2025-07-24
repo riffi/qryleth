@@ -11,7 +11,7 @@ interface ObjectStoreState {
   viewMode: ViewMode
   renderMode: RenderMode
   transformMode: TransformMode
-  selectedPrimitiveId: number | null
+  selectedPrimitiveIds: number[]
   hoveredPrimitiveId: number | null
 }
 
@@ -23,6 +23,8 @@ interface ObjectStoreActions {
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
   selectPrimitive: (index: number) => void
+  togglePrimitiveSelection: (index: number) => void
+  setSelectedPrimitives: (indices: number[]) => void
   setHoveredPrimitive: (index: number | null) => void
   clearSelection: () => void
   clearScene: () => void
@@ -45,7 +47,7 @@ export const useObjectStore = create<ObjectStore>()(
     viewMode: 'orbit',
     renderMode: 'solid',
     transformMode: 'translate',
-    selectedPrimitiveId: null,
+    selectedPrimitiveIds: [],
     hoveredPrimitiveId: null,
 
     // Устанавливает список примитивов, приводя их к нормализованному виду
@@ -66,21 +68,29 @@ export const useObjectStore = create<ObjectStore>()(
     // Устанавливает активный режим трансформации
     setTransformMode: (mode: TransformMode) => set({ transformMode: mode }),
     // Выбирает примитив по индексу
-    selectPrimitive: (index: number) => set({ selectedPrimitiveId: index }),
+    selectPrimitive: (index: number) => set({ selectedPrimitiveIds: [index] }),
+    togglePrimitiveSelection: (index: number) =>
+      set(state => {
+        const ids = state.selectedPrimitiveIds.includes(index)
+          ? state.selectedPrimitiveIds.filter(id => id !== index)
+          : [...state.selectedPrimitiveIds, index]
+        return { selectedPrimitiveIds: ids }
+      }),
+    setSelectedPrimitives: (indices: number[]) => set({ selectedPrimitiveIds: indices }),
     // Записывает ID наведённого примитива
     setHoveredPrimitive: (index: number | null) => set({ hoveredPrimitiveId: index }),
     // Снимает выделение
-    clearSelection: () => set({ selectedPrimitiveId: null }),
+    clearSelection: () => set({ selectedPrimitiveIds: [] }),
     // Очищает сцену и сбрасывает освещение
     clearScene: () =>
-      set({ primitives: [], lighting: initialLighting, selectedPrimitiveId: null, hoveredPrimitiveId: null })
+      set({ primitives: [], lighting: initialLighting, selectedPrimitiveIds: [], hoveredPrimitiveId: null })
   }))
 )
 
 // Селекторы состояния стора объекта
 export const useObjectPrimitives = () => useObjectStore(s => s.primitives)
 export const useObjectLighting = () => useObjectStore(s => s.lighting)
-export const useObjectSelectedPrimitiveId = () => useObjectStore(s => s.selectedPrimitiveId)
+export const useObjectSelectedPrimitiveIds = () => useObjectStore(s => s.selectedPrimitiveIds)
 export const useObjectHoveredPrimitiveId = () => useObjectStore(s => s.hoveredPrimitiveId)
 export const useObjectRenderMode = () => useObjectStore(s => s.renderMode)
 export const useObjectTransformMode = () => useObjectStore(s => s.transformMode)
