@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select, Box, Tabs, Textarea } from '@mantine/core'
-import { IconSend, IconUser, IconRobot, IconChevronLeft } from '@tabler/icons-react'
+import {
+  IconSend,
+  IconUser,
+  IconRobot,
+  IconChevronLeft,
+  IconWindowMinimize, IconArrowsDiagonalMinimize2
+} from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
@@ -271,7 +277,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) =>
                     onClick={onCollapse}
                     aria-label="Свернуть чат"
                 >
-                  <IconChevronLeft size={16} />
+                  <IconArrowsDiagonalMinimize2 size={16} />
                 </ActionIcon>
             )}
           </Group>
