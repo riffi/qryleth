@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Title } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
@@ -34,7 +34,9 @@ import {
   IconGridDots,
   IconArrowRightBar,
   IconRotate,
-  IconResize
+  IconResize,
+  IconChevronLeft,
+  IconChevronRight
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
@@ -98,6 +100,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
+  const [chatCollapsed, setChatCollapsed] = useState(false)
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -371,9 +374,36 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           h="calc(100vh - 60px - 2 * var(--mantine-spacing-sm))"
           style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: 'var(--mantine-spacing-sm)', maxHeight: 'calc(100vh - 60px - 2 * var(--mantine-spacing-sm))', overflow: 'hidden' }}
         >
-        <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
-          <ChatInterface onObjectAdded={handleObjectAdded} />
-        </Paper>
+        {!chatCollapsed && (
+          <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
+            <ChatInterface onObjectAdded={handleObjectAdded} onCollapse={() => setChatCollapsed(true)} />
+          </Paper>
+        )}
+        
+        {chatCollapsed && (
+          <Box
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: '100%'
+            }}
+          >
+            <Tooltip label="Развернуть чат">
+              <ActionIcon
+                variant="filled"
+                size="lg"
+                onClick={() => setChatCollapsed(false)}
+                style={{
+                  borderRadius: '0 8px 8px 0'
+                }}
+              >
+                <IconChevronRight size={20} />
+              </ActionIcon>
+            </Tooltip>
+          </Box>
+        )}
 
         <Paper
           shadow="sm"

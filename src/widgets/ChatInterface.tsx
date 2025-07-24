@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stack, Paper, TextInput, Button, Text, Group, ScrollArea, ActionIcon, Badge, Select, Box, Tabs, Textarea } from '@mantine/core'
-import { IconSend, IconUser, IconRobot } from '@tabler/icons-react'
+import { IconSend, IconUser, IconRobot, IconChevronLeft } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
@@ -12,9 +12,10 @@ import type {GFXObjectWithTransform} from "@/entities";
 
 interface Props {
   onObjectAdded: (object: GFXObjectWithTransform) => void
+  onCollapse?: () => void
 }
 
-export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
+export const ChatInterface: React.FC<Props> = ({ onObjectAdded, onCollapse }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -250,15 +251,28 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
   return (
     <Stack h="100%" gap={0} style={{ display: 'flex', flexDirection: 'column' }}>
       <Paper p="md" withBorder>
-        <Group justify="space-between" align="center">
-          <Group gap="xs" align="center">
-            <Text size="lg" fw={500}>
-              Чат с агентом
-            </Text>
+
+        <Group justify="space-between" align="center" >
+          <Group gap="xs" align="center" wrap={"nowrap"}  style={{ width: '100%' }}>
+            <Group flex={1} style={{flexGrow: 1}}>
+              <Text size="lg" fw={500}>
+                Чат
+              </Text>
             {connection && (
               <Badge variant="light" color="gray">
                 {connection.name}
               </Badge>
+            )}
+            </Group>
+            {onCollapse && (
+                <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    onClick={onCollapse}
+                    aria-label="Свернуть чат"
+                >
+                  <IconChevronLeft size={16} />
+                </ActionIcon>
             )}
           </Group>
           <Group gap="xs" align="center" style={{ width: '100%' }}>
@@ -273,6 +287,7 @@ export const ChatInterface: React.FC<Props> = ({ onObjectAdded }) => {
                 />
               </Box>
             )}
+
           </Group>
         </Group>
       </Paper>
