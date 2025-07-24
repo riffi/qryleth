@@ -34,6 +34,20 @@ interface ObjectEditorR3FProps {
 }
 
 /**
+ * Перевод радиан в градусы для отображения значения пользователю.
+ * @param rad значение в радианах
+ * @returns значение в градусах
+ */
+const radToDeg = (rad: number): number => (rad * 180) / Math.PI
+
+/**
+ * Перевод градусов в радианы перед сохранением в состояние.
+ * @param deg значение в градусах
+ * @returns значение в радианах
+ */
+const degToRad = (deg: number): number => (deg * Math.PI) / 180
+
+/**
  * Редактор объекта на базе React Three Fiber.
  * Используется как самостоятельный компонент без модального окна.
  * Управление открытием/закрытием осуществляется родительским компонентом.
@@ -160,9 +174,15 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
             <Text size="xs" c="dimmed" mb={2}>{labels[index]}</Text>
             <NumberInput
               size="xs"
-              value={value}
-              onChange={(val) => updatePrimitiveTransform(property, index as 0 | 1 | 2, Number(val) || 0)}
-              step={property === 'scale' ? 0.1 : 0.01}
+              value={property === 'rotation' ? radToDeg(value) : value}
+              onChange={(val) =>
+                updatePrimitiveTransform(
+                  property,
+                  index as 0 | 1 | 2,
+                  property === 'rotation' ? degToRad(Number(val) || 0) : Number(val) || 0
+                )
+              }
+              step={property === 'scale' ? 0.1 : property === 'rotation' ? 1 : 0.01}
               precision={property === 'rotation' ? 1 : 2}
               styles={{
                 input: {
