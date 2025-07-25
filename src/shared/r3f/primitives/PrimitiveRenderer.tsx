@@ -32,6 +32,10 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     wireframe: renderMode === 'wireframe'
   }
 
+  if (primitive.type === 'torus') {
+    console.log('PrimitiveRenderer torus:', { primitive, baseMaterialProps })
+  }
+
   const meshProps = {
     position: primitive.position || [0, 0, 0],
     rotation: primitive.rotation || [0, 0, 0],
