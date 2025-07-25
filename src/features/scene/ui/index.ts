@@ -17,7 +17,7 @@ export * from './objectManager/SceneObjectManager.tsx'
 export * from '@/features/scene/ui/renderer/controls/CameraControls'
 export * from '@/features/scene/ui/renderer/controls/FlyControls'
 export * from '@/features/scene/ui/renderer/controls/WalkControls'
-export * from '@/features/scene/ui/renderer/controls/TransformGizmo'
+export * from '@/features/scene/ui/renderer/controls/ObjectTransformGizmo.tsx'
 
 
 // Landscape

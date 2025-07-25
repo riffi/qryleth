@@ -8,7 +8,7 @@
  */
 
 
-import type { SelectedObject, HoveredObject, SceneClickEvent, SceneHoverEvent, ObjectTransformEvent, PrimitiveTransformEvent } from '@/shared/types/ui'
+import type { SelectedSceneObject, HoveredSceneObject, SceneClickEvent, SceneHoverEvent, ObjectTransformEvent, PrimitiveTransformEvent } from '@/shared/types/ui'
 
 // Hook return types
 export interface UseSceneEventsReturn {

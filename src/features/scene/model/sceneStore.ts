@@ -10,8 +10,8 @@ import type {
   ViewMode,
   RenderMode,
   TransformMode,
-  SelectedObject,
-  HoveredObject
+  SelectedSceneObject,
+  HoveredSceneObject
 } from '@/shared/types/ui'
 import type {
   SceneObject,
@@ -258,7 +258,7 @@ export const useSceneStore = create<SceneStore>()(
     // Selection
     selectObject: (objectUuid: string, instanceUuid?: string) => {
 
-      const selectedObject: SelectedObject = {
+      const selectedObject: SelectedSceneObject = {
         objectUuid,
         instanceUuid,
       }
@@ -277,7 +277,7 @@ export const useSceneStore = create<SceneStore>()(
         if (objectInstanceIndex === -1) objectInstanceIndex = undefined
       }
 
-      const hoveredObject: HoveredObject = {
+      const hoveredObject: HoveredSceneObject = {
         objectUuid,
         instanceId,
         objectInstanceIndex

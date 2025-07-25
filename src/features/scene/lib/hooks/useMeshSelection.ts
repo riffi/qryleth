@@ -22,7 +22,7 @@ export const useMeshSelection = (): UseMeshSelectionReturn => {
   const selectedMeshes = useMemo(() => {
     if (!selectedObject || !scene) return []
 
-    const objects: THREE.Object3D[] = []
+    const meshes: THREE.Object3D[] = []
 
     scene.traverse((child) => {
       if (child.userData.generated &&
@@ -32,15 +32,15 @@ export const useMeshSelection = (): UseMeshSelectionReturn => {
         if (selectedObject.instanceUuid) {
           const uuid = child.userData.objectInstanceUuid
           if (uuid === selectedObject.instanceUuid) {
-            objects.push(child)
+            meshes.push(child)
           }
         } else {
           // If no specific instance, include all instances of this object type
-          objects.push(child)
+          meshes.push(child)
         }
       }
     })
-    return objects
+    return meshes
   }, [selectedObject, scene])
 
   const hoveredMeshes = useMemo(() => {

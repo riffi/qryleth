@@ -1,7 +1,7 @@
 import React from 'react'
 import { SceneLighting } from '@/features/scene/ui/renderer/lighting/SceneLighting.tsx'
 import { CameraControls } from '@/features/scene/ui/renderer/controls/CameraControls.tsx'
-import { TransformGizmo } from '@/features/scene/ui/renderer/controls/TransformGizmo.tsx'
+import { ObjectTransformGizmo } from '@/features/scene/ui/renderer/controls/ObjectTransformGizmo.tsx'
 import { Environment } from '../../../../shared/r3f/environment/Environment.tsx'
 import { SceneObjects } from '@/features/scene/ui/renderer/objects/SceneObjects.tsx'
 import { LandscapeLayers } from '@/features/scene/ui/renderer/landscape/LandscapeLayers.tsx'
@@ -34,7 +34,7 @@ export const SceneContent: React.FC = () => {
       <WaterLayers />
       <Sky distance={450000}  sunPosition={[500, 150, -1000]} inclination={0} azimuth={0.25} turbidity={0.1}/>
       {/* Transform controls */}
-      <TransformGizmo />
+      <ObjectTransformGizmo />
       <EffectComposer>
         <FXAA />
         <SMAA />

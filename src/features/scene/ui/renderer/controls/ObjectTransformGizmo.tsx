@@ -3,17 +3,9 @@ import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
-import type {
-  SelectedObject,
-  TransformMode
-} from '@/shared/types/ui'
 
-export interface ObjectTransformGizmoProps {
-  selectedObject?: SelectedObject
-  transformMode: TransformMode
-}
 
-export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = () => {
+export const ObjectTransformGizmo: React.FC = () => {
   const { scene, camera, gl, controls } = useThree()
   const transformControlsRef = useRef<any>()
   const selectionMetadata = useSceneStore(state => state.selectedObject)

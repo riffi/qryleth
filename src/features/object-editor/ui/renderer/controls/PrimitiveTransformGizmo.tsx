@@ -6,12 +6,12 @@ import { useObjectStore } from '../../../model/objectStore.ts'
 import { useOEPrimitiveSelection } from '../../../lib/hooks/useOEPrimitiveSelection.ts'
 import type {
   PrimitiveTransformEvent,
-  SelectedObject,
+  SelectedObjectPrimitive,
   TransformMode
 } from '@/shared/types/ui'
 
 export interface PrimitiveTransformGizmoProps {
-  selectedPrimitive?: SelectedObject
+  selectedPrimitive?: SelectedObjectPrimitive
   transformMode: TransformMode
   onTransform?: (event: PrimitiveTransformEvent) => void
 }

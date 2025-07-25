@@ -7,7 +7,7 @@
  * - SceneStore - комбинированный тип
  */
 
-import type { ViewMode, RenderMode, TransformMode, SelectedObject, HoveredObject } from '@/shared/types/ui'
+import type { ViewMode, RenderMode, TransformMode, SelectedSceneObject, HoveredSceneObject } from '@/shared/types/ui'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import type { LightingSettings } from '@/entities/lighting/model/types'
 import type { GfxObject } from '@/entities/object/model/types'
@@ -26,8 +26,8 @@ export interface SceneStoreState {
   objects: SceneObject[]
   objectInstances: SceneObjectInstance[]
   layers: SceneLayer[]
-  selectedObject: SelectedObject | null
-  hoveredObject: HoveredObject | null
+  selectedObject: SelectedSceneObject | null
+  hoveredObject: HoveredSceneObject | null
   sceneMetaData: SceneMetaData
   lighting: LightingSettings
   viewMode: ViewMode
