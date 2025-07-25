@@ -13,14 +13,13 @@ import type {
 export interface PrimitiveTransformGizmoProps {
   selectedPrimitive?: SelectedObjectPrimitive
   transformMode: TransformMode
-  onTransform?: (event: PrimitiveTransformEvent) => void
 }
 
 /**
  * Gizmo для трансформации выбранного примитива.
  * Синхронизирует изменения с состоянием стора и блокирует OrbitControls во время перетаскивания.
  */
-export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ onTransform, orbitControlsRef }) => {
+export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ orbitControlsRef }) => {
   const { camera, gl, scene } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedPrimitiveIds = useObjectStore(state => state.selectedPrimitiveIds)

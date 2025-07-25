@@ -34,20 +34,6 @@ export interface HoveredObjectPrimitive {
   objectUuid: string
 }
 
-// Legacy types for backward compatibility
-/** @deprecated Use SelectedSceneObject or SelectedObjectPrimitive instead */
-export interface SelectedObject {
-  objectUuid: string
-  instanceUuid?: string
-}
-
-/** @deprecated Use HoveredSceneObject or HoveredObjectPrimitive instead */
-export interface HoveredObject {
-  objectUuid: string
-  instanceId?: string
-  /** Index of the hovered instance */
-  objectInstanceIndex?: number
-}
 
 // Re-export events from events module
 export * from './events'
