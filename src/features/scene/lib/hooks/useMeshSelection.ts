@@ -1,11 +1,14 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useSelectedObject, useHoveredObject } from '@/features/scene'
-import type {HoveredObject, SelectedObject} from "@/shared/types";
+import type {
+  HoveredSceneObject,
+  SelectedSceneObject
+} from "@/shared/types";
 
 export interface UseMeshSelectionReturn {
-  selectedObject: SelectedObject | null
-  hoveredObject: HoveredObject | null
+  selectedObject: SelectedSceneObject | null
+  hoveredObject: HoveredSceneObject | null
   selectObject: (objectUuid: string, instanceId?: string) => void
   clearSelection: () => void
   setHoveredObject: (objectUuid: string, instanceId?: string) => void
