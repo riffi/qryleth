@@ -66,31 +66,28 @@ const loadScene = async (sceneUuid: string) => {
    - Public objects (shared community objects)
 3. **Выбрать и разместить**
    ```typescript
-   const addLibraryObjectToScene = (libraryObject: LibraryObject) => {
-     const sceneObject = convertLibraryObjectToSceneObject(libraryObject)
-     addObject(sceneObject)
-     selectObject(sceneObject.uuid)
+   const handleAddObjectToScene = (object: ObjectRecord, layerId: string) => {
+     const { addObject, addObjectInstance } = useSceneStore.getState()
+
+     const newObject = {
+       uuid: generateUUID(),
+       name: object.name,
+       primitives: object.objectData.primitives,
+       visible: true,
+       layerId
+     }
+
+     addObject(newObject)
+     addObjectInstance({
+       uuid: generateUUID(),
+       objectUuid: newObject.uuid,
+       transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+       visible: true
+     })
    }
    ```
 
-#### Создание примитивов
 
-```typescript
-// Add basic primitives directly
-const addPrimitive = (type: PrimitiveType) => {
-  const primitive = createPrimitive(type, {
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1]
-  })
-  
-  const object = createObjectFromPrimitive(primitive)
-  addObject(object)
-}
-
-// Available primitive types
-type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone'
-```
 
 ### Манипулирование объектами
 
@@ -152,22 +149,20 @@ updateObjectTransform(selectedObjectId, {
 #### Creating Layers / Создание слоев
 
 ```typescript
-const createSceneLayer = (name: string, visible: boolean = true) => {
-  const layer: SceneLayer = {
-    uuid: generateUUID(),
+const addLayer = (name: string, visible: boolean = true) => {
+  const { createLayer, layers } = useSceneStore.getState()
+
+  createLayer({
     name,
     visible,
-    objectIds: [],
-    order: layers.length
-  }
-  
-  createLayer(layer)
+    position: layers.length
+  })
 }
 
-// Example usage
-createSceneLayer('Background Objects', true)
-createSceneLayer('Interactive Elements', true)
-createSceneLayer('Lighting', false) // Initially hidden
+// Пример использования
+addLayer('Background Objects', true)
+addLayer('Interactive Elements', true)
+addLayer('Lighting', false) // Initially hidden
 ```
 
 #### Organizing Objects / Организация объектов
@@ -227,88 +222,6 @@ const toggleBackgroundObjects = () => {
 "Add ambient lighting to brighten the scene"
 ```
 
-### AI Tool Integration / Интеграция инструментов ИИ
-
-#### Handling AI Responses / Обработка ответов ИИ
-
-```typescript
-const handleSceneGenerated = (sceneResponse: SceneResponse) => {
-  // Save current state for undo
-  pushToHistory()
-  
-  // Update scene with AI-generated content
-  if (sceneResponse.objects) {
-    sceneResponse.objects.forEach(object => {
-      addObject(object)
-    })
-  }
-  
-  if (sceneResponse.lighting) {
-    updateLighting(sceneResponse.lighting)
-  }
-  
-  if (sceneResponse.layers) {
-    sceneResponse.layers.forEach(layer => {
-      createLayer(layer)
-    })
-  }
-  
-  // Notify user of completion
-  showNotification('Scene generated successfully')
-}
-
-const handleObjectAdded = (object: SceneObject) => {
-  // Add individual object from AI
-  addObject(object)
-  selectObject(object.uuid)
-  pushToHistory()
-}
-```
-
-#### Tool Call Processing / Обработка вызовов инструментов
-
-```typescript
-// Available AI tools for scene manipulation
-const SCENE_TOOLS = [
-  {
-    name: 'add_object',
-    description: 'Add a new object to the scene',
-    parameters: {
-      type: 'object',
-      properties: {
-        objectType: { type: 'string' },
-        position: { type: 'array' },
-        properties: { type: 'object' }
-      }
-    }
-  },
-  {
-    name: 'modify_lighting',
-    description: 'Modify scene lighting',
-    parameters: {
-      type: 'object',
-      properties: {
-        lightingType: { type: 'string' },
-        intensity: { type: 'number' },
-        color: { type: 'string' }
-      }
-    }
-  },
-  {
-    name: 'create_layer',
-    description: 'Create a new scene layer',
-    parameters: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        visible: { type: 'boolean' }
-      }
-    }
-  }
-]
-```
-
----
 
 ## Lighting Configuration / Конфигурация освещения
 
@@ -409,204 +322,6 @@ const setupInteriorLighting = () => {
 
 ---
 
-## Scene Optimization / Оптимизация сцены
-
-### Performance Best Practices / Лучшие практики производительности
-
-#### Object Instancing / Инстансирование объектов
-
-```typescript
-// Use instances for repeated objects
-const createInstancedObjects = (baseObject: SceneObject, positions: Vector3[]) => {
-  positions.forEach((position, index) => {
-    const instance: SceneObjectInstance = {
-      uuid: generateUUID(),
-      objectUuid: baseObject.uuid,
-      transform: {
-        position,
-        rotation: [0, 0, 0],
-        scale: [1, 1, 1]
-      },
-      visible: true
-    }
-    addObjectInstance(instance)
-  })
-}
-
-// Example: Create a row of trees
-const treePositions: Vector3[] = [
-  [-10, 0, 0], [-5, 0, 0], [0, 0, 0], [5, 0, 0], [10, 0, 0]
-]
-createInstancedObjects(treeObject, treePositions)
-```
-
-#### Level of Detail (LOD) / Уровень детализации
-
-```typescript
-// Configure LOD for complex objects
-const configureLOD = (object: SceneObject) => {
-  object.lodLevels = [
-    { distance: 0, primitives: object.primitives }, // Full detail
-    { distance: 50, primitives: simplifiedPrimitives }, // Medium detail
-    { distance: 100, primitives: lowDetailPrimitives } // Low detail
-  ]
-}
-```
-
-#### Culling and Occlusion / Отсечение и окклюзия
-
-```typescript
-// Enable frustum culling
-const optimizeRendering = () => {
-  updateRenderSettings({
-    frustumCulling: true,
-    occlusionCulling: true,
-    maxRenderDistance: 1000,
-    shadowMapSize: 2048
-  })
-}
-```
-
----
-
-## Scene Validation / Валидация сцены
-
-### Scene Health Checks / Проверки работоспособности сцены
-
-```typescript
-const validateScene = (): ValidationResult => {
-  const errors: string[] = []
-  const warnings: string[] = []
-  
-  // Check for empty scene
-  if (objects.length === 0) {
-    warnings.push('Scene contains no objects')
-  }
-  
-  // Check for invalid objects
-  objects.forEach(object => {
-    if (!object.name || object.name.trim() === '') {
-      errors.push(`Object ${object.uuid} has no name`)
-    }
-    
-    if (object.primitives.length === 0) {
-      errors.push(`Object ${object.name} contains no primitives`)
-    }
-  })
-  
-  // Check lighting
-  if (!lighting.ambientLight && !lighting.directionalLight) {
-    warnings.push('Scene has no lighting configured')
-  }
-  
-  // Check performance
-  const totalPrimitives = objects.reduce((count, obj) => 
-    count + obj.primitives.length, 0)
-  
-  if (totalPrimitives > 10000) {
-    warnings.push('Scene may have performance issues (>10k primitives)')
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings
-  }
-}
-```
-
-### Automated Fixes / Автоматические исправления
-
-```typescript
-const autoFixScene = () => {
-  // Add default lighting if none exists
-  if (!lighting.ambientLight && !lighting.directionalLight) {
-    updateLighting(defaultLighting)
-  }
-  
-  // Name unnamed objects
-  objects.forEach(object => {
-    if (!object.name || object.name.trim() === '') {
-      updateObject(object.uuid, {
-        name: `Object ${object.uuid.slice(-8)}`
-      })
-    }
-  })
-  
-  // Remove empty objects
-  objects.forEach(object => {
-    if (object.primitives.length === 0) {
-      removeObject(object.uuid)
-    }
-  })
-}
-```
-
----
-
-## Scene Export and Import / Экспорт и импорт сцены
-
-### Export Formats / Форматы экспорта
-
-```typescript
-// Export scene as JSON
-const exportSceneJSON = (): SceneExport => {
-  return {
-    metadata: {
-      name: currentScene.name,
-      version: '1.0',
-      created: new Date().toISOString(),
-      qrylethVersion: APP_VERSION
-    },
-    objects,
-    objectInstances,
-    layers,
-    lighting,
-    camera: getCurrentCameraState()
-  }
-}
-
-// Export for external 3D software (GLTF preparation)
-const prepareGLTFExport = () => {
-  return {
-    scene: convertToGLTFScene(),
-    materials: extractMaterials(),
-    geometries: extractGeometries(),
-    animations: extractAnimations()
-  }
-}
-```
-
-### Import Validation / Валидация импорта
-
-```typescript
-const validateImportedScene = (sceneData: any): boolean => {
-  // Check required fields
-  if (!sceneData.objects || !Array.isArray(sceneData.objects)) {
-    throw new Error('Invalid scene data: missing objects array')
-  }
-  
-  // Validate object structure
-  sceneData.objects.forEach((object: any, index: number) => {
-    if (!object.uuid || !object.name || !object.primitives) {
-      throw new Error(`Invalid object at index ${index}`)
-    }
-  })
-  
-  // Check version compatibility
-  if (sceneData.metadata?.qrylethVersion) {
-    const importVersion = sceneData.metadata.qrylethVersion
-    if (!isVersionCompatible(importVersion, APP_VERSION)) {
-      console.warn(`Scene created with version ${importVersion}, current version ${APP_VERSION}`)
-    }
-  }
-  
-  return true
-}
-```
-
----
-
 ## Related Documentation / Связанная документация
 
 - [Object Management](object-placement.md) - Detailed object manipulation
@@ -614,46 +329,6 @@ const validateImportedScene = (sceneData: any): boolean => {
 - [Layer System](layer-system.md) - Layer management and organization
 - [Scene Store API](../../api/stores/scene-store.md) - Scene state management
 - [AI Integration](../ai-integration/README.md) - AI-assisted scene creation
-
----
-
-## Examples and Templates / Примеры и шаблоны
-
-### Scene Templates / Шаблоны сцен
-
-```typescript
-// Basic room template
-const createRoomTemplate = (): SceneTemplate => ({
-  name: 'Basic Room',
-  description: 'Simple room with walls, floor, and basic lighting',
-  objects: [
-    createWallObject('North Wall', [0, 2, -5]),
-    createWallObject('South Wall', [0, 2, 5]),
-    createWallObject('East Wall', [5, 2, 0]),
-    createWallObject('West Wall', [-5, 2, 0]),
-    createFloorObject('Floor', [0, 0, 0])
-  ],
-  lighting: {
-    ambientLight: { intensity: 0.3, color: '#ffffff' },
-    directionalLight: {
-      intensity: 0.8,
-      direction: [-0.5, -1, -0.5],
-      color: '#fff8e1'
-    }
-  }
-})
-
-// Product showcase template
-const createProductShowcaseTemplate = (): SceneTemplate => ({
-  name: 'Product Showcase',
-  description: 'Professional product photography setup',
-  objects: [
-    createPedestalObject('Display Pedestal', [0, 0, 0]),
-    createBackdropObject('White Backdrop', [0, 2, -2])
-  ],
-  lighting: setupProductLighting()
-})
-```
 
 ---
 
