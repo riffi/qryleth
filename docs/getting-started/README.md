@@ -44,8 +44,8 @@ src/
 ├── app/               # Точка входа
 ├── pages/             # Компоненты маршрутов
 ├── features/          # Бизнес-логика
-│   ├── scene/         # правление сценой
-│   ├── object/        # OОперации с объектами
+│   ├── scene/         # управление сценой
+│   ├── object/        # операции с объектами
 │   ├── ai-assistant/  # Интеграция AI чата
 │   └── library/       # Библиотека объектов
 ├── widgets/           # Составные UI блоки
@@ -147,16 +147,13 @@ The development server supports hot reload:
 ### Сборка
 
 ```bash
-# Development build / Сборка для разработки
-npm run build:dev
+# Запуск сервера разработки
+npm run dev
 
-# Production build / Продакшн сборка
+# Продакшн сборка
 npm run build
 
-# Type checking / Проверка типов
-npm run type-check
-
-# Linting / Линтинг
+# Линтинг
 npm run lint
 ```
 
