@@ -4,7 +4,8 @@ import {
   IconPyramid,
   IconSphere,
   IconCylinder,
-  IconSquare
+  IconSquare,
+  IconCircle
 } from '@tabler/icons-react'
 import type { GfxPrimitive } from './types'
 import type { Icon } from '@tabler/icons-react'
@@ -28,6 +29,8 @@ export function getPrimitiveIcon(type: GfxPrimitive['type']): Icon {
       return IconCylinder
     case 'plane':
       return IconSquare
+    case 'torus':
+      return IconCircle
     default:
       return IconCube
   }
