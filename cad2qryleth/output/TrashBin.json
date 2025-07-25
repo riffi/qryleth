@@ -1,0 +1,44 @@
+{
+  "name": "TrashBin",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "name": "Trash Bin",
+      "radiusTop": 1.0,
+      "radiusBottom": 1.0,
+      "height": 2.0,
+      "openEnded": true,
+      "position": [
+        0.0,
+        -0.04999999999999982,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#333333"
+    },
+    {
+      "type": "cylinder",
+      "name": "Lid",
+      "radiusTop": 1.05,
+      "radiusBottom": 1.05,
+      "height": 0.1,
+      "openEnded": true,
+      "position": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#4c4c4c"
+    }
+  ]
+}

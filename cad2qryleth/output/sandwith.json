@@ -1,0 +1,115 @@
+{
+  "name": "Sandwich",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "Bottom Bread",
+      "width": 2.0,
+      "height": 0.2,
+      "depth": 2.0,
+      "position": [
+        -0.050000000000000044,
+        -0.35,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#c1996b"
+    },
+    {
+      "type": "box",
+      "name": "Lettuce",
+      "width": 2.0,
+      "height": 0.1,
+      "depth": 2.0,
+      "position": [
+        -0.050000000000000044,
+        -0.14999999999999997,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#218c21"
+    },
+    {
+      "type": "cylinder",
+      "name": "Tomato 2",
+      "radiusTop": 0.3,
+      "radiusBottom": 0.3,
+      "height": 0.05,
+      "openEnded": true,
+      "position": [
+        0.75,
+        -0.04999999999999999,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#e22611"
+    },
+    {
+      "type": "box",
+      "name": "Cheese",
+      "width": 2.0,
+      "height": 0.1,
+      "depth": 2.0,
+      "position": [
+        -0.050000000000000044,
+        0.050000000000000044,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#ffd300"
+    },
+    {
+      "type": "box",
+      "name": "Ham",
+      "width": 2.0,
+      "height": 0.2,
+      "depth": 2.0,
+      "position": [
+        -0.050000000000000044,
+        0.15000000000000002,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#e8967a"
+    },
+    {
+      "type": "box",
+      "name": "Top Bread",
+      "width": 2.0,
+      "height": 0.2,
+      "depth": 2.0,
+      "position": [
+        -0.050000000000000044,
+        0.35,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#c1996b"
+    }
+  ]
+}
