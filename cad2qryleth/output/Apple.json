@@ -1,0 +1,58 @@
+{
+  "name": "Apple",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "sphere",
+      "name": "Apple",
+      "radius": 1.0,
+      "position": [
+        0.0,
+        -0.19999999999999996,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#cc1919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Stem",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.3,
+      "openEnded": true,
+      "position": [
+        0.0,
+        0.95,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#663300"
+    },
+    {
+      "type": "plane",
+      "name": "Leaf",
+      "width": 0.2,
+      "height": 0.2,
+      "position": [
+        0.0,
+        1.2,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#007f00"
+    }
+  ]
+}

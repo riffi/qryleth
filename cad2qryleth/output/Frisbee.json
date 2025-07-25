@@ -1,0 +1,59 @@
+{
+  "name": "Frisbee",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "name": "Frisbee Body",
+      "radiusTop": 1.0,
+      "radiusBottom": 1.0,
+      "height": 0.1,
+      "openEnded": true,
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#0000ff"
+    },
+    {
+      "type": "torus",
+      "name": "Outer Ring",
+      "majorRadius": 1.05,
+      "minorRadius": 0.05,
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#ffffff"
+    },
+    {
+      "type": "torus",
+      "name": "Inner Ring",
+      "majorRadius": 0.95,
+      "minorRadius": 0.05,
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#0000ff"
+    }
+  ]
+}

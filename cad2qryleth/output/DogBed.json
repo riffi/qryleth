@@ -1,0 +1,61 @@
+{
+  "name": "DogBed",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "torus",
+      "name": "Edges",
+      "majorRadius": 1.0,
+      "minorRadius": 0.2,
+      "position": [
+        0.0,
+        -8.326672684688674e-17,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#7f590c"
+    },
+    {
+      "type": "cylinder",
+      "name": "Sleeping Area",
+      "radiusTop": 0.9,
+      "radiusBottom": 0.9,
+      "height": 0.1,
+      "openEnded": true,
+      "position": [
+        0.0,
+        -0.050000000000000086,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#7f590c"
+    },
+    {
+      "type": "cylinder",
+      "name": "Bottom",
+      "radiusTop": 1.1,
+      "radiusBottom": 1.1,
+      "height": 0.05,
+      "openEnded": true,
+      "position": [
+        0.0,
+        -0.10000000000000009,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    }
+  ]
+}
