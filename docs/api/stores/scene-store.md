@@ -189,6 +189,10 @@ Updates the transform of an object instance.
 
 Обновляет трансформацию инстанса объекта.
 
+**Note**: This method is automatically called by the `TransformGizmo` component when objects are modified via transform controls in the 3D viewport. Manual calls are typically not needed for user interactions.
+
+**Примечание**: Этот метод автоматически вызывается компонентом `TransformGizmo` при модификации объектов через элементы управления трансформацией в 3D-области. Ручные вызовы обычно не требуются для пользовательских взаимодействий.
+
 ```typescript
 const { updateObjectInstance } = useSceneStore()
 
