@@ -74,6 +74,11 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     rotation: THREE.Euler;
     scale: THREE.Vector3
   }>()
+  const pendingUpdates = useRef<Map<number, {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  }>>(new Map())
 
   const handlePrimitiveChange = useCallback(() => {
     if (!transformControlsRef.current?.object || selectedPrimitiveIds.length === 0 || !initialGroupTransform.current) return
@@ -95,11 +100,15 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       currentGroupScale.z / initialGroupTransform.current.scale.z
     )
 
+    pendingUpdates.current.clear()
+
     selectedPrimitiveIds.forEach(id => {
       const init = initialTransforms.current.get(id)
       if (!init) return
 
       let newPos = init.position.clone()
+      let newRot = init.rotation.clone()
+      let newScale = init.scale.clone()
 
       if (transformMode === 'translate') {
         newPos.add(deltaPos)
@@ -107,39 +116,25 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         const relativePos = init.relativeToGroup.clone()
         relativePos.applyEuler(deltaRot)
         newPos = initialGroupTransform.current.position.clone().add(relativePos)
-
-        const newRot = new THREE.Euler(
+        newRot = new THREE.Euler(
           init.rotation.x + deltaRot.x,
           init.rotation.y + deltaRot.y,
           init.rotation.z + deltaRot.z
         )
-        updatePrimitive(id, {
-          position: [newPos.x, newPos.y, newPos.z],
-          rotation: [newRot.x, newRot.y, newRot.z],
-          scale: [init.scale.x, init.scale.y, init.scale.z]
-        })
-        return
       } else if (transformMode === 'scale') {
         const relativePos = init.relativeToGroup.clone()
         relativePos.multiply(scaleRatio)
         newPos = initialGroupTransform.current.position.clone().add(relativePos)
-
-        const newScale = init.scale.clone().multiply(scaleRatio)
-        updatePrimitive(id, {
-          position: [newPos.x, newPos.y, newPos.z],
-          rotation: [init.rotation.x, init.rotation.y, init.rotation.z],
-          scale: [newScale.x, newScale.y, newScale.z]
-        })
-        return
+        newScale = init.scale.clone().multiply(scaleRatio)
       }
 
-      updatePrimitive(id, {
+      pendingUpdates.current.set(id, {
         position: [newPos.x, newPos.y, newPos.z],
-        rotation: [init.rotation.x, init.rotation.y, init.rotation.z],
-        scale: [init.scale.x, init.scale.y, init.scale.z]
+        rotation: [newRot.x, newRot.y, newRot.z],
+        scale: [newScale.x, newScale.y, newScale.z]
       })
     })
-  }, [selectedPrimitiveIds, transformMode, updatePrimitive])
+  }, [selectedPrimitiveIds, transformMode])
 
   const handleDraggingChanged = useCallback((event: any) => {
     if (orbitControlsRef?.current) {
@@ -189,11 +184,19 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     }
   }, [selectedPrimitiveIds, selectedMeshes, groupHelper, orbitControlsRef])
 
+  const applyPendingUpdates = useCallback(() => {
+    pendingUpdates.current.forEach((update, id) => {
+      updatePrimitive(id, update)
+    })
+    pendingUpdates.current.clear()
+  }, [updatePrimitive])
+
   const handleMouseUp = useCallback(() => {
+    applyPendingUpdates()
     if (orbitControlsRef?.current) {
       orbitControlsRef.current.enabled = true
     }
-  }, [orbitControlsRef])
+  }, [orbitControlsRef, applyPendingUpdates])
 
   useEffect(() => {
     const controls = transformControlsRef.current
