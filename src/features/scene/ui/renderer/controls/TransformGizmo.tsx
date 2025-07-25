@@ -51,19 +51,19 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = () => {
       ;(controls as any).enabled = !event.value
     }
 
-    // Note: updateObjectInstance already calls saveToHistory() and markSceneAsModified()
-    // No need to call them here to avoid duplication
+    // Call handleObjectChange only when dragging ends
+    if (!event.value) {
+      handleObjectChange()
+    }
   }
 
   useEffect(() => {
     const controls = transformControlsRef.current
     if (!controls) return
 
-    controls.addEventListener('objectChange', handleObjectChange)
     controls.addEventListener('dragging-changed', handleDraggingChanged)
 
     return () => {
-      controls.removeEventListener('objectChange', handleObjectChange)
       controls.removeEventListener('dragging-changed', handleDraggingChanged)
     }
   }, [selectionMetadata])
