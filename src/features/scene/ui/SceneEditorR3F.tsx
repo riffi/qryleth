@@ -268,19 +268,19 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
             <Tooltip label="Отменить (Ctrl+Z)">
               <ActionIcon variant="subtle" size="sm" onClick={undo} disabled={!canUndo}>
-                <IconArrowBack size="1rem" />
+                <IconArrowBack size="1.5rem" />
               </ActionIcon>
             </Tooltip>
 
             <Tooltip label="Вернуть (Ctrl+Y)">
               <ActionIcon variant="subtle" size="sm" onClick={redo} disabled={!canRedo}>
-                <IconArrowForward size="1rem" />
+                <IconArrowForward size="1.5rem" />
               </ActionIcon>
             </Tooltip>
 
             <Tooltip label="Библиотека">
               <ActionIcon component={Link} to="/" variant="subtle" size="sm" c={"gray.4"}>
-                <IconBooks size="1rem" />
+                <IconBooks size="1.5rem" />
               </ActionIcon>
             </Tooltip>
 
@@ -291,13 +291,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 onClick={() => setSettingsOpened(true)}
                 c={"gray.4"}
               >
-                <IconSettings size="1rem" />
+                <IconSettings size="1.5rem" />
               </ActionIcon>
             </Tooltip>
 
             <Tooltip label="Справка">
               <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
-                <IconInfoCircle size="1rem" />
+                <IconInfoCircle size="1.5rem" />
               </ActionIcon>
             </Tooltip>
           </>
