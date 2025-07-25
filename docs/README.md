@@ -27,7 +27,7 @@
 
 ### Типы
 - **[Type System Overview](api/types/README.md)** - Полное руководство по системе типов
-- **[Domain Entities](api/types/entities.md)** - Основные типы домена
+- **[Domain Entities](api/types/entities.md)** - Основные доменные типы
 - **[Shared Types](api/types/shared-types.md)** - Общие утилиты
 
 ### Управление состоянием
