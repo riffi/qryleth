@@ -9,6 +9,7 @@ import type {
   SelectedObjectPrimitive,
   TransformMode
 } from '@/shared/types/ui'
+import type {Transform} from "@/shared/types";
 
 export interface PrimitiveTransformGizmoProps {
   selectedPrimitive?: SelectedObjectPrimitive
@@ -74,11 +75,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     rotation: THREE.Euler;
     scale: THREE.Vector3
   }>()
-  const pendingUpdates = useRef<Map<number, {
-    position: [number, number, number];
-    rotation: [number, number, number];
-    scale: [number, number, number];
-  }>>(new Map())
+  const pendingUpdates = useRef<Map<number, Transform>>(new Map())
 
   const handlePrimitiveChange = useCallback(() => {
     if (!transformControlsRef.current?.object || selectedPrimitiveIds.length === 0 || !initialGroupTransform.current) return
@@ -225,11 +222,6 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       camera={camera}
       gl={gl}
       size={1}
-      onDraggingChanged={(isDragging) => {
-        if (orbitControlsRef?.current) {
-          orbitControlsRef.current.enabled = !isDragging
-        }
-      }}
     />
   )
 }
