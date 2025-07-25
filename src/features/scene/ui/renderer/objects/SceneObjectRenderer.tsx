@@ -21,7 +21,6 @@ export interface SceneObjectRendererProps {
   visible?: boolean
   onClick?: (event: SceneClickEvent) => void
   onHover?: (event: SceneHoverEvent) => void
-  onTransform?: (event: ObjectTransformEvent) => void
 }
 
 export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
@@ -32,7 +31,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   isHovered = false,
   onClick,
   onHover,
-  onTransform,
   visible = true
 }) => {
   const groupRef = useRef<THREE.Group>(null)
@@ -67,18 +65,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
     // Clear hover - this could be handled by parent component
   }
 
-  // Update transform callback when object moves
-  useFrame(() => {
-    if (groupRef.current && onTransform) {
-      const position = groupRef.current.position
-      const rotation = groupRef.current.rotation
-      const scale = groupRef.current.scale
-
-
-      // Only call onTransform if position/rotation/scale changed
-      // This would need proper change detection in a real implementation
-    }
-  })
 
   return (
     <group

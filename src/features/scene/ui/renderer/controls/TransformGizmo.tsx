@@ -4,7 +4,6 @@ import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
 import type {
-  ObjectTransformEvent,
   SelectedObject,
   TransformMode
 } from '@/shared/types/ui'
@@ -12,10 +11,9 @@ import type {
 export interface ObjectTransformGizmoProps {
   selectedObject?: SelectedObject
   transformMode: TransformMode
-  onTransform?: (event: ObjectTransformEvent) => void
 }
 
-export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransform }) => {
+export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = () => {
   const { scene, camera, gl, controls } = useThree()
   const transformControlsRef = useRef<any>()
   const selectionMetadata = useSceneStore(state => state.selectedObject)
@@ -37,22 +35,14 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     // Update the object instance in the store
     if (selectionMetadata.instanceUuid) {
       updateObjectInstance(selectionMetadata.instanceUuid, {
-        position: [position.x, position.y, position.z],
-        rotation: [rotation.x, rotation.y, rotation.z],
-        scale: [scale.x, scale.y, scale.z]
+        transform:{
+          position: [position.x, position.y, position.z],
+          rotation: [rotation.x, rotation.y, rotation.z],
+          scale: [scale.x, scale.y, scale.z]
+        }
       })
     }
 
-    // Call external transform handler if provided
-    if (onTransform) {
-      onTransform({
-        objectUuid: selectionMetadata.objectUuid,
-        instanceId: selectionMetadata.instanceUuid,
-        position: [position.x, position.y, position.z],
-        rotation: [rotation.x, rotation.y, rotation.z],
-        scale: [scale.x, scale.y, scale.z]
-      })
-    }
   }
 
   const handleDraggingChanged = (event: any) => {

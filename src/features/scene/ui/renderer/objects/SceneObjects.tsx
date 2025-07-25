@@ -17,27 +17,11 @@ export const SceneObjects: React.FC = () => {
   const layers = useSceneLayers()
   const selectedObject = useSelectedObject()
   const hoveredObject = useHoveredObject()
-  const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
 
   const { handleClick, handlePointerOver, handlePointerOut } = useSceneEvents()
 
-  const handleObjectTransform = (event: any) => {
-    console.log('handleObjectTransform', event)
-    let instanceId = event.instanceId as string | undefined
-    if (!instanceId && event.objectInstanceIndex !== undefined) {
-      const inst = objectInstances[event.objectInstanceIndex]
-      instanceId = inst?.uuid
-    }
-    if (instanceId) {
-      updateObjectInstance(instanceId, {
-        position: [event.position.x, event.position.y, event.position.z],
-        rotation: [event.rotation.x, event.rotation.y, event.rotation.z],
-        scale: [event.scale.x, event.scale.y, event.scale.z]
-      })
-    }
-  }
 
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
@@ -98,7 +82,6 @@ export const SceneObjects: React.FC = () => {
             isHovered={isHovered(instance.objectUuid, instanceId)}
             onClick={handleClick}
             onHover={handlePointerOver}
-            onTransform={handleObjectTransform}
             visible={true}
           />
         )
