@@ -1,0 +1,112 @@
+{
+  "name": "CoffeeTable",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "Table Top",
+      "width": 3.0,
+      "height": 0.2,
+      "depth": 1.5,
+      "position": [
+        0.0,
+        0.325,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "cylinder",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.5,
+      "openEnded": true,
+      "position": [
+        -1.4,
+        -0.175,
+        -0.7
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "cylinder",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.5,
+      "openEnded": true,
+      "position": [
+        1.4,
+        -0.175,
+        -0.7
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "cylinder",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.5,
+      "openEnded": true,
+      "position": [
+        -1.4,
+        -0.175,
+        0.7
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Leg 4",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.5,
+      "openEnded": true,
+      "position": [
+        1.4,
+        -0.175,
+        0.7
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "box",
+      "name": "Lower Shelf",
+      "width": 2.8,
+      "height": 0.1,
+      "depth": 1.4,
+      "position": [
+        0.0,
+        -0.175,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

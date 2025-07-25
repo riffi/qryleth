@@ -1,0 +1,187 @@
+{
+  "name": "WirelessRouterAndModem",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "Router Body",
+      "width": 1.5,
+      "height": 0.5,
+      "depth": 1.0,
+      "position": [
+        -1.875,
+        -0.5,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Router Antenna 1",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 1.0,
+      "openEnded": true,
+      "position": [
+        -2.375,
+        0.25,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Router Antenna 2",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 1.0,
+      "openEnded": true,
+      "position": [
+        -1.875,
+        0.25,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Router Antenna 3",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 1.0,
+      "openEnded": true,
+      "position": [
+        -1.375,
+        0.25,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "sphere",
+      "name": "Router LED 1",
+      "radius": 0.05,
+      "position": [
+        -2.375,
+        -0.5,
+        0.475
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "sphere",
+      "name": "Router LED 2",
+      "radius": 0.05,
+      "position": [
+        -1.875,
+        -0.5,
+        0.475
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "sphere",
+      "name": "Router LED 3",
+      "radius": 0.05,
+      "position": [
+        -1.375,
+        -0.5,
+        0.475
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "box",
+      "name": "Modem Body",
+      "width": 1.0,
+      "height": 0.5,
+      "depth": 0.5,
+      "position": [
+        2.125,
+        -0.5,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Modem Antenna",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.5,
+      "openEnded": true,
+      "position": [
+        2.125,
+        0.25,
+        -0.025000000000000022
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "sphere",
+      "name": "Modem LED 1",
+      "radius": 0.05,
+      "position": [
+        2.025,
+        -0.5,
+        0.475
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "sphere",
+      "name": "Modem LED 2",
+      "radius": 0.05,
+      "position": [
+        2.225,
+        -0.5,
+        0.475
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}
