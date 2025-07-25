@@ -8,7 +8,7 @@ interface Cone3DProps {
 }
 
 export const Cone3D: React.FC<Cone3DProps> = ({ primitive, materialProps, meshProps }) => {
-  const radius = primitive.radius || 1
+  const radius = primitive.radius || primitive.radiusBottom || 1
   const height = primitive.height || 2
   const radialSegments = primitive.radialSegments || 16
 
