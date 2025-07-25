@@ -50,7 +50,16 @@ export interface SceneStoreActions {
   setObjectInstances: (objectInstances: SceneObjectInstance[]) => void
   addObjectInstance: (instance: SceneObjectInstance) => void
   removeObjectInstance: (index: number) => void
-  updateObjectInstance: (index: number, updates: Partial<SceneObjectInstance>) => void
+  /**
+   * Обновить параметры инстанса по его UUID
+   *
+   * @param instanceId - идентификатор инстанса
+   * @param updates - частичное обновление свойств
+   */
+  updateObjectInstance: (
+    instanceId: string,
+    updates: Partial<SceneObjectInstance>
+  ) => void
 
   // Layer management
   setLayers: (layers: SceneLayer[]) => void

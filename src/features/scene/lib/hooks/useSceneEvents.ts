@@ -31,17 +31,8 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     if (clickedObject?.userData.generated) {
       const objectUuid = clickedObject.userData.objectUuid
       const objectInstanceUuid = clickedObject.userData.objectInstanceUuid
-      const instanceId = objectInstanceUuid
 
-      const clickEvent: SceneClickEvent = {
-        objectUuid,
-        instanceId,
-        objectInstanceIndex: clickedObject.userData.objectInstanceIndex,
-        point: event.point ? [event.point.x, event.point.y, event.point.z] : [0, 0, 0],
-        object: clickedObject
-      }
-
-      selectObject(objectUuid, instanceId)
+      selectObject(objectUuid, objectInstanceUuid)
     } else {
       clearSelection()
     }

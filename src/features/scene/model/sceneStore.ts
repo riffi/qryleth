@@ -142,9 +142,17 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
-    updateObjectInstance: (index: number, updates: Partial<SceneObjectInstance>) => {
-      const list = get().objectInstances.map((instance, i) =>
-        i === index ? { ...instance, ...updates } : instance
+    /**
+     * Обновляет инстанс объекта по его UUID.
+     * Полученные изменения применяются к найденному инстансу,
+     * после чего состояние сохраняется в историю и сцена помечается как измененная.
+     */
+    updateObjectInstance: (
+      instanceId: string,
+      updates: Partial<SceneObjectInstance>
+    ) => {
+      const list = get().objectInstances.map(instance =>
+        instance.uuid === instanceId ? { ...instance, ...updates } : instance
       )
       set({ objectInstances: list })
       get().saveToHistory()
@@ -248,18 +256,11 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Selection
-    selectObject: (objectUuid: string, instanceId?: string) => {
-      let objectInstanceIndex: number | undefined = undefined
-      if (instanceId) {
-        const instances = get().objectInstances
-        objectInstanceIndex = instances.findIndex(p => p.uuid === instanceId)
-        if (objectInstanceIndex === -1) objectInstanceIndex = undefined
-      }
+    selectObject: (objectUuid: string, instanceUuid?: string) => {
 
       const selectedObject: SelectedObject = {
         objectUuid,
-        instanceUuid: instanceId,
-        objectInstanceIndex
+        instanceUuid,
       }
       set({ selectedObject })
     },

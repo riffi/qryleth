@@ -65,9 +65,11 @@ export const useKeyboardShortcuts = () => {
       }
 
       // Object movement shortcuts (only if object is selected)
-      if (!selectedObject || selectedObject.objectInstanceIndex === undefined) return
+      if (!selectedObject || !selectedObject.instanceUuid) return
 
-      const objectInstance = objectInstances[selectedObject.objectInstanceIndex]
+      const objectInstance = objectInstances.find(
+        inst => inst.uuid === selectedObject.instanceUuid
+      )
       if (!objectInstance) return
 
       const moveAmount = 0.5
@@ -202,8 +204,8 @@ export const useKeyboardShortcuts = () => {
 
       if (needsUpdate) {
         event.preventDefault()
-        updateObjectInstance(selectedObject.objectInstanceIndex, newObjectInstance)
-        // Note: updateObjectInstance already calls saveToHistory() and markSceneAsModified()
+        updateObjectInstance(selectedObject.instanceUuid, newObjectInstance)
+        // updateObjectInstance уже сохраняет историю и помечает сцену изменённой
       }
     }
 

@@ -16,8 +16,6 @@ export type TransformMode = 'translate' | 'rotate' | 'scale'
 export interface SelectedObject {
   objectUuid: string
   instanceUuid?: string
-  /** Index of the object instance within scene */
-  objectInstanceIndex?: number
 }
 
 export interface HoveredObject {

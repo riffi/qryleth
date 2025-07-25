@@ -44,7 +44,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       onClick({
         objectUuid: instance.objectUuid,
         instanceId: instance.uuid,
-        objectInstanceIndex: instanceIndex,
         point: event.point,
         object: event.object
       })
@@ -75,6 +74,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       const rotation = groupRef.current.rotation
       const scale = groupRef.current.scale
 
+
       // Only call onTransform if position/rotation/scale changed
       // This would need proper change detection in a real implementation
     }
@@ -92,7 +92,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
         generated: true,
         objectUuid: instance.objectUuid,
         objectInstanceUuid: instance.uuid,
-        objectInstanceIndex: instanceIndex,
         layerId: sceneObject.layerId || 'objects'
       }}
       onClick={handleClick}
@@ -108,7 +107,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
             generated: true,
             objectUuid: instance.objectUuid,
             objectInstanceUuid: instance.uuid,
-            objectInstanceIndex: instanceIndex,
             layerId: sceneObject.layerId || 'objects'
           }}
         />
