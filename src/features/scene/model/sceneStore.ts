@@ -258,7 +258,7 @@ export const useSceneStore = create<SceneStore>()(
 
       const selectedObject: SelectedObject = {
         objectUuid,
-        instanceId,
+        instanceUuid: instanceId,
         objectInstanceIndex
       }
       set({ selectedObject })

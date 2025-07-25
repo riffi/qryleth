@@ -36,7 +36,7 @@ export const SceneObjects: React.FC = () => {
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
     return selectedObject.objectUuid === objectUuid &&
-           selectedObject.instanceId === instanceId
+           selectedObject.instanceUuid === instanceId
   }
 
   const isHovered = (objectUuid: string, instanceId?: string) => {

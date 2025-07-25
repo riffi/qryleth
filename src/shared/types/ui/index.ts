@@ -1,6 +1,6 @@
 /**
  * UI типы общего назначения
- * 
+ *
  * Типы для UI состояний, которые используются в разных features:
  * - ViewMode, RenderMode - режимы отображения
  * - Selection типы - состояние выделения
@@ -9,13 +9,13 @@
 
 // View modes for camera controls
 export type ViewMode = 'orbit' | 'walk' | 'fly'
-export type RenderMode = 'solid' | 'wireframe'  
+export type RenderMode = 'solid' | 'wireframe'
 export type TransformMode = 'translate' | 'rotate' | 'scale'
 
 // Selection state interfaces
 export interface SelectedObject {
   objectUuid: string
-  instanceId?: string
+  instanceUuid?: string
   /** Index of the object instance within scene */
   objectInstanceIndex?: number
 }

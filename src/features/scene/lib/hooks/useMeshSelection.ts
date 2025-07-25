@@ -29,9 +29,9 @@ export const useMeshSelection = (): UseMeshSelectionReturn => {
           child.userData.objectUuid === selectedObject.objectUuid) {
 
         // If specific instance is selected, only include that instance
-        if (selectedObject.instanceId) {
+        if (selectedObject.instanceUuid) {
           const uuid = child.userData.objectInstanceUuid
-          if (uuid === selectedObject.instanceId) {
+          if (uuid === selectedObject.instanceUuid) {
             objects.push(child)
           }
         } else {
@@ -71,7 +71,7 @@ export const useMeshSelection = (): UseMeshSelectionReturn => {
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
     return selectedObject.objectUuid === objectUuid &&
-           selectedObject.instanceId === instanceId
+           selectedObject.instanceUuid === instanceId
   }
 
   const isHovered = (objectUuid: string, instanceId?: string) => {

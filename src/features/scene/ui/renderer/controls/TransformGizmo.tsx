@@ -31,6 +31,8 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     const position = obj.position
     const rotation = obj.rotation
     const scale = obj.scale
+    console.log("obj", obj)
+    console.log("selectionMetadata", selectionMetadata)
 
     // Update the object instance in the store
     if (selectionMetadata.objectInstanceIndex !== undefined) {
@@ -44,8 +46,8 @@ export const TransformGizmo: React.FC<ObjectTransformGizmoProps> = ({ onTransfor
     // Call external transform handler if provided
     if (onTransform) {
       onTransform({
-        objectIndex: selectionMetadata.objectIndex,
-        instanceId: selectionMetadata.instanceId,
+        objectUuid: selectionMetadata.objectUuid,
+        instanceId: selectionMetadata.instanceUuid,
         objectInstanceIndex: selectionMetadata.objectInstanceIndex,
         position: [position.x, position.y, position.z],
         rotation: [rotation.x, rotation.y, rotation.z],
