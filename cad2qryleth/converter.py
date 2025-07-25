@@ -35,7 +35,7 @@ from typing import Any, Dict, List, Tuple
 # Sandbox & capture                                                           #
 ###############################################################################
 
-_PRIMITIVES = ("cylinder", "uv_sphere", "sphere", "cube", "torus", "cone")
+_PRIMITIVES = ("cylinder", "uv_sphere", "sphere", "cube", "torus", "cone", "plane")
 
 class _CaptureContext:
   """Captures all `bpy.ops.mesh.primitive_*_add` calls at runtime."""
@@ -68,12 +68,16 @@ class _CaptureContext:
         select_all=lambda **kw: None,
         select_by_type=lambda **kw: None,
         delete=lambda **kw: None,
+        mode_set=lambda **kw: None,
     )
 
     # --- primitive stubs ---------------------------------------------
     for prim in _PRIMITIVES:
       setattr(self.bpy.ops.mesh, f"primitive_{prim}_add", self._make_stub(prim))
 
+    # --- mesh operations stubs -----------------------------------
+    self.bpy.ops.mesh.extrude_region_move = lambda **kw: None
+    
     # make `import bpy` visible inside user script
     sys.modules["bpy"] = self.bpy
 
@@ -83,7 +87,7 @@ class _CaptureContext:
       kwargs.setdefault("location", (0.0, 0.0, 0.0))
       kwargs.setdefault("rotation", (0.0, 0.0, 0.0))
       # create dummy object so script may rename/materialise it
-      obj = types.SimpleNamespace(name="", data=types.SimpleNamespace(materials=[]), scale=[1.0, 1.0, 1.0])
+      obj = types.SimpleNamespace(name="", data=types.SimpleNamespace(materials=[]), scale=[1.0, 1.0, 1.0], rotation_euler=[0.0, 0.0, 0.0])
       self.bpy.context.object = obj
       self.primitives.append({"__prim": prim_key, "__obj": obj, **kwargs})
     return _stub
@@ -97,25 +101,44 @@ class _CaptureContext:
 # Conversion helpers                                                          #
 ###############################################################################
 
+def _rgb_to_hex(r: float, g: float, b: float) -> str:
+  """Convert RGB values (0.0-1.0) to HEX color string."""
+  r_int = int(r * 255)
+  g_int = int(g * 255)
+  b_int = int(b * 255)
+  return f"#{r_int:02x}{g_int:02x}{b_int:02x}"
+
+def _get_object_color(obj) -> str | None:
+  """Extract HEX color from object's materials, return None if no material."""
+  if obj.data.materials:
+    material = obj.data.materials[0]  # Use first material
+    r, g, b, a = material.diffuse_color
+    return _rgb_to_hex(r, g, b)
+  return None
+
 def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
   kind = rec["__prim"]
   loc  = list(rec["location"])
   rot  = list(rec["rotation"])
   scale = rec["__obj"].scale
+  color = _get_object_color(rec["__obj"])
 
   if kind in ("sphere", "uv_sphere"):
-    return {
+    result = {
       "type": "sphere",
       "name": rec["__obj"].name or "sphere",
       "radius": float(rec.get("radius", 1)) * max(scale),
       "position": loc,
       "rotation": rot,
     }
+    if color:
+      result["color"] = color
+    return result
 
   if kind == "cylinder":
     r = float(rec.get("radius", 1))
     h = float(rec.get("depth", 1))
-    return {
+    result = {
       "type": "cylinder",
       "name": rec["__obj"].name or "cylinder",
       "radiusTop": r * max(scale[0], scale[1]),
@@ -125,10 +148,13 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
       "position": loc,
       "rotation": rot,
     }
+    if color:
+      result["color"] = color
+    return result
 
   if kind == "cube":
     s = float(rec.get("size", 1))
-    return {
+    result = {
       "type": "box",
       "name": rec["__obj"].name or "box",
       "width": s * scale[0],
@@ -137,9 +163,12 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
       "position": loc,
       "rotation": rot,
     }
+    if color:
+      result["color"] = color
+    return result
 
   if kind == "torus":
-    return {
+    result = {
       "type": "torus",
       "name": rec["__obj"].name or "torus",
       "majorRadius": float(rec.get("major_radius", 1)) * max(scale[0], scale[1]),
@@ -147,12 +176,15 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
       "position": loc,
       "rotation": rot,
     }
+    if color:
+      result["color"] = color
+    return result
 
   if kind == "cone":
     radius_bottom = float(rec.get("radius1", rec.get("radius", 1)))
     radius_top    = float(rec.get("radius2", 0.0))  # cone tip – default 0
     height        = float(rec.get("depth", 1))
-    return {
+    result = {
       "type": "cone",
       "name": rec["__obj"].name or "cone",
       "radiusTop": radius_top * max(scale[0], scale[1]),
@@ -162,6 +194,23 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
       "position": loc,
       "rotation": rot,
     }
+    if color:
+      result["color"] = color
+    return result
+
+  if kind == "plane":
+    s = float(rec.get("size", 2.0))  # Blender plane default size is 2.0
+    result = {
+      "type": "plane",
+      "name": rec["__obj"].name or "plane",
+      "width": s * scale[0],
+      "height": s * scale[1],
+      "position": loc,
+      "rotation": rot,
+    }
+    if color:
+      result["color"] = color
+    return result
 
   raise ValueError(f"Unsupported primitive: {kind}")
 
@@ -185,6 +234,9 @@ def _bbox(p: Dict[str, Any]):
   if t == "torus":
     r = p["majorRadius"] + p["minorRadius"]
     return [x - r, y - r, z - r], [x + r, y + r, z + r]
+  if t == "plane":
+    w, h = p["width"]/2, p["height"]/2
+    return [x - w, y - h, z], [x + w, y + h, z]  # plane has no depth
   return [x-0.5]*3, [x+0.5]*3
 
 
