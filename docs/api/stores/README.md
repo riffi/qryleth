@@ -223,9 +223,11 @@ interface LibraryStoreState {
 
 ```typescript
 // Example: Adding object from library to scene
-const addLibraryObjectToScene = (libraryObject: LibraryObject) => {
-  const sceneObject = convertLibraryObjectToSceneObject(libraryObject)
-  useSceneStore.getState().addObject(sceneObject)
+const addLibraryObjectToScene = async (libraryObject: LibraryObject) => {
+  const result = await SceneAPI.addObjectFromLibrary(libraryObject.uuid, 'objects')
+  if (!result.success) {
+    console.error(result.error)
+  }
 }
 
 // Example: Editing scene object in object editor

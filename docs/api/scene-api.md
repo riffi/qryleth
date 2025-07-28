@@ -44,3 +44,23 @@
 ### `adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string }`
 Корректирует положение всех экземпляров объектов под ландшафт с перлин‑шумом и возвращает количество изменённых элементов.
 
+### `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>`
+Ищет объекты в библиотеке по названию или описанию и возвращает массив найденных записей.
+
+### `addObjectFromLibrary(objectUuid: string, layerId: string, transform?: Transform): Promise<AddObjectResult>`
+Добавляет объект из библиотеки на сцену. Поле `libraryUuid` сохраняется в объекте сцены для отслеживания происхождения.
+
+### `SceneObjectInfo`
+```typescript
+interface SceneObjectInfo {
+  uuid: string
+  name: string
+  layerId?: string
+  visible?: boolean
+  libraryUuid?: string // UUID записи в библиотеке
+  primitiveCount: number
+  primitiveTypes: string[]
+  hasInstances: boolean
+  instanceCount: number
+}
+```

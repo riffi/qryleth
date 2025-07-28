@@ -66,24 +66,11 @@ const loadScene = async (sceneUuid: string) => {
    - Public objects (shared community objects)
 3. **Выбрать и разместить**
    ```typescript
-   const handleAddObjectToScene = (object: ObjectRecord, layerId: string) => {
-     const { addObject, addObjectInstance } = useSceneStore.getState()
-
-     const newObject = {
-       uuid: generateUUID(),
-       name: object.name,
-       primitives: object.objectData.primitives,
-       visible: true,
-       layerId
+   const handleAddObjectToScene = async (object: ObjectRecord, layerId: string) => {
+     const result = await SceneAPI.addObjectFromLibrary(object.uuid, layerId)
+     if (!result.success) {
+       console.error(result.error)
      }
-
-     addObject(newObject)
-     addObjectInstance({
-       uuid: generateUUID(),
-       objectUuid: newObject.uuid,
-       transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
-       visible: true
-     })
    }
    ```
 
