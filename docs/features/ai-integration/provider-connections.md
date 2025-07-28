@@ -27,7 +27,7 @@ export interface OpenAISettingsConnection {
 - `removeConnection(id)` – удаляет подключение и обновляет активное при необходимости.
 - `getActiveConnection()` – возвращает активное подключение или стандартное значение по умолчанию.
 
-База данных реализована в `SceneLibraryDB` (`src/shared/lib/database.ts`). Она хранит таблицу `connections` с идентификатором, названием, url, моделью и API‑ключом.
+База данных реализована в `SceneLibraryDB` (`src/shared/lib/database.ts`). Она хранит таблицу `connections` с идентификатором, названием, url, моделью, API‑ключом и полем `isActive`, обозначающим текущее подключение.
 
 ## Использование в UI
 

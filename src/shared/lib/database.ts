@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type {OpenAISettingsConnection} from './openAISettings'
 import type {SceneData} from "@/entities/scene/types.ts";
 import type {GfxObject} from "@/entities/object";
-import type {ConnectionRecord, ObjectRecord, SceneRecord, SettingsRecord } from '../api';
+import type {ConnectionRecord, ObjectRecord, SceneRecord} from '../api';
 
 
 // Database class
@@ -11,7 +11,6 @@ export class SceneLibraryDB extends Dexie {
   scenes!: Table<SceneRecord>
   objects!: Table<ObjectRecord>
   connections!: Table<ConnectionRecord>
-  settings!: Table<SettingsRecord>
 
   constructor() {
     super('SceneLibraryDB')
@@ -26,6 +25,12 @@ export class SceneLibraryDB extends Dexie {
       objects: '++id, uuid, name, createdAt, updatedAt',
       connections: '++id, connectionId, name, createdAt, updatedAt',
       settings: '++id, key, updatedAt'
+    })
+
+    this.version(3).stores({
+      scenes: '++id, uuid, name, createdAt, updatedAt',
+      objects: '++id, uuid, name, createdAt, updatedAt',
+      connections: '++id, connectionId, name, createdAt, updatedAt, isActive'
     })
   }
 
@@ -147,6 +152,11 @@ export class SceneLibraryDB extends Dexie {
 
 
   // Connection methods
+
+  /**
+   * Сохраняет новое подключение к провайдеру LLM.
+   * Все новые подключения создаются неактивными.
+   */
   async saveConnection(connection: OpenAISettingsConnection): Promise<void> {
     const now = new Date()
 
@@ -157,6 +167,7 @@ export class SceneLibraryDB extends Dexie {
       url: connection.url,
       model: connection.model,
       apiKey: connection.apiKey,
+      isActive: 0,
       createdAt: now,
       updatedAt: now
     })
@@ -203,26 +214,26 @@ export class SceneLibraryDB extends Dexie {
     })
   }
 
-  // Settings methods
-  async setSetting(key: string, value: string): Promise<void> {
-    await this.settings.put({
-      key,
-      value,
-      updatedAt: new Date()
-    })
-  }
-
-  async getSetting(key: string): Promise<string | undefined> {
-    const record = await this.settings.where('key').equals(key).first()
-    return record?.value
-  }
-
+  // Active connection helpers
+  /**
+   * Возвращает идентификатор активного подключения.
+   */
   async getActiveConnectionId(): Promise<string | undefined> {
-    return await this.getSetting('activeConnectionId')
+    const record = await this.connections.where('isActive').equals(1).first()
+    return record?.connectionId
   }
 
+  /**
+   * Делает выбранное подключение активным и снимает флаг со всех остальных.
+   */
   async setActiveConnectionId(connectionId: string): Promise<void> {
-    await this.setSetting('activeConnectionId', connectionId)
+    await this.transaction('rw', this.connections, async () => {
+      await this.connections.toCollection().modify({ isActive: 0 })
+      await this.connections
+        .where('connectionId')
+        .equals(connectionId)
+        .modify({ isActive: 1 })
+    })
   }
 }
 

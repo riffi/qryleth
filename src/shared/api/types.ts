@@ -39,14 +39,11 @@ export interface ConnectionRecord {
   url: string
   model: string
   apiKey: string
+  /**
+   * Признак активного подключения (1 – текущее, 0 – нет)
+   */
+  isActive: number
   createdAt: Date
-  updatedAt: Date
-}
-
-export interface SettingsRecord {
-  id?: number
-  key: string
-  value: string
   updatedAt: Date
 }
 
