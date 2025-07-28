@@ -4,8 +4,8 @@ import type {GFXObjectWithTransform, GfxPrimitive} from "@/entities";
 
 
 const getPrimitiveBottomY = (primitive: GfxPrimitive): number => {
-  const position = primitive.position || [0, 0, 0];
-  const rotation = primitive.rotation || [0, 0, 0];
+  const position = primitive.transform?.position || [0, 0, 0]
+  const rotation = primitive.transform?.rotation || [0, 0, 0]
   const centerY = position[1];
 
   // Get primitive dimensions
@@ -13,27 +13,28 @@ const getPrimitiveBottomY = (primitive: GfxPrimitive): number => {
 
   switch (primitive.type) {
     case 'box':
-      width = primitive.width || 1;
-      height = primitive.height || 1;
-      depth = primitive.depth || 1;
+      width = primitive.geometry.width;
+      height = primitive.geometry.height;
+      depth = primitive.geometry.depth;
       break;
     case 'sphere':
-      const radius = primitive.radius || 0.5;
+      const radius = primitive.geometry.radius;
       width = height = depth = radius * 2;
       break;
     case 'cylinder':
-      const cylRadius = primitive.radius || 0.5;
+      const { radiusTop, radiusBottom, height: cylHeight } = primitive.geometry
+      const cylRadius = Math.max(radiusTop, radiusBottom)
       width = depth = cylRadius * 2;
-      height = primitive.height || 1;
+      height = cylHeight;
       break;
     case 'cone':
-      const coneRadius = primitive.radius || 0.5;
+      const coneRadius = primitive.geometry.radius;
       width = depth = coneRadius * 2;
-      height = primitive.height || 1;
+      height = primitive.geometry.height;
       break;
     case 'pyramid':
-      width = depth = primitive.baseSize || 1;
-      height = primitive.height || 1;
+      width = depth = primitive.geometry.baseSize;
+      height = primitive.geometry.height;
       break;
     case 'plane':
       return centerY;
@@ -90,15 +91,18 @@ export const correctLLMGeneratedObject = (
   object: GFXObjectWithTransform,
 ) => {
 
-  const newObject = {...object};
+  const newObject = { ...object }
 
   // Apply existing cylinder rotation correction
   newObject.primitives = newObject.primitives.map((prim: GfxPrimitive) => {
-    if (prim.type === 'cylinder' && prim.rotation?.[0] > 1.5) {
+    if (prim.type === 'cylinder' && prim.transform?.rotation?.[0] > 1.5) {
       return {
         ...prim,
-        rotation: [0, 0, -Math.PI/2]
-      };
+        transform: {
+          ...prim.transform,
+          rotation: [0, 0, -Math.PI / 2]
+        }
+      }
     }
     // if (prim.type === 'box'){
     //   return {
@@ -110,27 +114,30 @@ export const correctLLMGeneratedObject = (
   });
 
   // Calculate the minimum Y coordinate (bottom edge) of all primitives
-  const minY = Math.min(...newObject.primitives.map(getPrimitiveBottomY));
+  const minY = Math.min(...newObject.primitives.map(getPrimitiveBottomY))
 
 
 
   // Calculate vertical offset to move bottom edge to target Y
-  const verticalOffset =  - minY;
+  const verticalOffset = -minY
 
   // Apply vertical offset to all primitives
   if (verticalOffset !== 0) {
     newObject.primitives = newObject.primitives.map((prim: GfxPrimitive) => {
-      const currentPosition = prim.position || [0, 0, 0];
+      const currentPosition = prim.transform?.position || [0, 0, 0]
       return {
         ...prim,
-        position: [
-          currentPosition[0],
-          currentPosition[1] + verticalOffset,
-          currentPosition[2]
-        ]
-      };
-    });
+        transform: {
+          ...prim.transform,
+          position: [
+            currentPosition[0],
+            currentPosition[1] + verticalOffset,
+            currentPosition[2]
+          ]
+        }
+      }
+    })
   }
 
-  return newObject;
+  return newObject
 }

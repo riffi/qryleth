@@ -121,12 +121,13 @@ export interface GfxPrimitive {
 **Ссылка**: [phase_6_summary.md](phases/phase_6_summary.md)
 
 ### Фаза 7: Обновление хранилищ и API
-**Статус**: Запланирована 
-**Описание**: Обновить хранилища и API для работы с новыми типами  
-**Файлы**: 
+**Статус**: Выполнено ✅
+**Описание**: Обновить хранилища и API для работы с новыми типами
+**Файлы**:
 - `src/features/object-editor/model/objectStore.ts`
 - `src/features/scene/lib/sceneAPI.ts`
 - `src/features/scene/lib/correction/LLMGeneratedObjectCorrector.ts`
+**Ссылка**: [phase_7_summary.md](phases/phase_7_summary.md)
 
 ### Фаза 8: Доработка cad2qryleth converter
 **Статус**: Запланирована  
