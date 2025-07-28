@@ -1,5 +1,7 @@
 import type {Vector3} from '@/shared/types/vector3'
+import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
+import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 /**
  * Calculate segments count for perlin terrain - same logic as in perlinGeometry.ts
@@ -8,7 +10,7 @@ const calculateSegments = (width: number): number => {
   return width > 200 ? 200 : width
 }
 
-export type PlacementStrategy = 'Random' | 'Center' | 'Origin' | 'Custom'
+export type PlacementStrategy = 'Random' | 'RandomNoCollision' | 'Center' | 'Origin' | 'Custom'
 
 export interface PlacementOptions {
   strategy: PlacementStrategy
@@ -20,6 +22,11 @@ export interface PlacementOptions {
     maxZ?: number
   }
   landscapeLayer?: SceneLayer
+  existingInstances?: Array<{ 
+    instance: SceneObjectInstance
+    boundingBox: BoundingBox 
+  }>
+  newObjectBoundingBox?: BoundingBox
 }
 
 export interface PlacementResult {
@@ -50,6 +57,14 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
       return {
         position: [x, 0, z], // Y will be adjusted by correctLLMGeneratedObject
         strategy: 'Random'
+      }
+    }
+
+    case 'RandomNoCollision': {
+      const position = generateRandomNoCollisionPosition(options)
+      return {
+        position,
+        strategy: 'RandomNoCollision'
       }
     }
 
@@ -261,6 +276,110 @@ const normalToRotation = (normal: Vector3): Vector3 => {
   return [rotationX, rotationY, rotationZ];
 };
 
+/**
+ * Check if two bounding boxes intersect
+ */
+const checkBoundingBoxCollision = (box1: BoundingBox, box2: BoundingBox): boolean => {
+  return !(
+    box1.max[0] < box2.min[0] || // box1 is to the left of box2
+    box1.min[0] > box2.max[0] || // box1 is to the right of box2
+    box1.max[1] < box2.min[1] || // box1 is below box2
+    box1.min[1] > box2.max[1] || // box1 is above box2
+    box1.max[2] < box2.min[2] || // box1 is in front of box2
+    box1.min[2] > box2.max[2]    // box1 is behind box2
+  );
+};
+
+/**
+ * Generate random position without collisions
+ */
+const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 => {
+  const { bounds, landscapeLayer, existingInstances, newObjectBoundingBox } = options;
+  
+  if (!existingInstances || !newObjectBoundingBox) {
+    console.warn('RandomNoCollision strategy requires existingInstances and newObjectBoundingBox, falling back to Random');
+    const x = Math.random() * ((bounds?.maxX ?? 5) - (bounds?.minX ?? -5)) + (bounds?.minX ?? -5);
+    const z = Math.random() * ((bounds?.maxZ ?? 5) - (bounds?.minZ ?? -5)) + (bounds?.minZ ?? -5);
+    return [x, 0, z];
+  }
+
+  const defaultBounds = {
+    minX: landscapeLayer ? -(landscapeLayer.width || 10) / 2 : -5,
+    maxX: landscapeLayer ? (landscapeLayer.width || 10) / 2 : 5,
+    minZ: landscapeLayer ? -(landscapeLayer.height || 10) / 2 : -5,
+    maxZ: landscapeLayer ? (landscapeLayer.height || 10) / 2 : 5,
+  };
+
+  const finalBounds = { ...defaultBounds, ...bounds };
+  const maxAttempts = 100;
+  const minDistance = 0.5; // Минимальное расстояние между объектами
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
+    const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
+    
+    // Рассчитать правильную Y координату на ландшафте
+    let y = 0;
+    if (landscapeLayer) {
+      y = queryHeightAtCoordinate(landscapeLayer, x, z);
+      // Adjust Y position based on object's bounding box to prevent sinking into terrain
+      const bottomOffset = newObjectBoundingBox.min[1];
+      y = y - bottomOffset;
+    }
+    
+    // Create transformed bounding box for the new object at this position
+    const newObjectTransformedBB = transformBoundingBox(newObjectBoundingBox, {
+      position: [x, y, z],
+      scale: [1, 1, 1],
+      rotation: [0, 0, 0]
+    });
+    
+    // Добавить padding для минимального расстояния
+    const paddedNewBB = {
+      min: [
+        newObjectTransformedBB.min[0] - minDistance,
+        newObjectTransformedBB.min[1] - minDistance,
+        newObjectTransformedBB.min[2] - minDistance
+      ] as Vector3,
+      max: [
+        newObjectTransformedBB.max[0] + minDistance,
+        newObjectTransformedBB.max[1] + minDistance,
+        newObjectTransformedBB.max[2] + minDistance
+      ] as Vector3
+    };
+    
+    // Check collision with all existing instances
+    let hasCollision = false;
+    for (const existing of existingInstances) {
+      const existingPosition = existing.instance.transform?.position || [0, 0, 0];
+      const existingScale = existing.instance.transform?.scale || [1, 1, 1];
+      const existingRotation = existing.instance.transform?.rotation || [0, 0, 0];
+      
+      const existingTransformedBB = transformBoundingBox(existing.boundingBox, {
+        position: existingPosition,
+        scale: existingScale,
+        rotation: existingRotation
+      });
+      
+      if (checkBoundingBoxCollision(paddedNewBB, existingTransformedBB)) {
+        hasCollision = true;
+        break;
+      }
+    }
+    
+    if (!hasCollision) {
+      console.log(`Found collision-free position at attempt ${attempt + 1}: [${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}]`);
+      return [x, y, z];
+    }
+  }
+  
+  console.warn(`Could not find collision-free position after ${maxAttempts} attempts, falling back to Random`);
+  const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
+  const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
+  const y = landscapeLayer ? queryHeightAtCoordinate(landscapeLayer, x, z) - newObjectBoundingBox.min[1] : 0;
+  return [x, y, z];
+};
+
 export const placeInstance = (
     instance: SceneObjectInstance,
     options?: {
@@ -269,25 +388,31 @@ export const placeInstance = (
       placementZ?: number;
       alignToTerrain?: boolean;
       objectBoundingBox?: import('@/shared/types').BoundingBox;
+      existingInstances?: Array<{ 
+        instance: SceneObjectInstance
+        boundingBox: BoundingBox 
+      }>;
     })=> {
   const newInstance = {...instance};
   
   let placementX: number | undefined = options?.placementX;
   let placementZ: number | undefined = options?.placementZ;
   
-  // If no placement coordinates provided, use random placement
-  if (placementX === undefined || placementZ === undefined) {
-    const randomPlacement = getRandomPlacement(options?.landscapeLayer);
-    placementX = randomPlacement.position[0];
-    placementZ = randomPlacement.position[2];
-  }
-  
-  // Calculate target Y position
   let targetY = 0; // Default: place on y=0
-  let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
-
-  // If landscape layer and placement coordinates are provided, place on landscape
-  if (options?.landscapeLayer) {
+  
+  // If no placement coordinates provided, use RandomNoCollision placement
+  if (placementX === undefined || placementZ === undefined) {
+    const placementResult = generateObjectPlacement({
+      strategy: 'RandomNoCollision',
+      landscapeLayer: options?.landscapeLayer,
+      existingInstances: options?.existingInstances,
+      newObjectBoundingBox: options?.objectBoundingBox
+    });
+    placementX = placementResult.position[0];
+    targetY = placementResult.position[1]; // Use Y from strategy
+    placementZ = placementResult.position[2];
+  } else if (options?.landscapeLayer) {
+    // Calculate target Y position manually if coordinates are provided
     targetY = queryHeightAtCoordinate(
         options.landscapeLayer,
         placementX,
@@ -306,25 +431,27 @@ export const placeInstance = (
       // Adjust target Y so the object's bottom aligns with terrain
       targetY = targetY - bottomOffset;
     }
+  }
+  
+  let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
     
-    // If alignToTerrain is enabled, calculate surface normal and align object
-    if (options.alignToTerrain) {
-      const surfaceNormal = calculateSurfaceNormal(
-        options.landscapeLayer,
-        placementX,
-        placementZ
-      );
-      
-      const terrainRotation = normalToRotation(surfaceNormal);
-      
-      // Combine original rotation with terrain alignment
-      // Add terrain rotation to existing rotation
-      finalRotation = [
-        (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
-        (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
-        (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
-      ];
-    }
+  // If alignToTerrain is enabled, calculate surface normal and align object
+  if (options?.alignToTerrain && options?.landscapeLayer) {
+    const surfaceNormal = calculateSurfaceNormal(
+      options.landscapeLayer,
+      placementX,
+      placementZ
+    );
+    
+    const terrainRotation = normalToRotation(surfaceNormal);
+    
+    // Combine original rotation with terrain alignment
+    // Add terrain rotation to existing rotation
+    finalRotation = [
+      (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
+      (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
+      (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
+    ];
   }
 
   newInstance.transform = {

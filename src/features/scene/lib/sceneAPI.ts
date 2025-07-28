@@ -385,6 +385,21 @@ export class SceneAPI {
     
     const objectBoundingBox = baseObject.boundingBox || calculateObjectBoundingBox(baseObject)
 
+    // Collect existing instances and their bounding boxes for collision detection
+    const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: import('@/shared/types').BoundingBox }> = []
+    
+    // Add existing instances from the scene
+    state.objectInstances.forEach(instance => {
+      const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
+      if (instanceObject) {
+        const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
+        existingInstances.push({
+          instance,
+          boundingBox: instanceBoundingBox
+        })
+      }
+    })
+
     const instances: InstanceCreationParams[] = []
     for (let i = 0; i < count; i++) {
       const tempInstance: SceneObjectInstance = {
@@ -401,7 +416,8 @@ export class SceneAPI {
       const placed = placeInstance(tempInstance, {
         landscapeLayer,
         alignToTerrain: options?.alignToTerrain,
-        objectBoundingBox
+        objectBoundingBox,
+        existingInstances
       })
 
       instances.push({
@@ -409,6 +425,22 @@ export class SceneAPI {
         rotation: placed.transform.rotation,
         scale: options?.scale ?? ([1, 1, 1] as Vector3),
         visible: options?.visible ?? true
+      })
+
+      // Add the newly placed instance to existingInstances for next iterations
+      const newInstance: SceneObjectInstance = {
+        uuid: `temp-${i}`,
+        objectUuid,
+        transform: {
+          position: placed.transform.position,
+          rotation: placed.transform.rotation,
+          scale: options?.scale ?? ([1, 1, 1] as Vector3)
+        },
+        visible: options?.visible ?? true
+      }
+      existingInstances.push({
+        instance: newInstance,
+        boundingBox: objectBoundingBox
       })
     }
 
@@ -511,10 +543,24 @@ export class SceneAPI {
         visible: true
       }
 
+      // Collect existing instances for collision detection
+      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: import('@/shared/types').BoundingBox }> = []
+      state.objectInstances.forEach(instance => {
+        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
+        if (instanceObject) {
+          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
+          existingInstances.push({
+            instance,
+            boundingBox: instanceBoundingBox
+          })
+        }
+      })
+
       // Разместить экземпляр с учетом ландшафта
       const placedInstance = placeInstance(newInstance, {
         landscapeLayer,
-        objectBoundingBox: boundingBox
+        objectBoundingBox: boundingBox,
+        existingInstances
       })
 
       // Добавить экземпляр в store
