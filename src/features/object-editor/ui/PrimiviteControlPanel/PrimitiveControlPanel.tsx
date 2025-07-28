@@ -57,7 +57,9 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
    * Получение текущих трансформаций выбранного примитива
    */
   const getSelectedPrimitive = () => {
-    return selectedPrimitiveIds.length === 1 ? primitives[selectedPrimitiveIds[0]] || null : null
+    return selectedPrimitiveIds.length === 1
+      ? primitives[selectedPrimitiveIds[0]] || null
+      : null
   }
 
   /**
@@ -71,13 +73,18 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
     const primitive = getSelectedPrimitive()
     if (!primitive) return
 
-    const currentValue = primitive[property] || (property === 'scale' ? [1, 1, 1] : [0, 0, 0])
+    const currentValue =
+      primitive.transform?.[property] ||
+      (property === 'scale' ? [1, 1, 1] : [0, 0, 0])
     const newValue = [...currentValue] as [number, number, number]
     newValue[axis] = value
 
     if (selectedPrimitiveIds.length === 1) {
       useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
-        [property]: newValue
+        transform: {
+          ...primitive.transform,
+          [property]: newValue
+        }
       })
     }
   }
@@ -88,8 +95,13 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   const resetTransform = (property: 'position' | 'rotation' | 'scale') => {
     if (selectedPrimitiveIds.length === 1) {
       const defaultValue = property === 'scale' ? [1, 1, 1] : [0, 0, 0]
+      const primitive = getSelectedPrimitive()
+      if (!primitive) return
       useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
-        [property]: defaultValue
+        transform: {
+          ...primitive.transform,
+          [property]: defaultValue
+        }
       })
     }
   }
@@ -102,8 +114,13 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
    */
   const handleColorChange = (color: string) => {
     if (selectedPrimitiveIds.length === 1) {
+      const primitive = getSelectedPrimitive()
+      if (!primitive) return
       useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
-        color
+        material: {
+          ...primitive.material,
+          color
+        }
       })
     }
   }
@@ -228,23 +245,23 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
             <TransformBlock
               label="Position"
               property="position"
-              values={selectedPrimitiveData.position || [0, 0, 0]}
+              values={selectedPrimitiveData.transform?.position || [0, 0, 0]}
             />
             <TransformBlock
               label="Rotation"
               property="rotation"
-              values={selectedPrimitiveData.rotation || [0, 0, 0]}
+              values={selectedPrimitiveData.transform?.rotation || [0, 0, 0]}
             />
             <TransformBlock
               label="Scale"
               property="scale"
-              values={selectedPrimitiveData.scale || [1, 1, 1]}
+              values={selectedPrimitiveData.transform?.scale || [1, 1, 1]}
             />
             <Box>
               <Text size="sm" fw={500} mb="xs">Цвет</Text>
               <ColorInput
                 size="xs"
-                value={selectedPrimitiveData.color || '#cccccc'}
+                value={selectedPrimitiveData.material?.color || '#cccccc'}
                 onChange={handleColorChange}
                 withEyeDropper={false}
               />

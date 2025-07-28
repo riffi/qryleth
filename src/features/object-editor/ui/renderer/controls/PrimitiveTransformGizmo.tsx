@@ -183,7 +183,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const applyPendingUpdates = useCallback(() => {
     pendingUpdates.current.forEach((update, id) => {
-      updatePrimitive(id, update)
+      updatePrimitive(id, { transform: update })
     })
     pendingUpdates.current.clear()
   }, [updatePrimitive])
