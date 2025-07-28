@@ -3,11 +3,15 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { GfxPrimitive } from '@/entities/primitive'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { RenderMode, TransformMode, ViewMode } from '@/shared/types/ui'
-import type {LightingSettings} from "@/entities/lighting/model/types.ts";
+import type { LightingSettings } from '@/entities/lighting/model/types.ts'
+import type { BoundingBox } from '@/shared/types'
+import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 interface ObjectStoreState {
   primitives: GfxPrimitive[]
   lighting: LightingSettings
+  /** Текущий BoundingBox объекта */
+  boundingBox?: BoundingBox
   viewMode: ViewMode
   renderMode: RenderMode
   transformMode: TransformMode
@@ -48,6 +52,7 @@ export const useObjectStore = create<ObjectStore>()(
   subscribeWithSelector((set, get) => ({
     primitives: [],
     lighting: initialLighting,
+    boundingBox: undefined,
     viewMode: 'orbit',
     renderMode: 'solid',
     transformMode: 'translate',
@@ -58,12 +63,28 @@ export const useObjectStore = create<ObjectStore>()(
     // Устанавливает список примитивов, нормализуя их
     // и заполняя отсутствующие имена
     setPrimitives: (primitives: GfxPrimitive[]) =>
-      set({ primitives: ensurePrimitiveNames(primitives.map(normalizePrimitive)) }),
+      set(() => {
+        const list = ensurePrimitiveNames(primitives.map(normalizePrimitive))
+        return {
+          primitives: list,
+          boundingBox: list.length
+            ? calculateObjectBoundingBox({ uuid: '', name: '', primitives: list })
+            : undefined
+        }
+      }),
     // Добавляет новый примитив в хранилище
     addPrimitive: (primitive: GfxPrimitive) =>
       set(state => {
         const list = [...state.primitives, normalizePrimitive(primitive)]
-        return { primitives: ensurePrimitiveNames(list) }
+        const normalized = ensurePrimitiveNames(list)
+        return {
+          primitives: normalized,
+          boundingBox: calculateObjectBoundingBox({
+            uuid: '',
+            name: '',
+            primitives: normalized
+          })
+        }
       }),
     // Обновляет примитив по индексу
     updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) =>
@@ -71,7 +92,15 @@ export const useObjectStore = create<ObjectStore>()(
         const list = state.primitives.map((p, i) =>
           i === index ? { ...p, ...updates } : p
         )
-        return { primitives: ensurePrimitiveNames(list) }
+        const normalized = ensurePrimitiveNames(list)
+        return {
+          primitives: normalized,
+          boundingBox: calculateObjectBoundingBox({
+            uuid: '',
+            name: '',
+            primitives: normalized
+          })
+        }
       }),
     // Заменяет настройки освещения
     setLighting: (lighting: LightingSettings) => set({ lighting }),
@@ -97,7 +126,13 @@ export const useObjectStore = create<ObjectStore>()(
     clearSelection: () => set({ selectedPrimitiveIds: [] }),
     // Очищает сцену и сбрасывает освещение
     clearScene: () =>
-      set({ primitives: [], lighting: initialLighting, selectedPrimitiveIds: [], hoveredPrimitiveId: null })
+      set({
+        primitives: [],
+        lighting: initialLighting,
+        selectedPrimitiveIds: [],
+        hoveredPrimitiveId: null,
+        boundingBox: undefined
+      })
   }))
 )
 
@@ -111,3 +146,5 @@ export const useObjectTransformMode = () => useObjectStore(s => s.transformMode)
 export const useObjectViewMode = () => useObjectStore(s => s.viewMode)
 /** Селектор состояния видимости сетки */
 export const useObjectGridVisible = () => useObjectStore(s => s.gridVisible)
+/** Селектор BoundingBox текущего объекта */
+export const useObjectBoundingBox = () => useObjectStore(s => s.boundingBox)

@@ -20,6 +20,7 @@ import type {
 } from '@/entities/scene/types.ts'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type {LightingSettings} from "@/entities/lighting"
+import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 const initialLighting: LightingSettings = {
   ambientColor: '#87CEEB',
@@ -121,9 +122,19 @@ export const useSceneStore = create<SceneStore>()(
         )
       }
 
-      const objects = get().objects.map(obj =>
-        obj.uuid === objectUuid ? { ...obj, ...normalizedUpdates } : obj
-      )
+      const objects = get().objects.map(obj => {
+        if (obj.uuid !== objectUuid) return obj
+
+        const updated = { ...obj, ...normalizedUpdates }
+        if (normalizedUpdates.primitives) {
+          updated.boundingBox = calculateObjectBoundingBox({
+            uuid: obj.uuid,
+            name: obj.name,
+            primitives: normalizedUpdates.primitives
+          })
+        }
+        return updated
+      })
       set({ objects })
       get().saveToHistory()
       get().markSceneAsModified()

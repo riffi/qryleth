@@ -236,7 +236,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleSaveObjectEdit = (object: GfxObject) => {
-    updateObject(object.uuid, { primitives: object.primitives })
+    updateObject(object.uuid, {
+      primitives: object.primitives,
+      boundingBox: object.boundingBox
+    })
 
     notifications.show({
       title: 'Успешно!',

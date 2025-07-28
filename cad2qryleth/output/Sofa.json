@@ -1,0 +1,102 @@
+{
+  "name": "Sofa",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "Seat",
+      "geometry": {
+        "width": 4.0,
+        "height": 0.4,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          0.0,
+          -0.5,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#7f3f3f"
+      }
+    },
+    {
+      "type": "box",
+      "name": "Backrest",
+      "geometry": {
+        "width": 4.0,
+        "height": 1.2,
+        "depth": 0.2
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.10000000000000009,
+          -0.75
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#7f3f3f"
+      }
+    },
+    {
+      "type": "box",
+      "name": "Armrest 1",
+      "geometry": {
+        "width": 0.2,
+        "height": 0.8,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          -1.9,
+          -0.25,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#7f3f3f"
+      }
+    },
+    {
+      "type": "box",
+      "name": "Armrest 2",
+      "geometry": {
+        "width": 0.2,
+        "height": 0.8,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          1.9,
+          -0.25,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#7f3f3f"
+      }
+    }
+  ]
+}

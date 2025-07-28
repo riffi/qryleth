@@ -61,7 +61,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const state = useObjectStore.getState()
     const updatedObject: GfxObject = {
       ...objectData,
-      primitives: state.primitives.map(p => ({ ...p }))
+      primitives: state.primitives.map(p => ({ ...p })),
+      boundingBox: state.boundingBox
     }
 
     onSave(updatedObject)
