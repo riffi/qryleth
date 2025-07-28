@@ -5,18 +5,173 @@ import { SceneAPI } from '../lib/sceneAPI'
 import { db, type ScriptRecord } from '@/shared/lib/database'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
+import { StreamLanguage } from '@codemirror/language'
 import { autocompletion, CompletionContext } from '@codemirror/autocomplete'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { hoverTooltip } from '@codemirror/view'
+import { syntaxTree } from '@codemirror/language'
 
 interface ScriptingPanelProps {
   height?: number | string
 }
 
+type LanguageMode = 'javascript' | 'typescript'
+
+// Типовые схемы для результатов функций SceneAPI
+interface TypeSchema {
+  properties: Record<string, {
+    type: string
+    description: string
+    properties?: Record<string, { type: string; description: string }>
+  }>
+}
+
+const API_RETURN_TYPES: Record<string, TypeSchema> = {
+  'getSceneOverview': {
+    properties: {
+      'totalObjects': { type: 'number', description: 'Общее количество объектов' },
+      'totalInstances': { type: 'number', description: 'Общее количество экземпляров' },
+      'objects': { type: 'SceneObjectInfo[]', description: 'Массив объектов сцены' },
+      'instances': { type: 'SceneInstanceInfo[]', description: 'Массив экземпляров' },
+      'sceneName': { type: 'string', description: 'Название сцены' },
+      'layers': { type: 'LayerInfo[]', description: 'Массив слоев' }
+    }
+  },
+  'getSceneObjects': {
+    properties: {
+      'length': { type: 'number', description: 'Количество объектов в массиве' },
+      'forEach': { type: 'function', description: 'Метод итерации по массиву' },
+      'map': { type: 'function', description: 'Метод преобразования массива' },
+      'filter': { type: 'function', description: 'Метод фильтрации массива' },
+      'find': { type: 'function', description: 'Поиск элемента в массиве' }
+    }
+  },
+  'getSceneInstances': {
+    properties: {
+      'length': { type: 'number', description: 'Количество экземпляров в массиве' },
+      'forEach': { type: 'function', description: 'Метод итерации по массиву' },
+      'map': { type: 'function', description: 'Метод преобразования массива' },
+      'filter': { type: 'function', description: 'Метод фильтрации массива' },
+      'find': { type: 'function', description: 'Поиск элемента в массиве' }
+    }
+  },
+  'getSceneStats': {
+    properties: {
+      'total': { 
+        type: 'object', 
+        description: 'Общая статистика',
+        properties: {
+          'objects': { type: 'number', description: 'Общее количество объектов' },
+          'instances': { type: 'number', description: 'Общее количество экземпляров' },
+          'layers': { type: 'number', description: 'Общее количество слоев' }
+        }
+      },
+      'visible': { 
+        type: 'object', 
+        description: 'Статистика видимых элементов',
+        properties: {
+          'objects': { type: 'number', description: 'Видимые объекты' },
+          'instances': { type: 'number', description: 'Видимые экземпляры' },
+          'layers': { type: 'number', description: 'Видимые слои' }
+        }
+      },
+      'primitiveTypes': { type: 'string[]', description: 'Типы примитивов' }
+    }
+  },
+  'getAvailableLayers': {
+    properties: {
+      'length': { type: 'number', description: 'Количество слоев в массиве' },
+      'forEach': { type: 'function', description: 'Метод итерации по массиву' },
+      'map': { type: 'function', description: 'Метод преобразования массива' },
+      'filter': { type: 'function', description: 'Метод фильтрации массива' },
+      'find': { type: 'function', description: 'Поиск элемента в массиве' }
+    }
+  },
+  'addObjectInstance': {
+    properties: {
+      'success': { type: 'boolean', description: 'Успешность операции' },
+      'instanceUuid': { type: 'string', description: 'UUID созданного экземпляра' },
+      'objectUuid': { type: 'string', description: 'UUID объекта' },
+      'error': { type: 'string', description: 'Сообщение об ошибке' }
+    }
+  },
+  'addObjectInstances': {
+    properties: {
+      'success': { type: 'boolean', description: 'Успешность операции' },
+      'instanceCount': { type: 'number', description: 'Количество созданных экземпляров' },
+      'instances': { type: 'CreatedInstanceInfo[]', description: 'Информация о созданных экземплярах' },
+      'errors': { type: 'string[]', description: 'Массив ошибок' },
+      'error': { type: 'string', description: 'Сообщение об ошибке' }
+    }
+  },
+  'findObjectByUuid': {
+    properties: {
+      'uuid': { type: 'string', description: 'UUID объекта' },
+      'name': { type: 'string', description: 'Название объекта' },
+      'primitiveCount': { type: 'number', description: 'Количество примитивов' },
+      'visible': { type: 'boolean', description: 'Видимость объекта' }
+    }
+  },
+  'findObjectByName': {
+    properties: {
+      'uuid': { type: 'string', description: 'UUID объекта' },
+      'name': { type: 'string', description: 'Название объекта' },
+      'primitiveCount': { type: 'number', description: 'Количество примитивов' },
+      'visible': { type: 'boolean', description: 'Видимость объекта' }
+    }
+  }
+}
+
 export const ScriptingPanel: React.FC<ScriptingPanelProps> = ({ height = 800 }) => {
-  const [script, setScript] = useState(`// Пример использования SceneAPI
+  const getDefaultScript = useCallback((mode: LanguageMode) => {
+    if (mode === 'typescript') {
+      return `// Пример использования SceneAPI с TypeScript
+interface SceneOverview {
+  totalObjects: number
+  totalInstances: number
+  objects: SceneObjectInfo[]
+  instances: SceneInstanceInfo[]
+  sceneName: string
+  layers: Array<{id: string, name: string, visible: boolean, objectCount: number}>
+}
+
+const overview: SceneOverview = sceneApi.getSceneOverview()
+console.log('Объектов в сцене:', overview.totalObjects)
+console.log('Экземпляров:', overview.totalInstances)
+console.log('Слои:', overview.layers)
+
+// Получить статистику с вложенными свойствами
+const stats = sceneApi.getSceneStats()
+console.log('Общие объекты:', stats.total.objects)
+console.log('Видимые объекты:', stats.visible.objects)
+
+// Получить все объекты
+const objects: SceneObjectInfo[] = sceneApi.getSceneObjects()
+objects.forEach((obj: SceneObjectInfo) => {
+  console.log(\`Объект: \${obj.name}, примитивов: \${obj.primitiveCount}\`)
+})
+
+// Создать экземпляр первого объекта (если есть)
+if (objects.length > 0) {
+  const result: AddInstanceResult = sceneApi.addObjectInstance(
+    objects[0].uuid,
+    [2, 0, 2] as Vector3, // position
+    [0, 0, 0] as Vector3, // rotation
+    [1, 1, 1] as Vector3  // scale
+  )
+  console.log('Результат создания экземпляра:', result)
+}`
+    } else {
+      return `// Пример использования SceneAPI
 const overview = sceneApi.getSceneOverview()
 console.log('Объектов в сцене:', overview.totalObjects)
 console.log('Экземпляров:', overview.totalInstances)
+console.log('Слои:', overview.layers)
+
+// Получить статистику с вложенными свойствами  
+const stats = sceneApi.getSceneStats()
+console.log('Общие объекты:', stats.total.objects)
+console.log('Видимые объекты:', stats.visible.objects)
 
 // Получить все объекты
 const objects = sceneApi.getSceneObjects()
@@ -33,7 +188,11 @@ if (objects.length > 0) {
     [1, 1, 1]  // scale
   )
   console.log('Результат создания экземпляра:', result)
-}`)
+}`
+    }
+  }, [])
+
+  const [script, setScript] = useState(() => getDefaultScript('javascript'))
 
   // Состояния для работы со скриптами
   const [savedScripts, setSavedScripts] = useState<ScriptRecord[]>([])
@@ -47,6 +206,7 @@ if (objects.length > 0) {
   const [currentMethodInfo, setCurrentMethodInfo] = useState<string | null>(null)
   const [cursorPosition, setCursorPosition] = useState<{ line: number; ch: number } | null>(null)
   const editorRef = useRef<any>(null)
+  const [languageMode, setLanguageMode] = useState<LanguageMode>('javascript')
 
   // Загрузка сохранённых скриптов при монтировании
   useEffect(() => {
@@ -104,8 +264,17 @@ if (objects.length > 0) {
 
   // Функция для получения информации о методе
   const getMethodInfo = useCallback((methodName: string) => {
+    const isTs = languageMode === 'typescript'
     const methodInfoMap: Record<string, string> = {
-      'getSceneOverview': `getSceneOverview(): SceneOverview
+      'getSceneOverview': isTs ? `getSceneOverview(): SceneOverview
+Возвращает: {
+  totalObjects: number,
+  totalInstances: number,
+  objects: SceneObjectInfo[],
+  instances: SceneInstanceInfo[],
+  sceneName: string,
+  layers: Array<{id: string, name: string, visible: boolean, objectCount: number}>
+}` : `getSceneOverview(): SceneOverview
 Возвращает: {
   totalObjects: number,
   totalInstances: number,
@@ -178,7 +347,7 @@ if (objects.length > 0) {
     }
     
     return methodInfoMap[methodName] || null
-  }, [])
+  }, [languageMode])
 
   const loadSavedScripts = useCallback(async () => {
     try {
@@ -253,10 +422,10 @@ if (objects.length > 0) {
   }, [currentScriptUuid, loadSavedScripts])
 
   const handleNewScript = useCallback(() => {
-    setScript('')
+    setScript(getDefaultScript(languageMode))
     setCurrentScriptUuid(null)
     setSelectedScriptUuid(null)
-  }, [])
+  }, [languageMode, getDefaultScript])
 
   const openSaveModal = useCallback(() => {
     if (currentScriptUuid) {
@@ -273,6 +442,31 @@ if (objects.length > 0) {
     }
     setIsSaveModalOpen(true)
   }, [currentScriptUuid, savedScripts])
+
+  // Функция для анализа типов переменных из присваиваний
+  const analyzeVariableTypes = useCallback((scriptText: string): Record<string, string> => {
+    const variableTypes: Record<string, string> = {}
+    
+    // Поиск присваиваний результатов функций sceneApi (включая await)
+    const patterns = [
+      /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*sceneApi\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
+      /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*await\s+sceneApi\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g
+    ]
+    
+    patterns.forEach(pattern => {
+      let match
+      while ((match = pattern.exec(scriptText)) !== null) {
+        const varName = match[1]
+        const methodName = match[2]
+        
+        if (API_RETURN_TYPES[methodName]) {
+          variableTypes[varName] = methodName
+        }
+      }
+    })
+    
+    return variableTypes
+  }, [])
 
   // Функция для извлечения переменных из кода
   const extractVariablesFromScript = useCallback((scriptText: string) => {
@@ -372,6 +566,171 @@ if (objects.length > 0) {
     };
   };
 
+  // Функция для создания hover tooltip с информацией о методах
+  const createHoverTooltip = useCallback(() => {
+    return hoverTooltip((view, pos, side) => {
+      const { state } = view
+      const tree = syntaxTree(state)
+      const node = tree.resolveInner(pos, side)
+      
+      // Получаем текущий код
+      const currentScript = state.doc.toString()
+      const variableTypes = analyzeVariableTypes(currentScript)
+      
+      // Получаем слово под курсором
+      let word = state.doc.sliceString(node.from, node.to)
+      const beforeNode = state.doc.sliceString(Math.max(0, node.from - 20), node.from)
+      
+      // Если узел не содержит слово, попробуем найти ближайшее слово
+      if (!word || !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(word)) {
+        // Ищем слово в окрестности позиции
+        const lineText = state.doc.lineAt(pos).text
+        const lineStart = state.doc.lineAt(pos).from
+        const localPos = pos - lineStart
+        const match = lineText.match(/[a-zA-Z_$][a-zA-Z0-9_$]*/g)
+        if (match) {
+          for (const m of match) {
+            const index = lineText.indexOf(m)
+            if (index <= localPos && localPos <= index + m.length) {
+              word = m
+              break
+            }
+          }
+        }
+      }
+      
+      // Проверяем, является ли это методом sceneApi
+      if (beforeNode.includes('sceneApi.') && word) {
+        const methodInfo = getMethodInfo(word)
+        if (methodInfo) {
+          return {
+            pos: node.from,
+            end: node.to,
+            above: true,
+            create: () => {
+              const div = document.createElement('div')
+              div.style.padding = '8px 12px'
+              div.style.backgroundColor = '#1e1e1e'
+              div.style.color = '#d4d4d4'
+              div.style.border = '1px solid #444'
+              div.style.borderRadius = '6px'
+              div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'
+              div.style.maxWidth = '400px'
+              div.style.fontFamily = "'Fira Code', monospace"
+              div.style.fontSize = '12px'
+              div.style.lineHeight = '1.4'
+              div.style.whiteSpace = 'pre-wrap'
+              div.style.zIndex = '1000'
+              
+              div.textContent = methodInfo
+              return { dom: div }
+            }
+          }
+        }
+      }
+      
+      // Проверяем, является ли это переменной с выведенным типом
+      if (word && variableTypes[word]) {
+        const apiMethodName = variableTypes[word]
+        const typeSchema = API_RETURN_TYPES[apiMethodName]
+        if (typeSchema) {
+          const typeInfo = `${word}: результат ${apiMethodName}()\n\nДоступные свойства:\n${Object.entries(typeSchema.properties).map(([prop, info]) => `• ${prop}: ${info.type} - ${info.description}`).join('\n')}`
+          
+          return {
+            pos: node.from,
+            end: node.to,
+            above: true,
+            create: () => {
+              const div = document.createElement('div')
+              div.style.padding = '8px 12px'
+              div.style.backgroundColor = '#1e1e1e'
+              div.style.color = '#d4d4d4'
+              div.style.border = '1px solid #444'
+              div.style.borderRadius = '6px'
+              div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'
+              div.style.maxWidth = '400px'
+              div.style.fontFamily = "'Fira Code', monospace"
+              div.style.fontSize = '12px'
+              div.style.lineHeight = '1.4'
+              div.style.whiteSpace = 'pre-wrap'
+              div.style.zIndex = '1000'
+              
+              div.textContent = typeInfo
+              return { dom: div }
+            }
+          }
+        }
+      }
+      
+      // Проверяем свойства переменных с выведенными типами
+      const propertyAccess = beforeNode.match(/([a-zA-Z_$][a-zA-Z0-9_$]*)\.$/)
+      if (propertyAccess && variableTypes[propertyAccess[1]] && word) {
+        const variableName = propertyAccess[1]
+        const apiMethodName = variableTypes[variableName]
+        const typeSchema = API_RETURN_TYPES[apiMethodName]
+        
+        if (typeSchema && typeSchema.properties[word]) {
+          const propInfo = typeSchema.properties[word]
+          const propertyInfo = `${variableName}.${word}: ${propInfo.type}\n\n${propInfo.description}`
+          
+          // Если есть вложенные свойства, добавляем их
+          if (propInfo.properties) {
+            const nestedProps = Object.entries(propInfo.properties).map(([prop, info]) => `• ${prop}: ${info.type} - ${info.description}`).join('\n')
+            return {
+              pos: node.from,
+              end: node.to,
+              above: true,
+              create: () => {
+                const div = document.createElement('div')
+                div.style.padding = '8px 12px'
+                div.style.backgroundColor = '#1e1e1e'
+                div.style.color = '#d4d4d4'
+                div.style.border = '1px solid #444'
+                div.style.borderRadius = '6px'
+                div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'
+                div.style.maxWidth = '400px'
+                div.style.fontFamily = "'Fira Code', monospace"
+                div.style.fontSize = '12px'
+                div.style.lineHeight = '1.4'
+                div.style.whiteSpace = 'pre-wrap'
+                div.style.zIndex = '1000'
+                
+                div.textContent = `${propertyInfo}\n\nВложенные свойства:\n${nestedProps}`
+                return { dom: div }
+              }
+            }
+          } else {
+            return {
+              pos: node.from,
+              end: node.to,
+              above: true,
+              create: () => {
+                const div = document.createElement('div')
+                div.style.padding = '8px 12px'
+                div.style.backgroundColor = '#1e1e1e'
+                div.style.color = '#d4d4d4'
+                div.style.border = '1px solid #444'
+                div.style.borderRadius = '6px'
+                div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'
+                div.style.maxWidth = '400px'
+                div.style.fontFamily = "'Fira Code', monospace"
+                div.style.fontSize = '12px'
+                div.style.lineHeight = '1.4'
+                div.style.whiteSpace = 'pre-wrap'
+                div.style.zIndex = '1000'
+                
+                div.textContent = propertyInfo
+                return { dom: div }
+              }
+            }
+          }
+        }
+      }
+      
+      return null
+    })
+  }, [analyzeVariableTypes, getMethodInfo])
+
   // Расширенный автокомплит с поддержкой переменных
   const enhancedCompletions = useCallback((context: CompletionContext) => {
     const word = context.matchBefore(/\w*/)
@@ -380,15 +739,55 @@ if (objects.length > 0) {
 
     // Получаем текущий код для анализа переменных
     const currentScript = context.state.doc.toString()
-    const beforeWord = context.state.doc.sliceString(Math.max(0, word.from - 10), word.from)
+    const beforeWord = context.state.doc.sliceString(Math.max(0, word.from - 20), word.from)
     
     const isAfterSceneApi = beforeWord.endsWith('sceneApi.')
     const isAfterConsole = beforeWord.endsWith('console.')
     const isAfterDot = beforeWord.endsWith('.')
+    
+    // Анализируем типы переменных
+    const variableTypes = analyzeVariableTypes(currentScript)
+    
+    // Проверяем, находимся ли мы после переменной с известным типом
+    const variableAccess = beforeWord.match(/([a-zA-Z_$][a-zA-Z0-9_$]*)\.$/)
+    const isAfterTypedVariable = variableAccess && variableTypes[variableAccess[1]]
+    
+    // Проверяем вложенные свойства (например, stats.total.)
+    const nestedAccess = beforeWord.match(/([a-zA-Z_$][a-zA-Z0-9_$]*)\.([a-zA-Z_$][a-zA-Z0-9_$]*)\.$/)
+    const isAfterNestedProperty = nestedAccess && variableTypes[nestedAccess[1]]
 
     let completions = []
 
-    if (isAfterSceneApi) {
+    if (isAfterNestedProperty) {
+      // Если автокомплит после вложенного свойства (например, stats.total.)
+      const variableName = nestedAccess[1]
+      const propertyName = nestedAccess[2]
+      const apiMethodName = variableTypes[variableName]
+      const typeSchema = API_RETURN_TYPES[apiMethodName]
+      
+      if (typeSchema && typeSchema.properties[propertyName]?.properties) {
+        completions = Object.entries(typeSchema.properties[propertyName].properties!).map(([propName, propInfo]) => ({
+          label: propName,
+          type: 'property',
+          info: createStyledInfo(`${propName}: ${propInfo.type}\n${propInfo.description}`)
+        }))
+      }
+    } else if (isAfterTypedVariable) {
+      // Если автокомплит после переменной с известным типом
+      const variableName = variableAccess[1]
+      const apiMethodName = variableTypes[variableName]
+      const typeSchema = API_RETURN_TYPES[apiMethodName]
+      
+      if (typeSchema) {
+        completions = Object.entries(typeSchema.properties).map(([propName, propInfo]) => ({
+          label: propName,
+          type: propInfo.type.includes('function') ? 'function' : 
+                propInfo.type.includes('[]') ? 'variable' : 
+                propInfo.type === 'object' ? 'variable' : 'property',
+          info: createStyledInfo(`${propName}: ${propInfo.type}\n${propInfo.description}`)
+        }))
+      }
+    } else if (isAfterSceneApi) {
       // Если автокомплит после "sceneApi.", показываем только методы с детальными подсказками типов
       completions = [
         { 
@@ -617,15 +1016,37 @@ if (objects.length > 0) {
         { label: 'String', type: 'variable', info: 'Конструктор строк' },
         { label: 'Number', type: 'variable', info: 'Конструктор чисел' }
       ]
+
+      // Добавляем TypeScript-специфичные типы для API
+      if (languageMode === 'typescript') {
+        const tsTypes = [
+          { label: 'Vector3', type: 'type', info: 'Тип для 3D вектора: [number, number, number]' },
+          { label: 'SceneOverview', type: 'type', info: 'Интерфейс обзора сцены' },
+          { label: 'SceneObjectInfo', type: 'type', info: 'Интерфейс информации об объекте сцены' },
+          { label: 'SceneInstanceInfo', type: 'type', info: 'Интерфейс информации об экземпляре' },
+          { label: 'AddInstanceResult', type: 'type', info: 'Результат добавления экземпляра' },
+          { label: 'AddInstancesResult', type: 'type', info: 'Результат добавления нескольких экземпляров' },
+          { label: 'InstanceCreationParams', type: 'type', info: 'Параметры создания экземпляра' },
+          { label: 'LayerInfo', type: 'type', info: 'Информация о слое' },
+          { label: 'SceneStats', type: 'type', info: 'Статистика сцены' },
+          { label: 'Transform', type: 'type', info: 'Трансформация объекта' },
+          { label: 'BoundingBox', type: 'type', info: 'Ограничивающий бокс' }
+        ]
+        completions.push(...tsTypes)
+      }
       
       // Добавляем переменные из текущего скрипта
       const scriptVariables = extractVariablesFromScript(currentScript)
       scriptVariables.forEach(varName => {
         if (!completions.some(c => c.label === varName)) {
+          // Проверяем, есть ли у переменной выведенный тип
+          const inferredType = variableTypes[varName]
+          const typeInfo = inferredType ? ` (тип: результат ${inferredType})` : ''
+          
           completions.push({
             label: varName,
             type: 'variable',
-            info: `Переменная из скрипта: ${varName}`
+            info: `Переменная из скрипта: ${varName}${typeInfo}`
           })
         }
       })
@@ -634,8 +1055,8 @@ if (objects.length > 0) {
       const apiVariables = getApiVariables()
       completions.push(...apiVariables)
       
-      // Добавляем ключевые слова JavaScript
-      const keywords = [
+      // Добавляем ключевые слова JavaScript/TypeScript
+      const jsKeywords = [
         { label: 'const', type: 'keyword', info: 'Объявление константы' },
         { label: 'let', type: 'keyword', info: 'Объявление переменной' },
         { label: 'var', type: 'keyword', info: 'Объявление переменной (устаревшее)' },
@@ -655,6 +1076,37 @@ if (objects.length > 0) {
         { label: 'null', type: 'keyword', info: 'Значение null' },
         { label: 'undefined', type: 'keyword', info: 'Значение undefined' }
       ]
+
+      const tsKeywords = [
+        { label: 'interface', type: 'keyword', info: 'Объявление интерфейса' },
+        { label: 'type', type: 'keyword', info: 'Объявление типа' },
+        { label: 'enum', type: 'keyword', info: 'Объявление перечисления' },
+        { label: 'namespace', type: 'keyword', info: 'Объявление пространства имён' },
+        { label: 'class', type: 'keyword', info: 'Объявление класса' },
+        { label: 'extends', type: 'keyword', info: 'Наследование класса/интерфейса' },
+        { label: 'implements', type: 'keyword', info: 'Реализация интерфейса' },
+        { label: 'public', type: 'keyword', info: 'Модификатор доступа public' },
+        { label: 'private', type: 'keyword', info: 'Модификатор доступа private' },
+        { label: 'protected', type: 'keyword', info: 'Модификатор доступа protected' },
+        { label: 'readonly', type: 'keyword', info: 'Модификатор readonly' },
+        { label: 'static', type: 'keyword', info: 'Статический член класса' },
+        { label: 'abstract', type: 'keyword', info: 'Абстрактный класс/метод' },
+        { label: 'as', type: 'keyword', info: 'Приведение типа' },
+        { label: 'is', type: 'keyword', info: 'Предикат типа' },
+        { label: 'keyof', type: 'keyword', info: 'Оператор keyof' },
+        { label: 'typeof', type: 'keyword', info: 'Оператор typeof' },
+        { label: 'in', type: 'keyword', info: 'Оператор in' },
+        { label: 'never', type: 'keyword', info: 'Тип never' },
+        { label: 'unknown', type: 'keyword', info: 'Тип unknown' },
+        { label: 'any', type: 'keyword', info: 'Тип any' },
+        { label: 'void', type: 'keyword', info: 'Тип void' },
+        { label: 'string', type: 'keyword', info: 'Тип string' },
+        { label: 'number', type: 'keyword', info: 'Тип number' },
+        { label: 'boolean', type: 'keyword', info: 'Тип boolean' },
+        { label: 'object', type: 'keyword', info: 'Тип object' }
+      ]
+
+      const keywords = languageMode === 'typescript' ? [...jsKeywords, ...tsKeywords] : jsKeywords
       
       completions.push(...keywords)
     }
@@ -665,7 +1117,7 @@ if (objects.length > 0) {
         item.label.toLowerCase().includes(word.text.toLowerCase())
       )
     }
-  }, [extractVariablesFromScript, getApiVariables])
+  }, [extractVariablesFromScript, getApiVariables, languageMode, analyzeVariableTypes])
 
   const executeScript = useCallback(async () => {
     if (!script.trim()) return
@@ -717,6 +1169,24 @@ if (objects.length > 0) {
           >
             Новый
           </Button>
+
+          <Select
+            size="xs"
+            value={languageMode}
+            onChange={(value) => {
+              const newMode = value as LanguageMode
+              setLanguageMode(newMode)
+              if (!script.trim() || script === getDefaultScript('javascript') || script === getDefaultScript('typescript')) {
+                setScript(getDefaultScript(newMode))
+              }
+            }}
+            data={[
+              { value: 'javascript', label: 'JavaScript' },
+              { value: 'typescript', label: 'TypeScript' }
+            ]}
+            leftSection={<IconCode size={14} />}
+            style={{ minWidth: 120 }}
+          />
 
           <Select
             placeholder="Загрузить скрипт"
@@ -823,8 +1293,9 @@ if (objects.length > 0) {
           value={script}
           onChange={handleEditorChange}
           extensions={[
-            javascript(),
-            autocompletion({ override: [enhancedCompletions] })
+            javascript({ typescript: languageMode === 'typescript' }),
+            autocompletion({ override: [enhancedCompletions] }),
+            createHoverTooltip()
           ]}
           basicSetup={{
             lineNumbers: true,
