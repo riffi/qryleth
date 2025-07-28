@@ -1,10 +1,12 @@
 import type {GfxPrimitive} from "@/entities";
-import type {Vector3} from "@/shared/types";
+import type {Vector3, BoundingBox} from "@/shared/types";
 
 export interface GfxObject {
   uuid: string;
   name: string;
   primitives: GfxPrimitive[];
+  /** Ограничивающий прямоугольник объекта в локальных координатах */
+  boundingBox?: BoundingBox;
 }
 
 export interface GFXObjectWithTransform extends GfxObject {
