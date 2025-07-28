@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import { Box, Button, Group, Text, Tooltip, Select, Modal, TextInput, Menu, ActionIcon } from '@mantine/core'
-import { IconPlayerPlay, IconCode, IconDeviceFloppy, IconFolderOpen, IconDotsVertical, IconTrash, IconEdit } from '@tabler/icons-react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { Box, Button, Group, Text, Tooltip, Select, Modal, TextInput, Menu, ActionIcon, Paper, Stack } from '@mantine/core'
+import { IconPlayerPlay, IconCode, IconDeviceFloppy, IconFolderOpen, IconDotsVertical, IconTrash, IconEdit, IconInfoCircle } from '@tabler/icons-react'
 import { SceneAPI } from '../lib/sceneAPI'
 import { db, type ScriptRecord } from '@/shared/lib/database'
 import CodeMirror from '@uiw/react-codemirror'
@@ -43,9 +43,141 @@ if (objects.length > 0) {
   const [saveScriptDescription, setSaveScriptDescription] = useState('')
   const [currentScriptUuid, setCurrentScriptUuid] = useState<string | null>(null)
 
+  // Состояния для подсказок типов
+  const [currentMethodInfo, setCurrentMethodInfo] = useState<string | null>(null)
+  const [cursorPosition, setCursorPosition] = useState<{ line: number; ch: number } | null>(null)
+  const editorRef = useRef<any>(null)
+
   // Загрузка сохранённых скриптов при монтировании
   useEffect(() => {
     loadSavedScripts()
+  }, [])
+
+  // Функция для анализа текущего контекста и определения метода
+  const analyzeCurrentContext = useCallback((text: string, cursorPos: number) => {
+    const beforeCursor = text.substring(0, cursorPos)
+    
+    // Поиск вызова метода sceneApi
+    const sceneApiPattern = /sceneApi\.(\w+)\s*\(/g
+    let match
+    let lastMatch = null
+    
+    while ((match = sceneApiPattern.exec(beforeCursor)) !== null) {
+      lastMatch = match
+    }
+    
+    if (lastMatch) {
+      const methodName = lastMatch[1]
+      const methodStartPos = lastMatch.index + lastMatch[0].length - 1 // позиция открывающей скобки
+      
+      // Проверяем, находится ли курсор внутри скобок этого метода
+      const afterMethodStart = text.substring(methodStartPos)
+      let parenCount = 0
+      let insideMethod = false
+      
+      for (let i = 0; i < afterMethodStart.length; i++) {
+        const char = afterMethodStart[i]
+        if (char === '(') {
+          parenCount++
+          if (parenCount === 1) insideMethod = true
+        } else if (char === ')') {
+          parenCount--
+          if (parenCount === 0) {
+            // Проверяем, находится ли курсор до этой закрывающей скобки
+            if (cursorPos <= methodStartPos + i) {
+              insideMethod = true
+            } else {
+              insideMethod = false
+            }
+            break
+          }
+        }
+      }
+      
+      if (insideMethod) {
+        return getMethodInfo(methodName)
+      }
+    }
+    
+    return null
+  }, [])
+
+  // Функция для получения информации о методе
+  const getMethodInfo = useCallback((methodName: string) => {
+    const methodInfoMap: Record<string, string> = {
+      'getSceneOverview': `getSceneOverview(): SceneOverview
+Возвращает: {
+  totalObjects: number,
+  totalInstances: number,
+  objects: SceneObjectInfo[],
+  instances: SceneInstanceInfo[],
+  sceneName: string,
+  layers: Array<{id, name, visible, objectCount}>
+}`,
+      'getSceneObjects': `getSceneObjects(): SceneObjectInfo[]
+Возвращает массив объектов сцены`,
+      'getSceneInstances': `getSceneInstances(): SceneInstanceInfo[]
+Возвращает массив экземпляров объектов`,
+      'findObjectByUuid': `findObjectByUuid(uuid: string): SceneObject | null
+Параметры:
+  uuid: string - UUID объекта для поиска`,
+      'findObjectByName': `findObjectByName(name: string): SceneObject | null
+Параметры:
+  name: string - Имя объекта (частичное совпадение)`,
+      'addObjectInstance': `addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
+Параметры:
+  objectUuid: string - UUID существующего объекта
+  position?: Vector3 = [0, 0, 0] - Позиция [x, y, z]
+  rotation?: Vector3 = [0, 0, 0] - Поворот [x, y, z] в радианах
+  scale?: Vector3 = [1, 1, 1] - Масштаб [x, y, z]
+  visible?: boolean = true - Видимость экземпляра`,
+      'addSingleObjectInstance': `addSingleObjectInstance(objectUuid, params): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  params: InstanceCreationParams = {
+    position?: Vector3,
+    rotation?: Vector3,
+    scale?: Vector3,
+    visible?: boolean
+  }`,
+      'addObjectInstances': `addObjectInstances(objectUuid, instances): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  instances: InstanceCreationParams[] - Массив параметров`,
+      'addRandomObjectInstances': `addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  count: number - Количество экземпляров
+  options?: {
+    rotation?: Vector3,
+    scale?: Vector3,
+    visible?: boolean,
+    alignToTerrain?: boolean
+  }`,
+      'getAvailableLayers': `getAvailableLayers(): Array<LayerInfo>
+Возвращает массив доступных слоев`,
+      'canAddInstance': `canAddInstance(objectUuid: string): boolean
+Параметры:
+  objectUuid: string - UUID объекта для проверки`,
+      'getSceneStats': `getSceneStats(): SceneStats
+Возвращает статистику сцены`,
+      'addObjectWithTransform': `addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
+Параметры:
+  objectData: GFXObjectWithTransform - Данные объекта с трансформацией`,
+      'searchObjectsInLibrary': `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
+Параметры:
+  query: string - Строка поиска`,
+      'addObjectFromLibrary': `addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
+Параметры:
+  objectUuid: string - UUID объекта в библиотеке
+  layerId: string - ID слоя для размещения
+  transform?: Transform - Опциональная трансформация`,
+      'adjustInstancesForPerlinTerrain': `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
+Параметры:
+  perlinLayerId: string - ID слоя с Perlin ландшафтом`
+    }
+    
+    return methodInfoMap[methodName] || null
   }, [])
 
   const loadSavedScripts = useCallback(async () => {
@@ -221,87 +353,206 @@ if (objects.length > 0) {
     let completions = []
 
     if (isAfterSceneApi) {
-      // Если автокомплит после "sceneApi.", показываем только методы
+      // Если автокомплит после "sceneApi.", показываем только методы с детальными подсказками типов
       completions = [
         { 
           label: 'getSceneOverview', 
           type: 'function', 
-          info: 'getSceneOverview(): SceneOverview - Получить общую информацию о сцене с объектами, экземплярами и слоями' 
+          info: `getSceneOverview(): SceneOverview
+Возвращает: {
+  totalObjects: number,
+  totalInstances: number,
+  objects: SceneObjectInfo[],
+  instances: SceneInstanceInfo[],
+  sceneName: string,
+  layers: Array<{id, name, visible, objectCount}>
+}
+Описание: Получить общую информацию о сцене с объектами, экземплярами и слоями` 
         },
         { 
           label: 'getSceneObjects', 
           type: 'function', 
-          info: 'getSceneObjects(): SceneObjectInfo[] - Получить список всех объектов сцены' 
+          info: `getSceneObjects(): SceneObjectInfo[]
+Возвращает: Array<{
+  uuid: string,
+  name: string,
+  layerId?: string,
+  visible?: boolean,
+  libraryUuid?: string,
+  boundingBox?: BoundingBox,
+  primitiveCount: number,
+  primitiveTypes: string[],
+  hasInstances: boolean,
+  instanceCount: number
+}>
+Описание: Получить список всех объектов сцены` 
         },
         { 
           label: 'getSceneInstances', 
           type: 'function', 
-          info: 'getSceneInstances(): SceneInstanceInfo[] - Получить список всех экземпляров объектов' 
+          info: `getSceneInstances(): SceneInstanceInfo[]
+Возвращает: Array<{
+  uuid: string,
+  objectUuid: string,
+  objectName: string,
+  transform?: Transform,
+  visible?: boolean
+}>
+Описание: Получить список всех экземпляров объектов` 
         },
         { 
           label: 'findObjectByUuid', 
           type: 'function', 
-          info: 'findObjectByUuid(uuid: string): SceneObject | null - Найти объект по UUID' 
+          info: `findObjectByUuid(uuid: string): SceneObject | null
+Параметры:
+  uuid: string - UUID объекта для поиска
+Возвращает: SceneObject | null
+Описание: Найти объект по UUID` 
         },
         { 
           label: 'findObjectByName', 
           type: 'function', 
-          info: 'findObjectByName(name: string): SceneObject | null - Найти объект по имени (первый найденный)' 
+          info: `findObjectByName(name: string): SceneObject | null
+Параметры:
+  name: string - Имя объекта для поиска (частичное совпадение)
+Возвращает: SceneObject | null
+Описание: Найти объект по имени (первый найденный)` 
         },
         { 
           label: 'addObjectInstance', 
           type: 'function', 
-          info: 'addObjectInstance(objectUuid: string, position?: Vector3, rotation?: Vector3, scale?: Vector3, visible?: boolean): AddInstanceResult - Добавить экземпляр объекта' 
+          info: `addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
+Параметры:
+  objectUuid: string - UUID существующего объекта
+  position?: Vector3 = [0, 0, 0] - Позиция [x, y, z]
+  rotation?: Vector3 = [0, 0, 0] - Поворот [x, y, z] в радианах
+  scale?: Vector3 = [1, 1, 1] - Масштаб [x, y, z]
+  visible?: boolean = true - Видимость экземпляра
+Возвращает: {success: boolean, instanceUuid?: string, objectUuid?: string, error?: string}
+Описание: Добавить экземпляр объекта` 
         },
         { 
           label: 'addSingleObjectInstance', 
           type: 'function', 
-          info: 'addSingleObjectInstance(objectUuid: string, params: InstanceCreationParams): AddInstancesResult - Добавить один экземпляр с BoundingBox' 
+          info: `addSingleObjectInstance(objectUuid, params): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  params: InstanceCreationParams = {
+    position?: Vector3,
+    rotation?: Vector3,
+    scale?: Vector3,
+    visible?: boolean
+  }
+Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
+Описание: Добавить один экземпляр с BoundingBox` 
         },
         { 
           label: 'addObjectInstances', 
           type: 'function', 
-          info: 'addObjectInstances(objectUuid: string, instances: InstanceCreationParams[]): AddInstancesResult - Добавить несколько экземпляров объекта' 
+          info: `addObjectInstances(objectUuid, instances): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  instances: InstanceCreationParams[] - Массив параметров экземпляров
+Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
+Описание: Добавить несколько экземпляров объекта` 
         },
         { 
           label: 'addRandomObjectInstances', 
           type: 'function', 
-          info: 'addRandomObjectInstances(objectUuid: string, count: number, options?: {rotation?, scale?, visible?, alignToTerrain?}): AddInstancesResult - Создать случайные экземпляры' 
+          info: `addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
+Параметры:
+  objectUuid: string - UUID объекта
+  count: number - Количество экземпляров
+  options?: {
+    rotation?: Vector3,
+    scale?: Vector3,
+    visible?: boolean,
+    alignToTerrain?: boolean
+  }
+Возвращает: AddInstancesResult
+Описание: Создать случайные экземпляры с автоматическим размещением` 
         },
         { 
           label: 'getAvailableLayers', 
           type: 'function', 
-          info: 'getAvailableLayers(): Array - Получить доступные слои для размещения объектов' 
+          info: `getAvailableLayers(): Array<LayerInfo>
+Возвращает: Array<{
+  id: string,
+  name: string,
+  visible: boolean,
+  position: Vector3
+}>
+Описание: Получить доступные слои для размещения объектов` 
         },
         { 
           label: 'canAddInstance', 
           type: 'function', 
-          info: 'canAddInstance(objectUuid: string): boolean - Проверить можно ли добавить экземпляр объекта' 
+          info: `canAddInstance(objectUuid: string): boolean
+Параметры:
+  objectUuid: string - UUID объекта для проверки
+Возвращает: boolean
+Описание: Проверить можно ли добавить экземпляр объекта` 
         },
         { 
           label: 'getSceneStats', 
           type: 'function', 
-          info: 'getSceneStats(): Object - Получить статистику сцены (общие и видимые объекты, экземпляры, слои)' 
+          info: `getSceneStats(): SceneStats
+Возвращает: {
+  total: {objects: number, instances: number, layers: number},
+  visible: {objects: number, instances: number, layers: number},
+  primitiveTypes: string[]
+}
+Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)` 
         },
         { 
           label: 'addObjectWithTransform', 
           type: 'function', 
-          info: 'addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult - Добавить объект с трансформацией в сцену' 
+          info: `addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
+Параметры:
+  objectData: GFXObjectWithTransform = {
+    uuid?: string,
+    name: string,
+    primitives: Primitive[],
+    libraryUuid?: string,
+    position?: Vector3,
+    rotation?: Vector3,
+    scale?: Vector3
+  }
+Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
+Описание: Добавить объект с трансформацией в сцену` 
         },
         { 
           label: 'searchObjectsInLibrary', 
           type: 'function', 
-          info: 'searchObjectsInLibrary(query: string): Promise<ObjectRecord[]> - Поиск объектов в библиотеке по строке запроса' 
+          info: `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
+Параметры:
+  query: string - Строка поиска (по имени или описанию)
+Возвращает: Promise<ObjectRecord[]>
+Описание: Поиск объектов в библиотеке по строке запроса` 
         },
         { 
           label: 'addObjectFromLibrary', 
           type: 'function', 
-          info: 'addObjectFromLibrary(objectUuid: string, layerId: string, transform?: Transform): Promise<AddObjectResult> - Добавить объект из библиотеки' 
+          info: `addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
+Параметры:
+  objectUuid: string - UUID объекта в библиотеке
+  layerId: string - ID слоя для размещения
+  transform?: Transform = {
+    position?: Vector3,
+    rotation?: Vector3,
+    scale?: Vector3
+  }
+Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
+Описание: Добавить объект из библиотеки` 
         },
         { 
           label: 'adjustInstancesForPerlinTerrain', 
           type: 'function', 
-          info: 'adjustInstancesForPerlinTerrain(perlinLayerId: string): {success, adjustedCount?, error?} - Привязать экземпляры к ландшафту Perlin' 
+          info: `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
+Параметры:
+  perlinLayerId: string - ID слоя с Perlin ландшафтом
+Возвращает: {success: boolean, adjustedCount?: number, error?: string}
+Описание: Привязать экземпляры к ландшафту Perlin` 
         }
       ]
     } else if (isAfterConsole) {
@@ -405,6 +656,19 @@ if (objects.length > 0) {
     }
   }, [script])
 
+  // Обработчик изменений в редакторе
+  const handleEditorChange = useCallback((value: string, viewUpdate: any) => {
+    setScript(value)
+    
+    // Получаем позицию курсора
+    const selection = viewUpdate.state.selection.main
+    const cursorPos = selection.head
+    
+    // Анализируем контекст и обновляем подсказки
+    const methodInfo = analyzeCurrentContext(value, cursorPos)
+    setCurrentMethodInfo(methodInfo)
+  }, [analyzeCurrentContext])
+
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
       {/* Панель инструментов */}
@@ -486,9 +750,42 @@ if (objects.length > 0) {
 
       {/* Редактор кода */}
       <Box style={{ flex: '1', minHeight: 0, position: 'relative' }}>
+        {/* Панель подсказок типов */}
+        {currentMethodInfo && (
+          <Paper
+            shadow="md"
+            p="xs"
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              zIndex: 1000,
+              maxWidth: 400,
+              backgroundColor: 'var(--mantine-color-dark-7)',
+              border: '1px solid var(--mantine-color-dark-4)'
+            }}
+          >
+            <Group gap="xs" mb="xs">
+              <IconInfoCircle size={16} color="var(--mantine-color-blue-4)" />
+              <Text size="sm" fw={500} c="blue.4">Подсказка типов</Text>
+            </Group>
+            <Text
+              size="xs"
+              c="gray.3"
+              style={{
+                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.4
+              }}
+            >
+              {currentMethodInfo}
+            </Text>
+          </Paper>
+        )}
+
         <CodeMirror
           value={script}
-          onChange={(value) => setScript(value)}
+          onChange={handleEditorChange}
           extensions={[
             javascript(),
             autocompletion({ override: [enhancedCompletions] })
