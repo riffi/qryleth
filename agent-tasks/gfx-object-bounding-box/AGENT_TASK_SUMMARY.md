@@ -61,14 +61,18 @@ console.log('Final geometry bounding box:', geometry.boundingBox)
 **Фаза выполнена:** [phase_1_summary.md](phases/phase_1_summary.md)
 
 ### Фаза 2: Функции вычисления BoundingBox
-**Статус: Не выполнено**
+**Статус: Выполнено**
 
-Создать утилиты для автоматического вычисления BoundingBox:
-1. Создать `src/shared/lib/geometry/boundingBoxUtils.ts` с функциями:
+Созданы утилиты для автоматического вычисления BoundingBox:
+1. ✅ Создан `src/shared/lib/geometry/boundingBoxUtils.ts` с функциями:
    - `calculatePrimitiveBoundingBox(primitive: GfxPrimitive): BoundingBox`
    - `calculateObjectBoundingBox(object: GfxObject): BoundingBox`
    - `mergeBoundingBoxes(boxes: BoundingBox[]): BoundingBox`
-2. Учесть трансформации примитивов при вычислении
+2. ✅ Учтены трансформации примитивов при вычислении (position, rotation, scale)
+
+**Результат:** Готовы к использованию утилиты для автоматического вычисления BoundingBox для всех типов примитивов с поддержкой трансформаций. Функции размещены в shared слое согласно принципам FSD.
+
+**Фаза выполнена:** [phase_2_summary.md](phases/phase_2_summary.md)
 
 ### Фаза 3: Интеграция в создание объектов
 **Статус: Не выполнено**
