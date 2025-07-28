@@ -13,6 +13,7 @@ import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/sc
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import type { BoundingBox } from '@/shared/types'
 
 /**
  * Simplified scene object info for agent tools
@@ -24,6 +25,8 @@ export interface SceneObjectInfo {
   visible?: boolean
   /** UUID объекта в библиотеке, если применимо */
   libraryUuid?: string
+  /** Ограничивающий объём объекта в локальных координатах */
+  boundingBox?: BoundingBox
   primitiveCount: number
   primitiveTypes: string[]
   hasInstances: boolean
@@ -102,12 +105,16 @@ export class SceneAPI {
     // Создать информацию об объектах
     const objectsInfo: SceneObjectInfo[] = objects.map(obj => {
       const instances = objectInstances.filter(inst => inst.objectUuid === obj.uuid)
+
+      const boundingBox = obj.boundingBox ?? calculateObjectBoundingBox(obj)
+
       return {
         uuid: obj.uuid,
         name: obj.name,
         layerId: obj.layerId,
         visible: obj.visible,
         libraryUuid: obj.libraryUuid,
+        boundingBox,
         primitiveCount: obj.primitives.length,
         primitiveTypes: [...new Set(obj.primitives.map(p => p.type))],
         hasInstances: instances.length > 0,

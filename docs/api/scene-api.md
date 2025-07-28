@@ -58,6 +58,7 @@ interface SceneObjectInfo {
   layerId?: string
   visible?: boolean
   libraryUuid?: string // UUID записи в библиотеке
+  boundingBox?: BoundingBox
   primitiveCount: number
   primitiveTypes: string[]
   hasInstances: boolean

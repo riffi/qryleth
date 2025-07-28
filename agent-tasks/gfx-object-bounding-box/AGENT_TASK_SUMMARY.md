@@ -99,7 +99,8 @@ console.log('Final geometry bounding box:', geometry.boundingBox)
 3. Обновить описания инструментов для агентов
 
 ### Фаза 6: Обновление SceneAPI и обзора сцены
-**Статус: Не выполнено**
+**Статус: Выполнено**
+[Подробности фазы 6](phases/phase_6_summary.md)
 
 Добавить информацию о BoundingBox в API сцены:
 1. Обновить `SceneObjectInfo` в `src/features/scene/lib/sceneAPI.ts` для включения BoundingBox информации
