@@ -13,19 +13,16 @@ src/
 ├─ app/            # entry‑point, providers, router / точка входа, провайдеры, роутер
 ├─ pages/          # SceneEditor, ObjectEditor, Library (route‑shell) / роут‑шелл
 ├─ features/       # module = scenario / модуль = сценарий
-│  ├─ scene/       # scene management / управление сценой
-│  ├─ object/      # object operations / операции с объектами
-│  ├─ ai-assistant/# chat + LLM commands / чат + команды LLM
-│  └─ library/     # local/public library / локальная/публичная библиотека
-├─ widgets/        # large self-contained UI blocks / крупные самостоятельные блоки UI
-├─ entities/       # pure domain models (without React) / чистые доменные модели (без React)
+│  ├─ scene/       # управление сценой
+│  └─ object-editor/ # редактирование объектов
+├─ widgets/        # крупные самостоятельные блоки UI
+├─ entities/       # чистые доменные модели (без React)
    ├─ layer
    ├─ lighting
    ├─ object
    ├─ objectInstance
    ├─ primitive
-   ├─ scene   
-├─ boundaries/     # wrappers over REST, Dexie / обёртки над REST, Dexie
+   ├─ scene
 └─ shared/         # UI atoms, hooks, utilities, theme / ui‑атомы, хуки, утилиты, тема
 ```
 
@@ -42,7 +39,6 @@ src/
 | **features**   | Бизнес‑логика; slice‑store; UI молекулы | entities, shared |
 | **widgets**    | Собирают несколько features в цельный блок | features, shared |
 | **pages**      | Комбинируют widgets + page‑scope провайдеры | all below / всё ниже |
-| **boundaries** | Инкапсулируют сторонние SDK/API | entities |
 
 ---
 **[Feature sliced design](feature-sliced-design.md)** — Руководство по FSD
@@ -52,7 +48,7 @@ src/
 
 | Задача | Где реализуется | Детали |
 |---------------|---------------------------------------------|------------------|
-| Маппинг команд ↔ Redux/Zustand действий | `features/ai-assistant/hooks/useAICommands.ts` | Добавьте `execute<Команда>` и зарегистрируйте в `switch` |
+| Маппинг команд ↔ Zustand действий | `widgets/ChatInterface.tsx` и `features/*/lib/ai` | Инструменты вызывают публичные действия стора |
 | Создание новых объектов | `command.type === "addNewObject"` | Используйте фабрику без прямого импорта Three.js |
 | Изменение освещения | `modifyLighting` | Мутируйте zustand‑store `globalLighting` |
 | Создание слоёв | `createLayer` | Возвращайте созданный **Layer** для отклика АИ |

@@ -59,7 +59,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Доступ к редактированию объектов
 
 ### 💬 ChatInterface
-**Location**: `src/features/ai-assistant/ui/ChatInterface.tsx`
+**Location**: `src/widgets/ChatInterface.tsx`
 
 Виджет общения с ИИ агентом для манипулирования сценой на естественном языке.
 
