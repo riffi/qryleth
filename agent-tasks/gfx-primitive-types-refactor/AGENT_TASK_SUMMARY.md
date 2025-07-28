@@ -66,10 +66,12 @@ export interface GfxPrimitive {
 ## План выполнения по фазам
 
 ### Фаза 1: Создание новых интерфейсов типов 
-**Статус**: Запланирована  
+**Статус**: Выполнено ✅  
 **Описание**: Создать новые интерфейсы геометрии и дискриминированное объединение  
 **Файлы**: `src/entities/primitive/model/types.ts`  
 **Ссылка**: [phase_1_summary.md](phases/phase_1_summary.md)
+
+**Результат**: Созданы интерфейсы геометрии для всех 7 типов примитивов (BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, PyramidGeometry, PlaneGeometry, TorusGeometry), интерфейс PrimitiveCommon с общими свойствами (material, transform), и дискриминированное объединение GfxPrimitive. Сохранен LegacyGfxPrimitive для обратной совместимости.
 
 ### Фаза 2: Обновление Zod-схем для AI-инструментов 
 **Статус**: Запланирована  
@@ -117,9 +119,9 @@ export interface GfxPrimitive {
 - `src/features/scene/lib/sceneAPI.ts`
 - `src/features/scene/lib/correction/LLMGeneratedObjectCorrector.ts`
 
-### Фаза 8: Финальное тестирование и сборка
+### Фаза 8: Доработка документации
 **Статус**: Запланирована  
-**Описание**: Проверить компиляцию TypeScript, запустить сборку проекта  
+**Описание**: Обновить документацию в папке docs согласно выполненным работам  
 **Файлы**: Все измененные файлы
 
 ---
