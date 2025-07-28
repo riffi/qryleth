@@ -74,10 +74,12 @@ export interface GfxPrimitive {
 **Результат**: Созданы интерфейсы геометрии для всех 7 типов примитивов (BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, PyramidGeometry, PlaneGeometry, TorusGeometry), интерфейс PrimitiveCommon с общими свойствами (material, transform), и дискриминированное объединение GfxPrimitive. Сохранен LegacyGfxPrimitive для обратной совместимости.
 
 ### Фаза 2: Обновление Zod-схем для AI-инструментов 
-**Статус**: Запланирована  
+**Статус**: Выполнено ✅  
 **Описание**: Обновить PrimitiveSchema в objectTools.ts с использованием discriminatedUnion  
 **Файлы**: `src/features/scene/lib/ai/tools/objectTools.ts`  
 **Ссылка**: [phase_2_summary.md](phases/phase_2_summary.md)
+
+**Результат**: Созданы отдельные Zod-схемы для каждого типа геометрии (BoxGeometrySchema, SphereGeometrySchema, и т.д.), обновлена PrimitiveSchema для использования дискриминированного объединения. AI-инструменты теперь работают со строгой типизацией и новой структурой данных `{ type, geometry, material, transform }`.
 
 ### Фаза 3: Рефакторинг основного рендерера 
 **Статус**: Запланирована  
@@ -119,7 +121,12 @@ export interface GfxPrimitive {
 - `src/features/scene/lib/sceneAPI.ts`
 - `src/features/scene/lib/correction/LLMGeneratedObjectCorrector.ts`
 
-### Фаза 8: Доработка документации
+### Фаза 8: Доработка cad2qryleth converter
+**Статус**: Запланирована  
+**Описание**: Доработать  [converter.py](../../cad2qryleth/converter.py) согласно новой структуре данных
+**Файлы**: Все измененные файлы
+
+### Фаза 9: Доработка документации
 **Статус**: Запланирована  
 **Описание**: Обновить документацию в папке docs согласно выполненным работам  
 **Файлы**: Все измененные файлы

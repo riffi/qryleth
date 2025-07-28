@@ -7,33 +7,77 @@ import { generatePrimitiveName } from '@/entities/primitive'
 import { db } from '@/shared/lib/database'
 import {SceneAPI} from "@/features/scene/lib/sceneAPI.ts";
 
-// Схема валидации для примитива
-const PrimitiveSchema = z.object({
-  type: z.enum(['box', 'sphere', 'cylinder', 'cone', 'pyramid', 'plane']),
+// Схемы валидации для геометрии примитивов
+const BoxGeometrySchema = z.object({
+  width: z.number().positive(),
+  height: z.number().positive(),
+  depth: z.number().positive()
+})
+
+const SphereGeometrySchema = z.object({
+  radius: z.number().positive()
+})
+
+const CylinderGeometrySchema = z.object({
+  radiusTop: z.number().positive(),
+  radiusBottom: z.number().positive(),
+  height: z.number().positive(),
+  radialSegments: z.number().int().positive().optional()
+})
+
+const ConeGeometrySchema = z.object({
+  radius: z.number().positive(),
+  height: z.number().positive(),
+  radialSegments: z.number().int().positive().optional()
+})
+
+const PyramidGeometrySchema = z.object({
+  baseSize: z.number().positive(),
+  height: z.number().positive()
+})
+
+const PlaneGeometrySchema = z.object({
+  width: z.number().positive(),
+  height: z.number().positive()
+})
+
+const TorusGeometrySchema = z.object({
+  majorRadius: z.number().positive(),
+  minorRadius: z.number().positive(),
+  radialSegments: z.number().int().positive().optional(),
+  tubularSegments: z.number().int().positive().optional()
+})
+
+// Схема для общих свойств примитива
+const PrimitiveCommonSchema = z.object({
   // Читаемое имя примитива. Может отсутствовать, тогда будет сгенерировано
   // автоматически
   name: z.string().min(1).optional(),
-  // Box parameters
-  width: z.number().optional(),
-  height: z.number().optional(),
-  depth: z.number().optional(),
-  // Sphere parameters
-  radius: z.number().optional(),
-  // Cylinder parameters
-  radiusTop: z.number().optional(),
-  radiusBottom: z.number().optional(),
-  radialSegments: z.number().optional(),
-  // Pyramid parameters
-  baseSize: z.number().optional(),
   // Material properties
-  color: z.string(),
-  opacity: z.number().min(0).max(1).optional(),
-  emissive: z.string().optional(),
-  emissiveIntensity: z.number().min(0).optional(),
+  material: z.object({
+    color: z.string(),
+    opacity: z.number().min(0).max(1).optional(),
+    emissive: z.string().optional(),
+    emissiveIntensity: z.number().min(0).optional()
+  }),
   // Transform properties
-  position: z.array(z.number()).length(3).optional(),
-  rotation: z.array(z.number()).length(3).optional()
+  transform: z.object({
+    position: z.array(z.number()).length(3).optional(),
+    rotation: z.array(z.number()).length(3).optional(),
+    scale: z.array(z.number()).length(3).optional()
+  }).optional()
 })
+
+// Дискриминированная схема для примитива
+const PrimitiveSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('box'), geometry: BoxGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('sphere'), geometry: SphereGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('cylinder'), geometry: CylinderGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('cone'), geometry: ConeGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('pyramid'), geometry: PyramidGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('plane'), geometry: PlaneGeometrySchema }).merge(PrimitiveCommonSchema),
+  z.object({ type: z.literal('torus'), geometry: TorusGeometrySchema }).merge(PrimitiveCommonSchema)
+])
 
 // Схема валидации для объекта
 const ObjectSchema = z.object({
@@ -60,35 +104,20 @@ export const createAddNewObjectTool = () => {
 
         // Преобразование примитивов в GfxPrimitive формат
         const primitives: GfxPrimitive[] = validatedInput.primitives.map((primitive, index) => {
-          const gfxPrimitive: GfxPrimitive = {
+          const basePrimitive = {
             uuid: uuidv4(),
             type: primitive.type,
             name: primitive.name && primitive.name.trim() !== ''
               ? primitive.name
               : generatePrimitiveName(primitive.type, index + 1),
-            // Геометрические параметры
-            ...(primitive.width !== undefined && { width: primitive.width }),
-            ...(primitive.height !== undefined && { height: primitive.height }),
-            ...(primitive.depth !== undefined && { depth: primitive.depth }),
-            ...(primitive.radius !== undefined && { radius: primitive.radius }),
-            ...(primitive.radiusTop !== undefined && { radiusTop: primitive.radiusTop }),
-            ...(primitive.radiusBottom !== undefined && { radiusBottom: primitive.radiusBottom }),
-            ...(primitive.radialSegments !== undefined && { radialSegments: primitive.radialSegments }),
-            ...(primitive.baseSize !== undefined && { baseSize: primitive.baseSize }),
+            geometry: primitive.geometry,
             // Материал
-            ...(primitive.color !== undefined && { color: primitive.color }),
-            ...(primitive.opacity !== undefined && { opacity: primitive.opacity }),
-            ...(primitive.emissive !== undefined && { emissive: primitive.emissive }),
-            ...(primitive.emissiveIntensity !== undefined && { emissiveIntensity: primitive.emissiveIntensity }),
+            material: primitive.material,
             // Трансформации
-            ...(primitive.position !== undefined && {
-              position: primitive.position as [number, number, number]
-            }),
-            ...(primitive.rotation !== undefined && {
-              rotation: primitive.rotation as [number, number, number]
-            })
+            ...(primitive.transform && { transform: primitive.transform })
           }
-          return gfxPrimitive
+
+          return basePrimitive as GfxPrimitive
         })
 
         // Создание объекта в формате GFXObjectWithTransform
