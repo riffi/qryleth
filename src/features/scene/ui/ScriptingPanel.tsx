@@ -1,18 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { Box, Paper, Button, Group, ScrollArea, Text, Code, Divider, ActionIcon, Tooltip } from '@mantine/core'
-import { IconPlayerPlay, IconTrash, IconCode } from '@tabler/icons-react'
+import React, { useState, useCallback } from 'react'
+import { Box, Button, Group, Text, Tooltip } from '@mantine/core'
+import { IconPlayerPlay, IconCode } from '@tabler/icons-react'
 import { SceneAPI } from '../lib/sceneAPI'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 import { autocompletion, CompletionContext } from '@codemirror/autocomplete'
 import { oneDark } from '@codemirror/theme-one-dark'
-
-interface ConsoleEntry {
-  id: string
-  type: 'log' | 'error' | 'result'
-  content: string
-  timestamp: Date
-}
 
 interface ScriptingPanelProps {
   height?: number | string
@@ -41,8 +34,6 @@ if (objects.length > 0) {
   console.log('Результат создания экземпляра:', result)
 }`)
 
-  const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([])
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // SceneAPI автокомплит
   const sceneApiCompletions = useCallback((context: CompletionContext) => {
@@ -64,126 +55,51 @@ if (objects.length > 0) {
 
     return {
       from: word.from,
-      options: sceneApiMethods.filter(item => 
+      options: sceneApiMethods.filter(item =>
         item.label.toLowerCase().includes(word.text.toLowerCase())
       )
     }
   }, [])
 
-  const addConsoleEntry = useCallback((type: ConsoleEntry['type'], content: string) => {
-    const entry: ConsoleEntry = {
-      id: Date.now().toString(),
-      type,
-      content,
-      timestamp: new Date()
-    }
-    setConsoleEntries(prev => [...prev, entry])
-  }, [])
-
-  const clearConsole = useCallback(() => {
-    setConsoleEntries([])
-  }, [])
 
   const executeScript = useCallback(() => {
     if (!script.trim()) return
 
     try {
-      // Создать изолированный контекст для выполнения скрипта
-      const context = {
-        sceneApi: SceneAPI,
-        console: {
-          log: (...args: any[]) => {
-            const content = args.map(arg =>
-              typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-            ).join(' ')
-            addConsoleEntry('log', content)
-          },
-          error: (...args: any[]) => {
-            const content = args.map(arg => String(arg)).join(' ')
-            addConsoleEntry('error', content)
-          }
-        }
-      }
-
-      // Выполнить скрипт в контексте
+      // Выполнить скрипт с доступом к SceneAPI и нативной консоли
       const func = new Function('sceneApi', 'console', script)
-      const result = func(context.sceneApi, context.console)
+      const result = func(SceneAPI, window.console)
 
       if (result !== undefined) {
-        const resultContent = typeof result === 'object'
-          ? JSON.stringify(result, null, 2)
-          : String(result)
-        addConsoleEntry('result', resultContent)
+        console.log('Результат выполнения скрипта:', result)
       }
 
-      addConsoleEntry('log', '✓ Скрипт успешно выполнен')
+      console.log('✓ Скрипт успешно выполнен')
     } catch (error) {
-      addConsoleEntry('error', `Ошибка выполнения: ${error instanceof Error ? error.message : String(error)}`)
+      console.error('Ошибка выполнения:', error instanceof Error ? error.message : String(error))
     }
-  }, [script, addConsoleEntry])
+  }, [script])
 
-  const getEntryColor = (type: ConsoleEntry['type']) => {
-    switch (type) {
-      case 'error':
-        return 'red'
-      case 'result':
-        return 'blue'
-      default:
-        return 'gray'
-    }
-  }
-
-  const formatTimestamp = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString('ru-RU', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
-  }
-
-  // Auto-scroll to bottom when new console entries are added
-  useEffect(() => {
-    if (scrollAreaRef.current && consoleEntries.length > 0) {
-      const scrollArea = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
-      if (scrollArea) {
-        scrollArea.scrollTop = scrollArea.scrollHeight
-      }
-    }
-  }, [consoleEntries])
 
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
       {/* Заголовок */}
-      <Group justify="space-between" p="sm" bg="gray.1">
+      <Group justify="space-between" p="sm" bg="gray.8">
         <Group>
           <IconCode size={20} />
           <Text fw={500}>Панель скриптинга</Text>
         </Group>
-        <Group gap="xs">
-          <Tooltip label="Выполнить скрипт (Ctrl+Enter)">
-            <Button
-              size="xs"
-              leftSection={<IconPlayerPlay size={14} />}
-              onClick={executeScript}
-              variant="filled"
-            >
-              Выполнить
-            </Button>
-          </Tooltip>
-          <Tooltip label="Очистить консоль">
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={clearConsole}
-            >
-              <IconTrash size={14} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+        <Tooltip label="Выполнить скрипт (Ctrl+Enter)">
+          <Button
+            size="xs"
+            leftSection={<IconPlayerPlay size={14} />}
+            onClick={executeScript}
+            variant="filled"
+          >
+            Выполнить
+          </Button>
+        </Tooltip>
       </Group>
-
-      <Divider />
 
       {/* Редактор кода */}
       <Box style={{ flex: '1', minHeight: 0, position: 'relative' }}>
@@ -210,7 +126,7 @@ if (objects.length > 0) {
             fontSize: '13px',
             fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
           }}
-          theme="light"
+          theme="dark"
           onKeyDown={(event) => {
             if (event.ctrlKey && event.key === 'Enter') {
               event.preventDefault()
@@ -218,50 +134,6 @@ if (objects.length > 0) {
             }
           }}
         />
-      </Box>
-
-      <Divider />
-
-      {/* Консоль */}
-      <Box style={{ height: '200px', backgroundColor: 'var(--mantine-color-dark-9)', color: 'var(--mantine-color-gray-0)', flexShrink: 0 }}>
-        <Text size="xs" p="xs" bg="dark.8" c="gray.4" fw={500}>
-          Консоль разработчика
-        </Text>
-        <ScrollArea ref={scrollAreaRef} style={{ height: 'calc(100% - 30px)' }}>
-          <Box p="xs">
-            {consoleEntries.length === 0 ? (
-              <Text size="sm" c="dimmed" fs="italic">
-                Консоль пуста. Выполните скрипт для вывода результатов.
-              </Text>
-            ) : (
-              consoleEntries.map((entry) => (
-                <Box key={entry.id} mb="xs">
-                  <Group gap="xs" align="flex-start">
-                    <Text size="xs" c="dimmed" style={{ minWidth: '60px' }}>
-                      {formatTimestamp(entry.timestamp)}
-                    </Text>
-                    <Text size="xs" c={getEntryColor(entry.type)} fw={entry.type === 'error' ? 600 : 400}>
-                      {entry.type === 'error' && '❌ '}
-                      {entry.type === 'result' && '→ '}
-                      {entry.type === 'log' && '📝 '}
-                    </Text>
-                  </Group>
-                  <Code
-                    block
-                    style={{
-                      backgroundColor: 'var(--mantine-color-dark-8)',
-                      color: entry.type === 'error' ? 'var(--mantine-color-red-4)' : 'var(--mantine-color-gray-2)',
-                      fontSize: '12px',
-                      marginTop: '4px'
-                    }}
-                  >
-                    {entry.content}
-                  </Code>
-                </Box>
-              ))
-            )}
-          </Box>
-        </ScrollArea>
       </Box>
     </Box>
   )
