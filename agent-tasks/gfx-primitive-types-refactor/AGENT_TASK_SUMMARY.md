@@ -5,6 +5,8 @@
 
 ## Контекст задачи
 
+[gfx_primitive_refactor_plan.md](../../docs/architecture/gfx_primitive_refactor_plan.md)
+
 ### Текущая проблема
 Сейчас все геометрические параметры хранятся на верхнем уровне `GfxPrimitive`, что создает следующие проблемы:
 - У каждого примитива множество `undefined` полей для параметров других примитивов
@@ -63,25 +65,25 @@ export interface GfxPrimitive {
 
 ## План выполнения по фазам
 
-### Фаза 1: Создание новых интерфейсов типов ✅ Выполнено
+### Фаза 1: Создание новых интерфейсов типов 
 **Статус**: Выполнено  
 **Описание**: Создать новые интерфейсы геометрии и дискриминированное объединение  
 **Файлы**: `src/entities/primitive/model/types.ts`  
 **Ссылка**: [phase_1_summary.md](phases/phase_1_summary.md)
 
-### Фаза 2: Обновление Zod-схем для AI-инструментов ✅ Выполнено
+### Фаза 2: Обновление Zod-схем для AI-инструментов 
 **Статус**: Выполнено  
 **Описание**: Обновить PrimitiveSchema в objectTools.ts с использованием discriminatedUnion  
 **Файлы**: `src/features/scene/lib/ai/tools/objectTools.ts`  
 **Ссылка**: [phase_2_summary.md](phases/phase_2_summary.md)
 
-### Фаза 3: Рефакторинг основного рендерера ✅ Выполнено
+### Фаза 3: Рефакторинг основного рендерера 
 **Статус**: Выполнено  
 **Описание**: Обновить PrimitiveRenderer.tsx для работы с новой структурой типов  
 **Файлы**: `src/shared/r3f/primitives/PrimitiveRenderer.tsx`  
 **Ссылка**: [phase_3_summary.md](phases/phase_3_summary.md)
 
-### Фаза 4: Рефакторинг рендереров примитивов (Часть 1) ✅ Выполнено
+### Фаза 4: Рефакторинг рендереров примитивов (Часть 1) 
 **Статус**: Выполнено  
 **Описание**: Обновить Box3D, Sphere3D, Plane3D для чтения геометрии из primitive.geometry  
 **Файлы**: 
@@ -90,7 +92,7 @@ export interface GfxPrimitive {
 - `src/shared/r3f/primitives/Plane3D.tsx`  
 **Ссылка**: [phase_4_summary.md](phases/phase_4_summary.md)
 
-### Фаза 5: Рефакторинг рендереров примитивов (Часть 2) ✅ Выполнено
+### Фаза 5: Рефакторинг рендереров примитивов (Часть 2) 
 **Статус**: Выполнено  
 **Описание**: Обновить Cylinder3D, Cone3D, Pyramid3D, Torus3D для чтения геометрии из primitive.geometry  
 **Файлы**: 
