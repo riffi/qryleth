@@ -4,8 +4,7 @@ import {
   IconSend,
   IconUser,
   IconRobot,
-  IconChevronLeft,
-  IconWindowMinimize, IconArrowsDiagonalMinimize2
+  IconArrowsDiagonalMinimize2
 } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
@@ -13,6 +12,7 @@ import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { langChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
+import type {GFXObjectWithTransform} from "@/entities";
 
 
 interface Props {

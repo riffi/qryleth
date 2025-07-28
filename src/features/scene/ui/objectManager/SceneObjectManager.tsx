@@ -189,12 +189,12 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]
-            
+
             if (createdLayer) {
                 // Retry adjustment until noiseData is available
                 const attemptAdjustment = (attempt = 1, maxAttempts = 10) => {
                     const currentLayer = useSceneStore.getState().layers.find(l => l.id === createdLayer.id)
-                    
+
                     if (currentLayer?.noiseData) {
                         const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
                         if (result.success && result.adjustedCount && result.adjustedCount > 0) {
@@ -211,7 +211,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         console.warn('Failed to adjust objects: noiseData not available after', maxAttempts, 'attempts')
                     }
                 }
-                
+
                 // Start first attempt after short delay
                 setTimeout(() => attemptAdjustment(), 100)
             }
@@ -506,7 +506,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                 <ActionIcon
                                     size="sm"
                                     variant="light"
-                                    color="purple"
+                                    color="blue"
                                     onClick={() => setCreateLayerModalOpened(true)}
                                 >
                                     <IconPlus size={14} />
