@@ -66,25 +66,25 @@ export interface GfxPrimitive {
 ## План выполнения по фазам
 
 ### Фаза 1: Создание новых интерфейсов типов 
-**Статус**: Выполнено  
+**Статус**: Запланирована  
 **Описание**: Создать новые интерфейсы геометрии и дискриминированное объединение  
 **Файлы**: `src/entities/primitive/model/types.ts`  
 **Ссылка**: [phase_1_summary.md](phases/phase_1_summary.md)
 
 ### Фаза 2: Обновление Zod-схем для AI-инструментов 
-**Статус**: Выполнено  
+**Статус**: Запланирована  
 **Описание**: Обновить PrimitiveSchema в objectTools.ts с использованием discriminatedUnion  
 **Файлы**: `src/features/scene/lib/ai/tools/objectTools.ts`  
 **Ссылка**: [phase_2_summary.md](phases/phase_2_summary.md)
 
 ### Фаза 3: Рефакторинг основного рендерера 
-**Статус**: Выполнено  
+**Статус**: Запланирована  
 **Описание**: Обновить PrimitiveRenderer.tsx для работы с новой структурой типов  
 **Файлы**: `src/shared/r3f/primitives/PrimitiveRenderer.tsx`  
 **Ссылка**: [phase_3_summary.md](phases/phase_3_summary.md)
 
 ### Фаза 4: Рефакторинг рендереров примитивов (Часть 1) 
-**Статус**: Выполнено  
+**Статус**: Запланирована  
 **Описание**: Обновить Box3D, Sphere3D, Plane3D для чтения геометрии из primitive.geometry  
 **Файлы**: 
 - `src/shared/r3f/primitives/Box3D.tsx`
@@ -93,7 +93,7 @@ export interface GfxPrimitive {
 **Ссылка**: [phase_4_summary.md](phases/phase_4_summary.md)
 
 ### Фаза 5: Рефакторинг рендереров примитивов (Часть 2) 
-**Статус**: Выполнено  
+**Статус**: Запланирована  
 **Описание**: Обновить Cylinder3D, Cone3D, Pyramid3D, Torus3D для чтения геометрии из primitive.geometry  
 **Файлы**: 
 - `src/shared/r3f/primitives/Cylinder3D.tsx`
@@ -103,14 +103,14 @@ export interface GfxPrimitive {
 **Ссылка**: [phase_5_summary.md](phases/phase_5_summary.md)
 
 ### Фаза 6: Обновление утилит и хелперов
-**Статус**: Ожидает выполнения  
+**Статус**: Запланирована
 **Описание**: Обновить icons.ts, names.ts для работы с новыми типами  
 **Файлы**: 
 - `src/entities/primitive/model/icons.ts`
 - `src/entities/primitive/model/names.ts`
 
 ### Фаза 7: Обновление хранилищ и API
-**Статус**: Ожидает выполнения  
+**Статус**: Запланирована 
 **Описание**: Обновить хранилища и API для работы с новыми типами  
 **Файлы**: 
 - `src/features/object-editor/model/objectStore.ts`
@@ -118,7 +118,7 @@ export interface GfxPrimitive {
 - `src/features/scene/lib/correction/LLMGeneratedObjectCorrector.ts`
 
 ### Фаза 8: Финальное тестирование и сборка
-**Статус**: Ожидает выполнения  
+**Статус**: Запланирована  
 **Описание**: Проверить компиляцию TypeScript, запустить сборку проекта  
 **Файлы**: Все измененные файлы
 
