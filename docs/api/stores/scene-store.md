@@ -9,7 +9,7 @@ Detailed documentation for the Scene Store that manages 3D scene editor state.
 ## Location / Местоположение
 
 ```typescript
-import { useSceneStore } from '@/features/scene/store/sceneStore'
+import { useSceneStore } from '@/features/scene/model/sceneStore'
 ```
 
 ---
@@ -26,8 +26,8 @@ interface SceneStoreState {
   layers: SceneLayer[]                      // Scene organization layers
   lighting: LightingSettings               // Scene lighting configuration
   
-  // Current scene metadata / Метаданные текущей сцены  
-  currentScene: CurrentScene               // Scene info (name, uuid, status)
+  // Current scene metadata / Метаданные текущей сцены
+  sceneMetaData: SceneMetaData             // Scene info (name, uuid, status)
 }
 ```
 
@@ -61,47 +61,6 @@ interface SceneStoreState {
 ## Actions / Действия
 
 ### Scene Management / Управление сценой
-
-#### `createNewScene(name: string): void`
-Creates a new empty scene with the given name.
-
-Создает новую пустую сцену с указанным именем.
-
-```typescript
-const { createNewScene } = useSceneStore()
-
-const handleNewScene = () => {
-  createNewScene('My New Scene')
-}
-```
-
-#### `loadScene(sceneData: SceneData): void`
-Loads an existing scene from saved data.
-
-Загружает существующую сцену из сохраненных данных.
-
-```typescript
-const { loadScene } = useSceneStore()
-
-const handleLoadScene = async (sceneId: string) => {
-  const sceneData = await loadSceneFromDB(sceneId)
-  loadScene(sceneData)
-}
-```
-
-#### `saveScene(): Promise<void>`
-Saves the current scene state to storage.
-
-Сохраняет текущее состояние сцены в хранилище.
-
-```typescript
-const { saveScene } = useSceneStore()
-
-const handleSave = async () => {
-  await saveScene()
-  showNotification('Scene saved successfully')
-}
-```
 
 ### Object Management / Управление объектами
 
@@ -150,42 +109,24 @@ const handleRenameObject = (objectId: string, newName: string) => {
 }
 ```
 
-#### `duplicateObject(objectId: string): void`
-Creates a copy of an existing object.
-
-Создает копию существующего объекта.
-
-```typescript
-const { duplicateObject, selectedObject } = useSceneStore()
-
-const handleDuplicate = () => {
-  if (selectedObject) {
-    duplicateObject(selectedObject.objectUuid)
-  }
-}
-```
 
 ### Instance Management / Управление инстансами
 
-#### `addObjectInstance(objectId: string, transform: Transform): void`
-Adds a new instance of an existing object.
+#### `addObjectInstance(instance: SceneObjectInstance): void`
+Adds a new object instance to the scene.
 
-Добавляет новый инстанс существующего объекта.
+Добавляет новый инстанс объекта в сцену.
 
 ```typescript
 const { addObjectInstance } = useSceneStore()
 
-const handleInstanceObject = (objectId: string) => {
-  addObjectInstance(objectId, {
-    position: [2, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1]
-  })
+const handleInstanceObject = (instance: SceneObjectInstance) => {
+  addObjectInstance(instance)
 }
 ```
 
-#### `updateObjectInstance(instanceId: string, transform: Partial<Transform>): void`
-Updates the transform of an object instance.
+#### `updateObjectInstance(instanceId: string, updates: Partial<SceneObjectInstance>): void`
+Updates parameters of an object instance by its UUID.
 
 Обновляет трансформацию инстанса объекта.
 
@@ -201,16 +142,16 @@ const handleMoveInstance = (instanceId: string, newPosition: Vector3) => {
 }
 ```
 
-#### `removeObjectInstance(instanceId: string): void`
-Removes an object instance from the scene.
+#### `removeObjectInstance(index: number): void`
+Removes an object instance by its index.
 
 Удаляет инстанс объекта из сцены.
 
 ```typescript
 const { removeObjectInstance } = useSceneStore()
 
-const handleRemoveInstance = (instanceId: string) => {
-  removeObjectInstance(instanceId)
+const handleRemoveInstance = (index: number) => {
+  removeObjectInstance(index)
 }
 ```
 
@@ -287,16 +228,16 @@ const handleToggleLayer = (layerId: string) => {
 }
 ```
 
-#### `assignObjectToLayer(objectId: string, layerId: string): void`
-Assigns an object to a specific layer.
+#### `moveObjectToLayer(objectUuid: string, layerId: string): void`
+Moves an object to another layer.
 
-Назначает объект определенному слою.
+Перемещает объект на другой слой.
 
 ```typescript
-const { assignObjectToLayer } = useSceneStore()
+const { moveObjectToLayer } = useSceneStore()
 
-const handleMoveToLayer = (objectId: string, layerId: string) => {
-  assignObjectToLayer(objectId, layerId)
+const handleMoveToLayer = (objectUuid: string, layerId: string) => {
+  moveObjectToLayer(objectUuid, layerId)
 }
 ```
 
@@ -341,16 +282,16 @@ const handleToolChange = (mode: TransformMode) => {
 }
 ```
 
-#### `toggleGrid(): void`
+#### `toggleGridVisibility(): void`
 Toggles grid visibility.
 
 Переключает видимость сетки.
 
 ```typescript
-const { toggleGrid } = useSceneStore()
+const { toggleGridVisibility } = useSceneStore()
 
 const handleToggleGrid = () => {
-  toggleGrid()
+  toggleGridVisibility()
 }
 ```
 
@@ -408,16 +349,16 @@ const handleRedo = () => {
 }
 ```
 
-#### `pushToHistory(): void`
+#### `saveToHistory(): void`
 Manually saves the current state to history.
 
 Вручную сохраняет текущее состояние в историю.
 
 ```typescript
-const { pushToHistory } = useSceneStore()
+const { saveToHistory } = useSceneStore()
 
 // Save state before major operation
-pushToHistory()
+saveToHistory()
 performMajorSceneChange()
 ```
 
@@ -449,8 +390,8 @@ const isSceneModified = useSceneStore(state =>
 )
 
 // Get current scene status
-const sceneStatus = useSceneStore(state => 
-  state.currentScene.status
+const sceneStatus = useSceneStore(state =>
+  state.sceneMetaData.status
 )
 ```
 
@@ -490,7 +431,7 @@ const getSelectedObjectFull = () =>
 
 ```typescript
 import React from 'react'
-import { useSceneStore } from '@/features/scene/store'
+import { useSceneStore } from '@/features/scene/model/sceneStore'
 import type { ViewMode, RenderMode } from '@/shared/types/ui'
 
 const SceneEditor: React.FC = () => {
@@ -504,7 +445,7 @@ const SceneEditor: React.FC = () => {
     selectObject,
     setViewMode,
     setRenderMode,
-    toggleGrid,
+    toggleGridVisibility,
     undo,
     redo,
     canUndo,
@@ -521,7 +462,7 @@ const SceneEditor: React.FC = () => {
       {/* Toolbar */}
       <div className="toolbar">
         <button onClick={handleAddCube}>Add Cube</button>
-        <button onClick={toggleGrid}>Toggle Grid</button>
+        <button onClick={toggleGridVisibility}>Toggle Grid</button>
         <button onClick={undo} disabled={!canUndo()}>Undo</button>
         <button onClick={redo} disabled={!canRedo()}>Redo</button>
         
@@ -568,8 +509,7 @@ const SceneObjectList: React.FC = () => {
     objects,
     selectedObject,
     selectObject,
-    removeObject,
-    duplicateObject
+    removeObject
   } = useSceneStore()
 
   return (
@@ -585,9 +525,6 @@ const SceneObjectList: React.FC = () => {
         >
           <span>{object.name}</span>
           <div className="object-actions">
-            <button onClick={() => duplicateObject(object.uuid)}>
-              Duplicate
-            </button>
             <button onClick={() => removeObject(object.uuid)}>
               Delete
             </button>
@@ -650,12 +587,12 @@ See [Type System Documentation](../types/README.md) for complete type definition
 
 ```typescript
 import { renderHook, act } from '@testing-library/react'
-import { useSceneStore } from '@/features/scene/store'
+import { useSceneStore } from '@/features/scene/model/sceneStore'
 
 describe('SceneStore', () => {
   beforeEach(() => {
     // Reset store state before each test
-    useSceneStore.getState().reset()
+    useSceneStore.getState().clearScene()
   })
 
   it('should add object to scene', () => {
@@ -687,7 +624,7 @@ describe('SceneStore', () => {
     
     act(() => {
       // Initial state - save to history
-      result.current.pushToHistory()
+      result.current.saveToHistory()
       
       // Add object
       result.current.addObject(mockObject)
