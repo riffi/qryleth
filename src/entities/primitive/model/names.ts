@@ -19,7 +19,10 @@ export function generatePrimitiveName(type: GfxPrimitive['type'], index: number)
  * @param index порядковый номер примитива в списке
  * @returns осмысленное название примитива
  */
-export function getPrimitiveDisplayName(primitive: GfxPrimitive, index: number): string {
+export function getPrimitiveDisplayName(
+  primitive: Pick<GfxPrimitive, 'type' | 'name'>,
+  index: number
+): string {
   return primitive.name && primitive.name.trim() !== ''
     ? primitive.name
     : generatePrimitiveName(primitive.type, index + 1)
@@ -33,10 +36,12 @@ export function getPrimitiveDisplayName(primitive: GfxPrimitive, index: number):
  * @param primitives массив примитивов для обработки
  * @returns новый массив примитивов с гарантированными именами
  */
-export function ensurePrimitiveNames(primitives: GfxPrimitive[]): GfxPrimitive[] {
+export function ensurePrimitiveNames<T extends { type: GfxPrimitive['type']; name?: string }>(
+  primitives: T[]
+): T[] {
   return primitives.map((p, i) =>
     p.name && p.name.trim() !== ''
       ? p
-      : { ...p, name: generatePrimitiveName(p.type, i + 1) }
+      : ({ ...p, name: generatePrimitiveName(p.type, i + 1) } as T)
   )
 }

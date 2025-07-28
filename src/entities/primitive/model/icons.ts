@@ -15,7 +15,10 @@ import type { Icon } from '@tabler/icons-react'
  * @param type тип примитива
  * @returns компонент иконки Tabler
  */
-export function getPrimitiveIcon(type: GfxPrimitive['type']): Icon {
+export function getPrimitiveIcon(
+  primitive: GfxPrimitive | GfxPrimitive['type']
+): Icon {
+  const type = typeof primitive === 'string' ? primitive : primitive.type
   switch (type) {
     case 'box':
       return IconCube
@@ -32,6 +35,15 @@ export function getPrimitiveIcon(type: GfxPrimitive['type']): Icon {
     case 'torus':
       return IconCircle
     default:
+      assertNever(type)
       return IconCube
   }
+}
+
+/**
+ * Проверяет, что перечисление типов примитивов исчерпывающее.
+ * Выбрасывает ошибку на этапе выполнения, если встречен неизвестный тип.
+ */
+function assertNever(x: never): never {
+  throw new Error(`Неизвестный тип примитива: ${x}`)
 }
