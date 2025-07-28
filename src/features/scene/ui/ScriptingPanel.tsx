@@ -142,17 +142,81 @@ if (objects.length > 0) {
     setIsSaveModalOpen(true)
   }, [currentScriptUuid, savedScripts])
 
+  // Функция для извлечения переменных из кода
+  const extractVariablesFromScript = useCallback((scriptText: string) => {
+    const variables = new Set<string>()
+    
+    // Регулярные выражения для поиска объявлений переменных
+    const patterns = [
+      /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,  // const/let/var declarations
+      /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g,                    // assignments
+      /for\s*\(\s*(?:const|let|var)?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g, // for loops
+      /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,             // function declarations
+      /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*/g,                // arrow functions
+      /\.forEach\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g,       // forEach callbacks
+      /\.map\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g,           // map callbacks
+      /\.filter\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g,        // filter callbacks
+      /catch\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g            // catch blocks
+    ]
+    
+    patterns.forEach(pattern => {
+      let match
+      while ((match = pattern.exec(scriptText)) !== null) {
+        const varName = match[1]
+        if (varName && !['true', 'false', 'null', 'undefined', 'this'].includes(varName)) {
+          variables.add(varName)
+        }
+      }
+    })
+    
+    return Array.from(variables)
+  }, [])
 
-  // SceneAPI автокомплит
-  const sceneApiCompletions = useCallback((context: CompletionContext) => {
+  // Функция для получения переменных из контекста API
+  const getApiVariables = useCallback(() => {
+    try {
+      const overview = SceneAPI.getSceneOverview()
+      const apiVars = []
+      
+      // Добавляем переменные из overview
+      if (overview.objects.length > 0) {
+        apiVars.push({
+          label: 'overview',
+          type: 'variable',
+          info: 'Обзор сцены с объектами и экземплярами'
+        })
+      }
+      
+      // Добавляем информацию об объектах
+      overview.objects.forEach((obj, index) => {
+        if (index < 10) { // Ограничиваем количество для производительности
+          apiVars.push({
+            label: `object_${obj.name.replace(/[^a-zA-Z0-9]/g, '_')}`,
+            type: 'variable',
+            info: `Объект "${obj.name}" (UUID: ${obj.uuid})`
+          })
+        }
+      })
+      
+      return apiVars
+    } catch {
+      return []
+    }
+  }, [])
+
+  // Расширенный автокомплит с поддержкой переменных
+  const enhancedCompletions = useCallback((context: CompletionContext) => {
     const word = context.matchBefore(/\w*/)
     if (!word) return null
     if (word.from === word.to && !context.explicit) return null
 
-    // Проверяем, есть ли перед словом "sceneApi."
-    const beforeWord = context.state.doc.sliceString(Math.max(0, word.from - 9), word.from)
+    // Получаем текущий код для анализа переменных
+    const currentScript = context.state.doc.toString()
+    const beforeWord = context.state.doc.sliceString(Math.max(0, word.from - 10), word.from)
+    
     const isAfterSceneApi = beforeWord.endsWith('sceneApi.')
     const isAfterConsole = beforeWord.endsWith('console.')
+    const isAfterDot = beforeWord.endsWith('.')
 
     let completions = []
 
@@ -244,14 +308,68 @@ if (objects.length > 0) {
       // Если автокомплит после "console.", показываем только методы консоли
       completions = [
         { label: 'log', type: 'function', info: 'Вывести сообщение в консоль' },
-        { label: 'error', type: 'function', info: 'Вывести ошибку в консоль' }
+        { label: 'error', type: 'function', info: 'Вывести ошибку в консоль' },
+        { label: 'warn', type: 'function', info: 'Вывести предупреждение в консоль' },
+        { label: 'info', type: 'function', info: 'Вывести информацию в консоль' },
+        { label: 'debug', type: 'function', info: 'Вывести отладочную информацию в консоль' },
+        { label: 'table', type: 'function', info: 'Вывести данные в виде таблицы' },
+        { label: 'clear', type: 'function', info: 'Очистить консоль' }
       ]
-    } else {
-      // Если автокомплит в общем контексте, показываем полные имена
+    } else if (!isAfterDot) {
+      // Если автокомплит в общем контексте, показываем переменные и API
+      
+      // Базовые API и глобальные переменные
       completions = [
         { label: 'sceneApi', type: 'variable', info: 'API для управления сценой' },
-        { label: 'console', type: 'variable', info: 'Консоль браузера' }
+        { label: 'console', type: 'variable', info: 'Консоль браузера' },
+        { label: 'Math', type: 'variable', info: 'Математические функции и константы' },
+        { label: 'Date', type: 'variable', info: 'Работа с датой и временем' },
+        { label: 'JSON', type: 'variable', info: 'Парсинг и сериализация JSON' },
+        { label: 'Array', type: 'variable', info: 'Конструктор массивов' },
+        { label: 'Object', type: 'variable', info: 'Конструктор объектов' },
+        { label: 'String', type: 'variable', info: 'Конструктор строк' },
+        { label: 'Number', type: 'variable', info: 'Конструктор чисел' }
       ]
+      
+      // Добавляем переменные из текущего скрипта
+      const scriptVariables = extractVariablesFromScript(currentScript)
+      scriptVariables.forEach(varName => {
+        if (!completions.some(c => c.label === varName)) {
+          completions.push({
+            label: varName,
+            type: 'variable',
+            info: `Переменная из скрипта: ${varName}`
+          })
+        }
+      })
+      
+      // Добавляем переменные из API контекста
+      const apiVariables = getApiVariables()
+      completions.push(...apiVariables)
+      
+      // Добавляем ключевые слова JavaScript
+      const keywords = [
+        { label: 'const', type: 'keyword', info: 'Объявление константы' },
+        { label: 'let', type: 'keyword', info: 'Объявление переменной' },
+        { label: 'var', type: 'keyword', info: 'Объявление переменной (устаревшее)' },
+        { label: 'function', type: 'keyword', info: 'Объявление функции' },
+        { label: 'return', type: 'keyword', info: 'Возврат значения из функции' },
+        { label: 'if', type: 'keyword', info: 'Условное выражение' },
+        { label: 'else', type: 'keyword', info: 'Альтернативная ветка условия' },
+        { label: 'for', type: 'keyword', info: 'Цикл for' },
+        { label: 'while', type: 'keyword', info: 'Цикл while' },
+        { label: 'try', type: 'keyword', info: 'Блок обработки исключений' },
+        { label: 'catch', type: 'keyword', info: 'Обработка исключений' },
+        { label: 'finally', type: 'keyword', info: 'Финальный блок' },
+        { label: 'async', type: 'keyword', info: 'Асинхронная функция' },
+        { label: 'await', type: 'keyword', info: 'Ожидание асинхронной операции' },
+        { label: 'true', type: 'keyword', info: 'Логическое значение true' },
+        { label: 'false', type: 'keyword', info: 'Логическое значение false' },
+        { label: 'null', type: 'keyword', info: 'Значение null' },
+        { label: 'undefined', type: 'keyword', info: 'Значение undefined' }
+      ]
+      
+      completions.push(...keywords)
     }
 
     return {
@@ -260,8 +378,7 @@ if (objects.length > 0) {
         item.label.toLowerCase().includes(word.text.toLowerCase())
       )
     }
-  }, [])
-
+  }, [extractVariablesFromScript, getApiVariables])
 
   const executeScript = useCallback(async () => {
     if (!script.trim()) return
@@ -287,7 +404,6 @@ if (objects.length > 0) {
       console.error('Ошибка выполнения:', error instanceof Error ? error.message : String(error))
     }
   }, [script])
-
 
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
@@ -375,7 +491,7 @@ if (objects.length > 0) {
           onChange={(value) => setScript(value)}
           extensions={[
             javascript(),
-            autocompletion({ override: [sceneApiCompletions] })
+            autocompletion({ override: [enhancedCompletions] })
           ]}
           basicSetup={{
             lineNumbers: true,
