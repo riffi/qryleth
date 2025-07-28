@@ -106,14 +106,21 @@ export const useSceneStore = create<SceneStore>()(
       get().markSceneAsModified()
     },
 
+    /**
+     * Обновляет объект сцены по его UUID.
+     * Если передан новый список примитивов, он предварительно
+     * нормализуется и заменяет текущий. Все поля, отсутствующие
+     * во входящих данных, остаются без изменений.
+     */
     updateObject: (objectUuid: string, updates: Partial<SceneObject>) => {
-      const normalizedUpdates = {
-        ...updates,
-        primitives: updates.primitives
-          ? ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
-          : undefined,
-        libraryUuid: updates.libraryUuid
+      const normalizedUpdates: Partial<SceneObject> = { ...updates }
+
+      if (updates.primitives) {
+        normalizedUpdates.primitives = ensurePrimitiveNames(
+          updates.primitives.map(normalizePrimitive)
+        )
       }
+
       const objects = get().objects.map(obj =>
         obj.uuid === objectUuid ? { ...obj, ...normalizedUpdates } : obj
       )

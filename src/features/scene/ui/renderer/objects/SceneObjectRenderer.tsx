@@ -84,7 +84,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {sceneObject.primitives.map((primitive, index) => (
+      {sceneObject.primitives?.map((primitive, index) => (
         <PrimitiveRenderer
           key={index}
           primitive={primitive}
