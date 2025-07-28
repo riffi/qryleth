@@ -7,10 +7,10 @@ import { useSceneStore } from '@/features/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'
-import type { GfxPrimitive } from '@/entities'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
 import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import type {Vector3} from "@/shared/types";
 
 /**
  * Simplified scene object info for agent tools
@@ -164,15 +164,15 @@ export class SceneAPI {
    * Добавить экземпляр существующего объекта на сцену
    */
   static addObjectInstance(
-    objectUuid: string, 
-    position: [number, number, number] = [0, 0, 0],
-    rotation: [number, number, number] = [0, 0, 0],
-    scale: [number, number, number] = [1, 1, 1],
+    objectUuid: string,
+    position: Vector3 = [0, 0, 0],
+    rotation: Vector3 = [0, 0, 0],
+    scale: Vector3 = [1, 1, 1],
     visible: boolean = true
   ): AddInstanceResult {
     try {
       const state = useSceneStore.getState()
-      
+
       // Проверить существование объекта
       const existingObject = state.objects.find(obj => obj.uuid === objectUuid)
       if (!existingObject) {
@@ -284,7 +284,7 @@ export class SceneAPI {
       addObject(newObject)
 
       // Найти подходящий landscape слой (логика из addInstanceToScene)
-      const perlinLandscape = layers.find(layer => 
+      const perlinLandscape = layers.find(layer =>
         layer.type === 'landscape' && layer.shape === 'perlin'
       )
       const anyLandscape = layers.find(layer => layer.type === 'landscape')
@@ -328,9 +328,9 @@ export class SceneAPI {
       const { objectInstances, layers, setObjectInstances } = state
 
       // Find the perlin layer
-      const perlinLayer = layers.find(layer => 
-        layer.id === perlinLayerId && 
-        layer.type === 'landscape' && 
+      const perlinLayer = layers.find(layer =>
+        layer.id === perlinLayerId &&
+        layer.type === 'landscape' &&
         layer.shape === 'perlin'
       )
 
@@ -343,7 +343,7 @@ export class SceneAPI {
 
       // Adjust all instances
       const adjustedInstances = adjustAllInstancesForPerlinTerrain(objectInstances, perlinLayer)
-      
+
       // Count how many were actually adjusted
       const adjustedCount = adjustedInstances.filter((instance, index) => {
         const original = objectInstances[index]
