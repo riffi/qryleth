@@ -336,6 +336,42 @@ if (objects.length > 0) {
     }
   }, [])
 
+  // Функция для создания стилизованной подсказки
+  const createStyledInfo = (text: string) => {
+    return () => {
+      const div = document.createElement('div');
+      div.style.padding = '10px';
+      div.style.backgroundColor = '#1e1e1e';
+      div.style.color = '#d4d4d4';
+      div.style.borderRadius = '6px';
+      div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+      div.style.maxWidth = '450px';
+      div.style.fontFamily = "'Fira Code', monospace";
+      div.style.fontSize = '13px';
+      div.style.lineHeight = '1.5';
+
+      const lines = text.split('\n');
+      let html = '';
+      lines.forEach(line => {
+        if (line.trim() === '') return;
+        if (line.includes('():')) {
+          html += `<h3 style="margin: 0 0 8px 0; color: #4ec9b0;">${line}</h3>`;
+        } else if (line.startsWith('Возвращает:')) {
+          html += `<p style="margin: 4px 0; color: #dcdcaa;"><strong>${line}</strong></p>`;
+        } else if (line.startsWith('Параметры:')) {
+          html += `<p style="margin: 4px 0; color: #dcdcaa;"><strong>${line}</strong></p>`;
+        } else if (line.startsWith('Описание:')) {
+          html += `<p style="margin: 8px 0 0 0; color: #9cdcfe;">${line}</p>`;
+        } else {
+          html += `<pre style="margin: 0; color: #d4d4d4;">${line}</pre>`;
+        }
+      });
+
+      div.innerHTML = html;
+      return div;
+    };
+  };
+
   // Расширенный автокомплит с поддержкой переменных
   const enhancedCompletions = useCallback((context: CompletionContext) => {
     const word = context.matchBefore(/\w*/)
@@ -358,7 +394,7 @@ if (objects.length > 0) {
         { 
           label: 'getSceneOverview', 
           type: 'function', 
-          info: `getSceneOverview(): SceneOverview
+          info: createStyledInfo(`getSceneOverview(): SceneOverview
 Возвращает: {
   totalObjects: number,
   totalInstances: number,
@@ -367,12 +403,12 @@ if (objects.length > 0) {
   sceneName: string,
   layers: Array<{id, name, visible, objectCount}>
 }
-Описание: Получить общую информацию о сцене с объектами, экземплярами и слоями` 
+Описание: Получить общую информацию о сцене с объектами, экземплярами и слоями`) 
         },
         { 
           label: 'getSceneObjects', 
           type: 'function', 
-          info: `getSceneObjects(): SceneObjectInfo[]
+          info: createStyledInfo(`getSceneObjects(): SceneObjectInfo[]
 Возвращает: Array<{
   uuid: string,
   name: string,
@@ -385,12 +421,12 @@ if (objects.length > 0) {
   hasInstances: boolean,
   instanceCount: number
 }>
-Описание: Получить список всех объектов сцены` 
+Описание: Получить список всех объектов сцены`) 
         },
         { 
           label: 'getSceneInstances', 
           type: 'function', 
-          info: `getSceneInstances(): SceneInstanceInfo[]
+          info: createStyledInfo(`getSceneInstances(): SceneInstanceInfo[]
 Возвращает: Array<{
   uuid: string,
   objectUuid: string,
@@ -398,30 +434,30 @@ if (objects.length > 0) {
   transform?: Transform,
   visible?: boolean
 }>
-Описание: Получить список всех экземпляров объектов` 
+Описание: Получить список всех экземпляров объектов`) 
         },
         { 
           label: 'findObjectByUuid', 
           type: 'function', 
-          info: `findObjectByUuid(uuid: string): SceneObject | null
+          info: createStyledInfo(`findObjectByUuid(uuid: string): SceneObject | null
 Параметры:
   uuid: string - UUID объекта для поиска
 Возвращает: SceneObject | null
-Описание: Найти объект по UUID` 
+Описание: Найти объект по UUID`) 
         },
         { 
           label: 'findObjectByName', 
           type: 'function', 
-          info: `findObjectByName(name: string): SceneObject | null
+          info: createStyledInfo(`findObjectByName(name: string): SceneObject | null
 Параметры:
   name: string - Имя объекта для поиска (частичное совпадение)
 Возвращает: SceneObject | null
-Описание: Найти объект по имени (первый найденный)` 
+Описание: Найти объект по имени (первый найденный)`) 
         },
         { 
           label: 'addObjectInstance', 
           type: 'function', 
-          info: `addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
+          info: createStyledInfo(`addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
 Параметры:
   objectUuid: string - UUID существующего объекта
   position?: Vector3 = [0, 0, 0] - Позиция [x, y, z]
@@ -429,12 +465,12 @@ if (objects.length > 0) {
   scale?: Vector3 = [1, 1, 1] - Масштаб [x, y, z]
   visible?: boolean = true - Видимость экземпляра
 Возвращает: {success: boolean, instanceUuid?: string, objectUuid?: string, error?: string}
-Описание: Добавить экземпляр объекта` 
+Описание: Добавить экземпляр объекта`) 
         },
         { 
           label: 'addSingleObjectInstance', 
           type: 'function', 
-          info: `addSingleObjectInstance(objectUuid, params): AddInstancesResult
+          info: createStyledInfo(`addSingleObjectInstance(objectUuid, params): AddInstancesResult
 Параметры:
   objectUuid: string - UUID объекта
   params: InstanceCreationParams = {
@@ -444,22 +480,22 @@ if (objects.length > 0) {
     visible?: boolean
   }
 Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
-Описание: Добавить один экземпляр с BoundingBox` 
+Описание: Добавить один экземпляр с BoundingBox`) 
         },
         { 
           label: 'addObjectInstances', 
           type: 'function', 
-          info: `addObjectInstances(objectUuid, instances): AddInstancesResult
+          info: createStyledInfo(`addObjectInstances(objectUuid, instances): AddInstancesResult
 Параметры:
   objectUuid: string - UUID объекта
   instances: InstanceCreationParams[] - Массив параметров экземпляров
 Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
-Описание: Добавить несколько экземпляров объекта` 
+Описание: Добавить несколько экземпляров объекта`) 
         },
         { 
           label: 'addRandomObjectInstances', 
           type: 'function', 
-          info: `addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
+          info: createStyledInfo(`addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
 Параметры:
   objectUuid: string - UUID объекта
   count: number - Количество экземпляров
@@ -470,44 +506,44 @@ if (objects.length > 0) {
     alignToTerrain?: boolean
   }
 Возвращает: AddInstancesResult
-Описание: Создать случайные экземпляры с автоматическим размещением` 
+Описание: Создать случайные экземпляры с автоматическим размещением`) 
         },
         { 
           label: 'getAvailableLayers', 
           type: 'function', 
-          info: `getAvailableLayers(): Array<LayerInfo>
+          info: createStyledInfo(`getAvailableLayers(): Array<LayerInfo>
 Возвращает: Array<{
   id: string,
   name: string,
   visible: boolean,
   position: Vector3
 }>
-Описание: Получить доступные слои для размещения объектов` 
+Описание: Получить доступные слои для размещения объектов`) 
         },
         { 
           label: 'canAddInstance', 
           type: 'function', 
-          info: `canAddInstance(objectUuid: string): boolean
+          info: createStyledInfo(`canAddInstance(objectUuid: string): boolean
 Параметры:
   objectUuid: string - UUID объекта для проверки
 Возвращает: boolean
-Описание: Проверить можно ли добавить экземпляр объекта` 
+Описание: Проверить можно ли добавить экземпляр объекта`) 
         },
         { 
           label: 'getSceneStats', 
           type: 'function', 
-          info: `getSceneStats(): SceneStats
+          info: createStyledInfo(`getSceneStats(): SceneStats
 Возвращает: {
   total: {objects: number, instances: number, layers: number},
   visible: {objects: number, instances: number, layers: number},
   primitiveTypes: string[]
 }
-Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)` 
+Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)`) 
         },
         { 
           label: 'addObjectWithTransform', 
           type: 'function', 
-          info: `addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
+          info: createStyledInfo(`addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
 Параметры:
   objectData: GFXObjectWithTransform = {
     uuid?: string,
@@ -519,21 +555,21 @@ if (objects.length > 0) {
     scale?: Vector3
   }
 Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
-Описание: Добавить объект с трансформацией в сцену` 
+Описание: Добавить объект с трансформацией в сцену`) 
         },
         { 
           label: 'searchObjectsInLibrary', 
           type: 'function', 
-          info: `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
+          info: createStyledInfo(`searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
 Параметры:
   query: string - Строка поиска (по имени или описанию)
 Возвращает: Promise<ObjectRecord[]>
-Описание: Поиск объектов в библиотеке по строке запроса` 
+Описание: Поиск объектов в библиотеке по строке запроса`) 
         },
         { 
           label: 'addObjectFromLibrary', 
           type: 'function', 
-          info: `addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
+          info: createStyledInfo(`addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
 Параметры:
   objectUuid: string - UUID объекта в библиотеке
   layerId: string - ID слоя для размещения
@@ -543,16 +579,16 @@ if (objects.length > 0) {
     scale?: Vector3
   }
 Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
-Описание: Добавить объект из библиотеки` 
+Описание: Добавить объект из библиотеки`) 
         },
         { 
           label: 'adjustInstancesForPerlinTerrain', 
           type: 'function', 
-          info: `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
+          info: createStyledInfo(`adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
 Параметры:
   perlinLayerId: string - ID слоя с Perlin ландшафтом
 Возвращает: {success: boolean, adjustedCount?: number, error?: string}
-Описание: Привязать экземпляры к ландшафту Perlin` 
+Описание: Привязать экземпляры к ландшафту Perlin`) 
         }
       ]
     } else if (isAfterConsole) {
@@ -799,63 +835,44 @@ if (objects.length > 0) {
             bracketMatching: true,
             closeBrackets: true,
             autocompletion: true,
-            highlightSelectionMatches: false
+            rectangularSelection: true,
+            highlightActiveLine: true,
+            highlightSelectionMatches: true,
+            syntaxHighlighting: true
           }}
-          style={{
-            height: '100%',
-            fontSize: '13px',
-            fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
-          }}
-          theme="dark"
-          onKeyDown={(event) => {
-            if (event.ctrlKey && event.key === 'Enter') {
-              event.preventDefault()
-              executeScript()
-            }
-          }}
+          theme={oneDark}
+          height="100%"
+          style={{ height: '100%' }}
         />
       </Box>
 
-      {/* Модальное окно для сохранения скрипта */}
+      {/* Модальное окно сохранения */}
       <Modal
         opened={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
-        title={currentScriptUuid ? "Редактировать скрипт" : "Сохранить скрипт"}
-        size="md"
+        title={currentScriptUuid ? 'Редактировать скрипт' : 'Сохранить скрипт'}
       >
-        <Box>
+        <Stack gap="md">
           <TextInput
-            label="Название"
-            placeholder="Введите название скрипта"
+            label="Название скрипта"
             value={saveScriptName}
-            onChange={(event) => setSaveScriptName(event.currentTarget.value)}
-            mb="sm"
+            onChange={(e) => setSaveScriptName(e.currentTarget.value)}
             required
           />
-          
           <TextInput
-            label="Описание"
-            placeholder="Краткое описание скрипта (необязательно)"
+            label="Описание (опционально)"
             value={saveScriptDescription}
-            onChange={(event) => setSaveScriptDescription(event.currentTarget.value)}
-            mb="md"
+            onChange={(e) => setSaveScriptDescription(e.currentTarget.value)}
           />
-
-          <Group justify="flex-end" gap="sm">
-            <Button 
-              variant="light" 
-              onClick={() => setIsSaveModalOpen(false)}
-            >
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setIsSaveModalOpen(false)}>
               Отмена
             </Button>
-            <Button 
-              onClick={handleSaveScript}
-              disabled={!saveScriptName.trim()}
-            >
-              {currentScriptUuid ? "Обновить" : "Сохранить"}
+            <Button onClick={handleSaveScript}>
+              Сохранить
             </Button>
           </Group>
-        </Box>
+        </Stack>
       </Modal>
     </Box>
   )
