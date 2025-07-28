@@ -1,0 +1,405 @@
+{
+  "name": "Pizza",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "name": "Pizza Base",
+      "radiusTop": 1.0,
+      "radiusBottom": 1.0,
+      "height": 0.1,
+      "openEnded": true,
+      "position": [
+        0.0,
+        -0.03,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#e5b266"
+    },
+    {
+      "type": "cylinder",
+      "name": "Tomato Sauce",
+      "radiusTop": 0.95,
+      "radiusBottom": 0.95,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.0,
+        0.03,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#cc1919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Cheese",
+      "radiusTop": 0.9,
+      "radiusBottom": 0.9,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.0,
+        0.05,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#ffe57f"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 1",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.4085994499799447,
+        0.07,
+        0.4826203439300205
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 2",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.2542591018772383,
+        0.07,
+        -0.3749204536243451
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 3",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.2427218876286631,
+        0.07,
+        0.5304506492266494
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 4",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.18428714708564053,
+        0.07,
+        0.09864445991710669
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 5",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.4808838089184181,
+        0.07,
+        -0.6403988723310479
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 6",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.3674588347654266,
+        0.07,
+        -0.5449851126422232
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 7",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.5891316315502129,
+        0.07,
+        -0.1005781350382926
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Pepperoni 8",
+      "radiusTop": 0.1,
+      "radiusBottom": 0.1,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.5033523540062264,
+        0.07,
+        0.6562318261141178
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#991919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 1",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.43550316121772237,
+        0.07,
+        0.02933942617564611
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 2",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.12485062455575724,
+        0.07,
+        -0.5499399448529967
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 3",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.021491941524067526,
+        0.07,
+        -0.4801051033226201
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 4",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.14082164439385836,
+        0.07,
+        -0.2297255997776076
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 5",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.2648728351162912,
+        0.07,
+        -0.16991580797583572
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 6",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.4279572035322735,
+        0.07,
+        0.3500110411862579
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 7",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.3224037179643696,
+        0.07,
+        -0.5716450586760305
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 8",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        -0.28684336512000674,
+        0.07,
+        -0.4273912903753403
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 9",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.42592417487045753,
+        0.07,
+        0.2401834702706922
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    },
+    {
+      "type": "cylinder",
+      "name": "Olive 10",
+      "radiusTop": 0.05,
+      "radiusBottom": 0.05,
+      "height": 0.02,
+      "openEnded": true,
+      "position": [
+        0.18230119584715299,
+        0.07,
+        -0.12972418346531067
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "#191919"
+    }
+  ]
+}

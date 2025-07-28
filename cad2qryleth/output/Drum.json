@@ -1,0 +1,42 @@
+{
+  "name": "ChessBoard",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "cylinder",
+      "name": "Drum Body",
+      "radiusTop": 1.0,
+      "radiusBottom": 1.0,
+      "height": 1.5,
+      "openEnded": true,
+      "position": [
+        0.0,
+        -0.02499999999999991,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "type": "cylinder",
+      "name": "Drumhead",
+      "radiusTop": 1.05,
+      "radiusBottom": 1.05,
+      "height": 0.05,
+      "openEnded": true,
+      "position": [
+        0.0,
+        0.75,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}
