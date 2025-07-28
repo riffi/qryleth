@@ -57,36 +57,90 @@ import type { SceneObjectInstance } from '@/entities/scene/types'
 // Creating a primitive / Создание примитива
 const createBox = (): GfxPrimitive => ({
   type: 'box',
-  width: 2,
-  height: 2,
-  depth: 2,
-  position: [0, 0, 0],
-  // ...
+  geometry: {
+    width: 2,
+    height: 2,
+    depth: 2,
+  },
+  material: {
+    color: '#ff0000',
+    opacity: 1.0,
+  },
+  transform: {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+  },
 })
 
 // Working with composite object / Работа с композитным объектом
 const processObject = (object: GfxObject) => {
   object.primitives.forEach(primitive => {
     console.log(`Primitive type: ${primitive.type}`)
+    if (primitive.type === 'box') {
+      console.log(`Box dimensions: ${primitive.geometry.width}x${primitive.geometry.height}x${primitive.geometry.depth}`)
+    }
   })
+}
+
+// Type-safe geometry access / Типобезопасный доступ к геометрии
+const getPrimitiveVolume = (primitive: GfxPrimitive): number => {
+  switch (primitive.type) {
+    case 'box':
+      return primitive.geometry.width * primitive.geometry.height * primitive.geometry.depth
+    case 'sphere':
+      return (4/3) * Math.PI * Math.pow(primitive.geometry.radius, 3)
+    case 'cylinder':
+      const avgRadius = (primitive.geometry.radiusTop + primitive.geometry.radiusBottom) / 2
+      return Math.PI * avgRadius * avgRadius * primitive.geometry.height
+    // ... другие типы
+    default:
+      return 0
+  }
 }
 ```
 
 ### GfxPrimitive
 
-Структура примитива содержит читаемое имя в поле `name`:
+Структура примитива использует дискриминированное объединение с четким разделением геометрии, материала и трансформаций:
 
 ```typescript
-interface GfxPrimitive {
-  type: 'box' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'plane'
-  /** Читаемое имя примитива */
-  name?: string
-  // ...другие параметры
+type GfxPrimitive =
+  | ({ type: 'box';      geometry: BoxGeometry;      } & PrimitiveCommon)
+  | ({ type: 'sphere';   geometry: SphereGeometry;   } & PrimitiveCommon)
+  | ({ type: 'cylinder'; geometry: CylinderGeometry; } & PrimitiveCommon)
+  | ({ type: 'cone';     geometry: ConeGeometry;     } & PrimitiveCommon)
+  | ({ type: 'pyramid';  geometry: PyramidGeometry;  } & PrimitiveCommon)
+  | ({ type: 'plane';    geometry: PlaneGeometry;    } & PrimitiveCommon)
+  | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon);
+
+interface PrimitiveCommon {
+  name?: string;
+  material?: {
+    color?: string;
+    opacity?: number;
+    emissive?: string;
+    emissiveIntensity?: number;
+  };
+  transform?: {
+    position?: Vector3;
+    rotation?: Vector3;
+    scale?: Vector3;
+  };
 }
 ```
 
-Поле `name` используется в редакторе объектов и заполняется автоматически,
-если имя не задано при создании примитива.
+#### Геометрические интерфейсы
+
+Каждый тип примитива имеет специфичный интерфейс геометрии:
+
+- **BoxGeometry**: `width`, `height`, `depth`
+- **SphereGeometry**: `radius`
+- **CylinderGeometry**: `radiusTop`, `radiusBottom`, `height`, `radialSegments?`
+- **ConeGeometry**: `radius`, `height`, `radialSegments?`
+- **PyramidGeometry**: `baseSize`, `height`
+- **PlaneGeometry**: `width`, `height`
+- **TorusGeometry**: `majorRadius`, `minorRadius`, `radialSegments?`, `tubularSegments?`
 
 ### 2. 🔧 Core Utilities (`@/shared/types/core`)
 
