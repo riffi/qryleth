@@ -36,6 +36,10 @@ interface ObjectItemProps {
     onContextMenu: (e: React.MouseEvent) => void
 }
 
+/**
+ * Компонент отображения отдельного объекта сцены
+ * с возможностью управления и контекстным меню
+ */
 export const SceneObjectItem: React.FC<ObjectItemProps> = ({
     obj,
     isExpanded,
@@ -111,11 +115,11 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                             )}
                         </ActionIcon>
                         <IconCube size={12} color="var(--mantine-color-blue-4)" style={{ flexShrink: 0 }} />
-                        <Text 
-                            size="xs" 
-                            fw={500} 
-                            lineClamp={1} 
-                            style={{ 
+                        <Text
+                            size="xs"
+                            fw={500}
+                            lineClamp={1}
+                            style={{
                                 userSelect: 'none',
                                 flex: 1,
                                 minWidth: 0,
@@ -126,6 +130,10 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                         >
                             {obj.name}
                         </Text>
+                        {/* Если объект был добавлен из библиотеки, показываем иконку */}
+                        {obj.libraryUuid && (
+                            <IconBookmark size={12} color="var(--mantine-color-green-5)" />
+                        )}
                         <Text size="xs" c="dimmed" style={{ fontSize: '10px', flexShrink: 0 }}>
                             ({obj.count})
                         </Text>
@@ -177,15 +185,18 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                 >
                                     Редактировать
                                 </Menu.Item>
-                                <Menu.Item
-                                    leftSection={<IconBookmark size={14} />}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        onSaveToLibrary()
-                                    }}
-                                >
-                                    Сохранить в библиотеку
-                                </Menu.Item>
+                                {/* Пункт сохранения доступен только для объектов без libraryUuid */}
+                                {!obj.libraryUuid && (
+                                    <Menu.Item
+                                        leftSection={<IconBookmark size={14} />}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            onSaveToLibrary()
+                                        }}
+                                    >
+                                        Сохранить в библиотеку
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item
                                     leftSection={<IconDownload size={14} />}
                                     onClick={(e) => {
