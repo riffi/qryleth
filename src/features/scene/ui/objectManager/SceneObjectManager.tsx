@@ -301,7 +301,11 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setSaveObjectModalOpened(true)
     }
 
-    const handleSaveObject = async (name: string, description?: string) => {
+    /**
+     * Сохраняет выбранный объект в библиотеку
+     * и присваивает его UUID из библиотеки сценному объекту
+     */
+    const handleSaveObject = async (name: string, description?: string): Promise<string | undefined> => {
         if (!savingObjectUuid) return
         const object = useSceneStore.getState().objects.find(o => o.uuid === savingObjectUuid)
         if (!object) return
@@ -310,7 +314,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         const objectData = { uuid, name: object.name, primitives }
 
         try {
-            await db.saveObject(name, objectData, description, undefined)
+            const libraryUuid = await db.saveObject(name, objectData, description, undefined)
+            // обновить объект сцены, добавив UUID записи библиотеки
+            useSceneStore.getState().updateObject(object.uuid, { libraryUuid })
             notifications.show({
                 title: 'Успешно!',
                 message: `Объект "${name}" сохранен в библиотеку`,
@@ -319,6 +325,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             })
             setSaveObjectModalOpened(false)
             setSavingObjectUuid(null)
+            return libraryUuid
         } catch (error: unknown) {
             if (
                 error &&

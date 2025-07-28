@@ -6,7 +6,10 @@ import { IconX } from '@tabler/icons-react'
 export interface SaveObjectDialogProps {
   opened: boolean
   onClose: () => void
-  onSave: (name: string, description?: string) => Promise<void>
+  /**
+   * Сохраняет объект и возвращает UUID созданной записи библиотеки
+   */
+  onSave: (name: string, description?: string) => Promise<string>
   objectName?: string
 }
 
@@ -26,6 +29,10 @@ export const SaveObjectDialog: React.FC<SaveObjectDialogProps> = ({
     }
   }, [opened, objectName, name])
 
+  /**
+   * Обрабатывает сохранение объекта в библиотеку
+   * и передаёт введённые данные во внешний обработчик
+   */
   const handleSave = async () => {
     if (!name.trim()) {
       notifications.show({
@@ -39,6 +46,7 @@ export const SaveObjectDialog: React.FC<SaveObjectDialogProps> = ({
 
     setLoading(true)
     try {
+      // Получить UUID сохранённого объекта, но здесь он не используется
       await onSave(name.trim(), description.trim() || undefined)
       setName('')
       setDescription('')
@@ -47,6 +55,9 @@ export const SaveObjectDialog: React.FC<SaveObjectDialogProps> = ({
     }
   }
 
+  /**
+   * Сбрасывает состояние модального окна и закрывает его
+   */
   const handleClose = () => {
     setName('')
     setDescription('')
