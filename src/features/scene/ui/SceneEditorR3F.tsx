@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Drawer } from '@mantine/core'
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
+import { ScriptingPanel } from './ScriptingPanel.tsx'
 import { ObjectEditorR3F, useObjectEditorToolRegistration } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
@@ -36,7 +37,8 @@ import {
   IconRotate,
   IconResize,
   IconChevronLeft,
-  IconChevronRight
+  IconChevronRight,
+  IconCode
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
@@ -98,6 +100,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
+  const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -298,6 +301,17 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
+            <Tooltip label="Панель скриптинга">
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                c={"gray.4"}
+                onClick={() => setScriptingPanelVisible(true)}
+              >
+                <IconCode size="1.5rem" />
+              </ActionIcon>
+            </Tooltip>
+
             <Tooltip label="Справка">
               <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
                 <IconInfoCircle size="1.5rem" />
@@ -493,6 +507,20 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         onSave={handleSaveScene}
         currentSceneName={sceneMetaData?.name}
       />
+      <Drawer
+        opened={scriptingPanelVisible}
+        onClose={() => setScriptingPanelVisible(false)}
+        title="Панель скриптинга"
+        position="left"
+        size="800px"
+        styles={{
+          body: { height: 'calc(100vh - 60px)', padding: 0, margin: 0 },
+          content: { height: '100vh' },
+          header: { padding: '1rem', borderBottom: '1px solid var(--mantine-color-gray-3)' }
+        }}
+      >
+        <ScriptingPanel height="100%" />
+      </Drawer>
     </>
   )
 }

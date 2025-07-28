@@ -10,6 +10,9 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.18.6",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/theme-one-dark": "^6.1.3",
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",
     "@langchain/openai": "^0.6.2",
@@ -21,6 +24,7 @@
     "@react-three/postprocessing": "^3.0.4",
     "@tabler/icons-react": "^3.34.0",
     "@types/three": "^0.178.1",
+    "@uiw/react-codemirror": "^4.24.1",
     "dexie": "^4.0.11",
     "nanoid": "^5.0.2",
     "perlin-noise": "^0.0.1",
