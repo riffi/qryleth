@@ -3,9 +3,9 @@ import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from 
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 import { PrimitiveManager } from './PrimitiveManager/PrimitiveManager.tsx'
-import { useObjectStore, useObjectRenderMode } from '../model/objectStore'
+import { useObjectStore, useObjectRenderMode, useObjectGridVisible } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
-import { IconArrowRightBar, IconRotate, IconResize } from '@tabler/icons-react'
+import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler/icons-react'
 import type { GfxObject } from '@/entities/object'
 import { useObjectEditorToolRegistration } from '@/features/object-editor'
 
@@ -38,6 +38,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const transformMode = useObjectStore(s => s.transformMode)
   const setTransformMode = useObjectStore(s => s.setTransformMode)
   const setRenderMode = useObjectStore(s => s.setRenderMode)
+  const gridVisible = useObjectGridVisible()
+  const toggleGridVisibility = useObjectStore(s => s.toggleGridVisibility)
 
   // Инициализация хранилища примитивов при получении данных объекта
   useEffect(() => {
@@ -81,6 +83,17 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
             style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 }}
           >
             <Group gap="xs">
+              <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
+                <ActionIcon
+                  variant={gridVisible ? 'filled' : 'light'}
+                  c={gridVisible ? 'white' : 'gray'}
+                  onClick={toggleGridVisibility}
+                  size="md"
+                >
+                  <IconGridDots size={18} />
+                </ActionIcon>
+              </Tooltip>
+
               <Group gap="xs">
                 <Tooltip label="Перемещение">
                   <ActionIcon

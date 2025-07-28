@@ -143,6 +143,7 @@ interface ObjectStoreState {
   viewMode: ViewMode           // Camera mode in editor / Режим камеры в редакторе
   renderMode: RenderMode       // Primitive display / Отображение примитивов
   transformMode: TransformMode // Active transformation tool / Действующий инструмент трансформирования
+  gridVisible: boolean         // Grid visibility / Отображается ли сетка
 }
 ```
 

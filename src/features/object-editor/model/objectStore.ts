@@ -11,6 +11,8 @@ interface ObjectStoreState {
   viewMode: ViewMode
   renderMode: RenderMode
   transformMode: TransformMode
+  /** Показана ли сетка в редакторе */
+  gridVisible: boolean
   selectedPrimitiveIds: number[]
   hoveredPrimitiveId: number | null
 }
@@ -22,6 +24,8 @@ interface ObjectStoreActions {
   setLighting: (lighting: LightingSettings) => void
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
+  /** Переключает видимость сетки */
+  toggleGridVisibility: () => void
   selectPrimitive: (index: number) => void
   togglePrimitiveSelection: (index: number) => void
   setSelectedPrimitives: (indices: number[]) => void
@@ -47,6 +51,7 @@ export const useObjectStore = create<ObjectStore>()(
     viewMode: 'orbit',
     renderMode: 'solid',
     transformMode: 'translate',
+    gridVisible: true,
     selectedPrimitiveIds: [],
     hoveredPrimitiveId: null,
 
@@ -74,6 +79,8 @@ export const useObjectStore = create<ObjectStore>()(
     setRenderMode: (mode: RenderMode) => set({ renderMode: mode }),
     // Устанавливает активный режим трансформации
     setTransformMode: (mode: TransformMode) => set({ transformMode: mode }),
+    // Инвертирует состояние видимости сетки
+    toggleGridVisibility: () => set(state => ({ gridVisible: !state.gridVisible })),
     // Выбирает примитив по индексу
     selectPrimitive: (index: number) => set({ selectedPrimitiveIds: [index] }),
     togglePrimitiveSelection: (index: number) =>
@@ -102,3 +109,5 @@ export const useObjectHoveredPrimitiveId = () => useObjectStore(s => s.hoveredPr
 export const useObjectRenderMode = () => useObjectStore(s => s.renderMode)
 export const useObjectTransformMode = () => useObjectStore(s => s.transformMode)
 export const useObjectViewMode = () => useObjectStore(s => s.viewMode)
+/** Селектор состояния видимости сетки */
+export const useObjectGridVisible = () => useObjectStore(s => s.gridVisible)
