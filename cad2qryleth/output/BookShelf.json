@@ -1,0 +1,138 @@
+{
+  "name": "BookShelf",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "box",
+      "geometry": {
+        "width": 2.0,
+        "height": 2.0,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          0.0,
+          -0.6000000000000001,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "box",
+      "name": "box",
+      "geometry": {
+        "width": 2.0,
+        "height": 2.0,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          0.0,
+          -0.20000000000000007,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "box",
+      "name": "box",
+      "geometry": {
+        "width": 2.0,
+        "height": 2.0,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.19999999999999996,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "box",
+      "name": "box",
+      "geometry": {
+        "width": 2.0,
+        "height": 2.0,
+        "depth": 2.0
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.6000000000000001,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "box",
+      "name": "Shelf 5",
+      "geometry": {
+        "width": 0.5,
+        "height": 0.1,
+        "depth": 0.2
+      },
+      "transform": {
+        "position": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#8c4411"
+      }
+    },
+    {
+      "type": "box",
+      "name": "Side Panel 2",
+      "geometry": {
+        "width": 0.05,
+        "height": 2.0,
+        "depth": 0.2
+      },
+      "transform": {
+        "position": [
+          0.25,
+          0.3999999999999999,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#8c4411"
+      }
+    }
+  ]
+}
