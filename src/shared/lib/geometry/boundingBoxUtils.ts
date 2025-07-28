@@ -1,0 +1,383 @@
+import type { BoundingBox, Vector3 } from '@/shared/types'
+import type { GfxPrimitive, GfxObject } from '@/entities'
+
+/**
+ * Применяет трансформацию к вектору
+ */
+function applyTransform(point: Vector3, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): Vector3 {
+  if (!transform) return point
+
+  let [x, y, z] = point
+
+  // Применяем масштабирование
+  if (transform.scale) {
+    x *= transform.scale[0]
+    y *= transform.scale[1]
+    z *= transform.scale[2]
+  }
+
+  // Применяем поворот (упрощенно, для базовых углов)
+  if (transform.rotation) {
+    const [rx, ry, rz] = transform.rotation
+    
+    // Поворот вокруг X
+    if (rx !== 0) {
+      const cos = Math.cos(rx)
+      const sin = Math.sin(rx)
+      const newY = y * cos - z * sin
+      const newZ = y * sin + z * cos
+      y = newY
+      z = newZ
+    }
+    
+    // Поворот вокруг Y
+    if (ry !== 0) {
+      const cos = Math.cos(ry)
+      const sin = Math.sin(ry)
+      const newX = x * cos + z * sin
+      const newZ = -x * sin + z * cos
+      x = newX
+      z = newZ
+    }
+    
+    // Поворот вокруг Z
+    if (rz !== 0) {
+      const cos = Math.cos(rz)
+      const sin = Math.sin(rz)
+      const newX = x * cos - y * sin
+      const newY = x * sin + y * cos
+      x = newX
+      y = newY
+    }
+  }
+
+  // Применяем смещение
+  if (transform.position) {
+    x += transform.position[0]
+    y += transform.position[1]
+    z += transform.position[2]
+  }
+
+  return [x, y, z]
+}
+
+/**
+ * Вычисляет BoundingBox для примитива box
+ */
+function calculateBoxBoundingBox(geometry: { width: number; height: number; depth: number }, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const halfWidth = geometry.width / 2
+  const halfHeight = geometry.height / 2
+  const halfDepth = geometry.depth / 2
+
+  // 8 вершин куба
+  const vertices: Vector3[] = [
+    [-halfWidth, -halfHeight, -halfDepth],
+    [halfWidth, -halfHeight, -halfDepth],
+    [-halfWidth, halfHeight, -halfDepth],
+    [halfWidth, halfHeight, -halfDepth],
+    [-halfWidth, -halfHeight, halfDepth],
+    [halfWidth, -halfHeight, halfDepth],
+    [-halfWidth, halfHeight, halfDepth],
+    [halfWidth, halfHeight, halfDepth]
+  ]
+
+  // Применяем трансформации ко всем вершинам
+  const transformedVertices = vertices.map(v => applyTransform(v, transform))
+
+  // Находим min/max по каждой оси
+  const min: Vector3 = [
+    Math.min(...transformedVertices.map(v => v[0])),
+    Math.min(...transformedVertices.map(v => v[1])),
+    Math.min(...transformedVertices.map(v => v[2]))
+  ]
+
+  const max: Vector3 = [
+    Math.max(...transformedVertices.map(v => v[0])),
+    Math.max(...transformedVertices.map(v => v[1])),
+    Math.max(...transformedVertices.map(v => v[2]))
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива sphere
+ */
+function calculateSphereBoundingBox(geometry: { radius: number }, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const radius = geometry.radius
+  
+  // Базовый bounding box сферы
+  const baseMin: Vector3 = [-radius, -radius, -radius]
+  const baseMax: Vector3 = [radius, radius, radius]
+
+  // Применяем трансформации к угловым точкам
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  // Для корректности берем min/max по каждой оси
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива cylinder
+ */
+function calculateCylinderBoundingBox(geometry: {
+  radiusTop: number
+  radiusBottom: number
+  height: number
+}, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const maxRadius = Math.max(geometry.radiusTop, geometry.radiusBottom)
+  const halfHeight = geometry.height / 2
+
+  const baseMin: Vector3 = [-maxRadius, -halfHeight, -maxRadius]
+  const baseMax: Vector3 = [maxRadius, halfHeight, maxRadius]
+
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива cone
+ */
+function calculateConeBoundingBox(geometry: {
+  radius: number
+  height: number
+}, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const halfHeight = geometry.height / 2
+  
+  const baseMin: Vector3 = [-geometry.radius, -halfHeight, -geometry.radius]
+  const baseMax: Vector3 = [geometry.radius, halfHeight, geometry.radius]
+
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива pyramid
+ */
+function calculatePyramidBoundingBox(geometry: {
+  baseSize: number
+  height: number
+}, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const halfBase = geometry.baseSize / 2
+  const halfHeight = geometry.height / 2
+
+  const baseMin: Vector3 = [-halfBase, -halfHeight, -halfBase]
+  const baseMax: Vector3 = [halfBase, halfHeight, halfBase]
+
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива plane
+ */
+function calculatePlaneBoundingBox(geometry: {
+  width: number
+  height: number
+}, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const halfWidth = geometry.width / 2
+  const halfHeight = geometry.height / 2
+
+  // Плоскость имеет нулевую толщину по Z
+  const baseMin: Vector3 = [-halfWidth, -halfHeight, 0]
+  const baseMax: Vector3 = [halfWidth, halfHeight, 0]
+
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива torus
+ */
+function calculateTorusBoundingBox(geometry: {
+  majorRadius: number
+  minorRadius: number
+}, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const outerRadius = geometry.majorRadius + geometry.minorRadius
+
+  const baseMin: Vector3 = [-outerRadius, -geometry.minorRadius, -outerRadius]
+  const baseMax: Vector3 = [outerRadius, geometry.minorRadius, outerRadius]
+
+  const transformedMin = applyTransform(baseMin, transform)
+  const transformedMax = applyTransform(baseMax, transform)
+
+  const min: Vector3 = [
+    Math.min(transformedMin[0], transformedMax[0]),
+    Math.min(transformedMin[1], transformedMax[1]),
+    Math.min(transformedMin[2], transformedMax[2])
+  ]
+
+  const max: Vector3 = [
+    Math.max(transformedMin[0], transformedMax[0]),
+    Math.max(transformedMin[1], transformedMax[1]),
+    Math.max(transformedMin[2], transformedMax[2])
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для примитива
+ */
+export function calculatePrimitiveBoundingBox(primitive: GfxPrimitive): BoundingBox {
+  switch (primitive.type) {
+    case 'box':
+      return calculateBoxBoundingBox(primitive.geometry, primitive.transform)
+    case 'sphere':
+      return calculateSphereBoundingBox(primitive.geometry, primitive.transform)
+    case 'cylinder':
+      return calculateCylinderBoundingBox(primitive.geometry, primitive.transform)
+    case 'cone':
+      return calculateConeBoundingBox(primitive.geometry, primitive.transform)
+    case 'pyramid':
+      return calculatePyramidBoundingBox(primitive.geometry, primitive.transform)
+    case 'plane':
+      return calculatePlaneBoundingBox(primitive.geometry, primitive.transform)
+    case 'torus':
+      return calculateTorusBoundingBox(primitive.geometry, primitive.transform)
+    default:
+      // @ts-expect-error - исчерпывающая проверка типов
+      throw new Error(`Unsupported primitive type: ${primitive.type}`)
+  }
+}
+
+/**
+ * Объединяет несколько BoundingBox в один
+ */
+export function mergeBoundingBoxes(boxes: BoundingBox[]): BoundingBox {
+  if (boxes.length === 0) {
+    throw new Error('Cannot merge empty array of bounding boxes')
+  }
+
+  if (boxes.length === 1) {
+    return boxes[0]
+  }
+
+  const min: Vector3 = [
+    Math.min(...boxes.map(box => box.min[0])),
+    Math.min(...boxes.map(box => box.min[1])),
+    Math.min(...boxes.map(box => box.min[2]))
+  ]
+
+  const max: Vector3 = [
+    Math.max(...boxes.map(box => box.max[0])),
+    Math.max(...boxes.map(box => box.max[1])),
+    Math.max(...boxes.map(box => box.max[2]))
+  ]
+
+  return { min, max }
+}
+
+/**
+ * Вычисляет BoundingBox для объекта на основе его примитивов
+ */
+export function calculateObjectBoundingBox(object: GfxObject): BoundingBox {
+  if (object.primitives.length === 0) {
+    // Возвращаем пустой bounding box для объекта без примитивов
+    return { min: [0, 0, 0], max: [0, 0, 0] }
+  }
+
+  const primitiveBoundingBoxes = object.primitives.map(calculatePrimitiveBoundingBox)
+  return mergeBoundingBoxes(primitiveBoundingBoxes)
+}
