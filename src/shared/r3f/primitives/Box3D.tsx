@@ -9,9 +9,11 @@ interface Box3DProps {
 }
 
 export const Box3D: React.FC<Box3DProps> = ({ primitive, materialProps, meshProps }) => {
-  const width = primitive.width || 1
-  const height = primitive.height || 1
-  const depth = primitive.depth || 1
+  if (primitive.type !== 'box') {
+    throw new Error('Box3D component expects a box primitive')
+  }
+
+  const { width, height, depth } = primitive.geometry
 
   return (
     <mesh {...meshProps}>

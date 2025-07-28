@@ -9,8 +9,11 @@ interface Plane3DProps {
 }
 
 export const Plane3D: React.FC<Plane3DProps> = ({ primitive, materialProps, meshProps }) => {
-  const width = primitive.width || 1
-  const height = primitive.height || 1
+  if (primitive.type !== 'plane') {
+    throw new Error('Plane3D component expects a plane primitive')
+  }
+
+  const { width, height } = primitive.geometry
 
   // Plane is automatically rotated to be horizontal (like in original implementation)
   const modifiedMeshProps = {
