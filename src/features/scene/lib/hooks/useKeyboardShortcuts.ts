@@ -23,6 +23,17 @@ export const useKeyboardShortcuts = () => {
         return
       }
 
+      // Prevent handling if typing in CodeMirror editor
+      const target = event.target as HTMLElement
+      if (target && (
+        target.classList.contains('cm-editor') ||
+        target.closest('.cm-editor') ||
+        target.classList.contains('cm-content') ||
+        target.closest('.cm-content')
+      )) {
+        return
+      }
+
       // Handle Ctrl/Cmd combinations first
       if (event.ctrlKey || event.metaKey) {
         switch (event.key.toLowerCase()) {

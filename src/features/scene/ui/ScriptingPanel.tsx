@@ -41,21 +41,41 @@ if (objects.length > 0) {
     if (!word) return null
     if (word.from === word.to && !context.explicit) return null
 
-    const sceneApiMethods = [
-      { label: 'sceneApi.getSceneOverview', type: 'function', info: 'Получить общую информацию о сцене' },
-      { label: 'sceneApi.getSceneObjects', type: 'function', info: 'Получить все объекты сцены' },
-      { label: 'sceneApi.addObjectInstance', type: 'function', info: 'Добавить экземпляр объекта в сцену' },
-      { label: 'sceneApi.removeObjectInstance', type: 'function', info: 'Удалить экземпляр объекта' },
-      { label: 'sceneApi.updateObjectInstance', type: 'function', info: 'Обновить экземпляр объекта' },
-      { label: 'sceneApi.getObjectInstances', type: 'function', info: 'Получить все экземпляры объектов' },
-      { label: 'sceneApi.clearScene', type: 'function', info: 'Очистить всю сцену' },
-      { label: 'console.log', type: 'function', info: 'Вывести сообщение в консоль' },
-      { label: 'console.error', type: 'function', info: 'Вывести ошибку в консоль' }
-    ]
+    // Проверяем, есть ли перед словом "sceneApi."
+    const beforeWord = context.state.doc.sliceString(Math.max(0, word.from - 9), word.from)
+    const isAfterSceneApi = beforeWord.endsWith('sceneApi.')
+    const isAfterConsole = beforeWord.endsWith('console.')
+
+    let completions = []
+
+    if (isAfterSceneApi) {
+      // Если автокомплит после "sceneApi.", показываем только методы
+      completions = [
+        { label: 'getSceneOverview', type: 'function', info: 'Получить общую информацию о сцене' },
+        { label: 'getSceneObjects', type: 'function', info: 'Получить все объекты сцены' },
+        { label: 'addObjectInstance', type: 'function', info: 'Добавить экземпляр объекта в сцену' },
+        { label: 'removeObjectInstance', type: 'function', info: 'Удалить экземпляр объекта' },
+        { label: 'updateObjectInstance', type: 'function', info: 'Обновить экземпляр объекта' },
+        { label: 'getObjectInstances', type: 'function', info: 'Получить все экземпляры объектов' },
+        { label: 'clearScene', type: 'function', info: 'Очистить всю сцену' }
+      ]
+    } else if (isAfterConsole) {
+      // Если автокомплит после "console.", показываем только методы консоли
+      completions = [
+        { label: 'log', type: 'function', info: 'Вывести сообщение в консоль' },
+        { label: 'error', type: 'function', info: 'Вывести ошибку в консоль' }
+      ]
+    } else {
+      // Если автокомплит в общем контексте, показываем полные имена
+      completions = [
+        { label: 'sceneApi', type: 'variable', info: 'API для управления сценой' },
+        { label: 'console', type: 'variable', info: 'Консоль браузера' }
+      ]
+    }
 
     return {
       from: word.from,
-      options: sceneApiMethods.filter(item =>
+      options: completions.filter(item =>
         item.label.toLowerCase().includes(word.text.toLowerCase())
       )
     }
