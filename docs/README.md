@@ -33,6 +33,7 @@
 ### Управление состоянием
 - **[Stores Overview](api/stores/README.md)** - Документация Zustand хранилищ
 - **[Scene Store](api/stores/scene-store.md)** - Управление состоянием сцены
+- **[Scene API](api/scene-api.md)** - Методы взаимодействия со сценой
 
 ### Компоненты
 - **[Component Library](api/components/README.md)** - Переиспользуемые компоненты
