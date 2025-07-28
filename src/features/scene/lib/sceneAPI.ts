@@ -12,6 +12,7 @@ import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGe
 import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
+import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 /**
  * Simplified scene object info for agent tools
@@ -276,6 +277,7 @@ export class SceneAPI {
    * Если объект был загружен из библиотеки, его UUID сохраняется
    * в поле libraryUuid для последующего отслеживания.
    * Метод объединяет функциональность handleObjectAdded из SceneEditorR3F.
+   * Перед добавлением BoundingBox объекта вычисляется автоматически.
    */
   static addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult {
     try {
@@ -284,6 +286,8 @@ export class SceneAPI {
 
       // Применить коррекцию для LLM-сгенерированных объектов
       const correctedObject = correctLLMGeneratedObject(objectData)
+      // Рассчитать BoundingBox для объекта
+      const boundingBox = calculateObjectBoundingBox(correctedObject)
 
       // Генерировать UUID для объекта
       const objectUuid = generateUUID()
@@ -293,6 +297,7 @@ export class SceneAPI {
         uuid: objectUuid,
         name: correctedObject.name,
         primitives: correctedObject.primitives,
+        boundingBox,
         layerId: 'objects',
         libraryUuid: correctedObject.libraryUuid
       }

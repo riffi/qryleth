@@ -89,7 +89,9 @@ const ObjectSchema = z.object({
 
 /**
  * LangChain инструмент для добавления нового объекта в сцену
- * Адаптированный из существующего add_new_object инструмента
+ * Адаптированный из существующего add_new_object инструмента.
+ * BoundingBox объекта вычисляется внутри SceneAPI при добавлении,
+ * поэтому здесь достаточно передать описание примитивов и трансформаций.
  */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
@@ -120,7 +122,7 @@ export const createAddNewObjectTool = () => {
         })
 
         // Создание объекта в формате GFXObjectWithTransform
-        const newObject: GFXObjectWithTransform = {
+        let newObject: GFXObjectWithTransform = {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,

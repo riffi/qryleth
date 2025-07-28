@@ -75,7 +75,8 @@ console.log('Final geometry bounding box:', geometry.boundingBox)
 **Фаза выполнена:** [phase_2_summary.md](phases/phase_2_summary.md)
 
 ### Фаза 3: Интеграция в создание объектов
-**Статус: Не выполнено**
+**Статус: Выполнено**
+[Подробности фазы 3](phases/phase_3_summary.md)
 
 Обновить места создания объектов для автоматического вычисления BoundingBox:
 1. Обновить `src/features/scene/lib/ai/tools/objectTools.ts` - функция `createAddNewObjectTool`
