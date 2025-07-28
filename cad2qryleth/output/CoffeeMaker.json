@@ -5,92 +5,119 @@
     {
       "type": "cylinder",
       "name": "Body",
-      "radiusTop": 1.0,
-      "radiusBottom": 1.0,
-      "height": 2.0,
-      "openEnded": true,
-      "position": [
-        0.20000000000000007,
-        -0.125,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "color": "#7f3f19"
+      "geometry": {
+        "radiusTop": 1.0,
+        "radiusBottom": 1.0,
+        "height": 2.0
+      },
+      "transform": {
+        "position": [
+          0.20000000000000007,
+          -0.125,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#7f3f19"
+      }
     },
     {
       "type": "cylinder",
       "name": "Spout",
-      "radiusTop": 0.2,
-      "radiusBottom": 0.2,
-      "height": 0.5,
-      "openEnded": true,
-      "position": [
-        1.3000000000000003,
-        0.375,
-        0.0
-      ],
-      "rotation": [
-        1.57,
-        0,
-        0
-      ],
-      "color": "#7f3f19"
+      "geometry": {
+        "radiusTop": 0.2,
+        "radiusBottom": 0.2,
+        "height": 0.5
+      },
+      "transform": {
+        "position": [
+          1.3000000000000003,
+          0.375,
+          0.0
+        ],
+        "rotation": [
+          1.57,
+          0,
+          0
+        ]
+      },
+      "material": {
+        "color": "#7f3f19"
+      }
     },
     {
       "type": "torus",
       "name": "Handle",
-      "majorRadius": 0.5,
-      "minorRadius": 0.1,
-      "position": [
-        -0.9,
-        0.375,
-        0.0
-      ],
-      "rotation": [
-        0,
-        0,
-        1.57
-      ],
-      "color": "#7f3f19"
+      "geometry": {
+        "majorRadius": 0.5,
+        "minorRadius": 0.1
+      },
+      "transform": {
+        "position": [
+          -0.9,
+          0.375,
+          0.0
+        ],
+        "rotation": [
+          0,
+          0,
+          1.57
+        ]
+      },
+      "material": {
+        "color": "#7f3f19"
+      }
     },
     {
       "type": "cylinder",
       "name": "Lid",
-      "radiusTop": 1.05,
-      "radiusBottom": 1.05,
-      "height": 0.1,
-      "openEnded": true,
-      "position": [
-        0.20000000000000007,
-        0.9249999999999998,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "color": "#4c260c"
+      "geometry": {
+        "radiusTop": 1.05,
+        "radiusBottom": 1.05,
+        "height": 0.1
+      },
+      "transform": {
+        "position": [
+          0.20000000000000007,
+          0.9249999999999998,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#4c260c"
+      }
     },
     {
       "type": "sphere",
       "name": "Knob",
-      "radius": 0.1,
-      "position": [
-        0.20000000000000007,
-        1.025,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "color": "#33190c"
+      "geometry": {
+        "radius": 0.1
+      },
+      "transform": {
+        "position": [
+          0.20000000000000007,
+          1.025,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "material": {
+        "color": "#33190c"
+      }
     }
   ]
 }

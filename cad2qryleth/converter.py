@@ -123,93 +123,81 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
   scale = rec["__obj"].scale
   color = _get_object_color(rec["__obj"])
 
-  if kind in ("sphere", "uv_sphere"):
-    result = {
-      "type": "sphere",
-      "name": rec["__obj"].name or "sphere",
-      "radius": float(rec.get("radius", 1)) * max(scale),
+  # Common structure for new format
+  result = {
+    "type": "",
+    "name": rec["__obj"].name or "",
+    "geometry": {},
+    "transform": {
       "position": loc,
       "rotation": rot,
     }
-    if color:
-      result["color"] = color
+  }
+
+  # Add material if color is available
+  if color:
+    result["material"] = {"color": color}
+
+  if kind in ("sphere", "uv_sphere"):
+    result["type"] = "sphere"
+    result["name"] = result["name"] or "sphere"
+    result["geometry"] = {
+      "radius": float(rec.get("radius", 1)) * max(scale),
+    }
     return result
 
   if kind == "cylinder":
     r = float(rec.get("radius", 1))
     h = float(rec.get("depth", 1))
-    result = {
-      "type": "cylinder",
-      "name": rec["__obj"].name or "cylinder",
+    result["type"] = "cylinder"
+    result["name"] = result["name"] or "cylinder"
+    result["geometry"] = {
       "radiusTop": r * max(scale[0], scale[1]),
       "radiusBottom": r * max(scale[0], scale[1]),
       "height": h * scale[2],
-      "openEnded": True,
-      "position": loc,
-      "rotation": rot,
     }
-    if color:
-      result["color"] = color
     return result
 
   if kind == "cube":
     s = float(rec.get("size", 1))
-    result = {
-      "type": "box",
-      "name": rec["__obj"].name or "box",
+    result["type"] = "box"
+    result["name"] = result["name"] or "box"
+    result["geometry"] = {
       "width": s * scale[0],
       "height": s * scale[2],
       "depth": s * scale[1],
-      "position": loc,
-      "rotation": rot,
     }
-    if color:
-      result["color"] = color
     return result
 
   if kind == "torus":
-    result = {
-      "type": "torus",
-      "name": rec["__obj"].name or "torus",
+    result["type"] = "torus"
+    result["name"] = result["name"] or "torus"
+    result["geometry"] = {
       "majorRadius": float(rec.get("major_radius", 1)) * max(scale[0], scale[1]),
       "minorRadius": float(rec.get("minor_radius", 0.25)) * max(scale[0], scale[1]),
-      "position": loc,
-      "rotation": rot,
     }
-    if color:
-      result["color"] = color
     return result
 
   if kind == "cone":
     radius_bottom = float(rec.get("radius1", rec.get("radius", 1)))
     radius_top    = float(rec.get("radius2", 0.0))  # cone tip – default 0
     height        = float(rec.get("depth", 1))
-    result = {
-      "type": "cone",
-      "name": rec["__obj"].name or "cone",
-      "radiusTop": radius_top * max(scale[0], scale[1]),
-      "radiusBottom": radius_bottom * max(scale[0], scale[1]),
+    result["type"] = "cone"
+    result["name"] = result["name"] or "cone"
+    result["geometry"] = {
+      "radius": radius_bottom * max(scale[0], scale[1]),  # Note: using radius instead of radiusTop/radiusBottom for cone
       "height": height * scale[2],
-      "openEnded": True,
-      "position": loc,
-      "rotation": rot,
     }
-    if color:
-      result["color"] = color
     return result
 
   if kind == "plane":
     s = float(rec.get("size", 2.0))  # Blender plane default size is 2.0
-    result = {
-      "type": "plane",
-      "name": rec["__obj"].name or "plane",
+    result["type"] = "plane"
+    result["name"] = result["name"] or "plane"
+    result["geometry"] = {
       "width": s * scale[0],
       "height": s * scale[1],
-      "position": loc,
-      "rotation": rot,
     }
-    if color:
-      result["color"] = color
     return result
 
   raise ValueError(f"Unsupported primitive: {kind}")
@@ -219,23 +207,29 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _bbox(p: Dict[str, Any]):
-  x, y, z = p["position"]
+  x, y, z = p["transform"]["position"]
   t = p["type"]
+  g = p["geometry"]
+  
   if t == "sphere":
-    r = p["radius"]
+    r = g["radius"]
     return [x - r, y - r, z - r], [x + r, y + r, z + r]
-  if t in {"cylinder", "cone"}:
-    r = max(p.get("radiusTop", 0), p.get("radiusBottom", 0))
-    h = p["height"] / 2
+  if t == "cylinder":
+    r = max(g.get("radiusTop", 0), g.get("radiusBottom", 0))
+    h = g["height"] / 2
+    return [x - r, y - r, z - h], [x + r, y + r, z + h]
+  if t == "cone":
+    r = g["radius"]
+    h = g["height"] / 2
     return [x - r, y - r, z - h], [x + r, y + r, z + h]
   if t == "box":
-    w, h, d = p["width"]/2, p["height"]/2, p["depth"]/2
+    w, h, d = g["width"]/2, g["height"]/2, g["depth"]/2
     return [x - w, y - d, z - h], [x + w, y + d, z + h]
   if t == "torus":
-    r = p["majorRadius"] + p["minorRadius"]
+    r = g["majorRadius"] + g["minorRadius"]
     return [x - r, y - r, z - r], [x + r, y + r, z + r]
   if t == "plane":
-    w, h = p["width"]/2, p["height"]/2
+    w, h = g["width"]/2, g["height"]/2
     return [x - w, y - h, z], [x + w, y + h, z]  # plane has no depth
   return [x-0.5]*3, [x+0.5]*3
 
@@ -252,15 +246,15 @@ def _centre(prims: List[Dict[str, Any]]):
       hi[i] = max(hi[i], bmax[i])
   mid = [(a+b)/2 for a,b in zip(lo,hi)]
   for p in prims:
-    p["position"] = [p["position"][i]-mid[i] for i in range(3)]
+    p["transform"]["position"] = [p["transform"]["position"][i]-mid[i] for i in range(3)]
 
 
 def _z_to_y(prims: List[Dict[str, Any]]):
   for p in prims:
-    x,y,z = p["position"]
-    p["position"] = [x, z, y]
-    rx,ry,rz = p["rotation"]
-    p["rotation"] = [rx, rz, ry]
+    x,y,z = p["transform"]["position"]
+    p["transform"]["position"] = [x, z, y]
+    rx,ry,rz = p["transform"]["rotation"]
+    p["transform"]["rotation"] = [rx, rz, ry]
 
 ###############################################################################
 # Public API                                                                  #

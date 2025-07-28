@@ -130,9 +130,12 @@ export interface GfxPrimitive {
 **Ссылка**: [phase_7_summary.md](phases/phase_7_summary.md)
 
 ### Фаза 8: Доработка cad2qryleth converter
-**Статус**: Запланирована  
-**Описание**: Доработать  [converter.py](../../cad2qryleth/converter.py) согласно новой структуре данных
-**Файлы**: Все измененные файлы
+**Статус**: Выполнено ✅  
+**Описание**: Доработать [converter.py](../../cad2qryleth/converter.py) согласно новой структуре данных
+**Файлы**: `cad2qryleth/converter.py`
+**Ссылка**: [phase_8_summary.md](phases/phase_8_summary.md)
+
+**Результат**: Обновлен конвертер для генерации JSON в новом формате с подобъектами `geometry`, `material` и `transform`. Обновлены все вспомогательные функции (`_bbox`, `_centre`, `_z_to_y`) для работы с новой структурой данных. Протестирован на существующих примерах.
 
 ### Фаза 9: Доработка документации
 **Статус**: Запланирована  
