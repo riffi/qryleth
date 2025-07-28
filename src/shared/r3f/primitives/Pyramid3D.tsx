@@ -2,16 +2,27 @@ import React from 'react'
 import type { GfxPrimitive } from '@/entities/primitive'
 
 
+/** Свойства компонента Pyramid3D */
 interface Pyramid3DProps {
+  /** Описание примитива пирамиды */
   primitive: GfxPrimitive
+  /** Параметры материала */
   materialProps: any
+  /** Дополнительные свойства меша */
   meshProps: any
 }
 
+/**
+ * Компонент отрисовки пирамиды.
+ * Использует параметры из `primitive.geometry` согласно новой структуре типов.
+ */
 export const Pyramid3D: React.FC<Pyramid3DProps> = ({ primitive, materialProps, meshProps }) => {
-  const baseSize = primitive.baseSize || 1
-  const height = primitive.height || 2
-  const radius = baseSize / Math.SQRT2;
+  if (primitive.type !== 'pyramid') {
+    throw new Error('Pyramid3D component expects a pyramid primitive')
+  }
+
+  const { baseSize, height } = primitive.geometry
+  const radius = baseSize / Math.SQRT2
 
   // Pyramid is a cone with 4 sides, rotated 45 degrees
   const modifiedMeshProps = {

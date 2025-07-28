@@ -2,21 +2,30 @@ import React from 'react'
 import type {GfxPrimitive} from '@/entities/primitive';
 
 
+/** Свойства компонента Torus3D */
 interface Torus3DProps {
+  /** Описание примитива тора */
   primitive: GfxPrimitive
+  /** Параметры материала */
   materialProps: any
+  /** Дополнительные свойства меша */
   meshProps: any
 }
 
+/**
+ * Компонент отрисовки тора.
+ * Использует параметры из `primitive.geometry` согласно новой структуре типов.
+ */
 export const Torus3D: React.FC<Torus3DProps> = ({ primitive, materialProps, meshProps }) => {
-  const majorRadius = primitive.majorRadius || 1
-  const minorRadius = primitive.minorRadius || 0.2
-  const radialSegments = primitive.radialSegments || 16
-  const tubularSegments = primitive.tubularSegments || 32
+  if (primitive.type !== 'torus') {
+    throw new Error('Torus3D component expects a torus primitive')
+  }
+
+  const { majorRadius, minorRadius, radialSegments, tubularSegments } = primitive.geometry
 
   // Apply default rotation to match Blender's torus orientation (lying flat)
   // Add π/2 rotation around X-axis to existing rotation
-  const originalRotation = primitive.rotation || [0, 0, 0]
+  const originalRotation = (meshProps.rotation as [number, number, number]) || [0, 0, 0]
   const adjustedRotation = [
     originalRotation[0] + Math.PI / 2,
     originalRotation[1],
@@ -30,7 +39,7 @@ export const Torus3D: React.FC<Torus3DProps> = ({ primitive, materialProps, mesh
 
   return (
       <mesh {...adjustedMeshProps}>
-        <torusGeometry args={[majorRadius, minorRadius, radialSegments, tubularSegments]} />
+        <torusGeometry args={[majorRadius, minorRadius, radialSegments ?? 16, tubularSegments ?? 32]} />
         <meshStandardMaterial {...materialProps} />
       </mesh>
   )
