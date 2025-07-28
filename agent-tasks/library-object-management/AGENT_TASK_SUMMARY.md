@@ -85,8 +85,8 @@ interface ObjectRecord {
 - Исключить из отображения объекты, которые уже добавлены в сцену
 - Обновить интерфейс для корректной передачи данных о сцене
 
-### Фаза 5: Перенос методов поиска и добавления из objectTools в sceneAPI 
-**Статус**: Запланировано 
+### Фаза 5: Перенос методов поиска и добавления из objectTools в sceneAPI
+**Статус**: Выполнено
 [Подробности фазы 5](phases/phase_5_summary.md)
 
 - Создать методы `searchObjectsInLibrary` и `addObjectFromLibrary` в `sceneAPI.ts`

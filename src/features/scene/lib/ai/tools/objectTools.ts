@@ -4,8 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 import { generatePrimitiveName } from '@/entities/primitive'
-import { db } from '@/shared/lib/database'
-import {SceneAPI} from "@/features/scene/lib/sceneAPI.ts";
+import { SceneAPI } from '@/features/scene/lib/sceneAPI.ts'
 
 // Схемы валидации для геометрии примитивов
 const BoxGeometrySchema = z.object({
@@ -188,12 +187,7 @@ export const searchObjectsInLibraryTool = new DynamicStructuredTool({
   }),
   func: async (input): Promise<string> => {
     try {
-      const allObjects = await db.getAllObjects()
-
-      const filteredObjects = allObjects.filter(object =>
-        object.name.toLowerCase().includes(input.query.toLowerCase()) ||
-        (object.description?.toLowerCase().includes(input.query.toLowerCase()) ?? false)
-      )
+      const filteredObjects = await SceneAPI.searchObjectsInLibrary(input.query)
 
       if (filteredObjects.length === 0) {
         return JSON.stringify({
@@ -243,58 +237,29 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
   }),
   func: async (input): Promise<string> => {
     try {
-      const objectRecord = await db.getObject(input.objectUuid)
-
-      if (!objectRecord) {
-        return JSON.stringify({
-          success: false,
-          error: 'Объект не найден',
-          message: `Объект с UUID ${input.objectUuid} не найден в библиотеке`
-        })
-      }
-
-      // Создаем новый объект на основе данных из библиотеки
-      const newObject: GFXObjectWithTransform = {
-        uuid: uuidv4(), // Новый UUID для экземпляра в сцене
-        name: objectRecord.name,
-        primitives: objectRecord.objectData.primitives.map(primitive => ({
-          ...primitive,
-          uuid: uuidv4() // Новые UUID для примитивов
-        })),
-        libraryUuid: objectRecord.uuid,
-        ...(input.position && {
-          position: input.position as [number, number, number]
-        }),
-        ...(input.rotation && {
-          rotation: input.rotation as [number, number, number]
-        }),
-        ...(input.scale && {
-          scale: input.scale as [number, number, number]
-        })
-      }
-
-      // Использовать новый метод SceneAPI для добавления объекта
-      const result = SceneAPI.addObjectWithTransform(newObject)
+      const result = await SceneAPI.addObjectFromLibrary(
+        input.objectUuid,
+        'objects',
+        {
+          position: input.position as [number, number, number] | undefined,
+          rotation: input.rotation as [number, number, number] | undefined,
+          scale: input.scale as [number, number, number] | undefined
+        }
+      )
 
       if (!result.success) {
         return JSON.stringify({
           success: false,
           error: result.error,
-          message: `Не удалось добавить объект "${objectRecord.name}" в сцену: ${result.error}`
+          message: `Не удалось добавить объект с UUID ${input.objectUuid} в сцену`
         })
       }
 
       return JSON.stringify({
         success: true,
-        object: newObject,
-        sourceObject: {
-          uuid: objectRecord.uuid,
-          name: objectRecord.name,
-          description: objectRecord.description
-        },
         objectUuid: result.objectUuid,
         instanceUuid: result.instanceUuid,
-        message: `Объект "${objectRecord.name}" добавлен в сцену из библиотеки`
+        message: `Объект с UUID ${input.objectUuid} добавлен в сцену из библиотеки`
       })
 
     } catch (error) {

@@ -10,7 +10,8 @@ import type { Transform } from '@/shared/types/transform'
 import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
 import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
-import type {Vector3} from "@/shared/types";
+import type { Vector3 } from '@/shared/types'
+import { db, type ObjectRecord } from '@/shared/lib/database'
 
 /**
  * Simplified scene object info for agent tools
@@ -70,6 +71,16 @@ export interface AddInstanceResult {
  * Result of adding object with transform operation
  */
 export interface AddObjectWithTransformResult {
+  success: boolean
+  objectUuid?: string
+  instanceUuid?: string
+  error?: string
+}
+
+/**
+ * Результат добавления объекта из библиотеки
+ */
+export interface AddObjectResult {
   success: boolean
   objectUuid?: string
   instanceUuid?: string
@@ -321,6 +332,63 @@ export class SceneAPI {
       return {
         success: false,
         error: `Failed to add object with transform: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Выполняет поиск объектов в библиотеке по строке запроса
+   * Возвращает список записей, удовлетворяющих условию
+   */
+  static async searchObjectsInLibrary(query: string): Promise<ObjectRecord[]> {
+    try {
+      const allObjects = await db.getAllObjects()
+      const lower = query.toLowerCase()
+      return allObjects.filter(obj =>
+        obj.name.toLowerCase().includes(lower) ||
+        (obj.description?.toLowerCase().includes(lower) ?? false)
+      )
+    } catch (error) {
+      console.error('Ошибка поиска объектов в библиотеке:', error)
+      return []
+    }
+  }
+
+  /**
+   * Добавляет объект из библиотеки в сцену и помещает его на указанный слой
+   */
+  static async addObjectFromLibrary(
+    objectUuid: string,
+    layerId: string,
+    transform?: Transform
+  ): Promise<AddObjectResult> {
+    try {
+      const record = await db.getObject(objectUuid)
+      if (!record) {
+        return { success: false, error: `Object ${objectUuid} not found` }
+      }
+
+      const baseObject: GFXObjectWithTransform = {
+        uuid: generateUUID(),
+        name: record.name,
+        primitives: record.objectData.primitives.map(p => ({ ...p, uuid: generateUUID() })),
+        libraryUuid: record.uuid,
+        ...(transform ?? {})
+      }
+
+      const result = SceneAPI.addObjectWithTransform(baseObject)
+      if (!result.success || !result.objectUuid) return result
+
+      const state = useSceneStore.getState()
+      if (layerId && layerId !== 'objects') {
+        state.moveObjectToLayer(result.objectUuid, layerId)
+      }
+
+      return result
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to add object from library: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
   }

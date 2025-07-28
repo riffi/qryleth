@@ -35,7 +35,6 @@ import { SaveObjectDialog } from '@/shared/ui'
 import { AddObjectFromLibraryModal } from './AddObjectFromLibraryModal.tsx'
 import { useErrorHandler } from '@/shared/hooks'
 import type { LightingSettings } from '@/entities/lighting'
-import {generateUUID} from "@/shared/lib/uuid.ts";
 import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
@@ -388,32 +387,19 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         if (!targetLayerId) return
 
         try {
-            // Создать объект сцены на основе записи библиотеки
-            const newSceneObject = {
-                uuid: generateUUID(),
-                name: object.name,
-                primitives: object.objectData.primitives,
-                visible: true,
-                layerId: targetLayerId,
-                libraryUuid: object.uuid
+            const result = await SceneAPI.addObjectFromLibrary(
+                object.uuid,
+                targetLayerId
+            )
+
+            if (!result.success) {
+                notifications.show({
+                    title: 'Ошибка',
+                    message: result.error || 'Не удалось добавить объект из библиотеки',
+                    color: 'red'
+                })
+                return
             }
-
-            // Add to scene
-            useSceneStore.getState().addObject(newSceneObject)
-
-            // Create initial instance
-            const newInstance = {
-                uuid: generateUUID(),
-                objectUuid: newSceneObject.uuid,
-                transform: {
-                    position: [0, 0, 0] as [number, number, number],
-                    rotation: [0, 0, 0] as [number, number, number],
-                    scale: [1, 1, 1] as [number, number, number]
-                },
-                visible: true
-            }
-
-            useSceneStore.getState().addObjectInstance(newInstance)
 
             notifications.show({
                 title: 'Успешно!',
