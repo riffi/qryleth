@@ -146,32 +146,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
 
 
-  const addInstanceToScene = (objectUuid: string, objectData: GFXObjectWithTransform) => {
-    // Find landscape layer (prefer PerlinNoise landscape)
-    const landscapeLayer = layers.find(layer =>
-        layer.type === 'landscape' && layer.shape === 'perlin'
-    ) || layers.find(layer => layer.type === 'landscape')
-
-    const objectInstance: SceneObjectInstance = {
-      uuid: generateUUID(),
-      objectUuid,
-      transform: {
-        position: objectData.position || [0, 0, 0],
-        rotation: objectData.rotation || [0, 0, 0],
-        scale: objectData.scale || [1, 1, 1]
-      }
-    }
-
-    const placedInstance = placeInstance(objectInstance, {
-      landscapeLayer
-    })
-
-    const { addObjectInstance } = useSceneStore.getState()
-
-    addObjectInstance(placedInstance)
-  }
-
-
   const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
     try {
       const state = useSceneStore.getState()

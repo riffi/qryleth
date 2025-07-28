@@ -1,6 +1,13 @@
 import type {Vector3} from '@/shared/types/vector3'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 
+/**
+ * Calculate segments count for perlin terrain - same logic as in perlinGeometry.ts
+ */
+const calculateSegments = (width: number): number => {
+  return width > 200 ? 200 : width
+}
+
 export type PlacementStrategy = 'Random' | 'Center' | 'Origin' | 'Custom'
 
 export interface PlacementOptions {
@@ -124,7 +131,8 @@ const queryHeightAtCoordinate = (
 
   const width = layer.width || 1;
   const height = layer.height || 1;
-  const segments = 64; // Same as in createPerlinGeometry
+  // Use the same segments calculation as in perlinGeometry.ts
+  const segments = calculateSegments(width);
   const halfWidth = width / 2;
   const halfHeight = height / 2;
 
@@ -179,7 +187,8 @@ const calculateSurfaceNormal = (
 
   const width = layer.width || 1;
   const height = layer.height || 1;
-  const segments = 64;
+  // Use the same segments calculation as in perlinGeometry.ts
+  const segments = calculateSegments(width);
   const halfWidth = width / 2;
   const halfHeight = height / 2;
   
@@ -259,6 +268,7 @@ export const placeInstance = (
       placementX?: number;
       placementZ?: number;
       alignToTerrain?: boolean;
+      objectBoundingBox?: import('@/shared/types').BoundingBox;
     })=> {
   const newInstance = {...instance};
   
@@ -283,6 +293,19 @@ export const placeInstance = (
         placementX,
         placementZ
     );
+    
+    // Adjust Y position based on object's bounding box to prevent sinking into terrain
+    if (options?.objectBoundingBox) {
+      // Get the object's scale to properly transform the bounding box
+      const scale = newInstance.transform?.scale || [1, 1, 1];
+      
+      // Calculate the bottom Y offset of the scaled object
+      // The object's bottom should touch the terrain surface
+      const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
+      
+      // Adjust target Y so the object's bottom aligns with terrain
+      targetY = targetY - bottomOffset;
+    }
     
     // If alignToTerrain is enabled, calculate surface normal and align object
     if (options.alignToTerrain) {
@@ -314,10 +337,12 @@ export const placeInstance = (
 
 /**
  * Adjusts all object instances in the scene to match perlin noise terrain
+ * Now requires objects array to access bounding boxes for proper placement
  */
 export const adjustAllInstancesForPerlinTerrain = (
   instances: SceneObjectInstance[],
-  perlinLayer: SceneLayer
+  perlinLayer: SceneLayer,
+  objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
 ): SceneObjectInstance[] => {
   if (!perlinLayer || 
       perlinLayer.type !== 'landscape' || 
@@ -344,7 +369,17 @@ export const adjustAllInstancesForPerlinTerrain = (
     }
 
     // Calculate new Y position based on terrain height
-    const terrainY = queryHeightAtCoordinate(perlinLayer, originalX, originalZ)
+    let terrainY = queryHeightAtCoordinate(perlinLayer, originalX, originalZ)
+
+    // Adjust Y position based on object's bounding box if available
+    if (objects) {
+      const object = objects.find(obj => obj.uuid === instance.objectUuid)
+      if (object?.boundingBox) {
+        const scale = instance.transform?.scale || [1, 1, 1]
+        const bottomOffset = object.boundingBox.min[1] * scale[1]
+        terrainY = terrainY - bottomOffset
+      }
+    }
 
     // Important: preserve original X and Z coordinates exactly
     return {

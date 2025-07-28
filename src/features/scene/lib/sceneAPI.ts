@@ -372,6 +372,18 @@ export class SceneAPI {
   ): AddInstancesResult {
     const state = useSceneStore.getState()
     const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
+    
+    // Get the object to access its bounding box
+    const baseObject = state.objects.find(obj => obj.uuid === objectUuid)
+    if (!baseObject) {
+      return {
+        success: false,
+        instanceCount: 0,
+        error: `Object with UUID ${objectUuid} not found in scene`
+      }
+    }
+    
+    const objectBoundingBox = baseObject.boundingBox || calculateObjectBoundingBox(baseObject)
 
     const instances: InstanceCreationParams[] = []
     for (let i = 0; i < count; i++) {
@@ -388,7 +400,8 @@ export class SceneAPI {
 
       const placed = placeInstance(tempInstance, {
         landscapeLayer,
-        alignToTerrain: options?.alignToTerrain
+        alignToTerrain: options?.alignToTerrain,
+        objectBoundingBox
       })
 
       instances.push({
@@ -499,7 +512,10 @@ export class SceneAPI {
       }
 
       // Разместить экземпляр с учетом ландшафта
-      const placedInstance = placeInstance(newInstance, landscapeLayer)
+      const placedInstance = placeInstance(newInstance, {
+        landscapeLayer,
+        objectBoundingBox: boundingBox
+      })
 
       // Добавить экземпляр в store
       addObjectInstance(placedInstance)
@@ -597,8 +613,15 @@ export class SceneAPI {
         }
       }
 
-      // Adjust all instances
-      const adjustedInstances = adjustAllInstancesForPerlinTerrain(objectInstances, perlinLayer)
+      // Adjust all instances, passing objects for bounding box access
+      const adjustedInstances = adjustAllInstancesForPerlinTerrain(
+        objectInstances, 
+        perlinLayer, 
+        state.objects.map(obj => ({ 
+          uuid: obj.uuid, 
+          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj) 
+        }))
+      )
 
       // Count how many were actually adjusted
       const adjustedCount = adjustedInstances.filter((instance, index) => {
