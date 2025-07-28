@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react'
-import { Box, Button, Group, Text, Tooltip } from '@mantine/core'
-import { IconPlayerPlay, IconCode } from '@tabler/icons-react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { Box, Button, Group, Text, Tooltip, Select, Modal, TextInput, Menu, ActionIcon } from '@mantine/core'
+import { IconPlayerPlay, IconCode, IconDeviceFloppy, IconFolderOpen, IconDotsVertical, IconTrash, IconEdit } from '@tabler/icons-react'
 import { SceneAPI } from '../lib/sceneAPI'
+import { db, type ScriptRecord } from '@/shared/lib/database'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 import { autocompletion, CompletionContext } from '@codemirror/autocomplete'
@@ -33,6 +34,113 @@ if (objects.length > 0) {
   )
   console.log('Результат создания экземпляра:', result)
 }`)
+
+  // Состояния для работы со скриптами
+  const [savedScripts, setSavedScripts] = useState<ScriptRecord[]>([])
+  const [selectedScriptUuid, setSelectedScriptUuid] = useState<string | null>(null)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [saveScriptName, setSaveScriptName] = useState('')
+  const [saveScriptDescription, setSaveScriptDescription] = useState('')
+  const [currentScriptUuid, setCurrentScriptUuid] = useState<string | null>(null)
+
+  // Загрузка сохранённых скриптов при монтировании
+  useEffect(() => {
+    loadSavedScripts()
+  }, [])
+
+  const loadSavedScripts = useCallback(async () => {
+    try {
+      const scripts = await db.getAllScripts()
+      setSavedScripts(scripts)
+    } catch (error) {
+      console.error('Ошибка загрузки скриптов:', error)
+    }
+  }, [])
+
+  const handleSaveScript = useCallback(async () => {
+    if (!saveScriptName.trim()) return
+
+    try {
+      if (currentScriptUuid) {
+        // Обновляем существующий скрипт
+        await db.updateScript(currentScriptUuid, {
+          name: saveScriptName,
+          description: saveScriptDescription || undefined,
+          content: script
+        })
+        console.log('✓ Скрипт обновлён')
+      } else {
+        // Создаём новый скрипт
+        const uuid = await db.saveScript(saveScriptName, script, saveScriptDescription || undefined)
+        setCurrentScriptUuid(uuid)
+        console.log('✓ Скрипт сохранён')
+      }
+      
+      await loadSavedScripts() // Обновляем список
+      setIsSaveModalOpen(false)
+      setSaveScriptName('')
+      setSaveScriptDescription('')
+    } catch (error) {
+      if (error instanceof Error && error.name === 'DuplicateNameError') {
+        console.error('Ошибка: Скрипт с таким именем уже существует')
+      } else {
+        console.error('Ошибка сохранения скрипта:', error)
+      }
+    }
+  }, [saveScriptName, saveScriptDescription, script, currentScriptUuid, loadSavedScripts])
+
+  const handleLoadScript = useCallback(async (scriptUuid: string) => {
+    try {
+      const scriptRecord = await db.getScript(scriptUuid)
+      if (scriptRecord) {
+        setScript(scriptRecord.content)
+        setCurrentScriptUuid(scriptRecord.uuid)
+        setSelectedScriptUuid(scriptUuid)
+        console.log('✓ Скрипт загружен:', scriptRecord.name)
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки скрипта:', error)
+    }
+  }, [])
+
+  const handleDeleteScript = useCallback(async (scriptUuid: string) => {
+    try {
+      await db.deleteScript(scriptUuid)
+      await loadSavedScripts()
+      
+      // Если удаляемый скрипт был выбран, очищаем выбор
+      if (currentScriptUuid === scriptUuid) {
+        setCurrentScriptUuid(null)
+        setSelectedScriptUuid(null)
+      }
+      
+      console.log('✓ Скрипт удалён')
+    } catch (error) {
+      console.error('Ошибка удаления скрипта:', error)
+    }
+  }, [currentScriptUuid, loadSavedScripts])
+
+  const handleNewScript = useCallback(() => {
+    setScript('')
+    setCurrentScriptUuid(null)
+    setSelectedScriptUuid(null)
+  }, [])
+
+  const openSaveModal = useCallback(() => {
+    if (currentScriptUuid) {
+      // Редактируем существующий скрипт
+      const currentScript = savedScripts.find(s => s.uuid === currentScriptUuid)
+      if (currentScript) {
+        setSaveScriptName(currentScript.name)
+        setSaveScriptDescription(currentScript.description || '')
+      }
+    } else {
+      // Создаём новый скрипт
+      setSaveScriptName('')
+      setSaveScriptDescription('')
+    }
+    setIsSaveModalOpen(true)
+  }, [currentScriptUuid, savedScripts])
 
 
   // SceneAPI автокомплит
@@ -184,17 +292,80 @@ if (objects.length > 0) {
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
       {/* Панель инструментов */}
-      <Group justify="flex-end" p="sm" bg="gray.9">
-        <Tooltip label="Выполнить скрипт (Ctrl+Enter)">
+      <Group justify="space-between" p="sm" bg="gray.9">
+        <Group gap="xs">
           <Button
             size="xs"
-            leftSection={<IconPlayerPlay size={14} />}
-            onClick={executeScript}
-            variant="filled"
+            variant="light"
+            onClick={handleNewScript}
           >
-            Выполнить
+            Новый
           </Button>
-        </Tooltip>
+
+          <Select
+            placeholder="Загрузить скрипт"
+            data={savedScripts.map(script => ({
+              value: script.uuid,
+              label: script.name
+            }))}
+            value={selectedScriptUuid}
+            onChange={(value) => value && handleLoadScript(value)}
+            size="xs"
+            style={{ minWidth: 150 }}
+            leftSection={<IconFolderOpen size={14} />}
+            clearable
+          />
+
+          {selectedScriptUuid && (
+            <Menu shadow="md" width={200}>
+              <Menu.Target>
+                <ActionIcon size="sm" variant="light">
+                  <IconDotsVertical size={14} />
+                </ActionIcon>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Item 
+                  leftSection={<IconEdit size={14} />}
+                  onClick={openSaveModal}
+                >
+                  Переименовать
+                </Menu.Item>
+                <Menu.Item 
+                  leftSection={<IconTrash size={14} />}
+                  color="red"
+                  onClick={() => selectedScriptUuid && handleDeleteScript(selectedScriptUuid)}
+                >
+                  Удалить
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
+        </Group>
+
+        <Group gap="xs">
+          <Tooltip label="Сохранить скрипт">
+            <Button
+              size="xs"
+              leftSection={<IconDeviceFloppy size={14} />}
+              onClick={openSaveModal}
+              variant="light"
+            >
+              Сохранить
+            </Button>
+          </Tooltip>
+
+          <Tooltip label="Выполнить скрипт (Ctrl+Enter)">
+            <Button
+              size="xs"
+              leftSection={<IconPlayerPlay size={14} />}
+              onClick={executeScript}
+              variant="filled"
+            >
+              Выполнить
+            </Button>
+          </Tooltip>
+        </Group>
       </Group>
 
       {/* Редактор кода */}
@@ -231,6 +402,48 @@ if (objects.length > 0) {
           }}
         />
       </Box>
+
+      {/* Модальное окно для сохранения скрипта */}
+      <Modal
+        opened={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        title={currentScriptUuid ? "Редактировать скрипт" : "Сохранить скрипт"}
+        size="md"
+      >
+        <Box>
+          <TextInput
+            label="Название"
+            placeholder="Введите название скрипта"
+            value={saveScriptName}
+            onChange={(event) => setSaveScriptName(event.currentTarget.value)}
+            mb="sm"
+            required
+          />
+          
+          <TextInput
+            label="Описание"
+            placeholder="Краткое описание скрипта (необязательно)"
+            value={saveScriptDescription}
+            onChange={(event) => setSaveScriptDescription(event.currentTarget.value)}
+            mb="md"
+          />
+
+          <Group justify="flex-end" gap="sm">
+            <Button 
+              variant="light" 
+              onClick={() => setIsSaveModalOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleSaveScript}
+              disabled={!saveScriptName.trim()}
+            >
+              {currentScriptUuid ? "Обновить" : "Сохранить"}
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
     </Box>
   )
 }

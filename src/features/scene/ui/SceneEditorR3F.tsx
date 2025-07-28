@@ -333,7 +333,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
+          <Paper shadow="sm" radius="md" style={{ width: scriptingPanelVisible ? 800 : 400, height: '100%' }}>
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Group justify="space-between" p="sm" bg="gray.8">

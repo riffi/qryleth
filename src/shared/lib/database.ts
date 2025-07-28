@@ -5,12 +5,23 @@ import type {SceneData} from "@/entities/scene/types.ts";
 import type {GfxObject} from "@/entities/object";
 import type {ConnectionRecord, ObjectRecord, SceneRecord} from '../api';
 
+export interface ScriptRecord {
+  id?: number
+  uuid: string
+  name: string
+  description?: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 
 // Database class
 export class SceneLibraryDB extends Dexie {
   scenes!: Table<SceneRecord>
   objects!: Table<ObjectRecord>
   connections!: Table<ConnectionRecord>
+  scripts!: Table<ScriptRecord>
 
   constructor() {
     super('SceneLibraryDB')
@@ -31,6 +42,13 @@ export class SceneLibraryDB extends Dexie {
       scenes: '++id, uuid, name, createdAt, updatedAt',
       objects: '++id, uuid, name, createdAt, updatedAt',
       connections: '++id, connectionId, name, createdAt, updatedAt, isActive'
+    })
+
+    this.version(4).stores({
+      scenes: '++id, uuid, name, createdAt, updatedAt',
+      objects: '++id, uuid, name, createdAt, updatedAt',
+      connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
+      scripts: '++id, uuid, name, createdAt, updatedAt'
     })
   }
 
@@ -234,6 +252,74 @@ export class SceneLibraryDB extends Dexie {
         .equals(connectionId)
         .modify({ isActive: 1 })
     })
+  }
+
+  // Script methods
+  async saveScript(name: string, content: string, description?: string): Promise<string> {
+    if (!name.trim()) {
+      const error = new Error('Script name is required')
+      error.name = 'ValidationError'
+      throw error
+    }
+
+    const existing = await this.scripts.where('name').equals(name).first()
+    if (existing) {
+      const error = new Error('Script name must be unique')
+      error.name = 'DuplicateNameError'
+      throw error
+    }
+
+    const uuid = uuidv4()
+    const now = new Date()
+
+    try {
+      await this.scripts.add({
+        uuid,
+        name,
+        description,
+        content,
+        createdAt: now,
+        updatedAt: now
+      })
+    } catch (e) {
+      console.error('Error saving script to DB', e)
+      throw e
+    }
+
+    return uuid
+  }
+
+  async updateScript(uuid: string, updates: Partial<Pick<ScriptRecord, 'name' | 'description' | 'content'>>): Promise<void> {
+    if (updates.name) {
+      const existing = await this.scripts.where('name').equals(updates.name).first()
+      if (existing && existing.uuid !== uuid) {
+        const error = new Error('Script name must be unique')
+        error.name = 'DuplicateNameError'
+        throw error
+      }
+    }
+
+    try {
+      await this.scripts.where('uuid').equals(uuid).modify({
+        ...updates,
+        updatedAt: new Date()
+      })
+    } catch (e) {
+      console.error('Error updating script in DB', e)
+      throw e
+    }
+  }
+
+  async getScript(uuid: string): Promise<ScriptRecord | undefined> {
+    return this.scripts.where('uuid').equals(uuid).first()
+  }
+
+  async getAllScripts(): Promise<ScriptRecord[]> {
+    return this.scripts.orderBy('updatedAt').reverse().toArray()
+  }
+
+  async deleteScript(uuid: string): Promise<void> {
+    await this.scripts.where('uuid').equals(uuid).delete()
   }
 }
 
