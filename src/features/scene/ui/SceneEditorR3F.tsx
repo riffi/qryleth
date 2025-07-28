@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Drawer } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
@@ -334,7 +334,28 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         >
         {!chatCollapsed && (
           <Paper shadow="sm" radius="md" style={{ width: 400, height: '100%' }}>
-            <ChatInterface onCollapse={() => setChatCollapsed(true)} />
+            {scriptingPanelVisible ? (
+              <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Group justify="space-between" p="sm" bg="gray.8">
+                  <Group>
+                    <IconCode size={20} />
+                    <Text fw={500}>Панель скриптинга</Text>
+                  </Group>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => setScriptingPanelVisible(false)}
+                  >
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Group>
+                <Box style={{ flex: 1, minHeight: 0 }}>
+                  <ScriptingPanel height="100%" />
+                </Box>
+              </Box>
+            ) : (
+              <ChatInterface onCollapse={() => setChatCollapsed(true)} />
+            )}
           </Paper>
         )}
 
@@ -507,20 +528,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         onSave={handleSaveScene}
         currentSceneName={sceneMetaData?.name}
       />
-      <Drawer
-        opened={scriptingPanelVisible}
-        onClose={() => setScriptingPanelVisible(false)}
-        title="Панель скриптинга"
-        position="left"
-        size="800px"
-        styles={{
-          body: { height: 'calc(100vh - 60px)', padding: 0, margin: 0 },
-          content: { height: '100vh' },
-          header: { padding: '1rem', borderBottom: '1px solid var(--mantine-color-gray-3)' }
-        }}
-      >
-        <ScriptingPanel height="100%" />
-      </Drawer>
     </>
   )
 }

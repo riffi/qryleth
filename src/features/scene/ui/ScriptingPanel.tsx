@@ -51,13 +51,86 @@ if (objects.length > 0) {
     if (isAfterSceneApi) {
       // Если автокомплит после "sceneApi.", показываем только методы
       completions = [
-        { label: 'getSceneOverview', type: 'function', info: 'Получить общую информацию о сцене' },
-        { label: 'getSceneObjects', type: 'function', info: 'Получить все объекты сцены' },
-        { label: 'addObjectInstance', type: 'function', info: 'Добавить экземпляр объекта в сцену' },
-        { label: 'removeObjectInstance', type: 'function', info: 'Удалить экземпляр объекта' },
-        { label: 'updateObjectInstance', type: 'function', info: 'Обновить экземпляр объекта' },
-        { label: 'getObjectInstances', type: 'function', info: 'Получить все экземпляры объектов' },
-        { label: 'clearScene', type: 'function', info: 'Очистить всю сцену' }
+        { 
+          label: 'getSceneOverview', 
+          type: 'function', 
+          info: 'getSceneOverview(): SceneOverview - Получить общую информацию о сцене с объектами, экземплярами и слоями' 
+        },
+        { 
+          label: 'getSceneObjects', 
+          type: 'function', 
+          info: 'getSceneObjects(): SceneObjectInfo[] - Получить список всех объектов сцены' 
+        },
+        { 
+          label: 'getSceneInstances', 
+          type: 'function', 
+          info: 'getSceneInstances(): SceneInstanceInfo[] - Получить список всех экземпляров объектов' 
+        },
+        { 
+          label: 'findObjectByUuid', 
+          type: 'function', 
+          info: 'findObjectByUuid(uuid: string): SceneObject | null - Найти объект по UUID' 
+        },
+        { 
+          label: 'findObjectByName', 
+          type: 'function', 
+          info: 'findObjectByName(name: string): SceneObject | null - Найти объект по имени (первый найденный)' 
+        },
+        { 
+          label: 'addObjectInstance', 
+          type: 'function', 
+          info: 'addObjectInstance(objectUuid: string, position?: Vector3, rotation?: Vector3, scale?: Vector3, visible?: boolean): AddInstanceResult - Добавить экземпляр объекта' 
+        },
+        { 
+          label: 'addSingleObjectInstance', 
+          type: 'function', 
+          info: 'addSingleObjectInstance(objectUuid: string, params: InstanceCreationParams): AddInstancesResult - Добавить один экземпляр с BoundingBox' 
+        },
+        { 
+          label: 'addObjectInstances', 
+          type: 'function', 
+          info: 'addObjectInstances(objectUuid: string, instances: InstanceCreationParams[]): AddInstancesResult - Добавить несколько экземпляров объекта' 
+        },
+        { 
+          label: 'addRandomObjectInstances', 
+          type: 'function', 
+          info: 'addRandomObjectInstances(objectUuid: string, count: number, options?: {rotation?, scale?, visible?, alignToTerrain?}): AddInstancesResult - Создать случайные экземпляры' 
+        },
+        { 
+          label: 'getAvailableLayers', 
+          type: 'function', 
+          info: 'getAvailableLayers(): Array - Получить доступные слои для размещения объектов' 
+        },
+        { 
+          label: 'canAddInstance', 
+          type: 'function', 
+          info: 'canAddInstance(objectUuid: string): boolean - Проверить можно ли добавить экземпляр объекта' 
+        },
+        { 
+          label: 'getSceneStats', 
+          type: 'function', 
+          info: 'getSceneStats(): Object - Получить статистику сцены (общие и видимые объекты, экземпляры, слои)' 
+        },
+        { 
+          label: 'addObjectWithTransform', 
+          type: 'function', 
+          info: 'addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult - Добавить объект с трансформацией в сцену' 
+        },
+        { 
+          label: 'searchObjectsInLibrary', 
+          type: 'function', 
+          info: 'searchObjectsInLibrary(query: string): Promise<ObjectRecord[]> - Поиск объектов в библиотеке по строке запроса' 
+        },
+        { 
+          label: 'addObjectFromLibrary', 
+          type: 'function', 
+          info: 'addObjectFromLibrary(objectUuid: string, layerId: string, transform?: Transform): Promise<AddObjectResult> - Добавить объект из библиотеки' 
+        },
+        { 
+          label: 'adjustInstancesForPerlinTerrain', 
+          type: 'function', 
+          info: 'adjustInstancesForPerlinTerrain(perlinLayerId: string): {success, adjustedCount?, error?} - Привязать экземпляры к ландшафту Perlin' 
+        }
       ]
     } else if (isAfterConsole) {
       // Если автокомплит после "console.", показываем только методы консоли
@@ -82,13 +155,20 @@ if (objects.length > 0) {
   }, [])
 
 
-  const executeScript = useCallback(() => {
+  const executeScript = useCallback(async () => {
     if (!script.trim()) return
 
     try {
+      // Обернуть скрипт в async функцию для поддержки top-level await
+      const asyncScript = `
+        return (async () => {
+          ${script}
+        })();
+      `
+      
       // Выполнить скрипт с доступом к SceneAPI и нативной консоли
-      const func = new Function('sceneApi', 'console', script)
-      const result = func(SceneAPI, window.console)
+      const func = new Function('sceneApi', 'console', asyncScript)
+      const result = await func(SceneAPI, window.console)
 
       if (result !== undefined) {
         console.log('Результат выполнения скрипта:', result)
@@ -103,12 +183,8 @@ if (objects.length > 0) {
 
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
-      {/* Заголовок */}
-      <Group justify="space-between" p="sm" bg="gray.8">
-        <Group>
-          <IconCode size={20} />
-          <Text fw={500}>Панель скриптинга</Text>
-        </Group>
+      {/* Панель инструментов */}
+      <Group justify="flex-end" p="sm" bg="gray.9">
         <Tooltip label="Выполнить скрипт (Ctrl+Enter)">
           <Button
             size="xs"
