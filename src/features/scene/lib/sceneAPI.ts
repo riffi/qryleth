@@ -20,6 +20,8 @@ export interface SceneObjectInfo {
   name: string
   layerId?: string
   visible?: boolean
+  /** UUID объекта в библиотеке, если применимо */
+  libraryUuid?: string
   primitiveCount: number
   primitiveTypes: string[]
   hasInstances: boolean
@@ -93,6 +95,7 @@ export class SceneAPI {
         name: obj.name,
         layerId: obj.layerId,
         visible: obj.visible,
+        libraryUuid: obj.libraryUuid,
         primitiveCount: obj.primitives.length,
         primitiveTypes: [...new Set(obj.primitives.map(p => p.type))],
         hasInstances: instances.length > 0,
@@ -258,8 +261,10 @@ export class SceneAPI {
   }
 
   /**
-   * Добавить объект с трансформацией в сцену
-   * Объединяет функциональность handleObjectAdded из SceneEditorR3F
+   * Добавить объект с трансформацией в сцену.
+   * Если объект был загружен из библиотеки, его UUID сохраняется
+   * в поле libraryUuid для последующего отслеживания.
+   * Метод объединяет функциональность handleObjectAdded из SceneEditorR3F.
    */
   static addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult {
     try {
@@ -277,7 +282,8 @@ export class SceneAPI {
         uuid: objectUuid,
         name: correctedObject.name,
         primitives: correctedObject.primitives,
-        layerId: 'objects'
+        layerId: 'objects',
+        libraryUuid: correctedObject.libraryUuid
       }
 
       // Добавить объект в store

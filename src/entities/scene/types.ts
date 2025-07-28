@@ -7,6 +7,8 @@ export interface SceneObject extends GfxObject{
   layerId?: string;
   /** Controls visibility of all object instances of this object */
   visible?: boolean;
+  /** UUID объекта в библиотеке, если он был добавлен из неё */
+  libraryUuid?: string;
 }
 
 export interface SceneObjectInstance extends GfxObjectInstance{

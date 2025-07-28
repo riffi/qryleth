@@ -77,7 +77,8 @@ export const useSceneStore = create<SceneStore>()(
         ...obj,
         uuid: obj.uuid || generateUUID(),
         visible: obj.visible !== false,
-        primitives: ensurePrimitiveNames(obj.primitives.map(normalizePrimitive))
+        primitives: ensurePrimitiveNames(obj.primitives.map(normalizePrimitive)),
+        libraryUuid: obj.libraryUuid
       }))
       set({ objects: normalized })
       get().saveToHistory()
@@ -88,7 +89,8 @@ export const useSceneStore = create<SceneStore>()(
         ...object,
         uuid: object.uuid || generateUUID(),
         visible: object.visible !== false,
-        primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive))
+        primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
+        libraryUuid: object.libraryUuid
       }
       const objects = [...get().objects, normalized]
       set({ objects })
@@ -109,7 +111,8 @@ export const useSceneStore = create<SceneStore>()(
         ...updates,
         primitives: updates.primitives
           ? ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
-          : undefined
+          : undefined,
+        libraryUuid: updates.libraryUuid
       }
       const objects = get().objects.map(obj =>
         obj.uuid === objectUuid ? { ...obj, ...normalizedUpdates } : obj

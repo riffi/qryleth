@@ -48,8 +48,8 @@ interface ObjectRecord {
 
 ## План выполнения по фазам
 
-### Фаза 1: Добавление поддержки libraryUuid в sceneObject 
-**Статус**: Запланировано  
+### Фаза 1: Добавление поддержки libraryUuid в sceneObject
+**Статус**: Выполнено
 [Подробности фазы 1](phases/phase_1_summary.md)
 
 - Расширить интерфейс `ObjectInfo` для добавления поля `libraryUuid?: string`

@@ -111,6 +111,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 visible: sceneObject.visible !== false,
                 objectUuid: sceneObject.uuid,
                 layerId: sceneObject.layerId || 'objects',
+                libraryUuid: sceneObject.libraryUuid,
                 instances: objectInstancesList.map((instance) => ({
                     id: instance.uuid,
                     position: instance.transform?.position || [0,0,0],
@@ -372,17 +373,22 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setAddObjectModalOpened(true)
     }
 
+    /**
+     * Добавить выбранный объект библиотеки в сцену и сохранить его UUID
+     * в поле libraryUuid для последующей идентификации
+     */
     const handleAddObjectToScene = async (object: ObjectRecord) => {
         if (!targetLayerId) return
 
         try {
-            // Create new scene object from library object
+            // Создать объект сцены на основе записи библиотеки
             const newSceneObject = {
                 uuid: generateUUID(),
                 name: object.name,
                 primitives: object.objectData.primitives,
                 visible: true,
-                layerId: targetLayerId
+                layerId: targetLayerId,
+                libraryUuid: object.uuid
             }
 
             // Add to scene

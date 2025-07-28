@@ -261,6 +261,7 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
           ...primitive,
           uuid: uuidv4() // Новые UUID для примитивов
         })),
+        libraryUuid: objectRecord.uuid,
         ...(input.position && {
           position: input.position as [number, number, number]
         }),

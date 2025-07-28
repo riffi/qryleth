@@ -9,6 +9,8 @@ export interface ObjectInfo {
     count: number
     visible: boolean
     objectUuid: string
+    /** UUID объекта в библиотеке, если он был добавлен из неё */
+    libraryUuid?: string
     instances?: ObjectInstance[]
     layerId?: string
 }
