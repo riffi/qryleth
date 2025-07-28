@@ -24,11 +24,11 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   onClick
 }) => {
   const baseMaterialProps = {
-    color: primitive.color || '#cccccc',
-    transparent: primitive.opacity !== undefined && primitive.opacity < 1,
-    opacity: primitive.opacity !== undefined ? Math.max(0, Math.min(1, primitive.opacity)) : 1,
-    emissive: primitive.emissive ? new THREE.Color(primitive.emissive) : undefined,
-    emissiveIntensity: primitive.emissiveIntensity !== undefined ? Math.max(0, primitive.emissiveIntensity) : undefined,
+    color: primitive.material?.color || '#cccccc',
+    transparent: primitive.material?.opacity !== undefined && primitive.material.opacity < 1,
+    opacity: primitive.material?.opacity !== undefined ? Math.max(0, Math.min(1, primitive.material.opacity)) : 1,
+    emissive: primitive.material?.emissive ? new THREE.Color(primitive.material.emissive) : undefined,
+    emissiveIntensity: primitive.material?.emissiveIntensity !== undefined ? Math.max(0, primitive.material.emissiveIntensity) : undefined,
     wireframe: renderMode === 'wireframe'
   }
 
@@ -37,9 +37,9 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   }
 
   const meshProps = {
-    position: primitive.position || [0, 0, 0],
-    rotation: primitive.rotation || [0, 0, 0],
-    scale: primitive.scale || [1, 1, 1],
+    position: primitive.transform?.position || [0, 0, 0],
+    rotation: primitive.transform?.rotation || [0, 0, 0],
+    scale: primitive.transform?.scale || [1, 1, 1],
     castShadow: true,
     receiveShadow: true,
     userData: userData || {},
