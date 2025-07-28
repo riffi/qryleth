@@ -90,12 +90,13 @@ console.log('Final geometry bounding box:', geometry.boundingBox)
 Редактор объектов пересчитывает BoundingBox при любом изменении примитивов и передает его в стор сцены и библиотеку.
 
 ### Фаза 5: Обновление Scene Tools для работы с BoundingBox
-**Статус: Не выполнено**
+**Статус: Выполнено**
+[Подробности фазы 5](phases/phase_5_summary.md)
 
 Обновить AI инструменты для учета BoundingBox при размещении объектов:
 1. Обновить `addObjectInstanceTool` в `src/features/scene/lib/ai/tools/instanceTools.ts`
 2. Обновить `addObjectFromLibraryTool` в `src/features/scene/lib/ai/tools/objectTools.ts`
-3Обновить описания инструментов для агентов
+3. Обновить описания инструментов для агентов
 
 ### Фаза 6: Обновление SceneAPI и обзора сцены
 **Статус: Не выполнено**

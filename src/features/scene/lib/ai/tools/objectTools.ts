@@ -5,6 +5,7 @@ import type { GFXObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 import { generatePrimitiveName } from '@/entities/primitive'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI.ts'
+import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 // Схемы валидации для геометрии примитивов
 const BoxGeometrySchema = z.object({
@@ -230,7 +231,7 @@ export const searchObjectsInLibraryTool = new DynamicStructuredTool({
  */
 export const addObjectFromLibraryTool = new DynamicStructuredTool({
   name: 'add_object_from_library',
-  description: 'Добавляет существующий объект из библиотеки в текущую сцену. Использует UUID объекта для его загрузки и добавления.',
+  description: 'Добавляет существующий объект из библиотеки в текущую сцену. BoundingBox рассчитывается автоматически и возвращается в ответе.',
   schema: z.object({
     objectUuid: z.string().describe('UUID объекта из библиотеки'),
     position: z.array(z.number()).length(3).optional().describe('Позиция объекта в сцене [x, y, z]'),
@@ -257,10 +258,22 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
         })
       }
 
+      const objectInfo = result.objectUuid
+        ? SceneAPI.findObjectByUuid(result.objectUuid)
+        : null
+      const bbox = objectInfo?.boundingBox
+        ? transformBoundingBox(objectInfo.boundingBox, {
+            position: input.position as [number, number, number] | undefined,
+            rotation: input.rotation as [number, number, number] | undefined,
+            scale: input.scale as [number, number, number] | undefined
+          })
+        : null
+
       return JSON.stringify({
         success: true,
         objectUuid: result.objectUuid,
         instanceUuid: result.instanceUuid,
+        boundingBox: bbox,
         message: `Объект с UUID ${input.objectUuid} добавлен в сцену из библиотеки`
       })
 

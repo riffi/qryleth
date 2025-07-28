@@ -7,6 +7,10 @@ import { z } from 'zod'
 import { SceneAPI } from '../../../lib/sceneAPI'
 import { placeInstance } from '../../../lib/placement/ObjectPlacementUtils'
 import { useSceneStore } from '../../../model/sceneStore'
+import {
+  transformBoundingBox,
+  calculateObjectBoundingBox
+} from '@/shared/lib/geometry/boundingBoxUtils'
 
 /**
  * Схема валидации для параметров одного экземпляра
@@ -42,6 +46,7 @@ const addInstanceSchema = z.object({
 export const addObjectInstanceTool = new DynamicStructuredTool({
   name: 'add_object_instance',
   description: `Добавить один или несколько экземпляров существующего объекта на сцену.
+BoundingBox объекта учитывается при расчёте позиции и возвращается для каждого экземпляра.
 
 Режимы работы:
 1. Одиночный экземпляр: указать только objectUuid и опциональные параметры трансформации
@@ -140,6 +145,10 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
       const results = []
       const errors = []
 
+      const baseObject = SceneAPI.findObjectByUuid(validatedParams.objectUuid)
+      const objectBox = baseObject?.boundingBox ||
+        (baseObject ? calculateObjectBoundingBox(baseObject) : undefined)
+
       for (const instanceParams of instancesToCreate) {
         const result = SceneAPI.addObjectInstance(
           validatedParams.objectUuid,
@@ -150,10 +159,19 @@ export const addObjectInstanceTool = new DynamicStructuredTool({
         )
 
         if (result.success) {
+          const bbox = objectBox
+            ? transformBoundingBox(objectBox, {
+                position: instanceParams.position,
+                rotation: instanceParams.rotation,
+                scale: instanceParams.scale
+              })
+            : undefined
+
           results.push({
             instanceUuid: result.instanceUuid,
             objectUuid: result.objectUuid,
-            parameters: instanceParams
+            parameters: instanceParams,
+            boundingBox: bbox
           })
         } else {
           errors.push(result.error)

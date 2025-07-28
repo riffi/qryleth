@@ -381,3 +381,40 @@ export function calculateObjectBoundingBox(object: GfxObject): BoundingBox {
   const primitiveBoundingBoxes = object.primitives.map(calculatePrimitiveBoundingBox)
   return mergeBoundingBoxes(primitiveBoundingBoxes)
 }
+
+/**
+ * Применяет трансформацию к BoundingBox и возвращает результат
+ * в мировых координатах
+ */
+export function transformBoundingBox(
+  box: BoundingBox,
+  transform?: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }
+): BoundingBox {
+  // Перечень углов исходного бокса
+  const corners: Vector3[] = [
+    [box.min[0], box.min[1], box.min[2]],
+    [box.min[0], box.min[1], box.max[2]],
+    [box.min[0], box.max[1], box.min[2]],
+    [box.min[0], box.max[1], box.max[2]],
+    [box.max[0], box.min[1], box.min[2]],
+    [box.max[0], box.min[1], box.max[2]],
+    [box.max[0], box.max[1], box.min[2]],
+    [box.max[0], box.max[1], box.max[2]]
+  ]
+
+  const transformed = corners.map(c => applyTransform(c, transform))
+
+  const min: Vector3 = [
+    Math.min(...transformed.map(v => v[0])),
+    Math.min(...transformed.map(v => v[1])),
+    Math.min(...transformed.map(v => v[2]))
+  ]
+
+  const max: Vector3 = [
+    Math.max(...transformed.map(v => v[0])),
+    Math.max(...transformed.map(v => v[1])),
+    Math.max(...transformed.map(v => v[2]))
+  ]
+
+  return { min, max }
+}
