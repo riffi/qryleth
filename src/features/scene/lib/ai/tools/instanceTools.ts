@@ -5,13 +5,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { SceneAPI } from '../../../lib/sceneAPI'
-import { placeInstance } from '../../../lib/placement/ObjectPlacementUtils'
-import { useSceneStore } from '../../../model/sceneStore'
-import {
-  transformBoundingBox,
-  calculateObjectBoundingBox
-} from '@/shared/lib/geometry/boundingBoxUtils'
-import type {Vector3} from "@/shared/types";
 
 /**
  * Схема валидации для параметров одного экземпляра
@@ -69,132 +62,39 @@ BoundingBox объекта учитывается при расчёте пози
   schema: addInstanceSchema,
   func: async (input) => {
     try {
-      // Валидация уже выполнена схемой
       const validatedParams = input
 
-      // Проверяем существование объекта
-      if (!SceneAPI.canAddInstance(validatedParams.objectUuid)) {
-        return JSON.stringify({
-          error: `Object with UUID "${validatedParams.objectUuid}" not found in scene`,
-          success: false,
-          availableObjects: SceneAPI.getSceneObjects().map(obj => ({
-            uuid: obj.uuid,
-            name: obj.name
-          }))
-        })
-      }
-
-      // Определяем режим работы и создаем список экземпляров для добавления
-      let instancesToCreate: Array<{
-        position: Vector3
-        rotation: Vector3
-        scale: Vector3
-        visible: boolean
-      }> = []
+      let result
 
       if (validatedParams.instances && validatedParams.instances.length > 0) {
-        // Режим: массив экземпляров
-        instancesToCreate = validatedParams.instances.map(inst => ({
-          position: inst.position as Vector3,
-          rotation: inst.rotation as Vector3,
-          scale: inst.scale as Vector3,
-          visible: inst.visible
-        }))
+        result = SceneAPI.addObjectInstances(
+          validatedParams.objectUuid,
+          validatedParams.instances
+        )
       } else if (validatedParams.count && validatedParams.count > 1) {
-        // Режим: множественные случайные экземпляры
-        // Получаем landscape layer для корректного размещения
-        const state = useSceneStore.getState()
-        const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
-
-        for (let i = 0; i < validatedParams.count; i++) {
-          // Создаем временный экземпляр для использования placeInstance
-          const tempInstance = {
-            uuid: '', // временное значение
-            objectUuid: validatedParams.objectUuid,
-            transform: {
-              position: [0, 0, 0] as Vector3,
-              rotation: validatedParams.rotation as Vector3,
-              scale: validatedParams.scale as Vector3
-            },
+        result = SceneAPI.addRandomObjectInstances(
+          validatedParams.objectUuid,
+          validatedParams.count,
+          {
+            rotation: validatedParams.rotation,
+            scale: validatedParams.scale,
+            visible: validatedParams.visible,
+            alignToTerrain: validatedParams.alignToTerrain
+          }
+        )
+      } else {
+        result = SceneAPI.addSingleObjectInstance(
+          validatedParams.objectUuid,
+          {
+            position: validatedParams.position,
+            rotation: validatedParams.rotation,
+            scale: validatedParams.scale,
             visible: validatedParams.visible
           }
-
-          // Используем placeInstance для получения правильной позиции
-          const placedInstance = placeInstance(tempInstance, {
-            landscapeLayer,
-            alignToTerrain: validatedParams.alignToTerrain
-          })
-
-          instancesToCreate.push({
-            position: placedInstance.transform.position,
-            rotation: placedInstance.transform.rotation,
-            scale: validatedParams.scale as [number, number, number],
-            visible: validatedParams.visible
-          })
-        }
-      } else {
-        // Режим: одиночный экземпляр
-        instancesToCreate.push({
-          position: validatedParams.position as [number, number, number],
-          rotation: validatedParams.rotation as [number, number, number],
-          scale: validatedParams.scale as [number, number, number],
-          visible: validatedParams.visible
-        })
-      }
-
-      // Создаем экземпляры
-      const results = []
-      const errors = []
-
-      const baseObject = SceneAPI.findObjectByUuid(validatedParams.objectUuid)
-      const objectBox = baseObject?.boundingBox ||
-        (baseObject ? calculateObjectBoundingBox(baseObject) : undefined)
-
-      for (const instanceParams of instancesToCreate) {
-        const result = SceneAPI.addObjectInstance(
-          validatedParams.objectUuid,
-          instanceParams.position,
-          instanceParams.rotation,
-          instanceParams.scale,
-          instanceParams.visible
         )
-
-        if (result.success) {
-          const bbox = objectBox
-            ? transformBoundingBox(objectBox, {
-                position: instanceParams.position,
-                rotation: instanceParams.rotation,
-                scale: instanceParams.scale
-              })
-            : undefined
-
-          results.push({
-            instanceUuid: result.instanceUuid,
-            objectUuid: result.objectUuid,
-            parameters: instanceParams,
-            boundingBox: bbox
-          })
-        } else {
-          errors.push(result.error)
-        }
       }
 
-      // Возвращаем результат
-      if (results.length > 0) {
-        return JSON.stringify({
-          success: true,
-          instanceCount: results.length,
-          instances: results,
-          errors: errors.length > 0 ? errors : undefined,
-          message: `Successfully created ${results.length} instance(s)${errors.length > 0 ? ` with ${errors.length} error(s)` : ''}`
-        })
-      } else {
-        return JSON.stringify({
-          success: false,
-          error: 'Failed to create any instances',
-          details: errors
-        })
-      }
+      return JSON.stringify(result)
     } catch (error) {
       if (error instanceof z.ZodError) {
         return JSON.stringify({

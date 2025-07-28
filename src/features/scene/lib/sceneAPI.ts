@@ -12,7 +12,10 @@ import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGe
 import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
-import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import {
+  calculateObjectBoundingBox,
+  transformBoundingBox
+} from '@/shared/lib/geometry/boundingBoxUtils'
 import type { BoundingBox } from '@/shared/types'
 
 /**
@@ -88,6 +91,42 @@ export interface AddObjectResult {
   success: boolean
   objectUuid?: string
   instanceUuid?: string
+  error?: string
+}
+
+/**
+ * Параметры создания экземпляра объекта
+ */
+export interface InstanceCreationParams {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+  visible?: boolean
+}
+
+/**
+ * Информация о созданном экземпляре
+ */
+export interface CreatedInstanceInfo {
+  instanceUuid: string
+  objectUuid: string
+  parameters: {
+    position: Vector3
+    rotation: Vector3
+    scale: Vector3
+    visible: boolean
+  }
+  boundingBox?: BoundingBox
+}
+
+/**
+ * Результат массового добавления экземпляров
+ */
+export interface AddInstancesResult {
+  success: boolean
+  instanceCount: number
+  instances?: CreatedInstanceInfo[]
+  errors?: string[]
   error?: string
 }
 
@@ -230,6 +269,137 @@ export class SceneAPI {
         error: `Failed to add object instance: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
+  }
+
+  /**
+   * Добавить один экземпляр объекта и вернуть информацию с BoundingBox
+   */
+  static addSingleObjectInstance(
+    objectUuid: string,
+    params: InstanceCreationParams
+  ): AddInstancesResult {
+    return this.addObjectInstances(objectUuid, [params])
+  }
+
+  /**
+   * Добавить несколько экземпляров объекта по массиву параметров
+   */
+  static addObjectInstances(
+    objectUuid: string,
+    instances: InstanceCreationParams[]
+  ): AddInstancesResult {
+    try {
+      const state = useSceneStore.getState()
+      const baseObject = state.objects.find(obj => obj.uuid === objectUuid)
+      if (!baseObject) {
+        return {
+          success: false,
+          instanceCount: 0,
+          error: `Object with UUID ${objectUuid} not found in scene`
+        }
+      }
+
+      const objectBox =
+        baseObject.boundingBox || calculateObjectBoundingBox(baseObject)
+
+      const results: CreatedInstanceInfo[] = []
+      const errors: string[] = []
+
+      for (const inst of instances) {
+        const position = inst.position ?? ([0, 0, 0] as Vector3)
+        const rotation = inst.rotation ?? ([0, 0, 0] as Vector3)
+        const scale = inst.scale ?? ([1, 1, 1] as Vector3)
+        const visible = inst.visible ?? true
+
+        const res = this.addObjectInstance(
+          objectUuid,
+          position,
+          rotation,
+          scale,
+          visible
+        )
+
+        if (res.success && res.instanceUuid) {
+          const bbox = transformBoundingBox(objectBox, {
+            position,
+            rotation,
+            scale
+          })
+          results.push({
+            instanceUuid: res.instanceUuid,
+            objectUuid,
+            parameters: { position, rotation, scale, visible },
+            boundingBox: bbox
+          })
+        } else if (res.error) {
+          errors.push(res.error)
+        }
+      }
+
+      if (results.length > 0) {
+        return {
+          success: true,
+          instanceCount: results.length,
+          instances: results,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      }
+
+      return {
+        success: false,
+        instanceCount: 0,
+        errors,
+        error: 'Failed to create any instances'
+      }
+    } catch (error) {
+      return {
+        success: false,
+        instanceCount: 0,
+        error: `Failed to add object instances: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      }
+    }
+  }
+
+  /**
+   * Создать несколько случайных экземпляров объекта с учетом ландшафта
+   */
+  static addRandomObjectInstances(
+    objectUuid: string,
+    count: number,
+    options?: { rotation?: Vector3; scale?: Vector3; visible?: boolean; alignToTerrain?: boolean }
+  ): AddInstancesResult {
+    const state = useSceneStore.getState()
+    const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
+
+    const instances: InstanceCreationParams[] = []
+    for (let i = 0; i < count; i++) {
+      const tempInstance: SceneObjectInstance = {
+        uuid: '',
+        objectUuid,
+        transform: {
+          position: [0, 0, 0],
+          rotation: options?.rotation ?? ([0, 0, 0] as Vector3),
+          scale: options?.scale ?? ([1, 1, 1] as Vector3)
+        },
+        visible: options?.visible ?? true
+      }
+
+      const placed = placeInstance(tempInstance, {
+        landscapeLayer,
+        alignToTerrain: options?.alignToTerrain
+      })
+
+      instances.push({
+        position: placed.transform.position,
+        rotation: placed.transform.rotation,
+        scale: options?.scale ?? ([1, 1, 1] as Vector3),
+        visible: options?.visible ?? true
+      })
+    }
+
+    return this.addObjectInstances(objectUuid, instances)
   }
 
   /**
