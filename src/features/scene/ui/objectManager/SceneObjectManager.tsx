@@ -695,6 +695,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 }}
                 onAddObject={handleAddObjectToScene}
                 targetLayerId={targetLayerId}
+                sceneObjects={sceneObjects}
             />
         </>
     )

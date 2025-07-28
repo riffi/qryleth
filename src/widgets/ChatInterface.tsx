@@ -326,11 +326,11 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
         </Tabs.List>
 
         <Tabs.Panel value="chat" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'  }}>
-          <ScrollArea p="md" ref={scrollAreaRef} style={{ flex: 1, minHeight: 0 }}>
+          <ScrollArea p="sm" ref={scrollAreaRef} style={{ flex: 1, minHeight: 0 }}>
             <Stack gap="sm">
               {messages.length === 0 && (
-                <Paper p="md" withBorder style={{ backgroundColor: '#4e4e4e' }}>
-                  <Text c="white" ta="center">
+                <Paper p="sm" withBorder style={{ backgroundColor: '#4e4e4e' }}>
+                  <Text c="white" ta="center" style={{fontSize: '0.8rem'}}>
                     Попросите агента добавить объект в сцену...
                   </Text>
                 </Paper>
@@ -339,7 +339,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
               {messages.map((message, index) => (
                 <Paper
                   key={index}
-                  p="md"
+                  p="sm"
                   withBorder
                   style={{
                     backgroundColor: message.role === 'user' ? '#303030' : '#34343e',
@@ -355,21 +355,21 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
                     >
                       {getMessageIcon(message.role)}
                     </ActionIcon>
-                    <Text size="sm" fw={500} c={getMessageColor(message.role)}>
+                    <Text size="sm" fw={500} style={{fontSize: '0.8rem'}} c={getMessageColor(message.role)}>
                       {message.role === 'user' ? 'Вы' : 'Агент'}
                     </Text>
                     <Text size="xs" c="dimmed">
                       {message.timestamp.toLocaleTimeString()}
                     </Text>
                   </Group>
-                  <Text style={{ whiteSpace: 'pre-wrap' }}>
+                  <Text style={{ whiteSpace: 'pre-wrap', fontSize: '0.8rem'}}>
                     {message.content}
                   </Text>
                 </Paper>
               ))}
 
               {isLoading && (
-                <Paper p="md" withBorder style={{ backgroundColor: '#31484a' }}>
+                <Paper p="sm" withBorder style={{ backgroundColor: '#31484a' }}>
                   <Group gap="xs">
                     <ActionIcon size="sm" variant="subtle" color="green">
                       <IconRobot size={16} />
@@ -378,7 +378,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
                       Агент
                     </Text>
                   </Group>
-                  <Text c="dimmed" fs="italic">
+                  <Text c="dimmed" fs="italic" style={{fontSize: '0.8rem'}}>
                     Думаю...
                   </Text>
                 </Paper>

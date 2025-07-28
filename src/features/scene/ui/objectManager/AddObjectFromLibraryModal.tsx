@@ -17,24 +17,31 @@ import {
 import { IconSearch, IconCalendar, IconCube, IconX } from '@tabler/icons-react'
 import { db, type ObjectRecord } from '@/shared/lib/database.ts'
 import { notifications } from '@mantine/notifications'
+import type { SceneObject } from '@/entities/scene/types'
 
 interface AddObjectFromLibraryModalProps {
   opened: boolean
   onClose: () => void
   onAddObject: (object: ObjectRecord) => void
   targetLayerId: string | null
+  /** Список объектов сцены для фильтрации уже добавленных */
+  sceneObjects: SceneObject[]
 }
 
 export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps> = ({
   opened,
   onClose,
   onAddObject,
-  targetLayerId
+  targetLayerId,
+  sceneObjects
 }) => {
   const [objects, setObjects] = useState<ObjectRecord[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  /**
+   * Загружает все объекты библиотеки из IndexedDB
+   */
   const loadObjects = async () => {
     try {
       setIsLoading(true)
@@ -52,9 +59,21 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
     }
   }
 
-  const filteredObjects = objects.filter(object =>
-    object.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (object.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+  /**
+   * Список объектов библиотеки без тех, что уже есть в сцене
+   */
+  const availableObjects = React.useMemo(
+    () =>
+      objects.filter(
+        object => !sceneObjects.some(o => o.libraryUuid === object.uuid)
+      ),
+    [objects, sceneObjects]
+  )
+
+  const filteredObjects = availableObjects.filter(
+    object =>
+      object.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (object.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   )
 
   const formatDate = (date: Date) => {
@@ -73,6 +92,9 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
     }
   }, [opened])
 
+  /**
+   * Добавляет выбранный объект в сцену и закрывает окно
+   */
   const handleAddObject = (object: ObjectRecord) => {
     onAddObject(object)
     onClose()
