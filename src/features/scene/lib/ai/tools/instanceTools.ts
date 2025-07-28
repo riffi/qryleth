@@ -11,6 +11,7 @@ import {
   transformBoundingBox,
   calculateObjectBoundingBox
 } from '@/shared/lib/geometry/boundingBoxUtils'
+import type {Vector3} from "@/shared/types";
 
 /**
  * Схема валидации для параметров одного экземпляра
@@ -70,7 +71,7 @@ BoundingBox объекта учитывается при расчёте пози
     try {
       // Валидация уже выполнена схемой
       const validatedParams = input
-      
+
       // Проверяем существование объекта
       if (!SceneAPI.canAddInstance(validatedParams.objectUuid)) {
         return JSON.stringify({
@@ -85,18 +86,18 @@ BoundingBox объекта учитывается при расчёте пози
 
       // Определяем режим работы и создаем список экземпляров для добавления
       let instancesToCreate: Array<{
-        position: [number, number, number]
-        rotation: [number, number, number]
-        scale: [number, number, number]
+        position: Vector3
+        rotation: Vector3
+        scale: Vector3
         visible: boolean
       }> = []
 
       if (validatedParams.instances && validatedParams.instances.length > 0) {
         // Режим: массив экземпляров
         instancesToCreate = validatedParams.instances.map(inst => ({
-          position: inst.position as [number, number, number],
-          rotation: inst.rotation as [number, number, number],
-          scale: inst.scale as [number, number, number],
+          position: inst.position as Vector3,
+          rotation: inst.rotation as Vector3,
+          scale: inst.scale as Vector3,
           visible: inst.visible
         }))
       } else if (validatedParams.count && validatedParams.count > 1) {
@@ -104,26 +105,26 @@ BoundingBox объекта учитывается при расчёте пози
         // Получаем landscape layer для корректного размещения
         const state = useSceneStore.getState()
         const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
-        
+
         for (let i = 0; i < validatedParams.count; i++) {
           // Создаем временный экземпляр для использования placeInstance
           const tempInstance = {
             uuid: '', // временное значение
             objectUuid: validatedParams.objectUuid,
             transform: {
-              position: [0, 0, 0] as [number, number, number],
-              rotation: validatedParams.rotation as [number, number, number],
-              scale: validatedParams.scale as [number, number, number]
+              position: [0, 0, 0] as Vector3,
+              rotation: validatedParams.rotation as Vector3,
+              scale: validatedParams.scale as Vector3
             },
             visible: validatedParams.visible
           }
-          
+
           // Используем placeInstance для получения правильной позиции
-          const placedInstance = placeInstance(tempInstance, { 
+          const placedInstance = placeInstance(tempInstance, {
             landscapeLayer,
             alignToTerrain: validatedParams.alignToTerrain
           })
-          
+
           instancesToCreate.push({
             position: placedInstance.transform.position,
             rotation: placedInstance.transform.rotation,
