@@ -20,3 +20,8 @@ export {
   searchObjectsInLibraryTool,
   addObjectFromLibraryTool
 } from './objectTools'
+
+export {
+  getGlobalMaterialsTool,
+  searchGlobalMaterialsTool
+} from './materialTools'

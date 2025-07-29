@@ -53,13 +53,17 @@ const PrimitiveCommonSchema = z.object({
   // Читаемое имя примитива. Может отсутствовать, тогда будет сгенерировано
   // автоматически
   name: z.string().min(1).optional(),
-  // Material properties
+  // Материал примитива - поддерживает несколько способов задания
   material: z.object({
     color: z.string(),
     opacity: z.number().min(0).max(1).optional(),
     emissive: z.string().optional(),
     emissiveIntensity: z.number().min(0).optional()
-  }),
+  }).optional().describe("Прямые свойства материала (для обратной совместимости)"),
+  // Ссылка на материал объекта по UUID
+  objectMaterialUuid: z.string().uuid().optional().describe("UUID материала объекта"),
+  // Ссылка на глобальный материал по UUID (используй get_global_materials для получения списка)
+  globalMaterialUuid: z.string().uuid().optional().describe("UUID глобального материала"),
   // Transform properties
   transform: z.object({
     position: z.array(z.number()).length(3).optional(),
@@ -79,10 +83,27 @@ const PrimitiveSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('torus'), geometry: TorusGeometrySchema }).merge(PrimitiveCommonSchema)
 ])
 
+// Схема для материала объекта
+const ObjectMaterialSchema = z.object({
+  uuid: z.string().uuid(),
+  name: z.string().describe("Название материала"),
+  description: z.string().optional(),
+  color: z.string().describe("Цвет материала в формате hex"),
+  opacity: z.number().min(0).max(1).optional(),
+  emissive: z.string().optional().describe("Цвет свечения в формате hex"),
+  emissiveIntensity: z.number().min(0).optional(),
+  roughness: z.number().min(0).max(1).optional(),
+  metalness: z.number().min(0).max(1).optional(),
+  castShadow: z.boolean().optional(),
+  receiveShadow: z.boolean().optional()
+})
+
 // Схема валидации для объекта
 const ObjectSchema = z.object({
   name: z.string().describe("Имя объекта на русском"),
   primitives: z.array(PrimitiveSchema),
+  // Материалы объекта - используются примитивами через objectMaterialUuid
+  materials: z.array(ObjectMaterialSchema).optional().describe("Массив материалов объекта"),
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
   scale: z.array(z.number()).length(3).optional()
@@ -93,11 +114,57 @@ const ObjectSchema = z.object({
  * Адаптированный из существующего add_new_object инструмента.
  * BoundingBox объекта вычисляется внутри SceneAPI при добавлении,
  * поэтому здесь достаточно передать описание примитивов и трансформаций.
+ * 
+ * @example
+ * // СПОСОБ 1: Использование глобальных материалов (рекомендуется)
+ * // Сначала получи список материалов:
+ * const materials = await get_global_materials({})
+ * // Затем создай объект с глобальным материалом:
+ * await add_new_object({
+ *   name: "Деревянный стул",
+ *   primitives: [{
+ *     type: "box",
+ *     geometry: { width: 0.5, height: 1, depth: 0.5 },
+ *     globalMaterialUuid: "wood-uuid-from-materials-list"
+ *   }]
+ * })
+ * 
+ * @example
+ * // СПОСОБ 2: Создание материалов объекта
+ * await add_new_object({
+ *   name: "Цветной куб",
+ *   materials: [{
+ *     uuid: "custom-red-material",
+ *     name: "Красный пластик",
+ *     color: "#ff0000",
+ *     opacity: 0.8,
+ *     roughness: 0.7
+ *   }],
+ *   primitives: [{
+ *     type: "box",
+ *     geometry: { width: 1, height: 1, depth: 1 },
+ *     objectMaterialUuid: "custom-red-material"
+ *   }]
+ * })
+ * 
+ * @example
+ * // СПОСОБ 3: Прямое задание материала (устаревший способ)
+ * await add_new_object({
+ *   name: "Синий шар",
+ *   primitives: [{
+ *     type: "sphere",
+ *     geometry: { radius: 0.5 },
+ *     material: {
+ *       color: "#0000ff",
+ *       opacity: 1.0
+ *     }
+ *   }]
+ * })
  */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. в position указываются центры примитивов',
+    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. Материалы можно задавать тремя способами: 1) прямо в primitive.material (старый способ), 2) через globalMaterialUuid (используй get_global_materials), 3) создав материалы на уровне объекта в поле materials и ссылаясь на них через objectMaterialUuid',
     schema: ObjectSchema,
     func: async (input): Promise<string> => {
       try {
@@ -113,8 +180,11 @@ export const createAddNewObjectTool = () => {
               ? primitive.name
               : generatePrimitiveName(primitive.type, index + 1),
             geometry: primitive.geometry,
-            // Материал
-            material: primitive.material,
+            // Материал (старый формат для обратной совместимости)
+            ...(primitive.material && { material: primitive.material }),
+            // Новая система материалов
+            ...(primitive.objectMaterialUuid && { objectMaterialUuid: primitive.objectMaterialUuid }),
+            ...(primitive.globalMaterialUuid && { globalMaterialUuid: primitive.globalMaterialUuid }),
             // Трансформации
             ...(primitive.transform && { transform: primitive.transform })
           }
@@ -127,6 +197,8 @@ export const createAddNewObjectTool = () => {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,
+          // Материалы объекта
+          ...(validatedInput.materials && { materials: validatedInput.materials }),
           ...(validatedInput.position && {
             position: validatedInput.position as [number, number, number]
           }),
