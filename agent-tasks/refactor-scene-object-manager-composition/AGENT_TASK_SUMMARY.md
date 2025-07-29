@@ -77,4 +77,4 @@ SceneObjectManager (688 строк)
 - [x] Фаза 3 - Рефакторинг SceneLayerItem ([phases/phase_3_summary.md](phases/phase_3_summary.md))
 - [x] Фаза 4 - Рефакторинг SceneObjectItem ([phases/phase_4_summary.md](phases/phase_4_summary.md))
 - [x] Фаза 5 - Обновление SceneObjectManager ([phases/phase_5_summary.md](phases/phase_5_summary.md))
-- [ ] Фаза 6
+- [x] Фаза 6 - Документирование ([phases/phase_6_summary.md](phases/phase_6_summary.md))

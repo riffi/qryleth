@@ -10,7 +10,7 @@
 import type { ViewMode, RenderMode, TransformMode, SelectedSceneObject, HoveredSceneObject } from '@/shared/types/ui'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import type { LightingSettings } from '@/entities/lighting/model/types'
-import type { GfxObject } from '@/entities/object/model/types'
+
 
 // Scene metadata types
 export type SceneStatus = 'draft' | 'saved' | 'modified'

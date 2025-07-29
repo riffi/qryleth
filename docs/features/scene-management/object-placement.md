@@ -6,7 +6,7 @@
 - Перемещение, поворот и масштабирование инстансов
 - Удаление объектов со сцены
 
-Логика расположена в `src/features/scene` и хранилищах Zustand. Для деталей смотрите `SceneObjectManager`.
+Логика расположена в `src/features/scene` и хранилищах Zustand. Для деталей смотрите `SceneObjectManager` и контекст `SceneObjectManagerContext`.
 
 ## Добавление объектов из библиотеки
 
