@@ -35,36 +35,22 @@ export interface ObjectManagerProps {
  * Используется дочерними компонентами вместо prop drilling.
  */
 export interface SceneObjectManagerContextValue {
-    // --- Create layer modal ---
-    createLayerModalOpened: boolean
-    setCreateLayerModalOpened: (opened: boolean) => void
-    newLayerName: string
-    setNewLayerName: (name: string) => void
-    newLayerType: 'object' | 'landscape' | 'water'
-    setNewLayerType: (t: 'object' | 'landscape' | 'water') => void
-    newLayerWidth: number
-    setNewLayerWidth: (v: number) => void
-    newLayerHeight: number
-    setNewLayerHeight: (v: number) => void
-    newLayerShape: 'plane' | 'perlin'
-    setNewLayerShape: (shape: 'plane' | 'perlin') => void
-    newLayerColor: string
-    setNewLayerColor: (color: string) => void
+    // --- Единое модальное окно управления слоем ---
+    /** Флаг отображения модального окна */
+    layerModalOpened: boolean
+    /** Изменить состояние открытия модального окна */
+    setLayerModalOpened: (opened: boolean) => void
+    /** Текущий режим модального окна */
+    layerModalMode: SceneLayerModalMode
+    /** Изменить режим модального окна */
+    setLayerModalMode: (mode: SceneLayerModalMode) => void
+    /** Данные формы слоя */
+    layerFormData: SceneLayerFormData
+    /** Установить данные формы слоя */
+    setLayerFormData: (data: SceneLayerFormData) => void
+    /** Создать новый слой сцены */
     handleCreateLayer: () => void
-
-    // --- Edit layer modal ---
-    editLayerModalOpened: boolean
-    setEditLayerModalOpened: (opened: boolean) => void
-    editingLayerType: 'object' | 'landscape' | 'water'
-    setEditingLayerType: (t: 'object' | 'landscape' | 'water') => void
-    editingLayerWidth: number
-    setEditingLayerWidth: (v: number) => void
-    editingLayerHeight: number
-    setEditingLayerHeight: (v: number) => void
-    editingLayerShape: 'plane' | 'perlin'
-    setEditingLayerShape: (shape: 'plane' | 'perlin') => void
-    editingLayerColor: string
-    setEditingLayerColor: (color: string) => void
+    /** Сохранить изменения слоя */
     handleUpdateLayer: () => void
 
     // --- Context menu ---
