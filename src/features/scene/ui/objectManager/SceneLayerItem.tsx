@@ -183,20 +183,6 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                         isExpanded={expandedItems.has(obj.objectUuid)}
                         isSelected={selectedObject?.objectUuid === obj.objectUuid}
                         selectedObject={selectedObject}
-                        onToggleExpanded={() => toggleObjectExpanded(obj.objectUuid)}
-                        onHighlight={highlightObject}
-                        onClearHighlight={clearHighlight}
-                        onSelect={selectObject}
-                        onToggleVisibility={() => toggleObjectVisibility(obj.objectUuid)}
-                        onRemove={() => removeObject(obj.objectUuid)}
-                        onSaveToLibrary={() => saveObjectToLibrary(obj.objectUuid)}
-                        onEdit={editObject}
-                        onToggleInstanceVisibility={toggleInstanceVisibility}
-                        onRemoveInstance={removeInstance}
-                        onDragStart={(e) => dragStart(e, obj.objectUuid)}
-                        onContextMenu={(e) => contextMenu(e, obj.objectUuid)}
-                        onExport={exportObject}
-                        onCopy={copyObject}
                     />
                 ))
             )}

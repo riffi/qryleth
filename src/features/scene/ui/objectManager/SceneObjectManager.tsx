@@ -606,20 +606,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             isExpanded={isExpanded}
                                             isSelected={isSelected}
                                             selectedObject={selectedObject}
-                                            onToggleExpanded={() => toggleObjectExpanded(obj.objectUuid)}
-                                            onHighlight={handleHighlightObject}
-                                            onClearHighlight={handleClearHighlight}
-                                            onSelect={handleSelectObject}
-                                            onToggleVisibility={() => handleToggleVisibility(obj.objectUuid)}
-                                            onRemove={() => handleRemoveObject(obj.objectUuid)}
-                                            onSaveToLibrary={() => handleSaveObjectToLibrary(obj.objectUuid)}
-                                            onEdit={handleEditObject}
-                                            onExport={handleExportObject}
-                                            onCopy={handleCopyObject}
-                                            onToggleInstanceVisibility={handleToggleInstanceVisibility}
-                                            onRemoveInstance={handleRemoveInstance}
-                                            onDragStart={(e) => handleDragStart(e, obj.objectUuid)}
-                                            onContextMenu={(e) => handleContextMenu(e, obj.objectUuid)}
                                         />
                                     )
                                 })

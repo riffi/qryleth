@@ -3,6 +3,7 @@ import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/co
 import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconChevronDown, IconChevronRight, IconDownload, IconCopy } from '@tabler/icons-react'
 import { SceneObjectInstanceItem } from './SceneObjectInstanceItem.tsx'
 import type { ObjectInstance } from '../../../types/common'
+import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 
 export interface ObjectInfo {
     name: string
@@ -19,21 +20,7 @@ interface ObjectItemProps {
     obj: ObjectInfo
     isExpanded: boolean
     isSelected: boolean
-    selectedObject?: {objectUuid: string, instanceId?: string} | null
-    onToggleExpanded: () => void
-    onHighlight: (objectUuid: string, instanceId?: string) => void
-    onClearHighlight: () => void
-    onSelect: (objectUuid: string, instanceId?: string) => void
-    onToggleVisibility: () => void
-    onRemove: () => void
-    onSaveToLibrary: () => void
-    onEdit: (objectUuid: string, instanceId?: string) => void
-    onExport: (objectUuid: string) => void
-    onCopy: (objectUuid: string) => void
-    onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void
-    onRemoveInstance?: (objectUuid: string, instanceId: string) => void
-    onDragStart: (e: React.DragEvent) => void
-    onContextMenu: (e: React.MouseEvent) => void
+    selectedObject?: { objectUuid: string; instanceId?: string } | null
 }
 
 /**
@@ -45,21 +32,23 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
     isExpanded,
     isSelected,
     selectedObject,
-    onToggleExpanded,
-    onHighlight,
-    onClearHighlight,
-    onSelect,
-    onToggleVisibility,
-    onRemove,
-    onSaveToLibrary,
-    onEdit,
-    onExport,
-    onCopy,
-    onToggleInstanceVisibility,
-    onRemoveInstance,
-    onDragStart,
-    onContextMenu
 }) => {
+    const {
+        toggleObjectExpanded,
+        highlightObject,
+        clearHighlight,
+        selectObject,
+        toggleObjectVisibility,
+        removeObject,
+        saveObjectToLibrary,
+        editObject,
+        exportObject,
+        copyObject,
+        toggleInstanceVisibility,
+        removeInstance,
+        dragStart,
+        contextMenu,
+    } = useSceneObjectManager()
     return (
         <Box>
             <Box
@@ -80,18 +69,18 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
 
                 }}
                 onMouseEnter={() => {
-                    // При наведении на объект выделяем первый инстанс
+                    // При наведении подсвечиваем первый экземпляр объекта
                     const firstInstanceId = obj.instances?.[0]?.id
-                    onHighlight(obj.objectUuid, firstInstanceId)
+                    highlightObject(obj.objectUuid, firstInstanceId)
                 }}
-                onMouseLeave={onClearHighlight}
+                onMouseLeave={clearHighlight}
                 onClick={() => {
-                    // При клике на объект выделяем первый инстанс
+                    // При клике выбираем первый экземпляр объекта
                     const firstInstanceId = obj.instances?.[0]?.id
-                    onSelect(obj.objectUuid, firstInstanceId)
+                    selectObject(obj.objectUuid, firstInstanceId)
                 }}
-                onDragStart={onDragStart}
-                onContextMenu={onContextMenu}
+                onDragStart={(e) => dragStart(e, obj.objectUuid)}
+                onContextMenu={(e) => contextMenu(e, obj.objectUuid)}
             >
                 <Group justify="space-between" align="center" gap="xs">
                     <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
@@ -100,7 +89,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                             variant="transparent"
                             onClick={(e) => {
                                 e.stopPropagation()
-                                onToggleExpanded()
+                                toggleObjectExpanded(obj.objectUuid)
                             }}
                             style={{
                                 width: '16px',
@@ -145,7 +134,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                             variant="transparent"
                             onClick={(e) => {
                                 e.stopPropagation()
-                                onToggleVisibility()
+                                toggleObjectVisibility(obj.objectUuid)
                             }}
                             style={{
                                 width: '16px',
@@ -180,7 +169,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         const firstInstanceId = obj.instances?.[0]?.id
-                                        onEdit(obj.objectUuid, firstInstanceId)
+                                        editObject(obj.objectUuid, firstInstanceId)
                                     }}
                                 >
                                     Редактировать
@@ -191,7 +180,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                         leftSection={<IconBookmark size={14} />}
                                         onClick={(e) => {
                                             e.stopPropagation()
-                                            onSaveToLibrary()
+                                            saveObjectToLibrary(obj.objectUuid)
                                         }}
                                     >
                                         Сохранить в библиотеку
@@ -201,7 +190,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     leftSection={<IconDownload size={14} />}
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        onExport(obj.objectUuid)
+                                        exportObject(obj.objectUuid)
                                     }}
                                 >
                                     Выгрузить JSON
@@ -210,7 +199,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     leftSection={<IconCopy size={14} />}
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        onCopy(obj.objectUuid)
+                                        copyObject(obj.objectUuid)
                                     }}
                                 >
                                     Копировать JSON
@@ -221,7 +210,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     color="red"
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        onRemove()
+                                        removeObject(obj.objectUuid)
                                     }}
                                 >
                                     Удалить объект
@@ -243,12 +232,12 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     index={obj.instances?.indexOf(instance)}
                                     instance={instance}
                                     isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}
-                                    onHighlight={() => onHighlight(obj.objectUuid, instance.id)}
-                                    onClearHighlight={onClearHighlight}
-                                    onSelect={() => onSelect(obj.objectUuid, instance.id)}
-                                    onToggleVisibility={() => onToggleInstanceVisibility?.(obj.objectUuid, instance.id)}
-                                    onEdit={() => onEdit(obj.objectUuid, instance.id)}
-                                    onRemove={() => onRemoveInstance?.(obj.objectUuid, instance.id)}
+                                    onHighlight={() => highlightObject(obj.objectUuid, instance.id)}
+                                    onClearHighlight={clearHighlight}
+                                    onSelect={() => selectObject(obj.objectUuid, instance.id)}
+                                    onToggleVisibility={() => toggleInstanceVisibility(obj.objectUuid, instance.id)}
+                                    onEdit={() => editObject(obj.objectUuid, instance.id)}
+                                    onRemove={() => removeInstance(obj.objectUuid, instance.id)}
                                 />
                             ))
                         ) : (
