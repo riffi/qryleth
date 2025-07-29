@@ -29,19 +29,25 @@ interface PrimitiveCommon {
 
 ## План выполнения задачи
 
-### Фаза 1: Создание системы глобальных материалов
+### Фаза 1: Создание системы глобальных материалов ✅ ВЫПОЛНЕНО
 **Цель:** Создать глобальный реестр материалов и базовые типы
 
 **Задачи:**
-- Создать интерфейс GfxMaterial в entities и типы для материальной системы
-- У GfxMaterial добавить uuid
-- Реализовать глобальный реестр материалов (MaterialRegistry)
-- Добавить предопределенные глобальные материалы (дерево, металл, земля, камень, стекло)
-- Создать утилиты для работы с материалами и их резолвинга
+- ✅ Создать интерфейс GfxMaterial в entities и типы для материальной системы
+- ✅ У GfxMaterial добавить uuid
+- ✅ Реализовать глобальный реестр материалов (MaterialRegistry)
+- ✅ Добавить предопределенные глобальные материалы (дерево, металл, земля, камень, стекло)
+- ✅ Создать утилиты для работы с материалами и их резолвинга
 
-**Файлы для изменения:**
-- `src/entities/material/model/types.ts` (новый файл)
-- `src/shared/lib/materials/` (новая папка с MaterialRegistry и утилитами)
+**Выполненные файлы:**
+- ✅ `src/entities/material/model/types.ts` - интерфейс GfxMaterial и типы
+- ✅ `src/entities/material/index.ts` - экспорты entity
+- ✅ `src/shared/lib/materials/MaterialRegistry.ts` - глобальный реестр
+- ✅ `src/shared/lib/materials/globalMaterials.ts` - 10 предопределенных материалов
+- ✅ `src/shared/lib/materials/materialResolver.ts` - утилиты резолвинга
+- ✅ `src/shared/lib/materials/initializeMaterials.ts` - система инициализации
+- ✅ `src/shared/lib/materials/index.ts` - экспорты библиотеки
+- ✅ `src/entities/index.ts` - обновлены экспорты
 
 [Подробности выполнения: phase_1_summary.md](phases/phase_1_summary.md)
 

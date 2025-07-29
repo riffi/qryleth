@@ -126,7 +126,7 @@ export const SceneLayerModals: React.FC = () => {
                         />
                     )}
 
-                    {(layerFormData.type === 'landscape' || layerFormData.type === 'water') && (
+                    {layerFormData.type === 'landscape' && (
                         <>
                             <Select
                                 label="Форма поверхности"
@@ -137,70 +137,66 @@ export const SceneLayerModals: React.FC = () => {
                                 value={layerFormData.shape}
                                 onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as 'plane' | 'perlin' })}
                             />
-                            {layerFormData.type === 'landscape' && (
-                                <ColorInput
-                                    label="Цвет поверхности"
-                                    value={layerFormData.color}
-                                    onChange={(color) => setLayerFormData({ ...layerFormData, color })}
-                                    withEyeDropper={false}
-                                />
-                            )}
-                            {layerFormData.type === 'landscape' && (
-                                <>
-                                    <Group gap="xs" align="center">
-                                        {presets.map((preset) => (
-                                            <Button
-                                                key={preset.id}
-                                                size="xs"
-                                                onClick={() => applyPreset(preset.id)}
-                                                variant={currentPreset === preset.id ? 'outlined' : 'default'}
-                                            >
-                                                {preset.title}
-                                            </Button>
-                                        ))}
-                                        <ActionIcon
-                                            size="sm"
-                                            variant={showSizeConfig ? 'filled' : 'default'}
-                                            onClick={() => setShowSizeConfig((prev) => !prev)}
+                            <ColorInput
+                                label="Цвет поверхности"
+                                value={layerFormData.color}
+                                onChange={(color) => setLayerFormData({ ...layerFormData, color })}
+                                withEyeDropper={false}
+                            />
+                            <>
+                                <Group gap="xs" align="center">
+                                    {presets.map((preset) => (
+                                        <Button
+                                            key={preset.id}
+                                            size="xs"
+                                            onClick={() => applyPreset(preset.id)}
+                                            variant={currentPreset === preset.id ? 'outlined' : 'default'}
                                         >
-                                            <IconSettings size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                    {showSizeConfig && (
-                                        <Group gap="sm">
-                                            <NumberInput
-                                                label="Ширина, м"
-                                                value={layerFormData.width}
-                                                onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
-                                                min={1}
-                                            />
-                                            <NumberInput
-                                                label="Длина, м"
-                                                value={layerFormData.height}
-                                                onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
-                                                min={1}
-                                            />
-                                        </Group>
-                                    )}
-                                </>
-                            )}
-                            {layerFormData.type === 'water' && (
-                                <Group gap="sm">
-                                    <NumberInput
-                                        label="Ширина, м"
-                                        value={layerFormData.width}
-                                        onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
-                                        min={1}
-                                    />
-                                    <NumberInput
-                                        label="Длина, м"
-                                        value={layerFormData.height}
-                                        onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
-                                        min={1}
-                                    />
+                                            {preset.title}
+                                        </Button>
+                                    ))}
+                                    <ActionIcon
+                                        size="sm"
+                                        variant={showSizeConfig ? 'filled' : 'default'}
+                                        onClick={() => setShowSizeConfig((prev) => !prev)}
+                                    >
+                                        <IconSettings size={16} />
+                                    </ActionIcon>
                                 </Group>
-                            )}
+                                {showSizeConfig && (
+                                    <Group gap="sm">
+                                        <NumberInput
+                                            label="Ширина, м"
+                                            value={layerFormData.width}
+                                            onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
+                                            min={1}
+                                        />
+                                        <NumberInput
+                                            label="Длина, м"
+                                            value={layerFormData.height}
+                                            onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                            min={1}
+                                        />
+                                    </Group>
+                                )}
+                            </>
                         </>
+                    )}
+                    {layerFormData.type === 'water' && (
+                        <Group gap="sm">
+                            <NumberInput
+                                label="Ширина, м"
+                                value={layerFormData.width}
+                                onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
+                                min={1}
+                            />
+                            <NumberInput
+                                label="Длина, м"
+                                value={layerFormData.height}
+                                onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                min={1}
+                            />
+                        </Group>
                     )}
 
                     <Group justify="flex-end" gap="sm">

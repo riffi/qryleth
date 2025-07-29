@@ -7,6 +7,7 @@
  * - Layer - слои сцены
  * - ObjectInstance - экземпляры объектов
  * - Lighting - настройки освещения  
+ * - Material - материалы для рендеринга
  * - Scene - сцена и ее данные
  */
 
@@ -16,6 +17,7 @@ export * from './object'
 export * from './layer'
 export * from './objectInstance'
 export * from './lighting'
+export * from './material'
 
 // Scene types (special case - has types.ts directly)
 export * from './scene/types'
