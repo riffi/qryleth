@@ -137,12 +137,14 @@ export const SceneLayerModals: React.FC = () => {
                                 value={layerFormData.shape}
                                 onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as 'plane' | 'perlin' })}
                             />
-                            <ColorInput
-                                label="Цвет поверхности"
-                                value={layerFormData.color}
-                                onChange={(color) => setLayerFormData({ ...layerFormData, color })}
-                                withEyeDropper={false}
-                            />
+                            {layerFormData.type === 'landscape' && (
+                                <ColorInput
+                                    label="Цвет поверхности"
+                                    value={layerFormData.color}
+                                    onChange={(color) => setLayerFormData({ ...layerFormData, color })}
+                                    withEyeDropper={false}
+                                />
+                            )}
                             {layerFormData.type === 'landscape' && (
                                 <>
                                     <Group gap="xs" align="center">
