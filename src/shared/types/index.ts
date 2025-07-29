@@ -13,6 +13,13 @@ export * from './core'
 // UI types
 export * from './ui'
 
+// Material types доступны на уровне shared
+export type {
+  GfxMaterial,
+  CreateGfxMaterial,
+  GlobalMaterialType,
+} from '@/entities/material'
+
 // Keep backward compatibility with existing structure
 export type { Vector3 } from './vector3'
 export type { Transform } from './transform'

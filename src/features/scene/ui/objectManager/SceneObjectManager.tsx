@@ -587,11 +587,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                 })
                             )}
 
-                            {objects.length === 0 && (
-                                <Text size="sm" c="dimmed" ta="center" py="xl">
-                                    Нет объектов на сцене
-                                </Text>
-                            )}
                         </Stack>
                     </ScrollArea>
 

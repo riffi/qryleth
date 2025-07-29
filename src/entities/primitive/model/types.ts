@@ -55,6 +55,10 @@ export interface PrimitiveCommon {
     emissive?: string;
     emissiveIntensity?: number;
   };
+  /** UUID материала объекта */
+  objectMaterialUuid?: string;
+  /** UUID глобального материала */
+  globalMaterialUuid?: string;
 
   /** Трансформации объекта */
   transform?: {

@@ -51,7 +51,7 @@ interface PrimitiveCommon {
 
 [Подробности выполнения: phase_1_summary.md](phases/phase_1_summary.md)
 
-### Фаза 2: Обновление типов примитивов и объектов
+### Фаза 2: Обновление типов примитивов и объектов ✅ ВЫПОЛНЕНО
 **Цель:** Обновить типы для поддержки новой системы материалов
 
 **Задачи:**
@@ -62,10 +62,10 @@ interface PrimitiveCommon {
 - Сохранить поле `material?` для обратной совместимости
 - Обновить связанные типы
 
-**Файлы для изменения:**
-- `src/entities/primitive/model/types.ts`
-- `src/entities/object/model/types.ts`
-- `src/shared/types/index.ts` (экспорт новых типов)
+**Выполненные файлы:**
+- ✅ `src/entities/primitive/model/types.ts`
+- ✅ `src/entities/object/model/types.ts`
+- ✅ `src/shared/types/index.ts` (экспорт новых типов)
 
 [Подробности выполнения: phase_2_summary.md](phases/phase_2_summary.md)
 
