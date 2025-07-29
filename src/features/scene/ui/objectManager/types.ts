@@ -7,6 +7,19 @@ import type { SceneLayer } from '@/entities/scene/types'
 import type React from 'react'
 
 /**
+ * Тип режима модального окна слоя сцены.
+ * 'create' - создание нового слоя, 'edit' - редактирование.
+ */
+export type SceneLayerModalMode = 'create' | 'edit'
+
+/**
+ * Тип данных формы слоя сцены.
+ * Использует стандартный SceneLayer, но поле id необязательное,
+ * так как при создании оно ещё не известно.
+ */
+export type SceneLayerFormData = Omit<SceneLayer, 'id'> & { id?: string }
+
+/**
  * Внешние пропсы SceneObjectManager.
  * Позволяют переопределить основные действия при необходимости.
  */
