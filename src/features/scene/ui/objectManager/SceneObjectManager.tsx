@@ -24,7 +24,6 @@ import {
 import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
-import type { SceneLayer } from '../../../types/scene'
 import { SceneHeader } from './SceneHeader.tsx'
 import { LightingControls } from './LightingControls.tsx'
 import { SceneLayerItem } from './SceneLayerItem.tsx'
@@ -47,6 +46,7 @@ import type {
 } from './types.ts'
 import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
+import type {SceneLayer} from "@/entities";
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
