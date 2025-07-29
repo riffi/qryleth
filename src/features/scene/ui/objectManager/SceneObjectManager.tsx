@@ -40,8 +40,13 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-import type { ObjectManagerProps } from './types.ts'
+import type {
+    ObjectManagerProps,
+    SceneLayerModalMode,
+    SceneLayerFormData
+} from './types.ts'
 import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
+import { createEmptySceneLayer } from './layerFormUtils.ts'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -49,20 +54,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 }) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
-    const [createLayerModalOpened, setCreateLayerModalOpened] = useState(false)
-    const [editLayerModalOpened, setEditLayerModalOpened] = useState(false)
-    const [newLayerName, setNewLayerName] = useState('')
-    const [newLayerType, setNewLayerType] = useState<'object' | 'landscape' | 'water'>('object')
-    const [newLayerWidth, setNewLayerWidth] = useState(10)
-    const [newLayerHeight, setNewLayerHeight] = useState(10)
-    const [newLayerShape, setNewLayerShape] = useState<'plane' | 'perlin'>('plane')
-    const [newLayerColor, setNewLayerColor] = useState<string>(DEFAULT_LANDSCAPE_COLOR)
-    const [editingLayerId, setEditingLayerId] = useState<string | null>(null)
-    const [editingLayerType, setEditingLayerType] = useState<'object' | 'landscape' | 'water'>('object')
-    const [editingLayerWidth, setEditingLayerWidth] = useState(10)
-    const [editingLayerHeight, setEditingLayerHeight] = useState(10)
-    const [editingLayerShape, setEditingLayerShape] = useState<'plane' | 'perlin'>('plane')
-    const [editingLayerColor, setEditingLayerColor] = useState<string>(DEFAULT_LANDSCAPE_COLOR)
+    const [layerModalOpened, setLayerModalOpened] = useState(false)
+    const [layerModalMode, setLayerModalMode] = useState<SceneLayerModalMode>('create')
+    const [layerFormData, setLayerFormData] = useState<SceneLayerFormData>(createEmptySceneLayer())
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -154,34 +148,34 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * При создании перлин-слоя автоматически корректирует позиции всех объектов.
      */
     const handleCreateLayer = () => {
-        let layerName = newLayerName.trim()
+        let layerName = layerFormData.name.trim()
 
-        // Set default names for special layer types
-        if (newLayerType === 'landscape') {
+        // Названия по умолчанию для специальных типов слоёв
+        if (layerFormData.type === 'landscape') {
             layerName = 'landscape'
-        } else if (newLayerType === 'water') {
+        } else if (layerFormData.type === 'water') {
             layerName = 'вода'
         }
 
-        if (newLayerType === 'object' && !layerName) return
+        if (layerFormData.type === 'object' && !layerName) return
 
         const layerData = {
             name: layerName,
-            type: newLayerType,
+            type: layerFormData.type,
             visible: true,
             position: layers.length,
-            color: newLayerColor,
-            ...((newLayerType === 'landscape' || newLayerType === 'water') && {
-                width: newLayerWidth,
-                height: newLayerHeight,
-                shape: newLayerShape
+            color: layerFormData.color,
+            ...((layerFormData.type === 'landscape' || layerFormData.type === 'water') && {
+                width: layerFormData.width,
+                height: layerFormData.height,
+                shape: layerFormData.shape
             })
         }
 
         storeCreateLayer(layerData)
 
-        // If creating a perlin landscape layer, adjust all object instances
-        if (newLayerType === 'landscape' && newLayerShape === 'perlin') {
+        // Если создаётся ландшафтный слой с формой Perlin, корректируем объекты
+        if (layerFormData.type === 'landscape' && layerFormData.shape === 'perlin') {
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]
@@ -213,13 +207,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             }
         }
 
-        setNewLayerName('')
-        setNewLayerType('object')
-        setNewLayerWidth(10)
-        setNewLayerHeight(10)
-        setNewLayerShape('plane')
-        setNewLayerColor(DEFAULT_LANDSCAPE_COLOR)
-        setCreateLayerModalOpened(false)
+        setLayerFormData(createEmptySceneLayer())
+        setLayerModalOpened(false)
     }
 
     /**
@@ -227,18 +216,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * Передает новые значения в zustand‑хранилище, включая цвет поверхности.
      */
     const handleUpdateLayer = () => {
-        if (!newLayerName.trim() || !editingLayerId) return
+        if (!layerFormData.name.trim() || !layerFormData.id) return
         const updates: Partial<SceneLayer> = {
-            name: newLayerName.trim(),
-            width: (editingLayerType === 'landscape' || editingLayerType === 'water') ? editingLayerWidth : undefined,
-            height: (editingLayerType === 'landscape' || editingLayerType === 'water') ? editingLayerHeight : undefined,
-            shape: (editingLayerType === 'landscape' || editingLayerType === 'water') ? editingLayerShape : undefined,
-            color: editingLayerColor
+            name: layerFormData.name.trim(),
+            width: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.width : undefined,
+            height: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.height : undefined,
+            shape: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.shape : undefined,
+            color: layerFormData.color
         }
-        storeUpdateLayer(editingLayerId, updates)
-        setNewLayerName('')
-        setEditingLayerId(null)
-        setEditLayerModalOpened(false)
+        storeUpdateLayer(layerFormData.id, updates)
+        setLayerFormData(createEmptySceneLayer())
+        setLayerModalOpened(false)
     }
 
     /**
@@ -246,14 +234,19 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * Цвет слоя также подставляется в поле выбора цвета.
      */
     const openEditLayerModal = (layer: SceneLayer) => {
-        setEditingLayerId(layer.id)
-        setNewLayerName(layer.name)
-        setEditingLayerType(layer.type || 'object')
-        setEditingLayerWidth(layer.width || 10)
-        setEditingLayerHeight(layer.height || 10)
-        setEditingLayerShape(layer.shape || 'plane')
-        setEditingLayerColor(layer.color || DEFAULT_LANDSCAPE_COLOR)
-        setEditLayerModalOpened(true)
+        setLayerFormData({
+            id: layer.id,
+            name: layer.name,
+            type: layer.type || 'object',
+            width: layer.width || 10,
+            height: layer.height || 10,
+            shape: layer.shape || 'plane',
+            color: layer.color || DEFAULT_LANDSCAPE_COLOR,
+            visible: layer.visible,
+            position: layer.position
+        })
+        setLayerModalMode('edit')
+        setLayerModalOpened(true)
     }
 
     // Handlers using Zustand store
@@ -476,33 +469,13 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
     return (
         <SceneObjectManagerProvider
-            createLayerModalOpened={createLayerModalOpened}
-            setCreateLayerModalOpened={setCreateLayerModalOpened}
-            newLayerName={newLayerName}
-            setNewLayerName={setNewLayerName}
-            newLayerType={newLayerType}
-            setNewLayerType={setNewLayerType}
-            newLayerWidth={newLayerWidth}
-            setNewLayerWidth={setNewLayerWidth}
-            newLayerHeight={newLayerHeight}
-            setNewLayerHeight={setNewLayerHeight}
-            newLayerShape={newLayerShape}
-            setNewLayerShape={setNewLayerShape}
-            newLayerColor={newLayerColor}
-            setNewLayerColor={setNewLayerColor}
+            layerModalOpened={layerModalOpened}
+            setLayerModalOpened={setLayerModalOpened}
+            layerModalMode={layerModalMode}
+            setLayerModalMode={setLayerModalMode}
+            layerFormData={layerFormData}
+            setLayerFormData={setLayerFormData}
             handleCreateLayer={handleCreateLayer}
-            editLayerModalOpened={editLayerModalOpened}
-            setEditLayerModalOpened={setEditLayerModalOpened}
-            editingLayerType={editingLayerType}
-            setEditingLayerType={setEditingLayerType}
-            editingLayerWidth={editingLayerWidth}
-            setEditingLayerWidth={setEditingLayerWidth}
-            editingLayerHeight={editingLayerHeight}
-            setEditingLayerHeight={setEditingLayerHeight}
-            editingLayerShape={editingLayerShape}
-            setEditingLayerShape={setEditingLayerShape}
-            editingLayerColor={editingLayerColor}
-            setEditingLayerColor={setEditingLayerColor}
             handleUpdateLayer={handleUpdateLayer}
             contextMenuOpened={contextMenuOpened}
             setContextMenuOpened={setContextMenuOpened}
@@ -560,7 +533,11 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                     size="sm"
                                     variant="light"
                                     color="blue"
-                                    onClick={() => setCreateLayerModalOpened(true)}
+                                    onClick={() => {
+                                        setLayerFormData(createEmptySceneLayer())
+                                        setLayerModalMode('create')
+                                        setLayerModalOpened(true)
+                                    }}
                                 >
                                     <IconPlus size={14} />
                                 </ActionIcon>
