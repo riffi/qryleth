@@ -1,5 +1,9 @@
 import React from 'react'
-import * as THREE from 'three'
+import {
+  resolveMaterial,
+  materialToThreeProps,
+  getMeshPropsFromMaterial
+} from '@/shared/lib/materials'
 import { Box3D } from './Box3D'
 import { Sphere3D } from './Sphere3D'
 import { Cylinder3D } from './Cylinder3D'
@@ -9,26 +13,36 @@ import { Plane3D } from './Plane3D'
 import { Torus3D } from './Torus3D'
 import type { RenderMode } from '@/shared/types/ui'
 import type { GfxPrimitive } from '@/entities/primitive'
+import type { GfxMaterial } from '@/entities/material'
 
 export interface PrimitiveRendererProps {
   primitive: GfxPrimitive
   renderMode?: RenderMode
   userData?: any
   onClick?: (event: any) => void
+  /** Список материалов, принадлежащих объекту */
+  objectMaterials?: GfxMaterial[]
 }
 
+/**
+ * Рендерит примитив сцены, разрешая материал по UUID
+ * и применяя вычисленные свойства к мешу и материалу.
+ */
 export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   primitive,
   renderMode = 'solid',
   userData,
-  onClick
+  onClick,
+  objectMaterials
 }) => {
+  const material = resolveMaterial({
+    directMaterial: primitive.material,
+    objectMaterialUuid: primitive.objectMaterialUuid,
+    globalMaterialUuid: primitive.globalMaterialUuid,
+    objectMaterials
+  })
   const baseMaterialProps = {
-    color: primitive.material?.color || '#cccccc',
-    transparent: primitive.material?.opacity !== undefined && primitive.material.opacity < 1,
-    opacity: primitive.material?.opacity !== undefined ? Math.max(0, Math.min(1, primitive.material.opacity)) : 1,
-    emissive: primitive.material?.emissive ? new THREE.Color(primitive.material.emissive) : undefined,
-    emissiveIntensity: primitive.material?.emissiveIntensity !== undefined ? Math.max(0, primitive.material.emissiveIntensity) : undefined,
+    ...materialToThreeProps(material),
     wireframe: renderMode === 'wireframe'
   }
 
@@ -40,8 +54,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     position: primitive.transform?.position || [0, 0, 0],
     rotation: primitive.transform?.rotation || [0, 0, 0],
     scale: primitive.transform?.scale || [1, 1, 1],
-    castShadow: true,
-    receiveShadow: true,
+    ...getMeshPropsFromMaterial(material),
     userData: userData || {},
     onClick: onClick
   }
