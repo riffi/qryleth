@@ -3,7 +3,7 @@ import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Gr
 import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
-import { ScriptingPanel } from './ScriptingPanel.tsx'
+import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 import { ObjectEditorR3F, useObjectEditorToolRegistration } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
