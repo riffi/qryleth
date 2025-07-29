@@ -41,6 +41,7 @@ import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 import type { ObjectManagerProps } from './types.ts'
+import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -620,7 +621,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 </Stack>
             </Paper>
 
-            <SceneLayerModals
+            <SceneObjectManagerProvider
                 createLayerModalOpened={createLayerModalOpened}
                 setCreateLayerModalOpened={setCreateLayerModalOpened}
                 newLayerName={newLayerName}
@@ -635,7 +636,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 setNewLayerShape={setNewLayerShape}
                 newLayerColor={newLayerColor}
                 setNewLayerColor={setNewLayerColor}
-                onCreateLayer={handleCreateLayer}
+                handleCreateLayer={handleCreateLayer}
                 editLayerModalOpened={editLayerModalOpened}
                 setEditLayerModalOpened={setEditLayerModalOpened}
                 editingLayerType={editingLayerType}
@@ -648,13 +649,15 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 setEditingLayerShape={setEditingLayerShape}
                 editingLayerColor={editingLayerColor}
                 setEditingLayerColor={setEditingLayerColor}
-                onUpdateLayer={handleUpdateLayer}
+                handleUpdateLayer={handleUpdateLayer}
                 contextMenuOpened={contextMenuOpened}
                 setContextMenuOpened={setContextMenuOpened}
                 contextMenuPosition={contextMenuPosition}
                 layers={layers}
-                onMoveToLayer={handleMoveToLayer}
-            />
+                handleMoveToLayer={handleMoveToLayer}
+            >
+                <SceneLayerModals />
+            </SceneObjectManagerProvider>
 
             <SaveObjectDialog
                 opened={saveObjectModalOpened}

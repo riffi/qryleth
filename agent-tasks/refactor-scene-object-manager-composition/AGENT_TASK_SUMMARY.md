@@ -73,7 +73,7 @@ SceneObjectManager (688 строк)
 После выполнения всех фаз SceneObjectManager станет более модульным, легким в поддержке и расширении, с четким разделением ответственности между компонентами.
 ### Выполненные фазы
 - [x] Фаза 1 - Создание контекста ([phases/phase_1_summary.md](phases/phase_1_summary.md))
-- [ ] Фаза 2
+- [x] Фаза 2 - Рефакторинг SceneLayerModals ([phases/phase_2_summary.md](phases/phase_2_summary.md))
 - [ ] Фаза 3
 - [ ] Фаза 4
 - [ ] Фаза 5

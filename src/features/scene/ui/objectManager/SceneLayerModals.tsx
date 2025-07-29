@@ -1,54 +1,25 @@
-import React, {useCallback, useEffect, useState} from 'react'
-import { Modal, Stack, TextInput, Button, Group, Menu, Select, NumberInput, ColorInput, ActionIcon } from '@mantine/core'
+import React, { useCallback, useEffect, useState } from 'react'
+import {
+    Modal,
+    Stack,
+    TextInput,
+    Button,
+    Group,
+    Menu,
+    Select,
+    NumberInput,
+    ColorInput,
+    ActionIcon
+} from '@mantine/core'
 import { IconLayersLinked, IconSettings } from '@tabler/icons-react'
-import type { SceneLayer } from '../../../types/scene'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
  * Позволяют выбрать тип слоя, его размеры и цвет поверхности.
  */
 
-interface LayerModalsProps {
-    // Create Layer Modal
-    createLayerModalOpened: boolean
-    setCreateLayerModalOpened: (opened: boolean) => void
-    newLayerName: string
-    setNewLayerName: (name: string) => void
-    newLayerType: 'object' | 'landscape' | 'water'
-    setNewLayerType: (t: 'object' | 'landscape' | 'water') => void
-    newLayerWidth: number
-    setNewLayerWidth: (v: number) => void
-    newLayerHeight: number
-    setNewLayerHeight: (v: number) => void
-    newLayerShape: 'plane' | 'perlin'
-    setNewLayerShape: (shape: 'plane' | 'perlin') => void
-    newLayerColor: string
-    setNewLayerColor: (color: string) => void
-    onCreateLayer: () => void
-
-    // Edit Layer Modal
-    editLayerModalOpened: boolean
-    setEditLayerModalOpened: (opened: boolean) => void
-    editingLayerType: 'object' | 'landscape' | 'water'
-    setEditingLayerType: (t: 'object' | 'landscape' | 'water') => void
-    editingLayerWidth: number
-    setEditingLayerWidth: (v: number) => void
-    editingLayerHeight: number
-    setEditingLayerHeight: (v: number) => void
-    editingLayerShape: 'plane' | 'perlin'
-    setEditingLayerShape: (shape: 'plane' | 'perlin') => void
-    editingLayerColor: string
-    setEditingLayerColor: (color: string) => void
-    onUpdateLayer: () => void
-
-    // Context Menu
-    contextMenuOpened: boolean
-    setContextMenuOpened: (opened: boolean) => void
-    contextMenuPosition: { x: number, y: number }
-    layers?: SceneLayer[]
-    onMoveToLayer: (layerId: string) => void
-}
 
 const presets = [
   {id: 1, title: 'Маленький', width: 10, height: 10 },
@@ -56,41 +27,42 @@ const presets = [
   {id: 3, title: 'Большой', width: 1000, height: 1000 },
 ]
 
-export const SceneLayerModals: React.FC<LayerModalsProps> = ({
-    createLayerModalOpened,
-    setCreateLayerModalOpened,
-    newLayerName,
-    setNewLayerName,
-    newLayerType,
-    setNewLayerType,
-    newLayerWidth,
-    setNewLayerWidth,
-    newLayerHeight,
-    setNewLayerHeight,
-    newLayerShape,
-    setNewLayerShape,
-    newLayerColor,
-    setNewLayerColor,
-    onCreateLayer,
-    editLayerModalOpened,
-    setEditLayerModalOpened,
-    editingLayerType,
-    setEditingLayerType,
-    editingLayerWidth,
-    setEditingLayerWidth,
-    editingLayerHeight,
-    setEditingLayerHeight,
-    editingLayerShape,
-    setEditingLayerShape,
-    editingLayerColor,
-    setEditingLayerColor,
-    onUpdateLayer,
-    contextMenuOpened,
-    setContextMenuOpened,
-    contextMenuPosition,
-    layers,
-    onMoveToLayer
-}) => {
+export const SceneLayerModals: React.FC = () => {
+    const {
+        createLayerModalOpened,
+        setCreateLayerModalOpened,
+        newLayerName,
+        setNewLayerName,
+        newLayerType,
+        setNewLayerType,
+        newLayerWidth,
+        setNewLayerWidth,
+        newLayerHeight,
+        setNewLayerHeight,
+        newLayerShape,
+        setNewLayerShape,
+        newLayerColor,
+        setNewLayerColor,
+        handleCreateLayer,
+        editLayerModalOpened,
+        setEditLayerModalOpened,
+        editingLayerType,
+        setEditingLayerType,
+        editingLayerWidth,
+        setEditingLayerWidth,
+        editingLayerHeight,
+        setEditingLayerHeight,
+        editingLayerShape,
+        setEditingLayerShape,
+        editingLayerColor,
+        setEditingLayerColor,
+        handleUpdateLayer,
+        contextMenuOpened,
+        setContextMenuOpened,
+        contextMenuPosition,
+        layers,
+        handleMoveToLayer
+    } = useSceneObjectManager()
     /**
      * Флаг отображения ручных настроек размера ландшафта.
      * При false показываются только пресеты размеров.
@@ -164,7 +136,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                         onChange={(e) => setNewLayerName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                                onCreateLayer()
+                                handleCreateLayer()
                             }
                         }}
                         autoFocus
@@ -268,7 +240,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                             Отмена
                         </Button>
                         <Button
-                            onClick={onCreateLayer}
+                            onClick={handleCreateLayer}
                             disabled={newLayerType === 'object' && !newLayerName.trim()}
                         >
                             Создать
@@ -300,7 +272,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                         onChange={(e) => setNewLayerName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                                onUpdateLayer()
+                                handleUpdateLayer()
                             }
                         }}
                     autoFocus
@@ -364,7 +336,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                             Отмена
                         </Button>
                         <Button
-                            onClick={onUpdateLayer}
+                            onClick={handleUpdateLayer}
                             disabled={!newLayerName.trim()}
                         >
                             Сохранить
@@ -399,7 +371,7 @@ export const SceneLayerModals: React.FC<LayerModalsProps> = ({
                         <Menu.Item
                             key={layer.id}
                             leftSection={<IconLayersLinked size={16} />}
-                            onClick={() => onMoveToLayer(layer.id)}
+                            onClick={() => handleMoveToLayer(layer.id)}
                         >
                             {layer.name}
                         </Menu.Item>
