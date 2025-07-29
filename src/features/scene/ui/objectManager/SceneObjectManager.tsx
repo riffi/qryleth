@@ -641,7 +641,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 </Stack>
             </Paper>
 
-
+            <SceneLayerModals />
 
             <SaveObjectDialog
                 opened={saveObjectModalOpened}
