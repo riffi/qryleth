@@ -74,7 +74,7 @@ SceneObjectManager (688 строк)
 ### Выполненные фазы
 - [x] Фаза 1 - Создание контекста ([phases/phase_1_summary.md](phases/phase_1_summary.md))
 - [x] Фаза 2 - Рефакторинг SceneLayerModals ([phases/phase_2_summary.md](phases/phase_2_summary.md))
-- [ ] Фаза 3
+- [x] Фаза 3 - Рефакторинг SceneLayerItem ([phases/phase_3_summary.md](phases/phase_3_summary.md))
 - [ ] Фаза 4
 - [ ] Фаза 5
 - [ ] Фаза 6

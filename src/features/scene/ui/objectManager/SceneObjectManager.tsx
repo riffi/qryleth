@@ -475,6 +475,59 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     return (
+        <SceneObjectManagerProvider
+            createLayerModalOpened={createLayerModalOpened}
+            setCreateLayerModalOpened={setCreateLayerModalOpened}
+            newLayerName={newLayerName}
+            setNewLayerName={setNewLayerName}
+            newLayerType={newLayerType}
+            setNewLayerType={setNewLayerType}
+            newLayerWidth={newLayerWidth}
+            setNewLayerWidth={setNewLayerWidth}
+            newLayerHeight={newLayerHeight}
+            setNewLayerHeight={setNewLayerHeight}
+            newLayerShape={newLayerShape}
+            setNewLayerShape={setNewLayerShape}
+            newLayerColor={newLayerColor}
+            setNewLayerColor={setNewLayerColor}
+            handleCreateLayer={handleCreateLayer}
+            editLayerModalOpened={editLayerModalOpened}
+            setEditLayerModalOpened={setEditLayerModalOpened}
+            editingLayerType={editingLayerType}
+            setEditingLayerType={setEditingLayerType}
+            editingLayerWidth={editingLayerWidth}
+            setEditingLayerWidth={setEditingLayerWidth}
+            editingLayerHeight={editingLayerHeight}
+            setEditingLayerHeight={setEditingLayerHeight}
+            editingLayerShape={editingLayerShape}
+            setEditingLayerShape={setEditingLayerShape}
+            editingLayerColor={editingLayerColor}
+            setEditingLayerColor={setEditingLayerColor}
+            handleUpdateLayer={handleUpdateLayer}
+            contextMenuOpened={contextMenuOpened}
+            setContextMenuOpened={setContextMenuOpened}
+            contextMenuPosition={contextMenuPosition}
+            layers={layers}
+            handleMoveToLayer={handleMoveToLayer}
+            toggleObjectExpanded={toggleObjectExpanded}
+            highlightObject={handleHighlightObject}
+            clearHighlight={handleClearHighlight}
+            selectObject={handleSelectObject}
+            toggleObjectVisibility={handleToggleVisibility}
+            removeObject={handleRemoveObject}
+            saveObjectToLibrary={handleSaveObjectToLibrary}
+            editObject={handleEditObject}
+            toggleInstanceVisibility={handleToggleInstanceVisibility}
+            removeInstance={handleRemoveInstance}
+            dragStart={handleDragStart}
+            contextMenu={handleContextMenu}
+            dragOver={handleDragOver}
+            dragLeave={handleDragLeave}
+            drop={handleDrop}
+            addObjectFromLibrary={handleAddObjectFromLibrary}
+            exportObject={handleExportObject}
+            copyObject={handleCopyObject}
+        >
         <>
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
@@ -526,8 +579,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
                                     return (
                                         <SceneLayerItem
-                                            onExportObject={handleExportObject}
-                                            onCopyObject={handleCopyObject}
                                             key={layer.id}
                                             layer={layer}
                                             layerObjects={layerObjects}
@@ -540,22 +591,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             onEdit={openEditLayerModal}
                                             onEditSize={openEditLayerModal}
                                             onDelete={storeDeleteLayer}
-                                            onToggleObjectExpanded={toggleObjectExpanded}
-                                            onHighlightObject={handleHighlightObject}
-                                            onClearHighlight={handleClearHighlight}
-                                            onSelectObject={handleSelectObject}
-                                            onToggleObjectVisibility={handleToggleVisibility}
-                                            onRemoveObject={handleRemoveObject}
-                                            onSaveObjectToLibrary={handleSaveObjectToLibrary}
-                                            onEditObject={handleEditObject}
-                                            onToggleInstanceVisibility={handleToggleInstanceVisibility}
-                                            onRemoveInstance={handleRemoveInstance}
-                                            onDragStart={handleDragStart}
-                                            onContextMenu={handleContextMenu}
-                                            onDragOver={handleDragOver}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={handleDrop}
-                                            onAddObjectFromLibrary={handleAddObjectFromLibrary}
                                         />
                                     )
                                 })
@@ -621,43 +656,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 </Stack>
             </Paper>
 
-            <SceneObjectManagerProvider
-                createLayerModalOpened={createLayerModalOpened}
-                setCreateLayerModalOpened={setCreateLayerModalOpened}
-                newLayerName={newLayerName}
-                setNewLayerName={setNewLayerName}
-                newLayerType={newLayerType}
-                setNewLayerType={setNewLayerType}
-                newLayerWidth={newLayerWidth}
-                setNewLayerWidth={setNewLayerWidth}
-                newLayerHeight={newLayerHeight}
-                setNewLayerHeight={setNewLayerHeight}
-                newLayerShape={newLayerShape}
-                setNewLayerShape={setNewLayerShape}
-                newLayerColor={newLayerColor}
-                setNewLayerColor={setNewLayerColor}
-                handleCreateLayer={handleCreateLayer}
-                editLayerModalOpened={editLayerModalOpened}
-                setEditLayerModalOpened={setEditLayerModalOpened}
-                editingLayerType={editingLayerType}
-                setEditingLayerType={setEditingLayerType}
-                editingLayerWidth={editingLayerWidth}
-                setEditingLayerWidth={setEditingLayerWidth}
-                editingLayerHeight={editingLayerHeight}
-                setEditingLayerHeight={setEditingLayerHeight}
-                editingLayerShape={editingLayerShape}
-                setEditingLayerShape={setEditingLayerShape}
-                editingLayerColor={editingLayerColor}
-                setEditingLayerColor={setEditingLayerColor}
-                handleUpdateLayer={handleUpdateLayer}
-                contextMenuOpened={contextMenuOpened}
-                setContextMenuOpened={setContextMenuOpened}
-                contextMenuPosition={contextMenuPosition}
-                layers={layers}
-                handleMoveToLayer={handleMoveToLayer}
-            >
-                <SceneLayerModals />
-            </SceneObjectManagerProvider>
+
 
             <SaveObjectDialog
                 opened={saveObjectModalOpened}
@@ -682,6 +681,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 sceneObjects={sceneObjects}
             />
         </>
+        </SceneObjectManagerProvider>
     )
 }
 

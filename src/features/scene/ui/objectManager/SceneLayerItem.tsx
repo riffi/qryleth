@@ -10,9 +10,10 @@ import {
   IconChevronRight,
   IconPlus
 } from '@tabler/icons-react'
-import {SceneObjectItem} from './SceneObjectItem.tsx'
-import type {ObjectInfo} from '@/features/scene'
-import type {SceneLayer} from '@/entities/scene/types.ts'
+import { SceneObjectItem } from './SceneObjectItem.tsx'
+import type { ObjectInfo } from '@/features/scene'
+import type { SceneLayer } from '@/entities/scene/types.ts'
+import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 
 
 interface LayerItemProps {
@@ -27,24 +28,9 @@ interface LayerItemProps {
   onEdit: (layer: SceneLayer) => void,
   onDelete: (layerId: string) => void,
   onEditSize?: (layer: SceneLayer) => void,
-  onToggleObjectExpanded: (objectUuid: string) => void,
-  onHighlightObject?: (objectUuid: string, instanceId?: string) => void,
-  onClearHighlight?: () => void,
-  onSelectObject?: (objectUuid: string, instanceId?: string) => void,
-  onToggleObjectVisibility?: (objectUuid: string) => void,
-  onRemoveObject?: (objectUuid: string) => void,
-  onSaveObjectToLibrary?: (objectUuid: string) => void,
-  onEditObject?: (objectUuid: string, instanceId?: string) => void,
-  onToggleInstanceVisibility?: (objectUuid: string, instanceId: string) => void,
-  onRemoveInstance?: (objectUuid: string, instanceId: string) => void,
-  onAddObjectFromLibrary?: (layerId: string) => void,
-  onDragStart: (e: React.DragEvent, objectUuid: string) => void,
-  onContextMenu: (e: React.MouseEvent, objectUuid: string) => void,
   onDragOver: (e: React.DragEvent, layerId: string) => void,
   onDragLeave: (e: React.DragEvent) => void,
-  onDrop: (e: React.DragEvent, layerId: string) => void,
-  onExportObject?: (objectUuid: string) => void,
-  onCopyObject?: (objectUuid: string) => void
+  onDrop: (e: React.DragEvent, layerId: string) => void
 }
 
 export const SceneLayerItem: React.FC<LayerItemProps> = ({
@@ -59,25 +45,27 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                                                            onEdit,
                                                            onDelete,
                                                            onEditSize,
-                                                           onToggleObjectExpanded,
-                                                           onHighlightObject,
-                                                           onClearHighlight,
-                                                           onSelectObject,
-                                                           onToggleObjectVisibility,
-                                                           onRemoveObject,
-                                                           onSaveObjectToLibrary,
-                                                           onEditObject,
-                                                           onToggleInstanceVisibility,
-                                                           onRemoveInstance,
-                                                           onDragStart,
-                                                           onContextMenu,
-                                                          onDragOver,
-                                                          onDragLeave,
-                                                          onDrop,
-                                                          onAddObjectFromLibrary,
-                                                          onExportObject,
-                                                          onCopyObject
+                                                           onDragOver,
+                                                           onDragLeave,
+                                                           onDrop
                                                          }) => {
+  const {
+    toggleObjectExpanded,
+    highlightObject,
+    clearHighlight,
+    selectObject,
+    toggleObjectVisibility,
+    removeObject,
+    saveObjectToLibrary,
+    editObject,
+    toggleInstanceVisibility,
+    removeInstance,
+    dragStart,
+    contextMenu,
+    addObjectFromLibrary,
+    exportObject,
+    copyObject
+  } = useSceneObjectManager()
   return (
       <div>
         <Box
@@ -151,7 +139,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                 <Menu.Dropdown>
                   <Menu.Item
                       leftSection={<IconPlus size={14}/>}
-                      onClick={() => onAddObjectFromLibrary?.(layer.id)}
+                      onClick={() => addObjectFromLibrary(layer.id)}
                   >
                     Добавить объект из библиотеки
                   </Menu.Item>
@@ -195,23 +183,20 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                         isExpanded={expandedItems.has(obj.objectUuid)}
                         isSelected={selectedObject?.objectUuid === obj.objectUuid}
                         selectedObject={selectedObject}
-                        onToggleExpanded={() => onToggleObjectExpanded(obj.objectUuid)}
-                        onHighlight={onHighlightObject || (() => {
-                        })}
-                        onClearHighlight={() => onClearHighlight?.()}
-                        onSelect={onSelectObject || (() => {
-                        })}
-                        onToggleVisibility={() => onToggleObjectVisibility?.(obj.objectUuid)}
-                        onRemove={() => onRemoveObject?.(obj.objectUuid)}
-                        onSaveToLibrary={() => onSaveObjectToLibrary?.(obj.objectUuid)}
-                        onEdit={onEditObject || (() => {
-                        })}
-                        onToggleInstanceVisibility={onToggleInstanceVisibility}
-                        onRemoveInstance={onRemoveInstance}
-                        onDragStart={(e) => onDragStart(e, obj.objectUuid)}
-                        onContextMenu={(e) => onContextMenu(e, obj.objectUuid)}
-                        onExport={onExportObject}
-                        onCopy={onCopyObject}
+                        onToggleExpanded={() => toggleObjectExpanded(obj.objectUuid)}
+                        onHighlight={highlightObject}
+                        onClearHighlight={clearHighlight}
+                        onSelect={selectObject}
+                        onToggleVisibility={() => toggleObjectVisibility(obj.objectUuid)}
+                        onRemove={() => removeObject(obj.objectUuid)}
+                        onSaveToLibrary={() => saveObjectToLibrary(obj.objectUuid)}
+                        onEdit={editObject}
+                        onToggleInstanceVisibility={toggleInstanceVisibility}
+                        onRemoveInstance={removeInstance}
+                        onDragStart={(e) => dragStart(e, obj.objectUuid)}
+                        onContextMenu={(e) => contextMenu(e, obj.objectUuid)}
+                        onExport={exportObject}
+                        onCopy={copyObject}
                     />
                 ))
             )}

@@ -4,6 +4,7 @@
  */
 
 import type { SceneLayer } from '@/entities/scene/types'
+import type React from 'react'
 
 /**
  * Внешние пропсы SceneObjectManager.
@@ -59,4 +60,24 @@ export interface SceneObjectManagerContextValue {
     contextMenuPosition: { x: number; y: number }
     layers: SceneLayer[]
     handleMoveToLayer: (layerId: string) => void
+
+    // --- Object actions ---
+    toggleObjectExpanded: (objectUuid: string) => void
+    highlightObject: (objectUuid: string, instanceId?: string) => void
+    clearHighlight: () => void
+    selectObject: (objectUuid: string, instanceId?: string) => void
+    toggleObjectVisibility: (objectUuid: string) => void
+    removeObject: (objectUuid: string) => void
+    saveObjectToLibrary: (objectUuid: string) => void
+    editObject: (objectUuid: string, instanceId?: string) => void
+    toggleInstanceVisibility: (objectUuid: string, instanceId: string) => void
+    removeInstance: (objectUuid: string, instanceId: string) => void
+    dragStart: (e: React.DragEvent, objectUuid: string) => void
+    contextMenu: (e: React.MouseEvent, objectUuid: string) => void
+    dragOver: (e: React.DragEvent, layerId: string) => void
+    dragLeave: (e: React.DragEvent) => void
+    drop: (e: React.DragEvent, layerId: string) => void
+    addObjectFromLibrary: (layerId: string) => void
+    exportObject: (objectUuid: string) => void
+    copyObject: (objectUuid: string) => void
 }
