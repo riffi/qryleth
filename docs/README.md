@@ -48,6 +48,7 @@
 - **[Scene Creation](features/scene-management/scene-creation.md)** - Создание и управление сценами
 - **[Object Placement](features/scene-management/object-placement.md)** - Управление объектами
 - **[Lighting System](features/scene-management/lighting-system.md)** - Управление освещением
+- **[Scripting Panel](features/scene-management/scripting-panel.md)** - Выполнение пользовательских скриптов
 
 ### Интеграция ИИ
 - **[LLM Integration](features/ai-integration/llm-integration.md)** - Настройка языковой модели
