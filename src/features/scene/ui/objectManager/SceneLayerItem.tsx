@@ -22,15 +22,7 @@ interface LayerItemProps {
   isExpanded: boolean,
   expandedItems: Set<string>,
   selectedObject?: { objectUuid: string, instanceId?: string } | null,
-  dragOverLayerId: string | null,
-  onToggleExpanded: (layerId: string) => void,
-  onToggleVisibility: (layerId: string) => void,
-  onEdit: (layer: SceneLayer) => void,
-  onDelete: (layerId: string) => void,
-  onEditSize?: (layer: SceneLayer) => void,
-  onDragOver: (e: React.DragEvent, layerId: string) => void,
-  onDragLeave: (e: React.DragEvent) => void,
-  onDrop: (e: React.DragEvent, layerId: string) => void
+  dragOverLayerId: string | null
 }
 
 export const SceneLayerItem: React.FC<LayerItemProps> = ({
@@ -39,17 +31,16 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                                                            isExpanded,
                                                            expandedItems,
                                                            selectedObject,
-                                                           dragOverLayerId,
-                                                           onToggleExpanded,
-                                                           onToggleVisibility,
-                                                           onEdit,
-                                                           onDelete,
-                                                           onEditSize,
-                                                           onDragOver,
-                                                           onDragLeave,
-                                                           onDrop
+                                                           dragOverLayerId
                                                          }) => {
   const {
+    toggleLayerExpanded,
+    toggleLayerVisibility,
+    openEditLayerModal,
+    deleteLayer,
+    dragOver,
+    dragLeave,
+    drop,
     toggleObjectExpanded,
     highlightObject,
     clearHighlight,
@@ -82,16 +73,16 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
               cursor: 'pointer',
               transition: 'all 0.1s ease'
             }}
-            onDragOver={(e) => onDragOver(e, layer.id)}
-            onDragLeave={onDragLeave}
-            onDrop={(e) => onDrop(e, layer.id)}
+            onDragOver={(e) => dragOver(e, layer.id)}
+            onDragLeave={dragLeave}
+            onDrop={(e) => drop(e, layer.id)}
         >
           <Group justify="space-between" align="center" gap="xs">
             <Group gap="xs" style={{flex: 1}}>
               <ActionIcon
                   size="xs"
                   variant="transparent"
-                  onClick={() => onToggleExpanded(layer.id)}
+                  onClick={() => toggleLayerExpanded(layer.id)}
                   style={{
                     width: '16px',
                     height: '16px',
@@ -112,7 +103,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
               <ActionIcon
                   size="xs"
                   variant="transparent"
-                  onClick={() => onToggleVisibility(layer.id)}
+                  onClick={() => toggleLayerVisibility(layer.id)}
                   style={{
                     width: '16px',
                     height: '16px',
@@ -145,12 +136,12 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                   </Menu.Item>
                   <Menu.Item
                       leftSection={<IconEdit size={14}/>}
-                      onClick={() => onEdit(layer)}
+                      onClick={() => openEditLayerModal(layer)}
                   >
                     Переименовать
                   </Menu.Item>
-                  {layer.type === 'landscape' && onEditSize && (
-                      <Menu.Item onClick={() => onEditSize(layer)}>
+                  {layer.type === 'landscape' && (
+                      <Menu.Item onClick={() => openEditLayerModal(layer)}>
                         Изменить размер
                       </Menu.Item>
                   )}
@@ -158,7 +149,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                       <Menu.Item
                           leftSection={<IconTrash size={14}/>}
                           color="red"
-                          onClick={() => onDelete(layer.id)}
+                          onClick={() => deleteLayer(layer.id)}
                       >
                         Удалить слой
                       </Menu.Item>

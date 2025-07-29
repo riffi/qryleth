@@ -509,6 +509,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             contextMenuPosition={contextMenuPosition}
             layers={layers}
             handleMoveToLayer={handleMoveToLayer}
+            toggleLayerExpanded={toggleLayerExpanded}
+            toggleLayerVisibility={storeToggleLayerVisibility}
+            openEditLayerModal={openEditLayerModal}
+            deleteLayer={storeDeleteLayer}
             toggleObjectExpanded={toggleObjectExpanded}
             highlightObject={handleHighlightObject}
             clearHighlight={handleClearHighlight}
@@ -586,11 +590,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             expandedItems={expandedItems}
                                             selectedObject={selectedObject}
                                             dragOverLayerId={dragOverLayerId}
-                                            onToggleExpanded={toggleLayerExpanded}
-                                            onToggleVisibility={storeToggleLayerVisibility}
-                                            onEdit={openEditLayerModal}
-                                            onEditSize={openEditLayerModal}
-                                            onDelete={storeDeleteLayer}
                                         />
                                     )
                                 })

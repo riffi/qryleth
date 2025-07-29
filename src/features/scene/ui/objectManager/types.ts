@@ -60,6 +60,14 @@ export interface SceneObjectManagerContextValue {
     contextMenuPosition: { x: number; y: number }
     layers: SceneLayer[]
     handleMoveToLayer: (layerId: string) => void
+    /** Переключить раскрытие слоя в списке */
+    toggleLayerExpanded: (layerId: string) => void
+    /** Переключить видимость слоя */
+    toggleLayerVisibility: (layerId: string) => void
+    /** Открыть модальное окно редактирования слоя */
+    openEditLayerModal: (layer: SceneLayer) => void
+    /** Удалить слой по идентификатору */
+    deleteLayer: (layerId: string) => void
 
     // --- Object actions ---
     toggleObjectExpanded: (objectUuid: string) => void
