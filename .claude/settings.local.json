@@ -9,7 +9,9 @@
       "Bash(tree:*)",
       "Bash(move:*)",
       "Bash(python:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
