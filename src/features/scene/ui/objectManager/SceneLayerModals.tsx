@@ -14,6 +14,7 @@ import {
 import { IconLayersLinked, IconSettings } from '@tabler/icons-react'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
+import { createEmptySceneLayer } from './layerFormUtils.ts'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
@@ -29,33 +30,12 @@ const presets = [
 
 export const SceneLayerModals: React.FC = () => {
     const {
-        createLayerModalOpened,
-        setCreateLayerModalOpened,
-        newLayerName,
-        setNewLayerName,
-        newLayerType,
-        setNewLayerType,
-        newLayerWidth,
-        setNewLayerWidth,
-        newLayerHeight,
-        setNewLayerHeight,
-        newLayerShape,
-        setNewLayerShape,
-        newLayerColor,
-        setNewLayerColor,
+        layerModalOpened,
+        setLayerModalOpened,
+        layerModalMode,
+        layerFormData,
+        setLayerFormData,
         handleCreateLayer,
-        editLayerModalOpened,
-        setEditLayerModalOpened,
-        editingLayerType,
-        setEditingLayerType,
-        editingLayerWidth,
-        setEditingLayerWidth,
-        editingLayerHeight,
-        setEditingLayerHeight,
-        editingLayerShape,
-        setEditingLayerShape,
-        editingLayerColor,
-        setEditingLayerColor,
         handleUpdateLayer,
         contextMenuOpened,
         setContextMenuOpened,
@@ -73,273 +53,167 @@ export const SceneLayerModals: React.FC = () => {
 
     const [currentPreset, setCurrentPreset] = useState<number>(0)
 
-  const applyPreset = useCallback((presetId: number) => {
-    const preset = presets.find((p) => p.id === presetId)
+    const applyPreset = useCallback((presetId: number) => {
+        const preset = presets.find((p) => p.id === presetId)
+        if (!preset) return
+        setCurrentPreset(presetId)
+        setLayerFormData({
+            ...layerFormData,
+            width: preset.width,
+            height: preset.height
+        })
+    }, [layerFormData, setLayerFormData])
 
-    if (!preset) return
-    setCurrentPreset(presetId)
-
-    setNewLayerWidth(preset.width)
-    setNewLayerHeight(preset.height)
-  }, [setNewLayerHeight, setNewLayerWidth])
-
-  useEffect(() => {
-    applyPreset(2)
-  }, [applyPreset]);
+    useEffect(() => {
+        if (layerModalOpened && layerModalMode === 'create') {
+            applyPreset(2)
+        }
+    }, [layerModalOpened, layerModalMode, applyPreset])
 
     /**
      * Применить выбранный пресет размера для нового слоя.
-     * @param presetId
+     * @param presetId идентификатор пресета
      */
     return (
         <>
-            {/* Create Layer Modal */}
+            {/* Unified Layer Modal */}
             <Modal
-                opened={createLayerModalOpened}
+                opened={layerModalOpened}
                 onClose={() => {
-                    setCreateLayerModalOpened(false)
-                    setNewLayerName('')
-                    setNewLayerType('object')
-                    setNewLayerWidth(10)
-                    setNewLayerHeight(10)
-                    setNewLayerShape('plane')
-                    setNewLayerColor('#379f34')
+                    setLayerModalOpened(false)
+                    setLayerFormData(createEmptySceneLayer())
+                    setShowSizeConfig(false)
+                    setCurrentPreset(0)
                 }}
-                title="Создать новый слой"
+                title={layerModalMode === 'create' ? 'Создать новый слой' : 'Редактировать слой'}
                 size="sm"
             >
                 <Stack gap="md">
-                <Select
-                    label="Тип слоя"
-                    data={[
-                        { value: 'object', label: 'Object Layer' },
-                        { value: 'landscape', label: 'Landscape' },
-                        { value: 'water', label: 'Вода' }
-                    ]}
-                    value={newLayerType}
-                    onChange={(v) => {
-                        const newType = v as 'object' | 'landscape' | 'water'
-                        setNewLayerType(newType)
-                        // Set default name for landscape layers
-                        if (newType === 'landscape') {
-                            setNewLayerName('landscape')
-                        } else if (newType === 'water') {
-                            setNewLayerName('вода')
-                        }
-                    }}
-                />
-                {newLayerType === 'object' && (
-                    <TextInput
-                        label="Название слоя"
-                        placeholder="Введите название слоя"
-                        value={newLayerName}
-                        onChange={(e) => setNewLayerName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                handleCreateLayer()
-                            }
-                        }}
-                        autoFocus
-                    />
-                )}
-                {newLayerType === 'landscape' && (
-                    <>
+                    {layerModalMode === 'create' && (
                         <Select
-                            label="Форма поверхности"
+                            label="Тип слоя"
                             data={[
-                                { value: 'plane', label: 'Плоская поверхность' },
-                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                                { value: 'object', label: 'Object Layer' },
+                                { value: 'landscape', label: 'Landscape' },
+                                { value: 'water', label: 'Вода' }
                             ]}
-                            value={newLayerShape}
-                            onChange={(v) => setNewLayerShape(v as 'plane' | 'perlin')}
-                        />
-                        <ColorInput
-                            label="Цвет поверхности"
-                            value={newLayerColor}
-                            onChange={setNewLayerColor}
-                            withEyeDropper={false}
-                        />
-                        <Group gap="xs" align="center">
-                            {presets.map((preset) => (
-                                <Button size="xs" onClick={() => applyPreset(preset.id)} variant={currentPreset === preset.id ? "outlined" : "default"}>
-                                  {preset.title}
-                                </Button>
-                            ))}
-                            <ActionIcon
-                                size="sm"
-                                variant={showSizeConfig ? 'filled' : 'default'}
-                                onClick={() => setShowSizeConfig(prev => !prev)}
-                            >
-                                <IconSettings size={16} />
-                            </ActionIcon>
-                        </Group>
-                        {showSizeConfig && (
-                            <Group gap="sm">
-                                <NumberInput
-                                    label="Ширина, м"
-                                    value={newLayerWidth}
-                                    onChange={(val) => setNewLayerWidth(val || 1)}
-                                    min={1}
-                                />
-                                <NumberInput
-                                    label="Длина, м"
-                                    value={newLayerHeight}
-                                    onChange={(val) => setNewLayerHeight(val || 1)}
-                                    min={1}
-                                />
-                            </Group>
-                        )}
-                    </>
-                )}
-                {newLayerType === 'water' && (
-                    <>
-                        <Select
-                            label="Форма поверхности"
-                            data={[
-                                { value: 'plane', label: 'Плоская поверхность' },
-                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
-                            ]}
-                            value={newLayerShape}
-                            onChange={(v) => setNewLayerShape(v as 'plane' | 'perlin')}
-                        />
-                        <ColorInput
-                            label="Цвет поверхности"
-                            value={newLayerColor}
-                            onChange={setNewLayerColor}
-                            withEyeDropper={false}
-                        />
-                        <Group gap="sm">
-                            <NumberInput
-                                label="Ширина, м"
-                                value={newLayerWidth}
-                                onChange={(val) => setNewLayerWidth(val || 1)}
-                                min={1}
-                            />
-                            <NumberInput
-                                label="Длина, м"
-                                value={newLayerHeight}
-                                onChange={(val) => setNewLayerHeight(val || 1)}
-                                min={1}
-                            />
-                        </Group>
-                    </>
-                )}
-                <Group justify="flex-end" gap="sm">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setCreateLayerModalOpened(false)
-                                setNewLayerName('')
-                                setNewLayerType('object')
-                                setNewLayerWidth(10)
-                                setNewLayerHeight(10)
-                                setNewLayerShape('plane')
-                                setNewLayerColor(DEFAULT_LANDSCAPE_COLOR)
+                            value={layerFormData.type}
+                            onChange={(v) => {
+                                const newType = v as 'object' | 'landscape' | 'water'
+                                setLayerFormData({ ...layerFormData, type: newType })
+                                if (newType === 'landscape') {
+                                    setLayerFormData(prev => ({ ...prev, name: 'landscape' }))
+                                } else if (newType === 'water') {
+                                    setLayerFormData(prev => ({ ...prev, name: 'вода' }))
+                                }
                             }}
-                        >
-                            Отмена
-                        </Button>
-                        <Button
-                            onClick={handleCreateLayer}
-                            disabled={newLayerType === 'object' && !newLayerName.trim()}
-                        >
-                            Создать
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
+                        />
+                    )}
 
-            {/* Edit Layer Modal */}
-            <Modal
-                opened={editLayerModalOpened}
-                onClose={() => {
-                    setEditLayerModalOpened(false)
-                    setNewLayerName('')
-                    setEditingLayerType('object')
-                    setEditingLayerWidth(10)
-                    setEditingLayerHeight(10)
-                    setEditingLayerShape('plane')
-                    setEditingLayerColor(DEFAULT_LANDSCAPE_COLOR)
-                }}
-                title="Редактировать слой"
-                size="sm"
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="Название слоя"
-                        placeholder="Введите название слоя"
-                        value={newLayerName}
-                        onChange={(e) => setNewLayerName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                handleUpdateLayer()
-                            }
-                        }}
-                    autoFocus
-                />
-                <Select
-                    label="Тип слоя"
-                    data={[
-                        { value: 'object', label: 'Object Layer' },
-                        { value: 'landscape', label: 'Landscape' },
-                        { value: 'water', label: 'Вода' }
-                    ]}
-                    value={editingLayerType}
-                    onChange={(v) => setEditingLayerType(v as 'object' | 'landscape' | 'water')}
-                />
-                {(editingLayerType === 'landscape' || editingLayerType === 'water') && (
-                    <>
-                        <Select
-                            label="Форма поверхности"
-                            data={[
-                                { value: 'plane', label: 'Плоская поверхность' },
-                                { value: 'perlin', label: 'Perlin Noise (холмистая)' }
-                            ]}
-                            value={editingLayerShape}
-                            onChange={(v) => setEditingLayerShape(v as 'plane' | 'perlin')}
-                        />
-                        <ColorInput
-                            label="Цвет поверхности"
-                            value={editingLayerColor}
-                            onChange={setEditingLayerColor}
-                            withEyeDropper={false}
-                        />
-                        <Group gap="sm">
-                            <NumberInput
-                                label="Ширина, м"
-                                value={editingLayerWidth}
-                                onChange={(val) => setEditingLayerWidth(val || 1)}
-                                min={1}
-                            />
-                            <NumberInput
-                                label="Длина, м"
-                                value={editingLayerHeight}
-                                onChange={(val) => setEditingLayerHeight(val || 1)}
-                                min={1}
-                            />
-                        </Group>
-                    </>
-                )}
-                <Group justify="flex-end" gap="sm">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setEditLayerModalOpened(false)
-                                setNewLayerName('')
-                                setEditingLayerType('object')
-                                setEditingLayerWidth(10)
-                                setEditingLayerHeight(10)
-                                setEditingLayerShape('plane')
-                                setEditingLayerColor(DEFAULT_LANDSCAPE_COLOR)
+                    {(layerFormData.type === 'object' || layerModalMode === 'edit') && (
+                        <TextInput
+                            label="Название слоя"
+                            placeholder="Введите название слоя"
+                            value={layerFormData.name}
+                            onChange={(e) => setLayerFormData({ ...layerFormData, name: e.target.value })}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    layerModalMode === 'create' ? handleCreateLayer() : handleUpdateLayer()
+                                }
                             }}
-                        >
+                            autoFocus
+                        />
+                    )}
+
+                    {(layerFormData.type === 'landscape' || layerFormData.type === 'water') && (
+                        <>
+                            <Select
+                                label="Форма поверхности"
+                                data={[
+                                    { value: 'plane', label: 'Плоская поверхность' },
+                                    { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                                ]}
+                                value={layerFormData.shape}
+                                onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as 'plane' | 'perlin' })}
+                            />
+                            <ColorInput
+                                label="Цвет поверхности"
+                                value={layerFormData.color}
+                                onChange={(color) => setLayerFormData({ ...layerFormData, color })}
+                                withEyeDropper={false}
+                            />
+                            {layerFormData.type === 'landscape' && (
+                                <>
+                                    <Group gap="xs" align="center">
+                                        {presets.map((preset) => (
+                                            <Button
+                                                key={preset.id}
+                                                size="xs"
+                                                onClick={() => applyPreset(preset.id)}
+                                                variant={currentPreset === preset.id ? 'outlined' : 'default'}
+                                            >
+                                                {preset.title}
+                                            </Button>
+                                        ))}
+                                        <ActionIcon
+                                            size="sm"
+                                            variant={showSizeConfig ? 'filled' : 'default'}
+                                            onClick={() => setShowSizeConfig((prev) => !prev)}
+                                        >
+                                            <IconSettings size={16} />
+                                        </ActionIcon>
+                                    </Group>
+                                    {showSizeConfig && (
+                                        <Group gap="sm">
+                                            <NumberInput
+                                                label="Ширина, м"
+                                                value={layerFormData.width}
+                                                onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
+                                                min={1}
+                                            />
+                                            <NumberInput
+                                                label="Длина, м"
+                                                value={layerFormData.height}
+                                                onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                                min={1}
+                                            />
+                                        </Group>
+                                    )}
+                                </>
+                            )}
+                            {layerFormData.type === 'water' && (
+                                <Group gap="sm">
+                                    <NumberInput
+                                        label="Ширина, м"
+                                        value={layerFormData.width}
+                                        onChange={(val) => setLayerFormData({ ...layerFormData, width: val || 1 })}
+                                        min={1}
+                                    />
+                                    <NumberInput
+                                        label="Длина, м"
+                                        value={layerFormData.height}
+                                        onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                        min={1}
+                                    />
+                                </Group>
+                            )}
+                        </>
+                    )}
+
+                    <Group justify="flex-end" gap="sm">
+                        <Button variant="outline" onClick={() => {
+                            setLayerModalOpened(false)
+                            setLayerFormData(createEmptySceneLayer())
+                            setShowSizeConfig(false)
+                            setCurrentPreset(0)
+                        }}>
                             Отмена
                         </Button>
                         <Button
-                            onClick={handleUpdateLayer}
-                            disabled={!newLayerName.trim()}
+                            onClick={layerModalMode === 'create' ? handleCreateLayer : handleUpdateLayer}
+                            disabled={layerFormData.type === 'object' && !layerFormData.name.trim()}
                         >
-                            Сохранить
+                            {layerModalMode === 'create' ? 'Создать' : 'Сохранить'}
                         </Button>
                     </Group>
                 </Stack>
