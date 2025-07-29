@@ -40,12 +40,7 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-
-interface ObjectManagerProps {
-    // Optional overrides for store actions
-    onSaveSceneToLibrary?: () => void
-    onEditObject?: (objectUuid: string, instanceId?: string) => void
-}
+import type { ObjectManagerProps } from './types.ts'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,

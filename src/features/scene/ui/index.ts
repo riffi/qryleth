@@ -12,6 +12,7 @@ export * from './objectManager/SceneLayerModals.tsx'
 export * from './objectManager/SceneObjectInstanceItem.tsx'
 export * from './objectManager/SceneObjectItem.tsx'
 export * from './objectManager/SceneObjectManager.tsx'
+export * from './objectManager/SceneObjectManagerContext.tsx'
 
 // Controls
 export * from '@/features/scene/ui/renderer/controls/CameraControls'
