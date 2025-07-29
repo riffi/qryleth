@@ -17,7 +17,7 @@ import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds
 } from '../../model/objectStore.ts'
-import { getPrimitiveDisplayName } from '@/entities/primitive'
+import type { GfxPrimitive } from '@/entities/primitive'
 
 export interface PrimitiveControlPanelProps {
   onClose: () => void
@@ -109,6 +109,26 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   const selectedPrimitiveData = getSelectedPrimitive()
 
   /**
+   * Обновляет геометрию выделенного примитива.
+   * Изменяет указанный параметр в объекте geometry.
+   *
+   * @param field имя изменяемого параметра
+   * @param value новое значение
+   */
+  const updatePrimitiveGeometry = (field: string, value: number) => {
+    if (selectedPrimitiveIds.length === 1) {
+      const primitive = getSelectedPrimitive()
+      if (!primitive) return
+      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
+        geometry: {
+          ...(primitive.geometry as any),
+          [field]: value
+        }
+      })
+    }
+  }
+
+  /**
    * Обновляет цвет выделенного примитива.
    * @param color новый цвет в формате HEX
    */
@@ -189,6 +209,27 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   }
 
   /**
+   * Поле ввода параметров геометрии примитива.
+   * Значение записывается в хранилище сразу при изменении.
+   */
+  const GeometryInput: React.FC<{
+    label: string
+    field: string
+    value: number
+    step?: number
+    min?: number
+  }> = ({ label, field, value, step = 0.1, min }) => (
+    <NumberInput
+      size="xs"
+      label={label}
+      value={value}
+      step={step}
+      min={min}
+      onChange={(val) => updatePrimitiveGeometry(field, val || 0)}
+    />
+  )
+
+  /**
    * Компонент блока управления трансформациями в Unity-стиле
    */
   const TransformBlock = ({
@@ -229,6 +270,68 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
     </Box>
   )
 
+  /**
+   * Генерирует набор полей ввода для редактирования геометрии примитива.
+   */
+  const GeometryBlock: React.FC<{ primitive: GfxPrimitive }> = ({ primitive }) => {
+    switch (primitive.type) {
+      case 'box':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Ширина" field="width" value={primitive.geometry.width} min={0.1} />
+            <GeometryInput label="Высота" field="height" value={primitive.geometry.height} min={0.1} />
+            <GeometryInput label="Глубина" field="depth" value={primitive.geometry.depth} min={0.1} />
+          </Stack>
+        )
+      case 'sphere':
+        return (
+          <GeometryInput label="Радиус" field="radius" value={primitive.geometry.radius} min={0.1} />
+        )
+      case 'cylinder':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Радиус верха" field="radiusTop" value={primitive.geometry.radiusTop} min={0.1} />
+            <GeometryInput label="Радиус низа" field="radiusBottom" value={primitive.geometry.radiusBottom} min={0.1} />
+            <GeometryInput label="Высота" field="height" value={primitive.geometry.height} min={0.1} />
+            <GeometryInput label="Сегменты" field="radialSegments" value={primitive.geometry.radialSegments ?? 16} step={1} min={3} />
+          </Stack>
+        )
+      case 'cone':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Радиус" field="radius" value={primitive.geometry.radius} min={0.1} />
+            <GeometryInput label="Высота" field="height" value={primitive.geometry.height} min={0.1} />
+            <GeometryInput label="Сегменты" field="radialSegments" value={primitive.geometry.radialSegments ?? 16} step={1} min={3} />
+          </Stack>
+        )
+      case 'pyramid':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Основание" field="baseSize" value={primitive.geometry.baseSize} min={0.1} />
+            <GeometryInput label="Высота" field="height" value={primitive.geometry.height} min={0.1} />
+          </Stack>
+        )
+      case 'plane':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Ширина" field="width" value={primitive.geometry.width} min={0.1} />
+            <GeometryInput label="Высота" field="height" value={primitive.geometry.height} min={0.1} />
+          </Stack>
+        )
+      case 'torus':
+        return (
+          <Stack gap="xs">
+            <GeometryInput label="Большой радиус" field="majorRadius" value={primitive.geometry.majorRadius} min={0.1} />
+            <GeometryInput label="Малый радиус" field="minorRadius" value={primitive.geometry.minorRadius} min={0.1} />
+            <GeometryInput label="Рад. сегменты" field="radialSegments" value={primitive.geometry.radialSegments ?? 16} step={1} min={3} />
+            <GeometryInput label="Труб. сегменты" field="tubularSegments" value={primitive.geometry.tubularSegments ?? 32} step={1} min={3} />
+          </Stack>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <Paper
       shadow="sm"
@@ -265,6 +368,10 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
                 onChange={handleColorChange}
                 withEyeDropper={false}
               />
+            </Box>
+            <Box>
+              <Text size="sm" fw={500} mb="xs">Геометрия</Text>
+              <GeometryBlock primitive={selectedPrimitiveData} />
             </Box>
           </Stack>
         )}
