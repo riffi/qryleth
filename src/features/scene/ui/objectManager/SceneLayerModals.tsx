@@ -53,16 +53,21 @@ export const SceneLayerModals: React.FC = () => {
 
     const [currentPreset, setCurrentPreset] = useState<number>(0)
 
+    /**
+     * Применить выбранный пресет размера к форме слоя.
+     * Функция обновляет только размеры, сохраняя остальные поля без изменений.
+     * Используется для быстрой установки типовых значений.
+     */
     const applyPreset = useCallback((presetId: number) => {
-        const preset = presets.find((p) => p.id === presetId)
+        const preset = presets.find(p => p.id === presetId)
         if (!preset) return
         setCurrentPreset(presetId)
-        setLayerFormData({
-            ...layerFormData,
+        setLayerFormData(prev => ({
+            ...prev,
             width: preset.width,
             height: preset.height
-        })
-    }, [layerFormData, setLayerFormData])
+        }))
+    }, [setLayerFormData])
 
     useEffect(() => {
         if (layerModalOpened && layerModalMode === 'create') {
@@ -70,10 +75,6 @@ export const SceneLayerModals: React.FC = () => {
         }
     }, [layerModalOpened, layerModalMode, applyPreset])
 
-    /**
-     * Применить выбранный пресет размера для нового слоя.
-     * @param presetId идентификатор пресета
-     */
     return (
         <>
             {/* Unified Layer Modal */}
