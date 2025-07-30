@@ -99,31 +99,12 @@ interface PrimitiveCommon {
 
 [Подробности выполнения: phase_4_summary.md](phases/phase_4_summary.md)
 
-### Фаза 5: Обновление UI компонентов
-**Цель:** Адаптировать пользовательский интерфейс для работы с новой системой материалов
-
-**Задачи:**
-- Обновить PrimitiveControlPanel для выбора материалов из списков (глобальных и объекта)
-- Сейчас в ObjectEditor справа есть панель управления примитивами - PrimitiveManager, нужно сделать правую панель с двумя вкладками: "Примитивы" и "Материалы"
-- во вкладку "Примитивы" перенести PrimitiveManager
-- создать новый компонент MaterialManager с версткой, аналогичной PrimitiveManager, в котором будет отображаться список материалов объекта
-- Добавить возможность создания нового материала объекта в MaterialManager через модальное окно, в котором указывается название материала. При создании давай параметры материала по-умолчанию.
-- Добавить панель MaterialControlPanel, которая будет отображаться в левой панели при выборе материала в MaterialManager
-- В MaterialControlPanel добавить контролы, позволяющие редактировать свойства материала
-- Итого: при выборе примитива в самой сцене или PrimitiveManager - слева открывается панель PrimitiveControlPanel, при выборе материала в MaterialManager слева открывается MaterialControlPanel
-
-**Файлы для изменения:**
-- `src/features/object-editor/ui/PrimiviteControlPanel/PrimitiveControlPanel.tsx`
-- `src/features/object-editor/ui/PrimitiveManager/` (новый компонент)
-- `src/features/object-editor/ui/MaterialControlPanel/` (новый компонент)
-- `src/features/object-editor/ui/ObjectEditorR3F.tsx` (добавить панель материалов)
-- `src/features/scene/ui/objectManager/` (компоненты управления объектами)
-
-### Фаза 6: Обновление хранилищ и API
+### Фаза 5: Обновление хранилищ и API
 **Цель:** Адаптировать системы управления состоянием для новой системы материалов
 
 **Задачи:**
-- Обновить objectStore для работы с материалами
+- Обновить objectStore для работы с материалами объекта (добавить состояние выбранного материала, действия создания/удаления/обновления материалов)
+- Добавить валидацию уникальности имен материалов в рамках объекта
 - Обновить sceneStore для глобальных материалов
 - Обновить sceneAPI для операций с материалами
 
@@ -131,6 +112,48 @@ interface PrimitiveCommon {
 - `src/features/object-editor/model/objectStore.ts`
 - `src/features/scene/model/sceneStore.ts`
 - `src/features/scene/lib/sceneAPI.ts`
+
+### Фаза 6: Обновление UI компонентов
+**Цель:** Адаптировать пользовательский интерфейс для работы с новой системой материалов
+
+Фаза разбита на подфазы для управляемости изменений:
+
+#### Фаза 6A: Создание ObjectManagementPanel с табуляцией
+- Создать компонент `ObjectManagementPanel` с двумя вкладками: "Примитивы" и "Материалы"
+- Перенести существующий `PrimitiveManager` во вкладку "Примитивы"
+- Подготовить структуру для вкладки "Материалы"
+- Обновить `ObjectEditorR3F.tsx` для использования нового компонента вместо `PrimitiveManager`
+
+#### Фаза 6B: Создание MaterialManager
+- Создать компонент `MaterialManager` для отображения списка материалов из `GfxObject.materials`
+- Реализовать выбор материала из списка с интеграцией в objectStore
+- Добавить модальное окно создания материала с валидацией уникальности имен
+- Реализовать параметры материала по умолчанию при создании
+
+#### Фаза 6C: Создание MaterialControlPanel
+- Создать специализированную левую панель для редактирования свойств выбранного материала
+- Реализовать новые UI компоненты для удобного редактирования (цвет, прозрачность, излучение и др.)
+- Добавить логику сохранения изменений в материалах объекта
+- Обеспечить валидацию и user feedback
+
+#### Фаза 6D: Интеграция и переключение панелей  
+- Реализовать логику переключения между `PrimitiveControlPanel` и `MaterialControlPanel`
+- Настроить корректное отображение левых панелей при выборе примитива или материала
+- Обеспечить синхронизацию состояния между компонентами
+
+#### Фаза 6E: Обновление PrimitiveControlPanel для выбора материалов
+- Добавить селектор материалов (глобальные + материалы объекта) вместо прямого редактирования цвета
+- Реализовать логику применения выбранного материала к примитиву через `objectMaterialUuid`/`globalMaterialUuid`
+- Сохранить fallback для старой системы материалов (поле `material`)
+- Обновить UI для интуитивного выбора материалов
+
+**Файлы для изменения:**
+- `src/features/object-editor/ui/ObjectManagementPanel/` (новый компонент)
+- `src/features/object-editor/ui/PrimitiveManager/PrimitiveManager.tsx` (перенос в ObjectManagementPanel)
+- `src/features/object-editor/ui/MaterialManager/` (новый компонент)
+- `src/features/object-editor/ui/MaterialControlPanel/` (новый компонент)
+- `src/features/object-editor/ui/PrimiviteControlPanel/PrimitiveControlPanel.tsx`
+- `src/features/object-editor/ui/ObjectEditorR3F.tsx`
 
 ### Фаза 7: Обновление CAD конвертера
 **Цель:** Адаптировать Python конвертер для поддержки новой системы материалов
