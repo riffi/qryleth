@@ -1,0 +1,241 @@
+{
+  "uuid": "5284a3e8-2e75-4c27-94be-86c5333762c8",
+  "name": "Снеговик",
+  "primitives": [
+    {
+      "visible": true,
+      "uuid": "ddb2423b-7962-4cae-88e5-5cba0cd690f7",
+      "type": "sphere",
+      "name": "Голова",
+      "geometry": {
+        "radius": 1
+      },
+      "objectMaterialUuid": "material_head",
+      "transform": {
+        "position": [
+          0,
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "7ad60119-1470-4dda-8b5a-05d577ecb916",
+      "type": "sphere",
+      "name": "Туловище",
+      "geometry": {
+        "radius": 1.5
+      },
+      "objectMaterialUuid": "material_body",
+      "transform": {
+        "position": [
+          0,
+          1.5,
+          0
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "88ca67e7-3060-4614-bdbc-0dafbdd350ab",
+      "type": "cone",
+      "name": "Нос-морковка",
+      "geometry": {
+        "radius": 0.1,
+        "height": 0.5
+      },
+      "objectMaterialUuid": "material_nose",
+      "transform": {
+        "position": [
+          0,
+          4,
+          1.1325719785139716
+        ],
+        "rotation": [
+          1.5707963267948966,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "b74807b1-8bcf-4a5c-8331-8a4a24ef4a84",
+      "type": "sphere",
+      "name": "Левый глаз",
+      "geometry": {
+        "radius": 0.1
+      },
+      "objectMaterialUuid": "material_eyes",
+      "transform": {
+        "position": [
+          -0.2,
+          4.1,
+          0.9874012180521572
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "be96c030-b1e5-41ee-b73a-4af410359a03",
+      "type": "sphere",
+      "name": "Правый глаз",
+      "geometry": {
+        "radius": 0.1
+      },
+      "objectMaterialUuid": "material_eyes",
+      "transform": {
+        "position": [
+          0.2,
+          4.1,
+          0.9874012180521572
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "a368cc3f-95a3-43d8-84d9-35956d9152f8",
+      "type": "cylinder",
+      "name": "Левая рука",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 1
+      },
+      "objectMaterialUuid": "material_hands",
+      "transform": {
+        "position": [
+          -1.2,
+          3,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0.5
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "ec48336b-db72-4578-b2c0-41f2c7eefde3",
+      "type": "cylinder",
+      "name": "Правая рука",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 1
+      },
+      "objectMaterialUuid": "material_hands",
+      "transform": {
+        "position": [
+          1.2,
+          3,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.5
+        ]
+      }
+    }
+  ],
+  "boundingBox": {
+    "min": [
+      -1.5,
+      0,
+      -1.5
+    ],
+    "max": [
+      1.5,
+      5,
+      1.5
+    ]
+  },
+  "layerId": "objects",
+  "materials": [
+    {
+      "uuid": "material_head",
+      "name": "Материал головы",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#ffffff",
+        "transparent": false,
+        "roughness": 0.2
+      }
+    },
+    {
+      "uuid": "material_body",
+      "name": "Материал туловища",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#ffffff",
+        "transparent": false,
+        "roughness": 0.2
+      }
+    },
+    {
+      "uuid": "material_nose",
+      "name": "Материал носа",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#ff6600",
+        "transparent": false,
+        "roughness": 0.5
+      }
+    },
+    {
+      "uuid": "material_eyes",
+      "name": "Материал глаз",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#000000",
+        "transparent": false,
+        "roughness": 0.1
+      }
+    },
+    {
+      "uuid": "material_hands",
+      "name": "Материал рук",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#8B4513",
+        "transparent": false,
+        "roughness": 0.8
+      }
+    }
+  ],
+  "visible": true
+}

@@ -23,23 +23,23 @@ const CylinderGeometrySchema = z.object({
   radiusBottom: z.number().positive(),
   height: z.number().positive(),
   radialSegments: z.number().int().positive().optional()
-})
+}).describe("Цилиндр по умолчанию ориентирован вертикально (ось Y), плоской гранью вверх. Для горизонтального положения используй rotation: [Math.PI/2, 0, 0]")
 
 const ConeGeometrySchema = z.object({
   radius: z.number().positive(),
   height: z.number().positive(),
   radialSegments: z.number().int().positive().optional()
-})
+}).describe("Конус по умолчанию ориентирован вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй поле rotation")
 
 const PyramidGeometrySchema = z.object({
   baseSize: z.number().positive(),
   height: z.number().positive()
-})
+}).describe("Пирамида по умолчанию ориентирована вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй поле rotation")
 
 const PlaneGeometrySchema = z.object({
   width: z.number().positive(),
   height: z.number().positive()
-})
+}).describe("Плоскость по умолчанию лежит в плоскости XY (горизонтально). Для вертикального положения используй rotation: [Math.PI/2, 0, 0]")
 
 const TorusGeometrySchema = z.object({
   majorRadius: z.number().positive(),
@@ -59,9 +59,9 @@ const PrimitiveCommonSchema = z.object({
   globalMaterialUuid: z.string().optional().describe("UUID глобального материала (альтернатива objectMaterialUuid)"),
   // Transform properties
   transform: z.object({
-    position: z.array(z.number()).length(3).optional(),
-    rotation: z.array(z.number()).length(3).optional(),
-    scale: z.array(z.number()).length(3).optional()
+    position: z.array(z.number()).length(3).optional().describe("Позиция примитива [x, y, z]"),
+    rotation: z.array(z.number()).length(3).optional().describe("Поворот примитива [rx, ry, rz] в радианах. ВАЖНО: большинство примитивов (конус, цилиндр, пирамида) по умолчанию смотрят вверх по оси Y"),
+    scale: z.array(z.number()).length(3).optional().describe("Масштаб примитива [sx, sy, sz]")
   }).optional()
 })
 
@@ -156,11 +156,30 @@ const ObjectSchema = z.object({
  *   }]
  * })
  *
+ * @example
+ * // Пример с поворотом примитивов (ВАЖНО: примитивы изначально смотрят вверх!)
+ * await add_new_object({
+ *   name: "Лежащий цилиндр",
+ *   materials: [{
+ *     uuid: "gray-material",
+ *     name: "Серый металл",
+ *     properties: { color: "#808080", metalness: 0.8, roughness: 0.2 }
+ *   }],
+ *   primitives: [{
+ *     type: "cylinder",
+ *     geometry: { radiusTop: 0.5, radiusBottom: 0.5, height: 2 },
+ *     objectMaterialUuid: "gray-material",
+ *     transform: {
+ *       rotation: [Math.PI/2, 0, 0]  // Поворот на 90° по X для горизонтального положения
+ *     }
+ *   }]
+ * })
+ *
  */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! Альтернативно можно использовать globalMaterialUuid с get_global_materials.',
+    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! ВАЖНО: примитивы имеют изначальную ориентацию - конус, цилиндр, пирамида смотрят вверх по оси Y, плоскость лежит горизонтально. Используй поле rotation для изменения ориентации при необходимости.',
     schema: ObjectSchema,
     verboseParsingErrors: true,
 
