@@ -22,9 +22,7 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#7f3f19"
-      }
+      "globalMaterialUuid": "global-material-wood-001"
     },
     {
       "type": "cylinder",
@@ -46,9 +44,7 @@
           0
         ]
       },
-      "material": {
-        "color": "#7f3f19"
-      }
+      "globalMaterialUuid": "global-material-wood-001"
     },
     {
       "type": "torus",
@@ -69,9 +65,7 @@
           1.57
         ]
       },
-      "material": {
-        "color": "#7f3f19"
-      }
+      "globalMaterialUuid": "global-material-wood-001"
     },
     {
       "type": "cylinder",
@@ -93,9 +87,7 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#4c260c"
-      }
+      "objectMaterialUuid": "object-material-1753872338-4011"
     },
     {
       "type": "sphere",
@@ -115,9 +107,41 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#33190c"
-      }
+      "objectMaterialUuid": "object-material-1753872338-5808"
+    }
+  ],
+  "materials": [
+    {
+      "name": "Material_4c260c",
+      "type": "custom",
+      "properties": {
+        "color": "#4c260c",
+        "opacity": 1.0,
+        "transparent": false,
+        "metalness": 0.0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Auto-generated material from CAD import with color #4c260c",
+      "uuid": "object-material-1753872338-4011"
+    },
+    {
+      "name": "Material_33190c",
+      "type": "custom",
+      "properties": {
+        "color": "#33190c",
+        "opacity": 1.0,
+        "transparent": false,
+        "metalness": 0.0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Auto-generated material from CAD import with color #33190c",
+      "uuid": "object-material-1753872338-5808"
     }
   ]
 }

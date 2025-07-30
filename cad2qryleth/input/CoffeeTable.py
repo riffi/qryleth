@@ -25,9 +25,9 @@ positions = [(-1.4, -0.7, leg_height / 2), (1.4, -0.7, leg_height / 2), (-1.4, 0
 
 for i, pos in enumerate(positions):
   bpy.ops.mesh.primitive_cylinder_add(radius=leg_radius, depth=leg_height, location=pos)
-leg = bpy.context.object
-leg.name = f"Leg {i + 1}"
-leg.data.materials.append(wood_color)
+  leg = bpy.context.object
+  leg.name = f"Leg {i + 1}"
+  leg.data.materials.append(wood_color)
 
 # Step 4: Create the Lower Shelf
 bpy.ops.mesh.primitive_cube_add(size=2, location=(0, 0, 0.25))
