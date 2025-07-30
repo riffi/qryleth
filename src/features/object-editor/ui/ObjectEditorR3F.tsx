@@ -56,6 +56,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     useObjectStore.getState().setPrimitives(
       objectData.primitives.map(p => ({ ...p }))
     )
+    useObjectStore.getState().setMaterials(objectData.materials)
 
     useObjectStore.getState().selectPrimitive(0)
   }, [objectData])
@@ -69,7 +70,8 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     const updatedObject: GfxObject = {
       ...objectData,
       primitives: state.primitives.map(p => ({ ...p })),
-      boundingBox: state.boundingBox
+      boundingBox: state.boundingBox,
+      materials: state.materials,
     }
 
     onSave(updatedObject)
