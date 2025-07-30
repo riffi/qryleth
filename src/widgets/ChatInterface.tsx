@@ -146,34 +146,6 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
     }
   }
 
-  // LangChain автоматически обрабатывает вызовы инструментов через агент
-  // Эта функция сохранена для обратной совместимости с debug режимом
-  const handleToolCalls = async (toolCalls: ToolCall[]) => {
-    for (const toolCall of toolCalls) {
-      if (toolCall.function.name === 'add_new_object') {
-        try {
-          const args = JSON.parse(toolCall.function.arguments)
-          const gfxObject = await executeAddNewObject(args)
-          onObjectAdded(gfxObject)
-
-          const toolMessage: ChatMessage = {
-            role: 'assistant',
-            content: `✅ Объект "${gfxObject.name}" был добавлен в сцену через LangChain (debug режим).`,
-            timestamp: new Date()
-          }
-          setMessages(prev => [...prev, toolMessage])
-        } catch (error) {
-          console.error('Tool execution error:', error)
-          const errorMessage: ChatMessage = {
-            role: 'assistant',
-            content: `❌ Ошибка при добавлении объекта: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
-            timestamp: new Date()
-          }
-          setMessages(prev => [...prev, errorMessage])
-        }
-      }
-    }
-  }
 
   // Обновляет модель в активном подключении и переинициализирует LangChain сервис
   const handleModelChange = async (model: string) => {
