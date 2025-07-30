@@ -104,14 +104,18 @@ interface PrimitiveCommon {
 
 **Задачи:**
 - Обновить PrimitiveControlPanel для выбора материалов из списков (глобальных и объекта)
-- Добавить в ObjectEditor функционал создания новых материалов объекта
-- Создать компонент MaterialEditor для редактирования свойств материалов
-- Добавить возможность управления материалами объекта (добавление, удаление, редактирование)
-- Обновить формы редактирования примитивов
+- Сейчас в ObjectEditor справа есть панель управления примитивами - PrimitiveManager, нужно сделать правую панель с двумя вкладками: "Примитивы" и "Материалы"
+- во вкладку "Примитивы" перенести PrimitiveManager
+- создать новый компонент MaterialManager с версткой, аналогичной PrimitiveManager, в котором будет отображаться список материалов объекта
+- Добавить возможность создания нового материала объекта в MaterialManager через модальное окно, в котором указывается название материала. При создании давай параметры материала по-умолчанию.
+- Добавить панель MaterialControlPanel, которая будет отображаться в левой панели при выборе материала в MaterialManager
+- В MaterialControlPanel добавить контролы, позволяющие редактировать свойства материала
+- Итого: при выборе примитива в самой сцене или PrimitiveManager - слева открывается панель PrimitiveControlPanel, при выборе материала в MaterialManager слева открывается MaterialControlPanel
 
 **Файлы для изменения:**
 - `src/features/object-editor/ui/PrimiviteControlPanel/PrimitiveControlPanel.tsx`
-- `src/features/object-editor/ui/MaterialEditor/` (новый компонент)
+- `src/features/object-editor/ui/PrimitiveManager/` (новый компонент)
+- `src/features/object-editor/ui/MaterialControlPanel/` (новый компонент)
 - `src/features/object-editor/ui/ObjectEditorR3F.tsx` (добавить панель материалов)
 - `src/features/scene/ui/objectManager/` (компоненты управления объектами)
 
