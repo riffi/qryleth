@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
-import { PrimitiveManager } from './PrimitiveManager/PrimitiveManager.tsx'
+import { ObjectManagementPanel } from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 import { useObjectStore, useObjectRenderMode, useObjectGridVisible } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler/icons-react'
@@ -141,7 +141,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
           </Box>
           <ObjectScene3D />
         </Box>
-        <PrimitiveManager />
+        <ObjectManagementPanel />
       </Box>
     </Box>
   )

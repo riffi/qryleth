@@ -120,11 +120,13 @@ interface PrimitiveCommon {
 
 Фаза разбита на подфазы для управляемости изменений:
 
-#### Фаза 6A: Создание ObjectManagementPanel с табуляцией
+#### Фаза 6A: Создание ObjectManagementPanel с табуляцией ✅ ВЫПОЛНЕНО
 - Создать компонент `ObjectManagementPanel` с двумя вкладками: "Примитивы" и "Материалы"
 - Перенести существующий `PrimitiveManager` во вкладку "Примитивы"
 - Подготовить структуру для вкладки "Материалы"
 - Обновить `ObjectEditorR3F.tsx` для использования нового компонента вместо `PrimitiveManager`
+
+[Подробности выполнения: phase_6A_summary.md](phases/phase_6A_summary.md)
 
 #### Фаза 6B: Создание MaterialManager
 - Создать компонент `MaterialManager` для отображения списка материалов из `GfxObject.materials` верстку сделать по аналогии с PrimitiveManager
