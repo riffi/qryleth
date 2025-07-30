@@ -2,8 +2,14 @@ import React, { useEffect } from 'react'
 import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
+import { MaterialControlPanel } from './MaterialControlPanel/MaterialControlPanel.tsx'
 import { ObjectManagementPanel } from './ObjectManagementPanel/ObjectManagementPanel.tsx'
-import { useObjectStore, useObjectRenderMode, useObjectGridVisible } from '../model/objectStore'
+import {
+  useObjectStore,
+  useObjectRenderMode,
+  useObjectGridVisible,
+  useSelectedMaterialUuid
+} from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler/icons-react'
 import type { GfxObject } from '@/entities/object'
@@ -40,6 +46,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const setRenderMode = useObjectStore(s => s.setRenderMode)
   const gridVisible = useObjectGridVisible()
   const toggleGridVisibility = useObjectStore(s => s.toggleGridVisibility)
+  const selectedMaterialUuid = useSelectedMaterialUuid()
 
   // Инициализация хранилища примитивов при получении данных объекта
   useEffect(() => {
@@ -78,7 +85,11 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
         )}
       </Group>
       <Box style={{ flex: 1, display: 'flex' }}>
-        <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
+        {selectedMaterialUuid ? (
+          <MaterialControlPanel onClose={onClose} onSave={handleSave} />
+        ) : (
+          <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
+        )}
         <Box style={{ flex: 1, position: 'relative' }}>
           <Box
             style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 }}

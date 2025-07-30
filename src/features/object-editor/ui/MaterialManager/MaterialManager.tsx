@@ -78,6 +78,9 @@ export const MaterialManager: React.FC = () => {
    * @param uuid UUID выбранного материала
    */
   const handleSelect = (uuid: string) => {
+    // При выборе материала сбрасываем выделение примитивов,
+    // чтобы активировать панель управления материалом.
+    useObjectStore.getState().clearSelection()
     selectMaterial(uuid)
   }
 

@@ -104,6 +104,10 @@ export const PrimitiveManager: React.FC = () => {
    * @param index индекс примитива в списке
    */
   const handlePrimitiveSelect = (index: number) => {
+    // При выборе примитива необходимо сбросить выбранный материал,
+    // чтобы левая панель переключилась в режим редактирования примитива.
+    useObjectStore.getState().selectMaterial(null)
+
     const event = window.event as KeyboardEvent
 
     if (event?.shiftKey && lastSelectedRef.current !== null) {
