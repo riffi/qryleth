@@ -11,3 +11,4 @@ export * from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 export * from './MaterialManager/MaterialManager.tsx'
 
+export * from './MaterialControlPanel/MaterialControlPanel.tsx'
