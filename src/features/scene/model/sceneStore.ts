@@ -21,6 +21,8 @@ import type {
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type {LightingSettings} from "@/entities/lighting"
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
+import type { GfxMaterial } from '@/entities/material'
 
 const initialLighting: LightingSettings = {
   ambientColor: '#87CEEB',
@@ -477,3 +479,10 @@ export const useViewMode = () => useSceneStore(state => state.viewMode)
 export const useRenderMode = () => useSceneStore(state => state.renderMode)
 export const useTransformMode = () => useSceneStore(state => state.transformMode)
 export const useGridVisible = () => useSceneStore(state => state.gridVisible)
+
+// Global material access helpers (reads from MaterialRegistry)
+export const useGlobalMaterials = (): GfxMaterial[] => {
+  // This will cause re-renders when materials change, but since it reads from
+  // the registry, it should be used sparingly or with proper memoization
+  return materialRegistry.getGlobalMaterials()
+}

@@ -1,14 +1,20 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { GfxPrimitive } from '@/entities/primitive'
+import type { GfxMaterial, CreateGfxMaterial } from '@/entities/material'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { RenderMode, TransformMode, ViewMode } from '@/shared/types/ui'
 import type { LightingSettings } from '@/entities/lighting/model/types.ts'
 import type { BoundingBox } from '@/shared/types'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import { generateUUID } from '@/shared/lib/uuid'
 
 interface ObjectStoreState {
   primitives: GfxPrimitive[]
+  /** Материалы объекта */
+  materials: GfxMaterial[]
+  /** UUID выбранного материала */
+  selectedMaterialUuid: string | null
   lighting: LightingSettings
   /** Текущий BoundingBox объекта */
   boundingBox?: BoundingBox
@@ -36,6 +42,20 @@ interface ObjectStoreActions {
   setHoveredPrimitive: (index: number | null) => void
   clearSelection: () => void
   clearScene: () => void
+
+  // Material management actions
+  /** Устанавливает список материалов объекта */
+  setMaterials: (materials: GfxMaterial[]) => void
+  /** Добавляет новый материал в объект */
+  addMaterial: (material: CreateGfxMaterial) => void
+  /** Обновляет материал по UUID */
+  updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) => void
+  /** Удаляет материал по UUID */
+  removeMaterial: (materialUuid: string) => void
+  /** Выбирает материал для редактирования */
+  selectMaterial: (materialUuid: string | null) => void
+  /** Проверяет уникальность имени материала в рамках объекта */
+  isMaterialNameUnique: (name: string, excludeUuid?: string) => boolean
 }
 
 export type ObjectStore = ObjectStoreState & ObjectStoreActions
@@ -51,6 +71,8 @@ const initialLighting: LightingSettings = {
 export const useObjectStore = create<ObjectStore>()(
   subscribeWithSelector((set, get) => ({
     primitives: [],
+    materials: [],
+    selectedMaterialUuid: null,
     lighting: initialLighting,
     boundingBox: undefined,
     viewMode: 'orbit',
@@ -128,11 +150,60 @@ export const useObjectStore = create<ObjectStore>()(
     clearScene: () =>
       set({
         primitives: [],
+        materials: [],
+        selectedMaterialUuid: null,
         lighting: initialLighting,
         selectedPrimitiveIds: [],
         hoveredPrimitiveId: null,
         boundingBox: undefined
-      })
+      }),
+
+    // Material management actions
+    setMaterials: (materials: GfxMaterial[]) =>
+      set({ materials }),
+
+    addMaterial: (material: CreateGfxMaterial) =>
+      set(state => {
+        const newMaterial: GfxMaterial = {
+          ...material,
+          uuid: generateUUID()
+        }
+        return {
+          materials: [...state.materials, newMaterial]
+        }
+      }),
+
+    updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) =>
+      set(state => ({
+        materials: state.materials.map(material =>
+          material.uuid === materialUuid
+            ? { ...material, ...updates }
+            : material
+        )
+      })),
+
+    removeMaterial: (materialUuid: string) =>
+      set(state => {
+        const newMaterials = state.materials.filter(m => m.uuid !== materialUuid)
+        const newSelectedMaterialUuid = state.selectedMaterialUuid === materialUuid
+          ? null
+          : state.selectedMaterialUuid
+        
+        return {
+          materials: newMaterials,
+          selectedMaterialUuid: newSelectedMaterialUuid
+        }
+      }),
+
+    selectMaterial: (materialUuid: string | null) =>
+      set({ selectedMaterialUuid: materialUuid }),
+
+    isMaterialNameUnique: (name: string, excludeUuid?: string) => {
+      const state = get()
+      return !state.materials.some(material =>
+        material.name === name && material.uuid !== excludeUuid
+      )
+    }
   }))
 )
 
@@ -148,3 +219,14 @@ export const useObjectViewMode = () => useObjectStore(s => s.viewMode)
 export const useObjectGridVisible = () => useObjectStore(s => s.gridVisible)
 /** Селектор BoundingBox текущего объекта */
 export const useObjectBoundingBox = () => useObjectStore(s => s.boundingBox)
+
+// Material selectors
+/** Селектор списка материалов объекта */
+export const useObjectMaterials = () => useObjectStore(s => s.materials)
+/** Селектор UUID выбранного материала */
+export const useSelectedMaterialUuid = () => useObjectStore(s => s.selectedMaterialUuid)
+/** Селектор выбранного материала */
+export const useSelectedMaterial = () => useObjectStore(s => {
+  if (!s.selectedMaterialUuid) return null
+  return s.materials.find(m => m.uuid === s.selectedMaterialUuid) || null
+})

@@ -17,6 +17,8 @@ import {
   transformBoundingBox
 } from '@/shared/lib/geometry/boundingBoxUtils'
 import type { BoundingBox } from '@/shared/types'
+import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
+import type { GfxMaterial } from '@/entities/material'
 
 /**
  * Simplified scene object info for agent tools
@@ -688,6 +690,127 @@ export class SceneAPI {
         success: false,
         error: `Failed to adjust instances for perlin terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
+    }
+  }
+
+  // Material operations
+
+  /**
+   * Получить список всех глобальных материалов
+   */
+  static getGlobalMaterials(): GfxMaterial[] {
+    return materialRegistry.getGlobalMaterials()
+  }
+
+  /**
+   * Получить материал по UUID (из глобального реестра или объекта)
+   */
+  static getMaterialByUuid(materialUuid: string): GfxMaterial | null {
+    // Сначала проверяем глобальный реестр
+    const globalMaterial = materialRegistry.get(materialUuid)
+    if (globalMaterial) {
+      return globalMaterial
+    }
+
+    // Затем проверяем материалы объектов в сцене
+    const state = useSceneStore.getState()
+    for (const obj of state.objects) {
+      if (obj.materials) {
+        const material = obj.materials.find(m => m.uuid === materialUuid)
+        if (material) {
+          return material
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Получить все материалы для конкретного объекта сцены
+   */
+  static getObjectMaterials(objectUuid: string): GfxMaterial[] {
+    const state = useSceneStore.getState()
+    const object = state.objects.find(obj => obj.uuid === objectUuid)
+    return object?.materials || []
+  }
+
+  /**
+   * Найти объекты использующие конкретный материал
+   */
+  static findObjectsUsingMaterial(materialUuid: string): SceneObjectInfo[] {
+    const state = useSceneStore.getState()
+    const objectsUsingMaterial: SceneObjectInfo[] = []
+
+    for (const obj of state.objects) {
+      // Проверяем материалы объекта
+      const usesMaterial = obj.materials?.some(m => m.uuid === materialUuid)
+      
+      // Проверяем примитивы на использование материала через ссылки
+      const primitivesUseMaterial = obj.primitives.some(primitive => 
+        primitive.objectMaterialUuid === materialUuid || 
+        primitive.globalMaterialUuid === materialUuid
+      )
+
+      if (usesMaterial || primitivesUseMaterial) {
+        const instances = state.objectInstances.filter(inst => inst.objectUuid === obj.uuid)
+        const boundingBox = obj.boundingBox ?? calculateObjectBoundingBox(obj)
+
+        objectsUsingMaterial.push({
+          uuid: obj.uuid,
+          name: obj.name,
+          layerId: obj.layerId,
+          visible: obj.visible,
+          libraryUuid: obj.libraryUuid,
+          boundingBox,
+          primitiveCount: obj.primitives.length,
+          primitiveTypes: [...new Set(obj.primitives.map(p => p.type))],
+          hasInstances: instances.length > 0,
+          instanceCount: instances.length
+        })
+      }
+    }
+
+    return objectsUsingMaterial
+  }
+
+  /**
+   * Получить статистику использования материалов в сцене
+   */
+  static getMaterialUsageStats(): {
+    totalGlobalMaterials: number
+    totalObjectMaterials: number
+    materialsInUse: number
+    unusedMaterials: number
+  } {
+    const globalMaterials = materialRegistry.getGlobalMaterials()
+    const state = useSceneStore.getState()
+    
+    // Подсчитать материалы объектов
+    const objectMaterials = state.objects.flatMap(obj => obj.materials || [])
+    
+    // Найти использованные материалы (через ссылки в примитивах)
+    const usedMaterialUuids = new Set<string>()
+    state.objects.forEach(obj => {
+      obj.primitives.forEach(primitive => {
+        if (primitive.objectMaterialUuid) {
+          usedMaterialUuids.add(primitive.objectMaterialUuid)
+        }
+        if (primitive.globalMaterialUuid) {
+          usedMaterialUuids.add(primitive.globalMaterialUuid)
+        }
+      })
+    })
+
+    const allMaterials = [...globalMaterials, ...objectMaterials]
+    const materialsInUse = allMaterials.filter(m => usedMaterialUuids.has(m.uuid)).length
+    const unusedMaterials = allMaterials.length - materialsInUse
+
+    return {
+      totalGlobalMaterials: globalMaterials.length,
+      totalObjectMaterials: objectMaterials.length,
+      materialsInUse,
+      unusedMaterials
     }
   }
 }
