@@ -41,6 +41,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     globalMaterialUuid: primitive.globalMaterialUuid,
     objectMaterials
   })
+  console.log(material)
   const baseMaterialProps = {
     ...materialToThreeProps(material),
     wireframe: renderMode === 'wireframe'

@@ -2,7 +2,8 @@ import React from 'react'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import {
   useObjectPrimitives,
-  useObjectStore
+  useObjectStore,
+  useObjectMaterials
 } from '../../../model/objectStore.ts'
 
 /**
@@ -10,6 +11,7 @@ import {
  */
 export const ObjectScenePrimitives: React.FC = () => {
   const primitives = useObjectPrimitives()
+  const objectMaterials = useObjectMaterials()
   const clearSelection = useObjectStore(state => state.clearSelection)
   const renderMode = useObjectStore(state => state.renderMode)
 
@@ -31,6 +33,7 @@ export const ObjectScenePrimitives: React.FC = () => {
           key={index}
           primitive={primitive}
           renderMode={renderMode}
+          objectMaterials={objectMaterials}
           userData={{ generated: true, primitiveIndex: index }}
           onClick={handleObjectClick}
         />

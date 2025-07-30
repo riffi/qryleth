@@ -196,6 +196,9 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
         updates.objectMaterialUuid = undefined
       }
 
+      // Очищаем устаревший материал, чтобы не перекрывать выбранный
+      updates.material = undefined
+
       useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], updates)
     }
   }
