@@ -116,7 +116,118 @@ def _get_object_color(obj) -> str | None:
     return _rgb_to_hex(r, g, b)
   return None
 
-def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
+# Global material mappings - UUID constants should match the ones in globalMaterials.ts
+GLOBAL_MATERIAL_MAPPINGS = {
+  "#8B4513": "global-material-wood-001",    # Дерево (коричневый)
+  "#7D7D7D": "global-material-metal-001",   # Металл (серый металлик)
+  "#654321": "global-material-earth-001",   # Земля (темно-коричневый)
+  "#708090": "global-material-stone-001",   # Камень (серый камень)
+  "#FFFFFF": "global-material-plastic-001", # Пластик (белый) - более подходящий для белого цвета
+  "#FFD700": "global-material-gold-001",    # Золото
+  "#B87333": "global-material-copper-001",  # Медь
+  "#2F2F2F": "global-material-rubber-001",  # Резина (темно-серая)
+  "#F5F5DC": "global-material-ceramic-001", # Керамика (бежевый)
+}
+
+def _color_distance(color1: str, color2: str) -> float:
+  """Calculate RGB distance between two hex colors."""
+  def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+  
+  rgb1 = hex_to_rgb(color1)
+  rgb2 = hex_to_rgb(color2)
+  
+  # Simple Euclidean distance in RGB space
+  return sum((a - b) ** 2 for a, b in zip(rgb1, rgb2)) ** 0.5
+
+def _find_matching_global_material(color_hex: str) -> str | None:
+  """Find matching global material UUID for a given color."""
+  if not color_hex:
+    return None
+  
+  color_upper = color_hex.upper()
+  
+  # Exact match first
+  if color_upper in GLOBAL_MATERIAL_MAPPINGS:
+    return GLOBAL_MATERIAL_MAPPINGS[color_upper]
+  
+  # Find closest color match within tolerance (RGB distance < 20)
+  closest_color = None
+  min_distance = float('inf')
+  
+  for global_color, uuid in GLOBAL_MATERIAL_MAPPINGS.items():
+    distance = _color_distance(color_upper, global_color)
+    if distance < min_distance:
+      min_distance = distance
+      closest_color = uuid
+  
+  # Return closest match if within reasonable tolerance
+  if min_distance < 20:  # Adjust tolerance as needed
+    return closest_color
+  
+  return None
+
+def _get_material_data(obj, object_materials: list) -> dict:
+  """
+  Extract material data from object and determine material references.
+  Returns dict with material info for the primitive.
+  """
+  color = _get_object_color(obj)
+  if not color:
+    return {}
+  
+  # Try to match with predefined global materials first
+  global_material_uuid = _find_matching_global_material(color)
+  if global_material_uuid:
+    return {"globalMaterialUuid": global_material_uuid}
+  
+  # Create object-level material for custom colors
+  material_name = f"Material_{color[1:]}"  # Remove # from hex
+  object_material = {
+    "name": material_name,
+    "type": "custom",
+    "properties": {
+      "color": color,
+      "opacity": 1.0,
+      "transparent": False,
+      "metalness": 0.0,
+      "roughness": 0.5,
+      "castShadow": True,
+      "receiveShadow": True
+    },
+    "isGlobal": False,
+    "description": f"Auto-generated material from CAD import with color {color}"
+  }
+  
+  # Check if this material already exists in object materials
+  existing_material = None
+  for mat in object_materials:
+    if mat.get("name") == material_name:
+      existing_material = mat
+      break
+  
+  if not existing_material:
+    # Generate UUID for new material (simplified UUID generation)
+    import time
+    import random
+    material_uuid = f"object-material-{int(time.time())}-{random.randint(1000, 9999)}"
+    object_material["uuid"] = material_uuid
+    object_materials.append(object_material)
+    return {"objectMaterialUuid": material_uuid}
+  else:
+    return {"objectMaterialUuid": existing_material["uuid"]}
+
+def _create_object_materials_list(primitives_data: list) -> list:
+  """Extract all unique object materials from primitives data."""
+  materials = []
+  for prim_data in primitives_data:
+    if "temp_material" in prim_data:
+      materials.append(prim_data["temp_material"])
+      del prim_data["temp_material"]  # Clean up temporary data
+  return materials
+
+def _prim_to_schema(rec: Dict[str, Any], object_materials: list) -> Dict[str, Any]:
   kind = rec["__prim"]
   loc  = list(rec["location"])
   rot  = list(rec["rotation"])
@@ -134,9 +245,9 @@ def _prim_to_schema(rec: Dict[str, Any]) -> Dict[str, Any]:
     }
   }
 
-  # Add material if color is available
-  if color:
-    result["material"] = {"color": color}
+  # Add material data using new system
+  material_data = _get_material_data(rec["__obj"], object_materials)
+  result.update(material_data)
 
   if kind in ("sphere", "uv_sphere"):
     result["type"] = "sphere"
@@ -263,11 +374,28 @@ def _z_to_y(prims: List[Dict[str, Any]]):
 def convert(src: str, *, name: str = "ImportedObject", up_axis: str = "Y") -> Dict[str, Any]:
   ctx = _CaptureContext()
   recs = ctx.run(src)
-  prims = [_prim_to_schema(r) for r in recs]
+  
+  # Create list to collect object materials during conversion
+  object_materials = []
+  
+  # Convert primitives with material system support
+  prims = [_prim_to_schema(r, object_materials) for r in recs]
   _centre(prims)
   if up_axis.lower() == "y":
     _z_to_y(prims)
-  return {"name": name, "upAxis": up_axis.upper(), "primitives": prims}
+  
+  # Build result with new material system
+  result = {
+    "name": name, 
+    "upAxis": up_axis.upper(), 
+    "primitives": prims
+  }
+  
+  # Add object materials if any were created
+  if object_materials:
+    result["materials"] = object_materials
+  
+  return result
 
 ###############################################################################
 # CLI                                                                         #

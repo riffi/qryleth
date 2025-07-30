@@ -20,9 +20,7 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#cc1919"
-      }
+      "objectMaterialUuid": "object-material-1753868145-2694"
     },
     {
       "type": "cylinder",
@@ -44,9 +42,7 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#663300"
-      }
+      "objectMaterialUuid": "object-material-1753868145-2527"
     },
     {
       "type": "plane",
@@ -67,9 +63,57 @@
           0.0
         ]
       },
-      "material": {
-        "color": "#007f00"
-      }
+      "objectMaterialUuid": "object-material-1753868145-6231"
+    }
+  ],
+  "materials": [
+    {
+      "name": "Material_cc1919",
+      "type": "custom",
+      "properties": {
+        "color": "#cc1919",
+        "opacity": 1.0,
+        "transparent": false,
+        "metalness": 0.0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Auto-generated material from CAD import with color #cc1919",
+      "uuid": "object-material-1753868145-2694"
+    },
+    {
+      "name": "Material_663300",
+      "type": "custom",
+      "properties": {
+        "color": "#663300",
+        "opacity": 1.0,
+        "transparent": false,
+        "metalness": 0.0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Auto-generated material from CAD import with color #663300",
+      "uuid": "object-material-1753868145-2527"
+    },
+    {
+      "name": "Material_007f00",
+      "type": "custom",
+      "properties": {
+        "color": "#007f00",
+        "opacity": 1.0,
+        "transparent": false,
+        "metalness": 0.0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Auto-generated material from CAD import with color #007f00",
+      "uuid": "object-material-1753868145-6231"
     }
   ]
 }
