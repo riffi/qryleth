@@ -54,9 +54,9 @@ const PrimitiveCommonSchema = z.object({
   // автоматически
   name: z.string().min(1).optional(),
   // ОБЯЗАТЕЛЬНАЯ ссылка на материал объекта по UUID! Создай материал в поле materials объекта и укажи его uuid здесь
-  objectMaterialUuid: z.string().uuid().optional().describe("ОБЯЗАТЕЛЬНЫЙ UUID материала объекта из поля materials! Без этого примитив будет невидимым!"),
+  objectMaterialUuid: z.string().optional().describe("ОБЯЗАТЕЛЬНЫЙ UUID материала объекта из поля materials! Без этого примитив будет невидимым!"),
   // Альтернатива - ссылка на глобальный материал по UUID (используй get_global_materials для получения списка)
-  globalMaterialUuid: z.string().uuid().optional().describe("UUID глобального материала (альтернатива objectMaterialUuid)"),
+  globalMaterialUuid: z.string().optional().describe("UUID глобального материала (альтернатива objectMaterialUuid)"),
   // Transform properties
   transform: z.object({
     position: z.array(z.number()).length(3).optional(),
@@ -78,7 +78,7 @@ const PrimitiveSchema = z.discriminatedUnion('type', [
 
 // Схема для материала объекта, соответствующая интерфейсу GfxMaterial
 const ObjectMaterialSchema = z.object({
-  uuid: z.string().uuid().describe('UUID материала'),
+  uuid: z.string().describe('UUID материала'),
   name: z.string().describe('Название материала'),
   type: z
     .enum(['metal', 'dielectric', 'glass', 'emissive', 'custom'])
