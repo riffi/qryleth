@@ -239,7 +239,6 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
       }
       // Используем LangChain инструмент для создания объекта из debug данных
       const gfxObject = await executeAddNewObject(objectData)
-      onObjectAdded(gfxObject)
     } catch (error) {
       console.error('Failed to apply debug object:', error)
     }

@@ -114,7 +114,7 @@ const ObjectSchema = z.object({
  * Адаптированный из существующего add_new_object инструмента.
  * BoundingBox объекта вычисляется внутри SceneAPI при добавлении,
  * поэтому здесь достаточно передать описание примитивов и трансформаций.
- * 
+ *
  * @example
  * // СПОСОБ 1: Использование глобальных материалов (рекомендуется)
  * // Сначала получи список материалов:
@@ -128,7 +128,7 @@ const ObjectSchema = z.object({
  *     globalMaterialUuid: "wood-uuid-from-materials-list"
  *   }]
  * })
- * 
+ *
  * @example
  * // СПОСОБ 2: Создание материалов объекта
  * await add_new_object({
@@ -146,7 +146,7 @@ const ObjectSchema = z.object({
  *     objectMaterialUuid: "custom-red-material"
  *   }]
  * })
- * 
+ *
  * @example
  * // СПОСОБ 3: Прямое задание материала (устаревший способ)
  * await add_new_object({
@@ -207,7 +207,7 @@ export const createAddNewObjectTool = () => {
           }),
           ...(validatedInput.scale && {
             scale: validatedInput.scale as [number, number, number]
-          })
+          }),
         }
 
         // Использовать новый метод SceneAPI для добавления объекта
