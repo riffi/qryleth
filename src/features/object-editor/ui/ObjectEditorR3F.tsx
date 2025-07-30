@@ -56,7 +56,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     useObjectStore.getState().setPrimitives(
       objectData.primitives.map(p => ({ ...p }))
     )
-    useObjectStore.getState().setMaterials(objectData.materials)
+    useObjectStore.getState().setMaterials(objectData.materials ?? [])
 
     useObjectStore.getState().selectPrimitive(0)
   }, [objectData])
