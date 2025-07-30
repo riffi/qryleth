@@ -336,24 +336,32 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
     /**
-     * Выгрузить выбранный объект в JSON файл
+     * Выгружает выбранный объект в JSON файл, включая все материалы
+     * и BoundingBox, чтобы сохранить полную структуру объекта.
      * @param objectUuid UUID объекта, который требуется выгрузить
      */
     const handleExportObject = (objectUuid: string) => {
         const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
         if (!object) return
-        const data = { uuid: object.uuid, name: object.name, primitives: object.primitives }
+
+        // Сериализуем полную структуру объекта с материалами и BoundingBox
+        const data = JSON.parse(JSON.stringify(object))
+
         downloadJson(`${object.name}-${object.uuid}.json`, data)
     }
 
     /**
-     * Копировать объект в буфер обмена в формате JSON
+     * Копирует объект в буфер обмена в формате JSON,
+     * добавляя все связанные материалы и BoundingBox.
      * @param objectUuid UUID объекта, который требуется скопировать
      */
     const handleCopyObject = async (objectUuid: string) => {
         const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
         if (!object) return
-        const data = { uuid: object.uuid, name: object.name, primitives: object.primitives }
+
+        // Копируем актуальную структуру объекта со всеми материалами
+        const data = JSON.parse(JSON.stringify(object))
+
         await copyJsonToClipboard(data)
     }
 
