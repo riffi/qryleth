@@ -5,12 +5,12 @@ import {materialRegistry} from "@/shared/lib/materials";
 
 /**
  * LangChain инструмент для получения списка глобальных материалов
- * 
+ *
  * @example
  * // Использование в AI:
  * // 1. Сначала получи список материалов:
  * await get_global_materials({})
- * 
+ *
  * // 2. Затем используй UUID материала в примитиве:
  * await add_new_object({
  *   name: "Деревянный стол",
@@ -30,19 +30,10 @@ export const getGlobalMaterialsTool = new DynamicStructuredTool({
   func: async (): Promise<string> => {
     try {
       const materials = materialRegistry.getAllMaterials()
-      
+
       const materialsInfo = Object.entries(materials).map(([uuid, material]) => ({
         uuid,
         name: material.name,
-        description: material.description,
-        color: material.properties.color,
-        opacity: material.properties.opacity,
-        emissive: material.properties.emissive,
-        emissiveIntensity: material.properties.emissiveIntensity,
-        roughness: material.properties.roughness,
-        metalness: material.properties.metalness,
-        castShadow: material.properties.castShadow,
-        receiveShadow: material.properties.receiveShadow
       }))
 
       return JSON.stringify({
@@ -77,9 +68,9 @@ export const searchGlobalMaterialsTool = new DynamicStructuredTool({
     try {
       const materials = materialRegistry.getAllMaterials()
       const query = input.query.toLowerCase()
-      
+
       const filteredMaterials = Object.entries(materials)
-        .filter(([_, material]) => 
+        .filter(([_, material]) =>
           material.name.toLowerCase().includes(query) ||
           material.description.toLowerCase().includes(query)
         )
