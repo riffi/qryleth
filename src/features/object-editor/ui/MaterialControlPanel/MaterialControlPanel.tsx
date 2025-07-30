@@ -16,6 +16,7 @@ import {
   useSelectedMaterialUuid,
   useObjectStore
 } from '../../model/objectStore.ts'
+import type { GfxMaterial } from '@/entities/material'
 
 export interface MaterialControlPanelProps {
   onClose: () => void
@@ -42,6 +43,31 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
   const [roughness, setRoughness] = useState(0.5)
   const [emissive, setEmissive] = useState('#000000')
   const [emissiveIntensity, setEmissiveIntensity] = useState(1)
+
+  /**
+   * Немедленно обновляет материал в zustand-хранилище.
+   * Используется для применения изменений прямо во время редактирования.
+   */
+  const applyPropertyUpdates = (
+    updates: Partial<GfxMaterial['properties']>
+  ) => {
+    if (!selectedMaterial) return
+    updateMaterial(selectedMaterial.uuid, {
+      properties: {
+        ...selectedMaterial.properties,
+        ...updates
+      }
+    })
+  }
+
+  /**
+   * Применение изменения имени материала без валидации.
+   * Это позволяет увидеть результат сразу в списке материалов.
+   */
+  const applyNameUpdate = (newName: string) => {
+    if (!selectedMaterial) return
+    updateMaterial(selectedMaterial.uuid, { name: newName })
+  }
 
   /**
    * Загружает данные выбранного материала в локальное состояние.
@@ -124,13 +150,20 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
             label="Название"
             size="xs"
             value={name}
-            onChange={(e) => setName(e.currentTarget.value)}
+            onChange={(e) => {
+              const val = e.currentTarget.value
+              setName(val)
+              applyNameUpdate(val)
+            }}
           />
           <ColorInput
             label="Цвет"
             size="xs"
             value={color}
-            onChange={setColor}
+            onChange={(val) => {
+              setColor(val)
+              applyPropertyUpdates({ color: val })
+            }}
             withEyeDropper={false}
           />
           <NumberInput
@@ -140,7 +173,11 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
             max={1}
             step={0.05}
             value={opacity}
-            onChange={(v) => setOpacity(v ?? 0)}
+            onChange={(v) => {
+              const val = v ?? 0
+              setOpacity(val)
+              applyPropertyUpdates({ opacity: val })
+            }}
           />
           <NumberInput
             label="Металличность"
@@ -149,7 +186,11 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
             max={1}
             step={0.05}
             value={metalness}
-            onChange={(v) => setMetalness(v ?? 0)}
+            onChange={(v) => {
+              const val = v ?? 0
+              setMetalness(val)
+              applyPropertyUpdates({ metalness: val })
+            }}
           />
           <NumberInput
             label="Шероховатость"
@@ -158,13 +199,20 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
             max={1}
             step={0.05}
             value={roughness}
-            onChange={(v) => setRoughness(v ?? 0)}
+            onChange={(v) => {
+              const val = v ?? 0
+              setRoughness(val)
+              applyPropertyUpdates({ roughness: val })
+            }}
           />
           <ColorInput
             label="Эмиссия"
             size="xs"
             value={emissive}
-            onChange={setEmissive}
+            onChange={(val) => {
+              setEmissive(val)
+              applyPropertyUpdates({ emissive: val })
+            }}
             withEyeDropper={false}
           />
           <NumberInput
@@ -173,7 +221,11 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
             min={0}
             step={0.1}
             value={emissiveIntensity}
-            onChange={(v) => setEmissiveIntensity(v ?? 0)}
+            onChange={(v) => {
+              const val = v ?? 0
+              setEmissiveIntensity(val)
+              applyPropertyUpdates({ emissiveIntensity: val })
+            }}
           />
         </Stack>
 
