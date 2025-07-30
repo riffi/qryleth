@@ -212,9 +212,15 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     setEditorOpened(true)
   }
 
+  /**
+   * Сохраняет изменения, полученные из ObjectEditor,
+   * обновляя примитивы, материалы и BoundingBox объекта сцены.
+   * После обновления отображает уведомление об успешном сохранении.
+   */
   const handleSaveObjectEdit = (object: GfxObject) => {
     updateObject(object.uuid, {
       primitives: object.primitives,
+      materials: object.materials,
       boundingBox: object.boundingBox
     })
 
