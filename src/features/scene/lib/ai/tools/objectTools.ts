@@ -83,19 +83,33 @@ const PrimitiveSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('torus'), geometry: TorusGeometrySchema }).merge(PrimitiveCommonSchema)
 ])
 
-// Схема для материала объекта
+// Схема для материала объекта, соответствующая интерфейсу GfxMaterial
 const ObjectMaterialSchema = z.object({
-  uuid: z.string().uuid(),
-  name: z.string().describe("Название материала"),
-  description: z.string().optional(),
-  color: z.string().describe("Цвет материала в формате hex"),
-  opacity: z.number().min(0).max(1).optional(),
-  emissive: z.string().optional().describe("Цвет свечения в формате hex"),
-  emissiveIntensity: z.number().min(0).optional(),
-  roughness: z.number().min(0).max(1).optional(),
-  metalness: z.number().min(0).max(1).optional(),
-  castShadow: z.boolean().optional(),
-  receiveShadow: z.boolean().optional()
+  uuid: z.string().uuid().describe('UUID материала'),
+  name: z.string().describe('Название материала'),
+  type: z
+    .enum(['metal', 'dielectric', 'glass', 'emissive', 'custom'])
+    .optional()
+    .describe('Тип материала'),
+  description: z.string().optional().describe('Описание материала'),
+  isGlobal: z.boolean().optional().describe('Флаг глобального материала'),
+  properties: z
+    .object({
+      color: z.string().describe('Цвет материала в формате hex'),
+      opacity: z.number().min(0).max(1).optional(),
+      transparent: z.boolean().optional(),
+      metalness: z.number().min(0).max(1).optional(),
+      roughness: z.number().min(0).max(1).optional(),
+      emissive: z.string().optional().describe('Цвет свечения в формате hex'),
+      emissiveIntensity: z.number().min(0).optional(),
+      ior: z.number().min(1).max(3).optional(),
+      envMapIntensity: z.number().min(0).optional(),
+      side: z.enum(['front', 'back', 'double']).optional(),
+      alphaTest: z.number().min(0).max(1).optional(),
+      castShadow: z.boolean().optional(),
+      receiveShadow: z.boolean().optional()
+    })
+    .describe('Свойства материала')
 })
 
 // Схема валидации для объекта
@@ -193,12 +207,36 @@ export const createAddNewObjectTool = () => {
         })
 
         // Создание объекта в формате GFXObjectWithTransform
+        const materials = validatedInput.materials?.map(mat => ({
+          uuid: mat.uuid,
+          name: mat.name,
+          type: mat.type ?? 'custom',
+          description: mat.description,
+          isGlobal: mat.isGlobal ?? false,
+          properties: {
+            color: mat.properties.color,
+            opacity: mat.properties.opacity,
+            transparent:
+              mat.properties.transparent ??
+              (mat.properties.opacity !== undefined && mat.properties.opacity < 1),
+            metalness: mat.properties.metalness,
+            roughness: mat.properties.roughness,
+            emissive: mat.properties.emissive,
+            emissiveIntensity: mat.properties.emissiveIntensity,
+            ior: mat.properties.ior,
+            envMapIntensity: mat.properties.envMapIntensity,
+            side: mat.properties.side,
+            alphaTest: mat.properties.alphaTest,
+            castShadow: mat.properties.castShadow,
+            receiveShadow: mat.properties.receiveShadow
+          }
+        }))
+
         let newObject: GFXObjectWithTransform = {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,
-          // Материалы объекта
-          ...(validatedInput.materials && { materials: validatedInput.materials }),
+          ...(materials && { materials }),
           ...(validatedInput.position && {
             position: validatedInput.position as [number, number, number]
           }),
