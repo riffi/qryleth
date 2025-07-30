@@ -30,8 +30,8 @@ const PrimitiveItem: React.FC<{
   isHovered: boolean
   onSelect: (index: number) => void
   onHover: (index: number | null) => void
-}> = ({ primitive, index, isSelected, isHovered, onSelect, onHover }) => {
-  const [isVisible, setIsVisible] = React.useState(true)
+  onToggleVisibility: (index: number) => void
+}> = ({ primitive, index, isSelected, isHovered, onSelect, onHover, onToggleVisibility }) => {
 
   return (
     <Box
@@ -62,17 +62,17 @@ const PrimitiveItem: React.FC<{
         </Text>
 
         <Group gap="xs">
-          <Tooltip label={isVisible ? 'Скрыть примитив' : 'Показать примитив'}>
+          <Tooltip label={primitive.visible === false ? 'Показать примитив' : 'Скрыть примитив'}>
             <ActionIcon
               size="xs"
               variant="subtle"
-              color={isVisible ? 'blue' : 'gray'}
+              color={primitive.visible === false ? 'gray' : 'blue'}
               onClick={(e) => {
                 e.stopPropagation()
-                setIsVisible(!isVisible)
+                onToggleVisibility(index)
               }}
             >
-              {isVisible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+              {primitive.visible === false ? <IconEyeOff size={12} /> : <IconEye size={12} />}
             </ActionIcon>
           </Tooltip>
         </Group>
@@ -88,11 +88,12 @@ export const PrimitiveManager: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
-  const {
+  const { 
     selectPrimitive,
     togglePrimitiveSelection,
     setHoveredPrimitive,
-    setSelectedPrimitives
+    setSelectedPrimitives,
+    togglePrimitiveVisibility
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
@@ -171,6 +172,7 @@ export const PrimitiveManager: React.FC = () => {
                 isHovered={hoveredPrimitiveId === index}
                 onSelect={handlePrimitiveSelect}
                 onHover={handlePrimitiveHover}
+                onToggleVisibility={togglePrimitiveVisibility}
               />
             ))}
             {primitives.length === 0 && (

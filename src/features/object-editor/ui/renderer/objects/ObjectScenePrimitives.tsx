@@ -29,14 +29,16 @@ export const ObjectScenePrimitives: React.FC = () => {
   return (
     <group onPointerMissed={() => clearSelection()}>
       {primitives.map((primitive, index) => (
-        <PrimitiveRenderer
-          key={index}
-          primitive={primitive}
-          renderMode={renderMode}
-          objectMaterials={objectMaterials}
-          userData={{ generated: true, primitiveIndex: index }}
-          onClick={handleObjectClick}
-        />
+        primitive.visible === false ? null : (
+          <PrimitiveRenderer
+            key={index}
+            primitive={primitive}
+            renderMode={renderMode}
+            objectMaterials={objectMaterials}
+            userData={{ generated: true, primitiveIndex: index }}
+            onClick={handleObjectClick}
+          />
+        )
       ))}
     </group>
   )

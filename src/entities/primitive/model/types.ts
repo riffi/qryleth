@@ -60,6 +60,12 @@ export interface PrimitiveCommon {
   /** UUID глобального материала */
   globalMaterialUuid?: string;
 
+  /**
+   * Видимость примитива. Если значение false, примитив не отображается
+   * в сцене, но остаётся частью объекта.
+   */
+  visible?: boolean;
+
   /** Трансформации объекта */
   transform?: {
     position?: Vector3;

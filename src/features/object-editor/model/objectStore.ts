@@ -38,6 +38,8 @@ interface ObjectStoreActions {
   toggleGridVisibility: () => void
   selectPrimitive: (index: number) => void
   togglePrimitiveSelection: (index: number) => void
+  /** Переключает видимость примитива */
+  togglePrimitiveVisibility: (index: number) => void
   setSelectedPrimitives: (indices: number[]) => void
   setHoveredPrimitive: (index: number | null) => void
   clearSelection: () => void
@@ -141,6 +143,14 @@ export const useObjectStore = create<ObjectStore>()(
           : [...state.selectedPrimitiveIds, index]
         return { selectedPrimitiveIds: ids }
       }),
+    // Инвертирует видимость примитива по индексу
+    // Если примитив скрыт, он станет видимым и наоборот
+    togglePrimitiveVisibility: (index: number) =>
+      set(state => ({
+        primitives: state.primitives.map((p, i) =>
+          i === index ? { ...p, visible: p.visible === false ? true : !p.visible } : p
+        )
+      })),
     setSelectedPrimitives: (indices: number[]) => set({ selectedPrimitiveIds: indices }),
     // Записывает ID наведённого примитива
     setHoveredPrimitive: (index: number | null) => set({ hoveredPrimitiveId: index }),

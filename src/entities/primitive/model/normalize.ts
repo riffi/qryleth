@@ -22,6 +22,7 @@ export function normalizePrimitive(
     const common = {
       uuid: primitive.uuid,
       name: primitive.name,
+      visible: primitive.visible !== false,
       material:
         primitive.color ||
         primitive.opacity !== undefined ||
@@ -132,5 +133,9 @@ export function normalizePrimitive(
     }
   }
 
-  return primitive as GfxPrimitive
+  // Если поле visible отсутствует, считаем примитив видимым
+  return {
+    visible: primitive.visible !== false,
+    ...primitive
+  } as GfxPrimitive
 }
