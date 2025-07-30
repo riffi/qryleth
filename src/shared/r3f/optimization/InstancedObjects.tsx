@@ -115,7 +115,6 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
 
   if (Object.keys(instanceGroups).length === 0) return null
 
-  console.log('Rendering instanced objects for object indices:', Object.keys(instanceGroups))
 
   return (
     <>

@@ -53,13 +53,6 @@ const PrimitiveCommonSchema = z.object({
   // Читаемое имя примитива. Может отсутствовать, тогда будет сгенерировано
   // автоматически
   name: z.string().min(1).optional(),
-  // Материал примитива - поддерживает несколько способов задания
-  material: z.object({
-    color: z.string(),
-    opacity: z.number().min(0).max(1).optional(),
-    emissive: z.string().optional(),
-    emissiveIntensity: z.number().min(0).optional()
-  }).optional().describe("Прямые свойства материала (для обратной совместимости)"),
   // Ссылка на материал объекта по UUID
   objectMaterialUuid: z.string().uuid().optional().describe("UUID материала объекта"),
   // Ссылка на глобальный материал по UUID (используй get_global_materials для получения списка)
@@ -117,7 +110,7 @@ const ObjectSchema = z.object({
   name: z.string().describe("Имя объекта на русском"),
   primitives: z.array(PrimitiveSchema),
   // Материалы объекта - используются примитивами через objectMaterialUuid
-  materials: z.array(ObjectMaterialSchema).optional().describe("Массив материалов объекта"),
+  materials: z.array(ObjectMaterialSchema).optional().describe("Массив материалов объекта, обязательно задать если не используются глобальные материалы"),
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
   scale: z.array(z.number()).length(3).optional()
@@ -178,8 +171,10 @@ const ObjectSchema = z.object({
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. Материалы можно задавать тремя способами: 1) прямо в primitive.material (старый способ), 2) через globalMaterialUuid (используй get_global_materials), 3) создав материалы на уровне объекта в поле materials и ссылаясь на них через objectMaterialUuid',
+    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. Материалы можно задавать двумя способами:  1) через globalMaterialUuid (используй get_global_materials), 2) создав материалы на уровне объекта в поле materials и ссылаясь на них через objectMaterialUuid',
     schema: ObjectSchema,
+    verboseParsingErrors: true,
+
     func: async (input): Promise<string> => {
       try {
         // Валидация входных данных уже выполнена схемой
@@ -194,8 +189,6 @@ export const createAddNewObjectTool = () => {
               ? primitive.name
               : generatePrimitiveName(primitive.type, index + 1),
             geometry: primitive.geometry,
-            // Материал (старый формат для обратной совместимости)
-            ...(primitive.material && { material: primitive.material }),
             // Новая система материалов
             ...(primitive.objectMaterialUuid && { objectMaterialUuid: primitive.objectMaterialUuid }),
             ...(primitive.globalMaterialUuid && { globalMaterialUuid: primitive.globalMaterialUuid }),

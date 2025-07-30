@@ -11,14 +11,12 @@ export const createPerlinGeometry = (
   height: number,
   existingNoiseData?: number[]
 ): PerlinGeometryResult => {
-  console.log('Creating Perlin geometry with dimensions:', width, 'x', height)
 
   const segments = width > 200 ? 200 : width
   const geometry = new THREE.PlaneGeometry(width, height, segments, segments)
   geometry.rotateX(-Math.PI / 2) // Make it horizontal
 
   const positions = geometry.attributes.position.array as Float32Array
-  console.log('Initial geometry vertices count:', positions.length / 3)
 
   // Generate Perlin noise or use existing data
   const noiseData = existingNoiseData ?? generatePerlinNoise(segments + 1, segments + 1, {
@@ -27,8 +25,6 @@ export const createPerlinGeometry = (
     persistence: 0.5
   })
 
-  console.log('Noise data length:', noiseData.length)
-  console.log('Sample noise values:', noiseData.slice(0, 5))
 
   // Apply noise to vertices with edge fade-out
   let appliedCount = 0
@@ -72,7 +68,6 @@ export const createPerlinGeometry = (
     positions[i + 1] = heightValue
 
     if (appliedCount < 5) {
-      console.log(`Vertex ${appliedCount}: x=${x}, z=${z}, originalY=${originalY}, newY=${positions[i + 1]}, noiseValue=${noiseValue}, fadeFactor=${fadeFactor}`)
       appliedCount++
     }
   }
@@ -81,7 +76,6 @@ export const createPerlinGeometry = (
   geometry.computeVertexNormals()
   geometry.computeBoundingBox()
 
-  console.log('Final geometry bounding box:', geometry.boundingBox)
 
   return { geometry, noiseData }
 }

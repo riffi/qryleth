@@ -7,9 +7,9 @@ import {
   IconArrowsDiagonalMinimize2
 } from '@tabler/icons-react'
 import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
-import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
+import { addNewObjectTool, createAddNewObjectTool } from '@/features/scene/lib/ai/tools'
 import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
-import { langChainChatService } from '@/shared/lib/langchain'
+import { langChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 import type {GFXObjectWithTransform} from "@/entities";
@@ -29,6 +29,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
   const [debugResponse, setDebugResponse] = useState('')
   const [isDebugLoading, setIsDebugLoading] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const debugChatServiceRef = useRef<LangChainChatService | null>(null)
 
   /**
    * Выполняет инструмент add_new_object и возвращает созданный объект
@@ -59,7 +60,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
       const activeConnection = await getActiveConnection()
       setConnection(activeConnection)
 
-      // Инициализируем LangChain сервис
+      // Инициализируем основной LangChain сервис
       try {
         await langChainChatService.initialize()
 
@@ -102,6 +103,18 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
           timestamp: new Date()
         }
         setMessages(prev => [...prev, errorMessage])
+      }
+
+      // Инициализируем отладочный LangChain сервис только с createAddNewObjectTool
+      try {
+        const debugService = new LangChainChatService()
+        await debugService.initialize()
+        debugService.clearTools() // Очищаем все инструменты
+        debugService.registerDynamicTool(createAddNewObjectTool()) // Добавляем только один инструмент
+        debugChatServiceRef.current = debugService
+        console.log('Debug LangChain сервис инициализирован с инструментами:', debugService.getRegisteredTools())
+      } catch (error) {
+        console.error('Ошибка инициализации отладочного LangChain сервиса:', error)
       }
     }
 
@@ -178,22 +191,44 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
   }
 
   const handleDebugSend = async () => {
-    if (!debugPrompt.trim() || isDebugLoading) return
+    if (!debugPrompt.trim() || isDebugLoading || !debugChatServiceRef.current) return
 
     setIsDebugLoading(true)
     try {
-      const chatResponse = await fetchWithTools([{
-        role: 'user',
-        content: debugPrompt.trim(),
-        timestamp: new Date()
-      }], AVAILABLE_TOOLS)
+      // Use the debug LangChain service with only createAddNewObjectTool
+      const debugService = debugChatServiceRef.current
 
-      if (chatResponse.toolCalls && chatResponse.toolCalls.length > 0) {
-        const toolCall = chatResponse.toolCalls[0]
-        if (toolCall.function.name === 'add_new_object') {
-          setDebugResponse(toolCall.function.arguments)
+      // Set up callback to capture tool execution results
+      let toolExecutionResult: string | null = null
+      let objectData: string | null = null
+      debugService.setToolCallback((toolName: string, result: any) => {
+        if (toolName === 'add_new_object') {
+          toolExecutionResult = JSON.stringify(result, null, 2)
+          objectData = JSON.stringify(result.object, null, 2)
         }
+      })
+
+      // Send message to debug service
+      const response = await debugService.chat([
+        {
+          role: 'system',
+          content: 'Сразу же выполни tool по запросу пользователя, не уточняя детали',
+          timestamp: new Date()
+        },
+        {
+          role: 'user',
+          content: debugPrompt.trim(),
+          timestamp: new Date()
+        }
+      ])
+
+      // If tool was executed, show the result; otherwise show the agent's response
+      if (toolExecutionResult) {
+        setDebugResponse(objectData)
+      } else {
+        setDebugResponse(`{"message": "${response.message}", "note": "Агент не вызвал инструмент создания объекта"}`)
       }
+
     } catch (error) {
       console.error('Debug error:', error)
       setDebugResponse(`{"error": "${error instanceof Error ? error.message : 'Неизвестная ошибка'}"}`)

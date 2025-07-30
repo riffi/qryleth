@@ -527,8 +527,7 @@ export class SceneAPI {
         materials: correctedObject.materials
 
       }
-      
-      console.log('newObject', newObject)
+
 
       // Добавить объект в store
       addObject(newObject)

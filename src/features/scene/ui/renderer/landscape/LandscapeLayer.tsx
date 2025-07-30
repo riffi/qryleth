@@ -19,7 +19,6 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
   const geometry = useMemo(() => {
     if (layer.shape === 'perlin') {
-      console.log('Creating perlin geometry for layer:', layer.id)
       const result = createPerlinGeometry(
         layer.width || 1,
         layer.height || 1,
@@ -28,13 +27,11 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
       // Save noiseData to store if it wasn't already saved
       if (!layer.noiseData && result.noiseData) {
-        console.log('Saving noiseData for layer:', layer.id)
         updateLayer(layer.id, { noiseData: result.noiseData })
       }
 
       return result.geometry
     } else {
-      console.log('Creating plane geometry for layer:', layer.id)
       return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
     }
   }, [layer.width, layer.height, layer.shape, layer.noiseData, layer.id, updateLayer])

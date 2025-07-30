@@ -41,16 +41,11 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     globalMaterialUuid: primitive.globalMaterialUuid,
     objectMaterials
   })
-  console.log('material', material)
-  console.log('objectMaterials', objectMaterials)
   const baseMaterialProps = {
     ...materialToThreeProps(material),
     wireframe: renderMode === 'wireframe'
   }
 
-  if (primitive.type === 'torus') {
-    console.log('PrimitiveRenderer torus:', { primitive, baseMaterialProps })
-  }
 
   const meshProps = {
     position: primitive.transform?.position || [0, 0, 0],

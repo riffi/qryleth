@@ -21,8 +21,6 @@ export const ObjectTransformGizmo: React.FC = () => {
     const position = obj.position
     const rotation = obj.rotation
     const scale = obj.scale
-    console.log("obj", obj)
-    console.log("selectionMetadata", selectionMetadata)
 
     // Update the object instance in the store
     if (selectionMetadata.instanceUuid) {

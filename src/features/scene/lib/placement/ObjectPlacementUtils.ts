@@ -22,9 +22,9 @@ export interface PlacementOptions {
     maxZ?: number
   }
   landscapeLayer?: SceneLayer
-  existingInstances?: Array<{ 
+  existingInstances?: Array<{
     instance: SceneObjectInstance
-    boundingBox: BoundingBox 
+    boundingBox: BoundingBox
   }>
   newObjectBoundingBox?: BoundingBox
 }
@@ -169,17 +169,17 @@ const queryHeightAtCoordinate = (
   const distFromRightEdge = (halfWidth - worldX) / width;
   const distFromTopEdge = (worldZ + halfHeight) / height;
   const distFromBottomEdge = (halfHeight - worldZ) / height;
-  
+
   // Find minimum distance to any edge
   const edgeDistance = Math.min(distFromLeftEdge, distFromRightEdge, distFromTopEdge, distFromBottomEdge);
-  
+
   // Create fade-out factor (0 at edges, 1 towards center)
   const fadeOutDistance = 0.15; // 15% of the terrain from edges will fade to 0
   const fadeFactor = Math.max(0, Math.min(1, edgeDistance / fadeOutDistance));
-  
+
   // Apply noise with fade-out effect
   let heightValue = noiseValue * 4 * fadeFactor;
-  
+
   // Ensure edges are at 0 or below
   if (fadeFactor === 0) {
     heightValue = Math.min(0, heightValue);
@@ -206,33 +206,33 @@ const calculateSurfaceNormal = (
   const segments = calculateSegments(width);
   const halfWidth = width / 2;
   const halfHeight = height / 2;
-  
+
   // Sample neighboring heights to calculate gradient
   // Use a larger sample distance for more stable gradient calculation
   const sampleDistance = 0.5; // Increased from 0.1 for better gradient estimation
-  
+
   const heightCenter = queryHeightAtCoordinate(layer, worldX, worldZ);
   const heightLeft = queryHeightAtCoordinate(layer, worldX - sampleDistance, worldZ);
   const heightRight = queryHeightAtCoordinate(layer, worldX + sampleDistance, worldZ);
   const heightBack = queryHeightAtCoordinate(layer, worldX, worldZ - sampleDistance);
   const heightFront = queryHeightAtCoordinate(layer, worldX, worldZ + sampleDistance);
-  
+
   // Calculate gradients (slopes)
   const gradientX = (heightRight - heightLeft) / (2 * sampleDistance);
   const gradientZ = (heightFront - heightBack) / (2 * sampleDistance);
-  
+
   // Calculate normal vector using cross product method
   // Create two tangent vectors on the surface
   const tangentX: Vector3 = [2 * sampleDistance, heightRight - heightLeft, 0];
   const tangentZ: Vector3 = [0, heightFront - heightBack, 2 * sampleDistance];
-  
+
   // Calculate normal as cross product of tangent vectors
   const normal: Vector3 = [
     tangentX[1] * tangentZ[2] - tangentX[2] * tangentZ[1],  // X component
-    tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],  // Y component  
+    tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],  // Y component
     tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]   // Z component
   ];
-  
+
   // Normalize the vector
   const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
   if (length > 0) {
@@ -240,7 +240,7 @@ const calculateSurfaceNormal = (
     normal[1] /= length;
     normal[2] /= length;
   }
-  
+
   return normal;
 };
 
@@ -250,29 +250,29 @@ const calculateSurfaceNormal = (
  */
 const normalToRotation = (normal: Vector3): Vector3 => {
   const [nx, ny, nz] = normal;
-  
+
   // Ensure the normal is normalized
   const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
   if (length === 0) return [0, 0, 0];
-  
+
   const normalizedX = nx / length;
   const normalizedY = ny / length;
   const normalizedZ = nz / length;
-  
+
   // More robust calculation using atan2 for better precision
   // Calculate rotation angles to align Y-axis with normal
-  
+
   // X rotation (pitch) - rotation around X axis
   // This tilts the object forward/backward based on Z component of normal
   const rotationX = Math.atan2(-normalizedZ, normalizedY);
-  
-  // Z rotation (roll) - rotation around Z axis  
+
+  // Z rotation (roll) - rotation around Z axis
   // This tilts the object left/right based on X component of normal
   const rotationZ = Math.atan2(normalizedX, normalizedY);
-  
+
   // Y rotation (yaw) - keep it 0 for natural alignment
   const rotationY = 0;
-  
+
   return [rotationX, rotationY, rotationZ];
 };
 
@@ -295,7 +295,7 @@ const checkBoundingBoxCollision = (box1: BoundingBox, box2: BoundingBox): boolea
  */
 const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 => {
   const { bounds, landscapeLayer, existingInstances, newObjectBoundingBox } = options;
-  
+
   if (!existingInstances || !newObjectBoundingBox) {
     console.warn('RandomNoCollision strategy requires existingInstances and newObjectBoundingBox, falling back to Random');
     const x = Math.random() * ((bounds?.maxX ?? 5) - (bounds?.minX ?? -5)) + (bounds?.minX ?? -5);
@@ -313,11 +313,11 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
   const finalBounds = { ...defaultBounds, ...bounds };
   const maxAttempts = 100;
   const minDistance = 0.5; // Минимальное расстояние между объектами
-  
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
     const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
-    
+
     // Рассчитать правильную Y координату на ландшафте
     let y = 0;
     if (landscapeLayer) {
@@ -326,14 +326,14 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
       const bottomOffset = newObjectBoundingBox.min[1];
       y = y - bottomOffset;
     }
-    
+
     // Create transformed bounding box for the new object at this position
     const newObjectTransformedBB = transformBoundingBox(newObjectBoundingBox, {
       position: [x, y, z],
       scale: [1, 1, 1],
       rotation: [0, 0, 0]
     });
-    
+
     // Добавить padding для минимального расстояния
     const paddedNewBB = {
       min: [
@@ -347,33 +347,31 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
         newObjectTransformedBB.max[2] + minDistance
       ] as Vector3
     };
-    
+
     // Check collision with all existing instances
     let hasCollision = false;
     for (const existing of existingInstances) {
       const existingPosition = existing.instance.transform?.position || [0, 0, 0];
       const existingScale = existing.instance.transform?.scale || [1, 1, 1];
       const existingRotation = existing.instance.transform?.rotation || [0, 0, 0];
-      
+
       const existingTransformedBB = transformBoundingBox(existing.boundingBox, {
         position: existingPosition,
         scale: existingScale,
         rotation: existingRotation
       });
-      
+
       if (checkBoundingBoxCollision(paddedNewBB, existingTransformedBB)) {
         hasCollision = true;
         break;
       }
     }
-    
+
     if (!hasCollision) {
-      console.log(`Found collision-free position at attempt ${attempt + 1}: [${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}]`);
       return [x, y, z];
     }
   }
-  
-  console.warn(`Could not find collision-free position after ${maxAttempts} attempts, falling back to Random`);
+
   const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
   const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
   const y = landscapeLayer ? queryHeightAtCoordinate(landscapeLayer, x, z) - newObjectBoundingBox.min[1] : 0;
@@ -388,18 +386,18 @@ export const placeInstance = (
       placementZ?: number;
       alignToTerrain?: boolean;
       objectBoundingBox?: import('@/shared/types').BoundingBox;
-      existingInstances?: Array<{ 
+      existingInstances?: Array<{
         instance: SceneObjectInstance
-        boundingBox: BoundingBox 
+        boundingBox: BoundingBox
       }>;
     })=> {
   const newInstance = {...instance};
-  
+
   let placementX: number | undefined = options?.placementX;
   let placementZ: number | undefined = options?.placementZ;
-  
+
   let targetY = 0; // Default: place on y=0
-  
+
   // If no placement coordinates provided, use RandomNoCollision placement
   if (placementX === undefined || placementZ === undefined) {
     const placementResult = generateObjectPlacement({
@@ -418,23 +416,23 @@ export const placeInstance = (
         placementX,
         placementZ
     );
-    
+
     // Adjust Y position based on object's bounding box to prevent sinking into terrain
     if (options?.objectBoundingBox) {
       // Get the object's scale to properly transform the bounding box
       const scale = newInstance.transform?.scale || [1, 1, 1];
-      
+
       // Calculate the bottom Y offset of the scaled object
       // The object's bottom should touch the terrain surface
       const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
-      
+
       // Adjust target Y so the object's bottom aligns with terrain
       targetY = targetY - bottomOffset;
     }
   }
-  
+
   let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
-    
+
   // If alignToTerrain is enabled, calculate surface normal and align object
   if (options?.alignToTerrain && options?.landscapeLayer) {
     const surfaceNormal = calculateSurfaceNormal(
@@ -442,9 +440,9 @@ export const placeInstance = (
       placementX,
       placementZ
     );
-    
+
     const terrainRotation = normalToRotation(surfaceNormal);
-    
+
     // Combine original rotation with terrain alignment
     // Add terrain rotation to existing rotation
     finalRotation = [
@@ -471,9 +469,9 @@ export const adjustAllInstancesForPerlinTerrain = (
   perlinLayer: SceneLayer,
   objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
 ): SceneObjectInstance[] => {
-  if (!perlinLayer || 
-      perlinLayer.type !== 'landscape' || 
-      perlinLayer.shape !== 'perlin' || 
+  if (!perlinLayer ||
+      perlinLayer.type !== 'landscape' ||
+      perlinLayer.shape !== 'perlin' ||
       !perlinLayer.noiseData) {
     return instances
   }
