@@ -42,6 +42,7 @@ src/
 import type { 
   GfxPrimitive,    // 3D primitives (box, sphere, cylinder, etc.)
   GfxObject,       // Composite 3D objects
+  GfxMaterial,     // Material definitions
   GfxLayer,        // Scene layers
   LightingSettings // Lighting configuration
 } from '@/entities'
@@ -49,6 +50,7 @@ import type {
 // Specific entity types / Специфичные entity типы
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxObject } from '@/entities/object'
+import type { GfxMaterial } from '@/entities/material'
 import type { SceneObjectInstance } from '@/entities/scene/types'
 ```
 
@@ -116,12 +118,16 @@ type GfxPrimitive =
 
 interface PrimitiveCommon {
   name?: string;
+  // Legacy material support (deprecated) / Устаревшая поддержка материалов
   material?: {
     color?: string;
     opacity?: number;
     emissive?: string;
     emissiveIntensity?: number;
   };
+  // New material system / Новая система материалов
+  objectMaterialUuid?: string;  // Reference to object material / Ссылка на материал объекта
+  globalMaterialUuid?: string;  // Reference to global material / Ссылка на глобальный материал
   transform?: {
     position?: Vector3;
     rotation?: Vector3;
@@ -141,6 +147,49 @@ interface PrimitiveCommon {
 - **PyramidGeometry**: `baseSize`, `height`
 - **PlaneGeometry**: `width`, `height`
 - **TorusGeometry**: `majorRadius`, `minorRadius`, `radialSegments?`, `tubularSegments?`
+
+### GfxMaterial
+
+Универсальная структура материала, используемая как глобально, так и на уровне объекта:
+
+```typescript
+interface GfxMaterial {
+  uuid: string;          // Unique identifier / Уникальный идентификатор
+  name: string;          // Display name / Отображаемое имя
+  color?: string;        // Base color (hex) / Базовый цвет
+  opacity?: number;      // Transparency (0-1) / Прозрачность
+  emissive?: string;     // Emissive color (hex) / Цвет излучения
+  emissiveIntensity?: number; // Emissive strength / Интенсивность излучения
+}
+```
+
+#### Система ссылок на материалы
+
+Примитивы могут ссылаться на материалы тремя способами (в порядке приоритета):
+
+1. **Прямой материал** (`material`) - для обратной совместимости
+2. **Материал объекта** (`objectMaterialUuid`) - материал из `GfxObject.materials`
+3. **Глобальный материал** (`globalMaterialUuid`) - из глобального реестра
+
+```typescript
+// Пример использования материалов в примитиве
+const primitiveWithMaterial: GfxPrimitive = {
+  type: 'box',
+  geometry: { width: 1, height: 1, depth: 1 },
+  objectMaterialUuid: '123e4567-e89b-12d3-a456-426614174000',
+  transform: { position: [0, 0, 0] }
+}
+```
+
+### GfxObject с материалами
+
+```typescript
+interface GfxObject {
+  // ... другие поля
+  materials?: GfxMaterial[];  // Object-specific materials / Материалы объекта
+  primitives: GfxPrimitive[]; // Primitives can reference materials / Примитивы могут ссылаться на материалы
+}
+```
 
 ### 2. 🔧 Core Utilities (`@/shared/types/core`)
 
