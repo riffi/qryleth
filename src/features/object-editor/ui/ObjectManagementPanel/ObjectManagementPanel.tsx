@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { Tabs, Box } from '@mantine/core'
 import { PrimitiveManager } from '../PrimitiveManager/PrimitiveManager.tsx'
+import { MaterialManager } from '../MaterialManager/MaterialManager.tsx'
 
 /**
  * Панель управления объектом с вкладками "Примитивы" и "Материалы".
- * Вкладка "Материалы" пока содержит только заглушку.
+ * Позволяет переключаться между списком примитивов и менеджером материалов.
  */
 export const ObjectManagementPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'primitives' | 'materials'>('primitives')
@@ -27,7 +28,7 @@ export const ObjectManagementPanel: React.FC = () => {
         <PrimitiveManager />
       </Tabs.Panel>
       <Tabs.Panel value="materials">
-        <Box p="md">Материалы</Box>
+        <MaterialManager />
       </Tabs.Panel>
     </Tabs>
   )

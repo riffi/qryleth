@@ -9,4 +9,5 @@ export * from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting
 export * from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives'
 export * from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
+export * from './MaterialManager/MaterialManager.tsx'
 

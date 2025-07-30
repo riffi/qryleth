@@ -128,11 +128,13 @@ interface PrimitiveCommon {
 
 [Подробности выполнения: phase_6A_summary.md](phases/phase_6A_summary.md)
 
-#### Фаза 6B: Создание MaterialManager
+#### Фаза 6B: Создание MaterialManager ✅ ВЫПОЛНЕНО
 - Создать компонент `MaterialManager` для отображения списка материалов из `GfxObject.materials` верстку сделать по аналогии с PrimitiveManager
 - Реализовать выбор материала из списка с интеграцией в objectStore
 - Добавить модальное окно создания материала с валидацией уникальности имен
 - Реализовать параметры материала по умолчанию при создании
+
+[Подробности выполнения: phase_6B_summary.md](phases/phase_6B_summary.md)
 
 #### Фаза 6C: Создание MaterialControlPanel
 - Создать специализированную левую панель для редактирования свойств выбранного материала
