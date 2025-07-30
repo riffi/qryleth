@@ -32,6 +32,8 @@ export function createChatModel(config: LangChainConfig): ChatOpenAI {
       model: connection.model,
       temperature,
       maxTokens,
+      streaming: false,
+      disableStreaming: true,
       apiKey: connection.apiKey,
       configuration: {
         apiKey: connection.apiKey,

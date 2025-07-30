@@ -53,10 +53,10 @@ const PrimitiveCommonSchema = z.object({
   // Читаемое имя примитива. Может отсутствовать, тогда будет сгенерировано
   // автоматически
   name: z.string().min(1).optional(),
-  // Ссылка на материал объекта по UUID
-  objectMaterialUuid: z.string().uuid().optional().describe("UUID материала объекта"),
-  // Ссылка на глобальный материал по UUID (используй get_global_materials для получения списка)
-  globalMaterialUuid: z.string().uuid().optional().describe("UUID глобального материала"),
+  // ОБЯЗАТЕЛЬНАЯ ссылка на материал объекта по UUID! Создай материал в поле materials объекта и укажи его uuid здесь
+  objectMaterialUuid: z.string().uuid().optional().describe("ОБЯЗАТЕЛЬНЫЙ UUID материала объекта из поля materials! Без этого примитив будет невидимым!"),
+  // Альтернатива - ссылка на глобальный материал по UUID (используй get_global_materials для получения списка)
+  globalMaterialUuid: z.string().uuid().optional().describe("UUID глобального материала (альтернатива objectMaterialUuid)"),
   // Transform properties
   transform: z.object({
     position: z.array(z.number()).length(3).optional(),
@@ -108,9 +108,9 @@ const ObjectMaterialSchema = z.object({
 // Схема валидации для объекта
 const ObjectSchema = z.object({
   name: z.string().describe("Имя объекта на русском"),
-  primitives: z.array(PrimitiveSchema),
+  primitives: z.array(PrimitiveSchema).describe("Массив примитивов объекта. КАЖДЫЙ примитив ОБЯЗАТЕЛЬНО должен содержать objectMaterialUuid или globalMaterialUuid"),
   // Материалы объекта - используются примитивами через objectMaterialUuid
-  materials: z.array(ObjectMaterialSchema).optional().describe("Массив материалов объекта, обязательно задать если не используются глобальные материалы"),
+  materials: z.array(ObjectMaterialSchema).describe("ОБЯЗАТЕЛЬНЫЙ массив материалов объекта! Создай минимум один материал с uuid и укажи этот uuid в objectMaterialUuid у примитивов. Без материалов объект будет невидимым!"),
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
   scale: z.array(z.number()).length(3).optional()
@@ -137,41 +137,30 @@ const ObjectSchema = z.object({
  * })
  *
  * @example
- * // СПОСОБ 2: Создание материалов объекта
+ * // СПОСОБ 2: Создание материалов объекта (ОБЯЗАТЕЛЬНЫЙ подход!)
  * await add_new_object({
  *   name: "Цветной куб",
  *   materials: [{
  *     uuid: "custom-red-material",
  *     name: "Красный пластик",
- *     color: "#ff0000",
- *     opacity: 0.8,
- *     roughness: 0.7
+ *     properties: {
+ *       color: "#ff0000",
+ *       opacity: 0.8,
+ *       roughness: 0.7
+ *     }
  *   }],
  *   primitives: [{
  *     type: "box",
  *     geometry: { width: 1, height: 1, depth: 1 },
- *     objectMaterialUuid: "custom-red-material"
+ *     objectMaterialUuid: "custom-red-material"  // ОБЯЗАТЕЛЬНО указать!
  *   }]
  * })
  *
- * @example
- * // СПОСОБ 3: Прямое задание материала (устаревший способ)
- * await add_new_object({
- *   name: "Синий шар",
- *   primitives: [{
- *     type: "sphere",
- *     geometry: { radius: 0.5 },
- *     material: {
- *       color: "#0000ff",
- *       opacity: 1.0
- *     }
- *   }]
- * })
  */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. Создает новый объект из примитивов и размещает его в указанной позиции. Материалы можно задавать двумя способами:  1) через globalMaterialUuid (используй get_global_materials), 2) создав материалы на уровне объекта в поле materials и ссылаясь на них через objectMaterialUuid',
+    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! Альтернативно можно использовать globalMaterialUuid с get_global_materials.',
     schema: ObjectSchema,
     verboseParsingErrors: true,
 

@@ -1,0 +1,63 @@
+{
+  "uuid": "2e4b021b-fa43-4faf-a080-a9a5e99e222b",
+  "name": "Дерево",
+  "primitives": [
+    {
+      "visible": true,
+      "uuid": "1a34ea0d-d3d0-4302-8909-e3e85c9dce8a",
+      "type": "cylinder",
+      "name": "Ствол",
+      "geometry": {
+        "radiusTop": 0.2,
+        "radiusBottom": 0.5,
+        "height": 3,
+        "radialSegments": 12
+      },
+      "objectMaterialUuid": "550e8400-e29b-41d4-a716-446655440000",
+      "transform": {
+        "position": [
+          0,
+          1.5,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "visible": true,
+      "uuid": "2921acc1-8018-4ba1-bbf7-15dfeffbdabb",
+      "type": "sphere",
+      "name": "Крона",
+      "geometry": {
+        "radius": 1.5
+      },
+      "objectMaterialUuid": "550e8400-e29b-41d4-a716-446655440001",
+      "transform": {
+        "position": [
+          0,
+          4,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1.5,
+          1
+        ]
+      }
+    }
+  ]
+}
