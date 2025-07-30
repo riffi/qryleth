@@ -140,7 +140,7 @@ export const PrimitiveManager: React.FC = () => {
     <Paper
       shadow="sm"
       style={{
-        width: 280,
+        width: "100%",
         height: '100%',
         borderRadius: 0,
         userSelect: 'none'

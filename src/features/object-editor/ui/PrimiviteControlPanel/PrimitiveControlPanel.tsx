@@ -394,7 +394,7 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
     <Paper
       shadow="sm"
       p="md"
-      style={{ width: 260, height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
+      style={{ width: "100%", height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
     >
       <Stack gap="sm" style={{ height: '100%' }}>
         <Group>

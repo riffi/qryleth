@@ -92,7 +92,7 @@ export const MaterialManager: React.FC = () => {
   }
 
   return (
-    <Paper shadow="sm" style={{ width: 280, height: '100%', borderRadius: 0 }}>
+    <Paper shadow="sm" style={{ width: "100%", height: '100%', borderRadius: 0 }}>
       <Stack gap={0} style={{ height: '100%' }}>
         {/* Заголовок */}
         <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>

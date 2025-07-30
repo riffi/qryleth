@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
+import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl, Container, Paper } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
 import { MaterialControlPanel } from './MaterialControlPanel/MaterialControlPanel.tsx'
@@ -86,15 +86,45 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
           <Badge color="orange" variant="light">Wireframe</Badge>
         )}
       </Group>
-      <Box style={{ flex: 1, display: 'flex' }}>
-        {selectedMaterialUuid ? (
-          <MaterialControlPanel onClose={onClose} onSave={handleSave} />
-        ) : (
-          <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
-        )}
-        <Box style={{ flex: 1, position: 'relative' }}>
+      
+      <Container
+        size="xl"
+        fluid
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          width: '100%',
+          gap: 'var(--mantine-spacing-sm)',
+          height: '100%',
+          overflow: 'hidden',
+          flex: 1
+        }}
+      >
+        <Paper
+          shadow="sm"
+          radius="md"
+          style={{ width: 400, height: '100%', flexShrink: 0 }}
+        >
+          {selectedMaterialUuid ? (
+            <MaterialControlPanel onClose={onClose} onSave={handleSave} />
+          ) : (
+            <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
+          )}
+        </Paper>
+
+        <Paper
+          shadow="sm"
+          radius="md"
+          style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
+        >
           <Box
-            style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 }}
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              zIndex: 10,
+              padding: 6
+            }}
           >
             <Group gap="xs">
               <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
@@ -152,10 +182,20 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
               />
             </Group>
           </Box>
-          <ObjectScene3D />
-        </Box>
-        <ObjectManagementPanel />
-      </Box>
+
+          <Box style={{ width: '100%', height: '100%' }}>
+            <ObjectScene3D />
+          </Box>
+        </Paper>
+
+        <Paper
+          shadow="sm"
+          radius="md"
+          style={{ width: 350, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
+        >
+          <ObjectManagementPanel />
+        </Paper>
+      </Container>
     </Box>
   )
 }

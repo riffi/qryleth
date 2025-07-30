@@ -19,7 +19,7 @@ export const ObjectManagementPanel: React.FC = () => {
       // Контейнер занимает всю высоту вьюпорта и не даёт контенту "вывалиться" наружу
       <Box
           style={{
-            width: 280,
+            width: "100%",
             height: 'calc(100vh-60px)',
             display: 'flex',
             flexDirection: 'column',
