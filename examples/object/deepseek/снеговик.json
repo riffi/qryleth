@@ -1,0 +1,146 @@
+{
+  "uuid": "4234d805-e162-4830-9d22-7ae43ad893d1",
+  "name": "Снеговик",
+  "primitives": [
+    {
+      "uuid": "00033c1c-3187-4aaa-84f3-1fc1695578a4",
+      "type": "sphere",
+      "name": "Туловище нижнее",
+      "geometry": {
+        "radius": 1
+      },
+      "objectMaterialUuid": "1",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "uuid": "f37602fd-9303-4a78-825b-c0dc1f09aaef",
+      "type": "sphere",
+      "name": "Туловище среднее",
+      "geometry": {
+        "radius": 0.75
+      },
+      "objectMaterialUuid": "1",
+      "transform": {
+        "position": [
+          0,
+          1.5,
+          0
+        ]
+      }
+    },
+    {
+      "uuid": "0370b594-cc7a-4da6-8111-050c9b0ce8a5",
+      "type": "sphere",
+      "name": "Голова",
+      "geometry": {
+        "radius": 0.5
+      },
+      "objectMaterialUuid": "1",
+      "transform": {
+        "position": [
+          0,
+          2.75,
+          0
+        ]
+      }
+    },
+    {
+      "uuid": "8dede6b2-b733-4747-a19b-96c000de75f3",
+      "type": "sphere",
+      "name": "Левый глаз",
+      "geometry": {
+        "radius": 0.1
+      },
+      "objectMaterialUuid": "2",
+      "transform": {
+        "position": [
+          -0.15,
+          2.85,
+          0.45
+        ]
+      }
+    },
+    {
+      "uuid": "1c3e8295-2526-4534-b5d2-6bd0664aaffc",
+      "type": "sphere",
+      "name": "Правый глаз",
+      "geometry": {
+        "radius": 0.1
+      },
+      "objectMaterialUuid": "2",
+      "transform": {
+        "position": [
+          0.15,
+          2.85,
+          0.45
+        ]
+      }
+    },
+    {
+      "uuid": "cc427495-e017-4b42-a2bf-c6a0b8ee7b2e",
+      "type": "cone",
+      "name": "Нос морковка",
+      "geometry": {
+        "radius": 0.05,
+        "height": 0.3
+      },
+      "objectMaterialUuid": "3",
+      "transform": {
+        "position": [
+          0,
+          2.75,
+          0.5
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uuid": "1",
+      "name": "Снег",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#FFFFFF",
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.1
+      }
+    },
+    {
+      "uuid": "2",
+      "name": "Угольки",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#000000",
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 1
+      }
+    },
+    {
+      "uuid": "3",
+      "name": "Морковка",
+      "type": "dielectric",
+      "isGlobal": false,
+      "properties": {
+        "color": "#FFA500",
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.5
+      }
+    }
+  ]
+}
