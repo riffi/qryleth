@@ -374,7 +374,7 @@ export class SceneAPI {
   ): AddInstancesResult {
     const state = useSceneStore.getState()
     const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
-    
+
     // Get the object to access its bounding box
     const baseObject = state.objects.find(obj => obj.uuid === objectUuid)
     if (!baseObject) {
@@ -384,12 +384,12 @@ export class SceneAPI {
         error: `Object with UUID ${objectUuid} not found in scene`
       }
     }
-    
+
     const objectBoundingBox = baseObject.boundingBox || calculateObjectBoundingBox(baseObject)
 
     // Collect existing instances and their bounding boxes for collision detection
     const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: import('@/shared/types').BoundingBox }> = []
-    
+
     // Add existing instances from the scene
     state.objectInstances.forEach(instance => {
       const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
@@ -523,8 +523,12 @@ export class SceneAPI {
         primitives: correctedObject.primitives,
         boundingBox,
         layerId: 'objects',
-        libraryUuid: correctedObject.libraryUuid
+        libraryUuid: correctedObject.libraryUuid,
+        materials: correctedObject.materials
+
       }
+      
+      console.log('newObject', newObject)
 
       // Добавить объект в store
       addObject(newObject)
@@ -663,11 +667,11 @@ export class SceneAPI {
 
       // Adjust all instances, passing objects for bounding box access
       const adjustedInstances = adjustAllInstancesForPerlinTerrain(
-        objectInstances, 
-        perlinLayer, 
-        state.objects.map(obj => ({ 
-          uuid: obj.uuid, 
-          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj) 
+        objectInstances,
+        perlinLayer,
+        state.objects.map(obj => ({
+          uuid: obj.uuid,
+          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj)
         }))
       )
 
@@ -745,10 +749,10 @@ export class SceneAPI {
     for (const obj of state.objects) {
       // Проверяем материалы объекта
       const usesMaterial = obj.materials?.some(m => m.uuid === materialUuid)
-      
+
       // Проверяем примитивы на использование материала через ссылки
-      const primitivesUseMaterial = obj.primitives.some(primitive => 
-        primitive.objectMaterialUuid === materialUuid || 
+      const primitivesUseMaterial = obj.primitives.some(primitive =>
+        primitive.objectMaterialUuid === materialUuid ||
         primitive.globalMaterialUuid === materialUuid
       )
 
@@ -785,10 +789,10 @@ export class SceneAPI {
   } {
     const globalMaterials = materialRegistry.getGlobalMaterials()
     const state = useSceneStore.getState()
-    
+
     // Подсчитать материалы объектов
     const objectMaterials = state.objects.flatMap(obj => obj.materials || [])
-    
+
     // Найти использованные материалы (через ссылки в примитивах)
     const usedMaterialUuids = new Set<string>()
     state.objects.forEach(obj => {

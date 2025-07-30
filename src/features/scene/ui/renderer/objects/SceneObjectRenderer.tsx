@@ -89,6 +89,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           key={index}
           primitive={primitive}
           renderMode={renderMode}
+          objectMaterials={sceneObject.materials}
           userData={{
             generated: true,
             objectUuid: instance.objectUuid,
