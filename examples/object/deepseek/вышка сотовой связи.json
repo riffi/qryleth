@@ -3,74 +3,99 @@
   "primitives": [
     {
       "type": "cylinder",
-      "height": 30,
-      "radius": 1,
-      "color": "#808080",
-      "position": [
-        0,
-        15,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0001",
+      "geometry": {
+        "radiusTop": 1,
+        "radiusBottom": 1,
+        "height": 30
+      },
+      "transform": {
+        "position": [
+          0,
+          15,
+          0
+        ]
+      }
     },
     {
       "type": "box",
-      "width": 10,
-      "height": 2,
-      "depth": 10,
-      "color": "#a9a9a9",
-      "position": [
-        0,
-        1,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0002",
+      "geometry": {
+        "width": 10,
+        "height": 2,
+        "depth": 10
+      },
+      "transform": {
+        "position": [
+          0,
+          1,
+          0
+        ]
+      }
     },
     {
       "type": "box",
-      "width": 2,
-      "height": 5,
-      "depth": 2,
-      "color": "#808080",
-      "position": [
-        0,
-        5,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0001",
+      "geometry": {
+        "width": 2,
+        "height": 5,
+        "depth": 2
+      },
+      "transform": {
+        "position": [
+          0,
+          5,
+          0
+        ]
+      }
     },
     {
       "type": "box",
-      "width": 8,
-      "height": 1,
-      "depth": 8,
-      "color": "#a9a9a9",
-      "position": [
-        0,
-        7.5,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0002",
+      "geometry": {
+        "width": 8,
+        "height": 1,
+        "depth": 8
+      },
+      "transform": {
+        "position": [
+          0,
+          7.5,
+          0
+        ]
+      }
     },
     {
       "type": "box",
-      "width": 1,
-      "height": 3,
-      "depth": 1,
-      "color": "#808080",
-      "position": [
-        0,
-        10,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0001",
+      "geometry": {
+        "width": 1,
+        "height": 3,
+        "depth": 1
+      },
+      "transform": {
+        "position": [
+          0,
+          10,
+          0
+        ]
+      }
     },
     {
       "type": "box",
-      "width": 6,
-      "height": 1,
-      "depth": 6,
-      "color": "#a9a9a9",
-      "position": [
-        0,
-        12.5,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116158-0002",
+      "geometry": {
+        "width": 6,
+        "height": 1,
+        "depth": 6
+      },
+      "transform": {
+        "position": [
+          0,
+          12.5,
+          0
+        ]
+      }
     }
   ],
   "position": [
@@ -87,5 +112,39 @@
     1,
     1,
     1
+  ],
+  "materials": [
+    {
+      "name": "Material_808080",
+      "type": "custom",
+      "properties": {
+        "color": "#808080",
+        "opacity": 1,
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Материал цвета #808080",
+      "uuid": "object-material-1753872116158-0001"
+    },
+    {
+      "name": "Material_a9a9a9",
+      "type": "custom",
+      "properties": {
+        "color": "#a9a9a9",
+        "opacity": 1,
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Материал цвета #a9a9a9",
+      "uuid": "object-material-1753872116158-0002"
+    }
   ]
 }

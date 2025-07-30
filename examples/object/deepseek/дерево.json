@@ -3,33 +3,75 @@
   "primitives": [
     {
       "type": "cylinder",
-      "height": 3,
-      "radiusBottom": 0.2,
-      "radiusTop": 0.1,
-      "radialSegments": 8,
-      "color": "#228B22",
-      "position": [
-        0,
-        1.5,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116159-0001",
+      "geometry": {
+        "radiusTop": 0.1,
+        "radiusBottom": 0.2,
+        "height": 3,
+        "radialSegments": 8
+      },
+      "transform": {
+        "position": [
+          0,
+          1.5,
+          0
+        ]
+      }
     },
     {
       "type": "cone",
-      "height": 2,
-      "radius": 1,
-      "radialSegments": 8,
-      "color": "#006400",
-      "position": [
-        0,
-        3,
-        0
-      ]
+      "objectMaterialUuid": "object-material-1753872116159-0002",
+      "geometry": {
+        "radius": 1,
+        "height": 2,
+        "radialSegments": 8
+      },
+      "transform": {
+        "position": [
+          0,
+          3,
+          0
+        ]
+      }
     }
   ],
   "position": [
     0,
     0,
     0
+  ],
+  "materials": [
+    {
+      "name": "Material_228B22",
+      "type": "custom",
+      "properties": {
+        "color": "#228B22",
+        "opacity": 1,
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Материал цвета #228B22",
+      "uuid": "object-material-1753872116159-0001"
+    },
+    {
+      "name": "Material_006400",
+      "type": "custom",
+      "properties": {
+        "color": "#006400",
+        "opacity": 1,
+        "transparent": false,
+        "metalness": 0,
+        "roughness": 0.5,
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "isGlobal": false,
+      "description": "Материал цвета #006400",
+      "uuid": "object-material-1753872116159-0002"
+    }
   ]
 }

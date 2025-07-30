@@ -1,0 +1,138 @@
+{
+  "name": "CoffeeTable",
+  "upAxis": "Y",
+  "primitives": [
+    {
+      "type": "box",
+      "name": "Table Top",
+      "geometry": {
+        "width": 3.0,
+        "height": 0.2,
+        "depth": 1.5
+      },
+      "transform": {
+        "position": [
+          0.0,
+          0.325,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    },
+    {
+      "type": "cylinder",
+      "name": "Leg 1",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 0.5
+      },
+      "transform": {
+        "position": [
+          -1.4,
+          -0.175,
+          -0.7
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    },
+    {
+      "type": "cylinder",
+      "name": "Leg 2",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 0.5
+      },
+      "transform": {
+        "position": [
+          1.4,
+          -0.175,
+          -0.7
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    },
+    {
+      "type": "cylinder",
+      "name": "Leg 3",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 0.5
+      },
+      "transform": {
+        "position": [
+          -1.4,
+          -0.175,
+          0.7
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    },
+    {
+      "type": "cylinder",
+      "name": "Leg 4",
+      "geometry": {
+        "radiusTop": 0.05,
+        "radiusBottom": 0.05,
+        "height": 0.5
+      },
+      "transform": {
+        "position": [
+          1.4,
+          -0.175,
+          0.7
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    },
+    {
+      "type": "box",
+      "name": "Lower Shelf",
+      "geometry": {
+        "width": 2.8,
+        "height": 0.1,
+        "depth": 1.4
+      },
+      "transform": {
+        "position": [
+          0.0,
+          -0.175,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "globalMaterialUuid": "global-material-wood-001"
+    }
+  ]
+}
