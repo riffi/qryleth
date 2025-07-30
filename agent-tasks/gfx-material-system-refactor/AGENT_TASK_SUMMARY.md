@@ -151,19 +151,16 @@ interface PrimitiveCommon {
 
 [Подробности выполнения: phase_6D_summary.md](phases/phase_6D_summary.md)
 
-#### Фаза 6E: Обновление PrimitiveControlPanel для выбора материалов
-- Добавить селектор материалов (глобальные + материалы объекта) вместо прямого редактирования цвета
-- Реализовать логику применения выбранного материала к примитиву через `objectMaterialUuid`/`globalMaterialUuid`
-- Сохранить fallback для старой системы материалов (поле `material`)
-- Обновить UI для интуитивного выбора материалов
+#### Фаза 6E: Обновление PrimitiveControlPanel для выбора материалов ✅ ВЫПОЛНЕНО
+- ✅ Добавлен селектор материалов (глобальные + материалы объекта) вместо прямого редактирования цвета
+- ✅ Реализована логика применения выбранного материала к примитиву через `objectMaterialUuid`/`globalMaterialUuid`
+- ✅ Сохранен fallback для старой системы материалов (поле `material`)
+- ✅ Обновлен UI для интуитивного выбора материалов с группировкой и поиском
 
-**Файлы для изменения:**
-- `src/features/object-editor/ui/ObjectManagementPanel/` (новый компонент)
-- `src/features/object-editor/ui/PrimitiveManager/PrimitiveManager.tsx` (перенос в ObjectManagementPanel)
-- `src/features/object-editor/ui/MaterialManager/` (новый компонент)
-- `src/features/object-editor/ui/MaterialControlPanel/` (новый компонент)
-- `src/features/object-editor/ui/PrimiviteControlPanel/PrimitiveControlPanel.tsx`
-- `src/features/object-editor/ui/ObjectEditorR3F.tsx`
+**Выполненные файлы:**
+- ✅ `src/features/object-editor/ui/PrimiviteControlPanel/PrimitiveControlPanel.tsx` - добавлен селектор материалов
+
+[Подробности выполнения: phase_6E_summary.md](phases/phase_6E_summary.md)
 
 ### Фаза 7: Обновление CAD конвертера
 **Цель:** Адаптировать Python конвертер для поддержки новой системы материалов

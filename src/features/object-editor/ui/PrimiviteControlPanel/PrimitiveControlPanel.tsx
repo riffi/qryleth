@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   Paper,
   Box,
@@ -8,16 +8,18 @@ import {
   Text,
   ActionIcon,
   NumberInput,
-  ColorInput
+  Select
 } from '@mantine/core'
 import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
 import type { NumberFormatValues, SourceInfo } from 'react-number-format'
 import {
   useObjectStore,
   useObjectPrimitives,
-  useObjectSelectedPrimitiveIds
+  useObjectSelectedPrimitiveIds,
+  useObjectMaterials
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
+import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 
 export interface PrimitiveControlPanelProps {
   onClose: () => void
@@ -45,6 +47,7 @@ const degToRad = (deg: number): number => (deg * Math.PI) / 180
 export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ onClose, onSave }) => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
+  const objectMaterials = useObjectMaterials()
 
   /**
    * Выбор активного примитива для редактирования.
@@ -109,6 +112,42 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   const selectedPrimitiveData = getSelectedPrimitive()
 
   /**
+   * Получает список доступных материалов для выбора
+   * Мемоизирован для оптимизации производительности
+   */
+  const availableMaterials = useMemo(() => {
+    const globals  = materialRegistry.getGlobalMaterials() ?? [];
+    const locals   = objectMaterials           ?? [];
+
+    return [
+      {
+        group: 'Глобальные материалы',
+        items: globals.map((m) => ({
+          value: m.uuid,
+          label: m.name,
+        })),
+      },
+      {
+        group: 'Материалы объекта',
+        items: locals.map((m) => ({
+          value: m.uuid,
+          label: m.name,
+        })),
+      },
+    ] satisfies (string | { value: string; label: string } | { group: string; items: any })[];
+  }, [objectMaterials]);
+
+  /**
+   * Получает текущий выбранный материал примитива
+   */
+  const getCurrentMaterialUuid = () => {
+    const primitive = getSelectedPrimitive()
+    if (!primitive) return null
+
+    return primitive.globalMaterialUuid || primitive.objectMaterialUuid || null
+  }
+
+  /**
    * Обновляет геометрию выделенного примитива.
    * Изменяет указанный параметр в объекте geometry.
    *
@@ -129,19 +168,35 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
   }
 
   /**
-   * Обновляет цвет выделенного примитива.
-   * @param color новый цвет в формате HEX
+   * Обновляет материал выделенного примитива.
+   * @param materialUuid UUID материала или null для сброса
    */
-  const handleColorChange = (color: string) => {
+  const handleMaterialChange = (materialUuid: string | null) => {
     if (selectedPrimitiveIds.length === 1) {
       const primitive = getSelectedPrimitive()
       if (!primitive) return
-      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], {
-        material: {
-          ...primitive.material,
-          color
+
+      // Определяем тип материала (глобальный или объекта)
+      const globalMaterials = materialRegistry.getGlobalMaterials()
+      const isGlobalMaterial = globalMaterials.some(m => m.uuid === materialUuid)
+
+      const updates: Partial<GfxPrimitive> = {}
+
+      if (materialUuid) {
+        if (isGlobalMaterial) {
+          updates.globalMaterialUuid = materialUuid
+          updates.objectMaterialUuid = undefined
+        } else {
+          updates.objectMaterialUuid = materialUuid
+          updates.globalMaterialUuid = undefined
         }
-      })
+      } else {
+        // Сброс материала
+        updates.globalMaterialUuid = undefined
+        updates.objectMaterialUuid = undefined
+      }
+
+      useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], updates)
     }
   }
 
@@ -361,13 +416,23 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
               values={selectedPrimitiveData.transform?.scale || [1, 1, 1]}
             />
             <Box>
-              <Text size="sm" fw={500} mb="xs">Цвет</Text>
-              <ColorInput
+              <Text size="sm" fw={500} mb="xs">Материал</Text>
+              <Select
                 size="xs"
-                value={selectedPrimitiveData.material?.color || '#cccccc'}
-                onChange={handleColorChange}
-                withEyeDropper={false}
+                placeholder={availableMaterials.length === 0 ? "Материалы не найдены" : "Выберите материал"}
+                value={getCurrentMaterialUuid()}
+                onChange={handleMaterialChange}
+                data={availableMaterials}
+                clearable
+                searchable
+                disabled={availableMaterials.length === 0}
+                comboboxProps={{ zIndex: 1000 }}
               />
+              {selectedPrimitiveData.material?.color && (
+                <Text size="xs" c="dimmed" mt="xs">
+                  Fallback цвет: {selectedPrimitiveData.material.color}
+                </Text>
+              )}
             </Box>
             <Box>
               <Text size="sm" fw={500} mb="xs">Геометрия</Text>

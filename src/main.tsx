@@ -4,6 +4,7 @@ import { MantineProvider, createTheme } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import App from '@/app/App'
 import { BrowserRouter } from 'react-router-dom'
+import { initializeMaterials } from '@/shared/lib/materials'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 
@@ -12,6 +13,9 @@ const theme = createTheme({
   defaultRadius: 'md',
   fontFamily: 'system-ui, sans-serif',
 })
+
+// Инициализируем глобальные материалы при старте приложения
+initializeMaterials()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
