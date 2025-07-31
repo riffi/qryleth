@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Box, Group, Badge, Title, ActionIcon, Tooltip, SegmentedControl, Container, Paper } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
-import { PrimitiveControlPanel } from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
+import { PrimitiveControlPanel } from './PrimitiveControlPanel/PrimitiveControlPanel.tsx'
 import { MaterialControlPanel } from './MaterialControlPanel/MaterialControlPanel.tsx'
 import { ObjectManagementPanel } from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 import {

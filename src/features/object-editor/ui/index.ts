@@ -7,7 +7,7 @@ export * from './renderer/ObjectSceneContent.tsx'
 export * from '@/features/object-editor/ui/renderer/controls/PrimitiveTransformGizmo'
 export * from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting'
 export * from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives'
-export * from './PrimiviteControlPanel/PrimitiveControlPanel.tsx'
+export * from './PrimitiveControlPanel/PrimitiveControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 export * from './MaterialManager/MaterialManager.tsx'
 
