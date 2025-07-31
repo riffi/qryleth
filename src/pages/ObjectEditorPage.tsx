@@ -23,13 +23,20 @@ const ObjectEditorPage: React.FC = () => {
     }
   }, [id])
 
+  /**
+   * Закрывает страницу редактора и возвращает пользователя в библиотеку.
+   */
   const handleClose = () => navigate('/')
 
+  /**
+   * Сохраняет изменения текущего объекта в базе данных.
+   * Используем UUID записи библиотеки, иначе объект не обновится.
+   */
   const handleSave = async (object: GfxObject) => {
     if (!objectRecord) return
 
     try {
-      await db.updateObject(object.uuid, {
+      await db.updateObject(objectRecord.uuid, {
         objectData: object
       })
 
