@@ -418,3 +418,15 @@ export function transformBoundingBox(
 
   return { min, max }
 }
+
+/**
+ * Возвращает координаты центра BoundingBox.
+ * Используется для позиционирования объектов и камер.
+ */
+export function getBoundingBoxCenter(box: BoundingBox): Vector3 {
+  return [
+    (box.min[0] + box.max[0]) / 2,
+    (box.min[1] + box.max[1]) / 2,
+    (box.min[2] + box.max[2]) / 2
+  ]
+}
