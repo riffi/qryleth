@@ -107,7 +107,9 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
 
       // Инициализируем отладочный LangChain сервис только с createAddNewObjectTool
       try {
-        const debugService = new LangChainChatService()
+        const debugService = new LangChainChatService(
+          'Сразу же выполни tool по запросу пользователя, не уточняя детали'
+        )
         await debugService.initialize()
         debugService.clearTools() // Очищаем все инструменты
         debugService.registerDynamicTool(createAddNewObjectTool()) // Добавляем только один инструмент
@@ -208,13 +210,8 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
         }
       })
 
-      // Send message to debug service
+      // Отправляем только пользовательское сообщение, системный промпт задан при инициализации
       const response = await debugService.chat([
-        {
-          role: 'system',
-          content: 'Сразу же выполни tool по запросу пользователя, не уточняя детали',
-          timestamp: new Date()
-        },
         {
           role: 'user',
           content: debugPrompt.trim(),

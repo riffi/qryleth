@@ -16,11 +16,25 @@ export type ToolCallback = (toolName: string, result: any) => void
 /**
  * LangChain chat service for handling AI conversations with tools
  */
+export const DEFAULT_SYSTEM_PROMPT =
+  'You are a helpful assistant that can use tools to interact with a 3D scene. ' +
+  'When user wants to add new object to scene, first search existing objects in a library, if not found - create it.' +
+  'When creating primitives always generate meaningful Russian names.'
+
 export class LangChainChatService {
   private chatModel: ChatOpenAI | null = null
   private tools: DynamicStructuredTool[] = []
   private toolExecutors: Map<string, (args: any) => Promise<ToolExecutionResult>> = new Map()
   private toolCallback: ToolCallback | null = null
+  private systemPrompt: string
+
+  /**
+   * Создает экземпляр сервиса с указанным системным промптом
+   * @param systemPrompt текст системного промпта, который будет использоваться агентом
+   */
+  constructor(systemPrompt: string = DEFAULT_SYSTEM_PROMPT) {
+    this.systemPrompt = systemPrompt
+  }
 
   /**
    * Initialize the chat service with current connection settings
@@ -127,8 +141,7 @@ export class LangChainChatService {
       const prompt = ChatPromptTemplate.fromMessages([
         [
           'system',
-          'You are a helpful assistant that can use tools to interact with a 3D scene. When user wants to add new object to scene, first search existing objects in a library, if not found - create it.' +
-          'When creating primitives always generate meaningful Russian names.'
+          this.systemPrompt
         ],
         ['placeholder', '{chat_history}'],
         ['human', '{input}'],
