@@ -196,10 +196,17 @@ export const useSceneStore = create<SceneStore>()(
       get().saveToHistory()
     },
 
+    /**
+     * Создать новый слой сцены.
+     * 
+     * Использование Math.random ранее приводило к риску получения
+     * одинаковых идентификаторов. Теперь применяем generateUUID
+     * для гарантии уникальности.
+     */
     createLayer: (layerData: Omit<SceneLayer, 'id'>) => {
       const newLayer: SceneLayer = {
         ...layerData,
-        id: Math.random().toString(36).substr(2, 9)
+        id: generateUUID()
       }
       const layers = [...get().layers, newLayer]
       set({ layers })
