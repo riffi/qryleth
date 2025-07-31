@@ -9,9 +9,9 @@
 
 ### Анализ текущего состояния кодовой базы
 
-#### Структура GfxObject
+-#### Структура GfxObject
 Основные типы находятся в:
-- `src/entities/object/model/types.ts` - содержит интерфейсы `GfxObject` и `GFXObjectWithTransform`
+- `src/entities/object/model/types.ts` - содержит интерфейсы `GfxObject` и `GfxObjectWithTransform`
 - `src/entities/primitive/model/types.ts` - содержит типы примитивов (`GfxPrimitive`)
 
 ```typescript
@@ -21,7 +21,7 @@ export interface GfxObject {
   primitives: GfxPrimitive[];
 }
 
-export interface GFXObjectWithTransform extends GfxObject {
+export interface GfxObjectWithTransform extends GfxObject {
   position?: Vector3,
   scale?: Vector3,
   rotation?: Vector3,

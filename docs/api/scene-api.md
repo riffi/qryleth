@@ -38,7 +38,7 @@
 ### `getSceneStats()`
 Собирает статистику по количеству объектов, экземпляров и слоев, а также типам примитивов в сцене.
 
-### `addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult`
+### `addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult`
 Добавляет новый объект и его экземпляр с трансформацией. Применяет коррекцию к данным и учитывает ландшафт при размещении.
 
 ### `adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string }`

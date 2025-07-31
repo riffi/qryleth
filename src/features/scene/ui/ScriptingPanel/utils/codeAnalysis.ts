@@ -140,9 +140,9 @@ export const getMethodInfo = (methodName: string): string | null => {
   objectUuid: string - UUID объекта для проверки`,
     'getSceneStats': `getSceneStats(): SceneStats
 Возвращает статистику сцены`,
-    'addObjectWithTransform': `addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
-Параметры:
-  objectData: GFXObjectWithTransform - Данные объекта с трансформацией`,
+    'addObjectWithTransform': `addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult
+  Параметры:
+  objectData: GfxObjectWithTransform - Данные объекта с трансформацией`,
     'searchObjectsInLibrary': `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
 Параметры:
   query: string - Строка поиска`,

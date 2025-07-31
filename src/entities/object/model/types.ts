@@ -11,7 +11,7 @@ export interface GfxObject {
   boundingBox?: BoundingBox;
 }
 
-export interface GFXObjectWithTransform extends GfxObject {
+export interface GfxObjectWithTransform extends GfxObject {
   position?: Vector3,
   scale?: Vector3,
   rotation?: Vector3,

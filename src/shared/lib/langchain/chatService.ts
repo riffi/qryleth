@@ -8,7 +8,7 @@ import type {LangChainTool, LangChainChatResponse, ChatSession, ToolExecutionRes
 import { adaptMessagesToLangChain, adaptLangChainResponse } from './adapters'
 import type {ChatMessage} from '../openAIAPI'
 import { toolRegistry } from './toolRegistry'
-import type {GFXObjectWithTransform} from '@/entities'
+import type {GfxObjectWithTransform} from '@/entities'
 
 // Типы для callback функций
 export type ToolCallback = (toolName: string, result: any) => void

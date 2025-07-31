@@ -154,9 +154,9 @@ export const getSceneApiCompletions = () => [
   { 
     label: 'addObjectWithTransform', 
     type: 'function', 
-    info: createStyledTooltip(`addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult
+    info: createStyledTooltip(`addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult
 Параметры:
-  objectData: GFXObjectWithTransform = {
+  objectData: GfxObjectWithTransform = {
     uuid?: string,
     name: string,
     primitives: Primitive[],

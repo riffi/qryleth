@@ -1,7 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
-import type { GFXObjectWithTransform } from '@/entities/object/model/types'
+import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 import { generatePrimitiveName } from '@/entities/primitive'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI.ts'
@@ -207,7 +207,7 @@ export const createAddNewObjectTool = () => {
           return basePrimitive as GfxPrimitive
         })
 
-        // Создание объекта в формате GFXObjectWithTransform
+        // Создание объекта в формате GfxObjectWithTransform
         const materials = validatedInput.materials?.map(mat => ({
           uuid: mat.uuid,
           name: mat.name,
@@ -233,7 +233,7 @@ export const createAddNewObjectTool = () => {
           }
         }))
 
-        let newObject: GFXObjectWithTransform = {
+        let newObject: GfxObjectWithTransform = {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,

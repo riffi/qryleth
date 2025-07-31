@@ -7,7 +7,7 @@ import { useSceneStore } from '@/features/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'
-import type { GFXObjectWithTransform } from '@/entities/object/model/types'
+import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
 import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import type { Vector3 } from '@/shared/types'
@@ -503,7 +503,7 @@ export class SceneAPI {
    * Метод объединяет функциональность handleObjectAdded из SceneEditorR3F.
    * Перед добавлением BoundingBox объекта вычисляется автоматически.
    */
-  static addObjectWithTransform(objectData: GFXObjectWithTransform): AddObjectWithTransformResult {
+  static addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult {
     try {
       const state = useSceneStore.getState()
       const { addObject, addObjectInstance, layers } = state
@@ -617,7 +617,7 @@ export class SceneAPI {
         return { success: false, error: `Object ${objectUuid} not found` }
       }
 
-      const baseObject: GFXObjectWithTransform = {
+      const baseObject: GfxObjectWithTransform = {
         uuid: generateUUID(),
         name: record.name,
         primitives: record.objectData.primitives.map(p => ({ ...p, uuid: generateUUID() })),

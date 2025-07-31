@@ -41,7 +41,7 @@ import {
   IconCode
 } from '@tabler/icons-react'
 import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
-import type {GfxObject, GFXObjectWithTransform, GfxPrimitive} from "@/entities";
+import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
 
 const getStatusColor = (status: SceneStatus) => {

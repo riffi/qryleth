@@ -1,4 +1,4 @@
-import type {GFXObjectWithTransform, GfxPrimitive} from "@/entities";
+import type {GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 
 
 
@@ -88,7 +88,7 @@ const getPrimitiveBottomY = (primitive: GfxPrimitive): number => {
 
 
 export const correctLLMGeneratedObject = (
-  object: GFXObjectWithTransform,
+  object: GfxObjectWithTransform,
 ) => {
 
   const newObject = { ...object }

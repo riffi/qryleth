@@ -12,7 +12,7 @@ import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
 import { langChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
-import type {GFXObjectWithTransform} from "@/entities";
+import type {GfxObjectWithTransform} from "@/entities";
 
 
 interface Props {
@@ -34,11 +34,11 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
   /**
    * Выполняет инструмент add_new_object и возвращает созданный объект
    */
-  const executeAddNewObject = async (args: any): Promise<GFXObjectWithTransform> => {
+  const executeAddNewObject = async (args: any): Promise<GfxObjectWithTransform> => {
     const result = await addNewObjectTool.func(args)
     const parsed = JSON.parse(result)
     if (parsed.success && parsed.object) {
-      return parsed.object as GFXObjectWithTransform
+      return parsed.object as GfxObjectWithTransform
     }
     throw new Error(parsed.error || 'Ошибка выполнения инструмента')
   }
