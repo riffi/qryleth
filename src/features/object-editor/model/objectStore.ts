@@ -31,6 +31,8 @@ interface ObjectStoreActions {
   setPrimitives: (primitives: GfxPrimitive[]) => void
   addPrimitive: (primitive: GfxPrimitive) => void
   updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) => void
+  /** Удаляет примитив по индексу */
+  removePrimitive: (index: number) => void
   setLighting: (lighting: LightingSettings) => void
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
@@ -124,6 +126,31 @@ export const useObjectStore = create<ObjectStore>()(
             name: '',
             primitives: normalized
           })
+        }
+      }),
+    // Удаляет примитив по индексу и корректирует выделение
+    removePrimitive: (index: number) =>
+      set(state => {
+        const list = state.primitives.filter((_, i) => i !== index)
+        const normalized = ensurePrimitiveNames(list)
+        const selected = state.selectedPrimitiveIds
+          .filter(id => id !== index)
+          .map(id => (id > index ? id - 1 : id))
+        const hovered =
+          state.hoveredPrimitiveId === null
+            ? null
+            : state.hoveredPrimitiveId > index
+              ? state.hoveredPrimitiveId - 1
+              : state.hoveredPrimitiveId === index
+                ? null
+                : state.hoveredPrimitiveId
+        return {
+          primitives: normalized,
+          selectedPrimitiveIds: selected,
+          hoveredPrimitiveId: hovered,
+          boundingBox: normalized.length
+            ? calculateObjectBoundingBox({ uuid: '', name: '', primitives: normalized })
+            : undefined
         }
       }),
     // Заменяет настройки освещения

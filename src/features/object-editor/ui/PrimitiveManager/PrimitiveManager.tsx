@@ -8,9 +8,10 @@ import {
   ScrollArea,
   ActionIcon,
   Box,
-  Tooltip
+  Tooltip,
+  Menu
 } from '@mantine/core'
-import { IconEye, IconEyeOff } from '@tabler/icons-react'
+import { IconEye, IconEyeOff, IconTrash } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
@@ -31,7 +32,17 @@ const PrimitiveItem: React.FC<{
   onSelect: (index: number) => void
   onHover: (index: number | null) => void
   onToggleVisibility: (index: number) => void
-}> = ({ primitive, index, isSelected, isHovered, onSelect, onHover, onToggleVisibility }) => {
+  onRemove: (index: number) => void
+}> = ({
+  primitive,
+  index,
+  isSelected,
+  isHovered,
+  onSelect,
+  onHover,
+  onToggleVisibility,
+  onRemove
+}) => {
 
   return (
     <Box
@@ -75,6 +86,22 @@ const PrimitiveItem: React.FC<{
               {primitive.visible === false ? <IconEyeOff size={12} /> : <IconEye size={12} />}
             </ActionIcon>
           </Tooltip>
+          <Menu shadow="md" width={150}>
+            <Menu.Target>
+              <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
+                <Text size="xs" fw={700}>⋮</Text>
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconTrash size={14} />}
+                color="red"
+                onClick={() => onRemove(index)}
+              >
+                Удалить примитив
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
     </Box>
@@ -88,12 +115,13 @@ export const PrimitiveManager: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
-  const { 
+  const {
     selectPrimitive,
     togglePrimitiveSelection,
     setHoveredPrimitive,
     setSelectedPrimitives,
-    togglePrimitiveVisibility
+    togglePrimitiveVisibility,
+    removePrimitive
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
@@ -173,6 +201,7 @@ export const PrimitiveManager: React.FC = () => {
                 onSelect={handlePrimitiveSelect}
                 onHover={handlePrimitiveHover}
                 onToggleVisibility={togglePrimitiveVisibility}
+                onRemove={removePrimitive}
               />
             ))}
             {primitives.length === 0 && (
