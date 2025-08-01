@@ -108,12 +108,12 @@ def _rgb_to_hex(r: float, g: float, b: float) -> str:
   b_int = int(b * 255)
   return f"#{r_int:02x}{g_int:02x}{b_int:02x}"
 
-def _get_object_color(obj) -> str | None:
-  """Extract HEX color from object's materials, return None if no material."""
+def _get_object_color(obj) -> tuple[str, float] | None:
+  """Extract HEX color and alpha from object's materials, return None if no material."""
   if obj.data.materials:
     material = obj.data.materials[0]  # Use first material
     r, g, b, a = material.diffuse_color
-    return _rgb_to_hex(r, g, b)
+    return _rgb_to_hex(r, g, b), a
   return None
 
 # Global material mappings - UUID constants should match the ones in globalMaterials.ts
@@ -173,9 +173,11 @@ def _get_material_data(obj, object_materials: list) -> dict:
   Extract material data from object and determine material references.
   Returns dict with material info for the primitive.
   """
-  color = _get_object_color(obj)
-  if not color:
+  color_data = _get_object_color(obj)
+  if not color_data:
     return {}
+  
+  color, alpha = color_data
   
   # Try to match with predefined global materials first
   global_material_uuid = _find_matching_global_material(color)
@@ -184,20 +186,22 @@ def _get_material_data(obj, object_materials: list) -> dict:
   
   # Create object-level material for custom colors
   material_name = f"Material_{color[1:]}"  # Remove # from hex
+  is_transparent = alpha < 1.0
+  
   object_material = {
     "name": material_name,
     "type": "custom",
     "properties": {
       "color": color,
-      "opacity": 1.0,
-      "transparent": False,
+      "opacity": alpha,
+      "transparent": is_transparent,
       "metalness": 0.0,
       "roughness": 0.5,
       "castShadow": True,
       "receiveShadow": True
     },
     "isGlobal": False,
-    "description": f"Auto-generated material from CAD import with color {color}"
+    "description": f"Auto-generated material from CAD import with color {color} and opacity {alpha}"
   }
   
   # Check if this material already exists in object materials
@@ -232,7 +236,8 @@ def _prim_to_schema(rec: Dict[str, Any], object_materials: list) -> Dict[str, An
   loc  = list(rec["location"])
   rot  = list(rec["rotation"])
   scale = rec["__obj"].scale
-  color = _get_object_color(rec["__obj"])
+  color_data = _get_object_color(rec["__obj"])
+  color = color_data[0] if color_data else None
 
   # Common structure for new format
   result = {
