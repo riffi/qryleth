@@ -98,21 +98,33 @@ src/features/object-editor/lib/ai/tools/
 
 **primitiveTools.ts - инструменты для работы с примитивами:**
 ```typescript
-export const addPrimitiveTool = {
-  name: 'addPrimitive',
-  description: 'Добавить новый примитив к объекту',
+export const addPrimitivesTool = {
+  name: 'addPrimitives',
+  description: 'Добавить один или несколько примитивов к объекту (массовая операция)',
   parameters: {
     type: 'object',
     properties: {
-      primitiveType: { 
-        type: 'string',
-        enum: ['box', 'sphere', 'cylinder', 'cone', 'torus', 'plane']
-      },
-      position: { type: 'object' }, // Vector3
-      rotation: { type: 'object' }, // Vector3
-      scale: { type: 'object' },    // Vector3
-      material: { type: 'string' }  // UUID материала
-    }
+      primitives: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            primitiveType: { 
+              type: 'string',
+              enum: ['box', 'sphere', 'cylinder', 'cone', 'torus', 'plane']
+            },
+            position: { type: 'object' }, // Vector3
+            rotation: { type: 'object' }, // Vector3
+            scale: { type: 'object' },    // Vector3
+            material: { type: 'string' }  // UUID материала
+          },
+          required: ['primitiveType']
+        },
+        minItems: 1,
+        maxItems: 10 // Ограничение для безопасности
+      }
+    },
+    required: ['primitives']
   }
 }
 
@@ -123,6 +135,22 @@ export const modifyPrimitiveTool = {
     // ... параметры для модификации
   }
 }
+
+// Примеры использования массового добавления:
+// 1. Создание базовой структуры дома
+// addPrimitives([
+//   { primitiveType: 'box', position: {x: 0, y: 0, z: 0}, scale: {x: 10, y: 8, z: 10} }, // основание
+//   { primitiveType: 'box', position: {x: 0, y: 8, z: 0}, scale: {x: 10, y: 0.5, z: 10} }, // крыша
+//   { primitiveType: 'box', position: {x: 4, y: 2, z: 0}, scale: {x: 2, y: 4, z: 0.2} }  // дверь
+// ])
+//
+// 2. Создание набора декоративных элементов
+// addPrimitives([
+//   { primitiveType: 'sphere', position: {x: 5, y: 1, z: 5} },
+//   { primitiveType: 'sphere', position: {x: -5, y: 1, z: 5} },
+//   { primitiveType: 'sphere', position: {x: 5, y: 1, z: -5} },
+//   { primitiveType: 'sphere', position: {x: -5, y: 1, z: -5} }
+// ])
 ```
 
 **materialTools.ts - инструменты для работы с материалами:**
@@ -179,70 +207,38 @@ export const optimizeObjectTool = {
 ### 4.3 Интеграция с ObjectEditorLayout
 **Время**: 1 час
 
-**Задачи интеграции:**
-- Подключение ObjectChatInterface к созданному в Фазе 2 layout
-- Реализация логики переключения панелей
-- Обеспечение корректной работы в обоих режимах (страница/модаль)
-- Синхронизация состояния чата с общим состоянием панелей
+**ОБНОВЛЕНО**: ObjectEditorLayout уже реализован с более гибкой архитектурой.
 
-**Обновление ObjectEditorLayout.tsx:**
+**Текущая реализация поддерживает:**
+- Внешнее управление состоянием панелей через `externalPanelState` prop
+- Передачу чат-компонента через `chatComponent` prop
+- Модальный режим через `hideHeader` prop
+- Автоматическое переключение на свойства при выборе материала
+- Гибкую систему левых панелей (chat/properties) и правой панели (manager)
+
+**Актуальная сигнатура ObjectEditorLayout:**
 ```typescript
-const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({ 
-  mode, 
-  children, 
-  onClose 
-}) => {
-  const { panelState, setPanelState } = usePanelState()
-  const currentObject = useObjectStore(state => state.currentObject)
-  
-  // Рендер левой панели на основе состояния
-  const renderLeftPanel = () => {
-    switch (panelState.leftPanel) {
-      case 'chat':
-        return (
-          <ObjectChatInterface
-            isVisible={true}
-            currentObject={currentObject}
-            mode={mode}
-            onVisibilityChange={(visible) => {
-              if (!visible) setPanelState(prev => ({ ...prev, leftPanel: null }))
-            }}
-          />
-        )
-      case 'properties':
-        return panelState.propertiesType === 'primitive' 
-          ? <PrimitiveControlPanel />
-          : <MaterialControlPanel />
-      default:
-        return null
-    }
+interface ObjectEditorLayoutProps {
+  onClose: () => void
+  onSave: (object: GfxObject) => void
+  objectData?: GfxObject
+  children?: React.ReactNode
+  headerControls?: React.ReactNode
+  chatComponent?: React.ReactNode
+  externalPanelState?: {
+    panelState: any
+    togglePanel: (panel: any) => void
+    showPanel: (panel: any) => void
   }
-  
-  return (
-    <div className="object-editor-layout">
-      <HeaderControls
-        mode={mode}
-        panelState={panelState}
-        onPanelToggle={setPanelState}
-        onClose={onClose}
-      />
-      
-      <div className="object-editor-layout__main-content">
-        <PanelContainer side="left" isVisible={!!panelState.leftPanel}>
-          {renderLeftPanel()}
-        </PanelContainer>
-        
-        <div className="viewport-container">
-          {children}
-        </div>
-        
-        <PanelContainer side="right" isVisible={panelState.rightPanel === 'manager'}>
-          <ObjectManagementPanel />
-        </PanelContainer>
-      </div>
-    </div>
-  )
+  hideHeader?: boolean
 }
+```
+
+**Задачи для интеграции ObjectChatInterface:**
+- Создать ObjectChatInterface компонент
+- Передать его через `chatComponent` prop в ObjectEditorLayout
+- Настроить внешнее управление панелями для синхронизации состояния
+- Обеспечить корректную работу автоматического переключения панелей
 ```
 
 ### 4.4 Создание контекстных промптов
