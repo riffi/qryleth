@@ -29,7 +29,7 @@ export const ObjectManagementPanel: React.FC = () => {
         <Tabs
             value={activeTab}
             onChange={handleTabChange}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0  }}
         >
           <Tabs.List>
             <Tabs.Tab value="primitives">Примитивы</Tabs.Tab>
