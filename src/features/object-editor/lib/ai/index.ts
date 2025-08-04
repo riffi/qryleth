@@ -7,20 +7,6 @@ import type { ToolProvider } from '@/shared/lib/langchain/types'
 import { toolRegistry } from '@/shared/lib/langchain/toolRegistry'
 import {
   addPrimitivesTool,
-  modifyPrimitiveTool,
-  removePrimitiveTool,
-  duplicatePrimitiveTool,
-  createMaterialTool,
-  updateMaterialTool,
-  assignMaterialTool,
-  removeMaterialTool,
-  duplicateMaterialTool,
-  analyzeObjectTool,
-  optimizeObjectTool,
-  validateObjectTool,
-  suggestImprovementsTool,
-  calculateStatsTool,
-  generateVariationsTool
 } from './tools'
 
 /**
@@ -30,20 +16,6 @@ export const objectEditorToolProvider: ToolProvider = {
   featureName: 'object-editor',
   getTools: () => [
     addPrimitivesTool,
-    modifyPrimitiveTool,
-    removePrimitiveTool,
-    duplicatePrimitiveTool,
-    createMaterialTool,
-    updateMaterialTool,
-    assignMaterialTool,
-    removeMaterialTool,
-    duplicateMaterialTool,
-    analyzeObjectTool,
-    optimizeObjectTool,
-    validateObjectTool,
-    suggestImprovementsTool,
-    calculateStatsTool,
-    generateVariationsTool
   ]
 }
 
