@@ -4,7 +4,7 @@ import { ChatInterface } from '@/widgets/ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
 import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
-import { ObjectEditorR3F, useObjectEditorToolRegistration } from '@/features/object-editor'
+import { ObjectEditorR3F, useObjectEditorToolRegistration, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX } from '@tabler/icons-react'
@@ -101,6 +101,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
+  
+  // Глобальное состояние панелей для ObjectEditor
+  const globalPanelState = useGlobalPanelState()
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -495,11 +498,28 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         onClose={() => setEditorOpened(false)}
         fullScreen
         styles={{ body: { height: 'calc(100vh - 120px)', padding: 0 }, content: { height: '100vh' }, header: { padding: '1rem' } }}
+        title={
+          <Group justify="space-between" style={{ width: '100%' }}>
+            <Text size="lg" fw={500}>
+              {editingObjectData ? `Редактор объекта: ${editingObjectData.name}` : 'Редактор объекта'}
+            </Text>
+            <Group>
+              <PanelToggleButtons
+                activeLeftPanel={globalPanelState.panelState.leftPanel}
+                activeRightPanel={globalPanelState.panelState.rightPanel}
+                onToggle={globalPanelState.togglePanel}
+                size="sm"
+              />
+            </Group>
+          </Group>
+        }
       >
         <ObjectEditorR3F
           onClose={() => setEditorOpened(false)}
           objectData={editingObjectData}
           onSave={handleSaveObjectEdit}
+          externalPanelState={globalPanelState}
+          modalMode={true}
         />
       </Modal>
       <SaveSceneModal
