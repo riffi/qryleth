@@ -6,7 +6,7 @@ import { getActiveConnection } from '../openAISettings'
 import { createChatModel, DEFAULT_LANGCHAIN_CONFIG } from './config'
 import type {LangChainTool, LangChainChatResponse, ChatSession, ToolExecutionResult} from './types'
 import { adaptMessagesToLangChain, adaptLangChainResponse } from './adapters'
-import type {ChatMessage} from '../openAIAPI'
+import type {ChatMessage} from '@/shared/entities/chat'
 import { toolRegistry } from './toolRegistry'
 import type {GfxObjectWithTransform} from '@/entities'
 

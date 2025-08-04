@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
-import { ChatInterface } from '@/widgets/ChatInterface'
+import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
 import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
@@ -326,7 +326,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </Box>
               </Box>
             ) : (
-              <ChatInterface onCollapse={() => setChatCollapsed(true)} />
+              <SceneChatInterface onCollapse={() => setChatCollapsed(true)} />
             )}
           </Paper>
         )}

@@ -1,11 +1,11 @@
 # Фаза 3: Миграция SceneEditor ChatInterface
 
-**Статус**: ⏳ Планируется  
+**Статус**: ✅ Выполнено  
 **Приоритет**: Высокий  
-**Предполагаемое время**: 2-3 часа
+**Фактическое время**: ~1 час
 
 ## Цель фазы
-Перенос существующего ChatInterface из widgets в соответствующую фичу scene с сохранением всей функциональности и обеспечением обратной совместимости.
+Перенос существующего ChatInterface в соответствующую фичу scene с переходом на новый тип ChatMessage и обновление всех импортов.
 
 ## Контекст
 Текущий `src/widgets/ChatInterface.tsx` (480 строк) содержит как общую логику чата, так и специфичные для SceneEditor интеграции:
@@ -261,8 +261,135 @@ const extractDebugData = useCallback((messages: ChatMessage[]) => {
 ## Следующая фаза
 После завершения переходим к **Фазе 4: Создание ObjectEditor ChatInterface**, где будет создан ChatInterface для ObjectEditor с интеграцией в новый layout.
 
+## Выполненные задачи
+
+### ✅ 3.1 Создана архитектура Scene ChatInterface
+**Структура компонентов:**
+```
+src/features/scene/ui/ChatInterface/
+├── SceneChatInterface.tsx          # Главный компонент (рефакторирован)
+├── index.ts                        # Экспорты
+├── hooks/
+│   └── useSceneChat.ts            # Scene-специфичный хук чата
+└── components/
+    ├── SceneDebugPanel/           # Debug панель для создания объектов
+    │   ├── SceneDebugPanel.tsx
+    │   └── index.ts
+    └── SceneToolCallbacks/        # Обработчики scene tools
+        ├── SceneToolCallbacks.tsx
+        └── index.ts
+```
+
+### ✅ 3.2 Использование базовых компонентов из shared/entities/chat
+**SceneChatInterface теперь использует:**
+- `ChatContainer` - для отображения сообщений с автоскроллом
+- `ChatInput` - для ввода сообщений
+- `useChatScroll` - для автоматического скролла
+- `useChat` (базовый) - расширен в `useSceneChat`
+
+**Ключевые изменения:**
+- Полный переход на архитектуру FSD
+- Разделение общей и специфичной логики
+- Компонентный подход вместо монолитного решения
+
+### ✅ 3.3 Создан useSceneChat хук
+**Файл**: `src/features/scene/ui/ChatInterface/hooks/useSceneChat.ts`
+
+**Функциональность:**
+- Расширяет базовый `useChat` из shared/entities/chat
+- Интеграция с LangChain сервисом для scene
+- Специфичные callbacks для `add_new_object` и `add_object_from_library`
+- Управление подключениями и моделями AI
+- Инициализация debug сервиса с единственным инструментом
+
+**Конфигурация:**
+```typescript
+const chatConfig: ChatConfig = {
+  feature: 'scene',
+  tools: [], // Регистрируются через LangChain
+  systemPrompt: 'You are a helpful assistant...',
+  debugMode: true
+}
+```
+
+### ✅ 3.4 Создан SceneDebugPanel компонент
+**Файл**: `src/features/scene/ui/ChatInterface/components/SceneDebugPanel/SceneDebugPanel.tsx`
+
+**Функциональность:**
+- Отправка промптов в отладочный LangChain сервис
+- Отображение JSON ответов с форматированием
+- Редактирование JSON и применение объектов
+- Интеграция с `createAddNewObjectTool`
+
+### ✅ 3.5 Создан SceneToolCallbacks компонент
+**Файл**: `src/features/scene/ui/ChatInterface/components/SceneToolCallbacks/SceneToolCallbacks.tsx`
+
+**Функциональность:**
+- Утилитарные функции для работы с scene tools
+- Экспорт `sceneToolUtils` для использования в других компонентах
+- Готовность к расширению для дополнительных callbacks
+
+### ✅ 3.6 Обновлены импорты и интеграция
+**Изменения в** `src/features/scene/ui/SceneEditorR3F.tsx`:
+- Импорт: `@/widgets/ChatInterface` → `./ChatInterface`
+- Компонент: `ChatInterface` → `SceneChatInterface`
+- Полная обратная совместимость интерфейса
+
+**Настроены экспорты:**
+- `src/features/scene/ui/ChatInterface/index.ts`
+- `src/features/scene/ui/index.ts` - добавлен экспорт ChatInterface
+
+### ✅ 3.7 Миграция типа ChatMessage
+**Обновленные файлы:**
+- `src/shared/lib/langchain/adapters.ts`
+- `src/shared/lib/langchain/chatService.ts`
+- `src/shared/lib/langchain/types.ts`
+
+**Новый тип ChatMessage:**
+- Обязательное поле `id: string` (nanoid)
+- Опциональные `toolCalls?: ToolCall[]` и `metadata?: Record<string, any>`
+- Полная совместимость с LangChain адаптерами
+
+## Критерии готовности
+
+### ✅ Функциональные критерии
+- [x] SceneChatInterface создан в features/scene/ui/ChatInterface/
+- [x] Специфичная логика (addNewObjectTool, debug-панель) перенесена
+- [x] Все импорты в sceneEditor обновлены на новый тип ChatMessage
+- [x] Старые импорты из @src/shared/lib/openAIAPI.ts заменены на новые из shared/entities/chat
+- [x] Функциональность sceneEditor работает без изменений
+- [x] Debug-панель с JSON выводом сохранена и работает
+
+### ✅ Технические критерии
+- [x] TypeScript компилируется без ошибок
+- [x] Проект собирается успешно (`npm run build`)
+- [x] Все экспорты настроены корректно
+- [x] Новый тип ChatMessage корректно используется
+
+### ✅ Качественные критерии
+- [x] Архитектура соответствует принципам FSD
+- [x] Специфичная логика размещена в соответствующей фиче
+- [x] Обратная совместимость с существующим кодом
+- [x] Код хорошо структурирован и читаем
+
 ## Связанные файлы
-- `src/shared/entities/chat/` - базовые компоненты из Фазы 1
-- `src/widgets/ChatInterface.tsx` - исходный код для миграции
-- `src/features/scene/lib/ai/tools/` - AI tools для интеграции
-- `src/features/scene/model/sceneStore.ts` - стейт для callbacks
+
+**Созданные:**
+- `src/features/scene/ui/ChatInterface/SceneChatInterface.tsx` (рефакторирован)
+- `src/features/scene/ui/ChatInterface/index.ts`
+- `src/features/scene/ui/ChatInterface/hooks/useSceneChat.ts`
+- `src/features/scene/ui/ChatInterface/components/SceneDebugPanel/SceneDebugPanel.tsx`
+- `src/features/scene/ui/ChatInterface/components/SceneDebugPanel/index.ts`
+- `src/features/scene/ui/ChatInterface/components/SceneToolCallbacks/SceneToolCallbacks.tsx`
+- `src/features/scene/ui/ChatInterface/components/SceneToolCallbacks/index.ts`
+
+**Измененные:**
+- `src/features/scene/ui/SceneEditorR3F.tsx` - обновлены импорты и использование
+- `src/features/scene/ui/index.ts` - добавлен экспорт ChatInterface
+- `src/shared/lib/langchain/adapters.ts` - обновлен импорт ChatMessage
+- `src/shared/lib/langchain/chatService.ts` - обновлен импорт ChatMessage  
+- `src/shared/lib/langchain/types.ts` - обновлен импорт ChatMessage
+
+**Для удаления в следующих фазах:**
+- `src/widgets/ChatInterface.tsx` (будет удален в фазе 5)
+- Старый тип ChatMessage в `src/shared/lib/openAIAPI.ts` (будет удален в фазе 5)

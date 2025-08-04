@@ -68,7 +68,7 @@
 
 **Детали выполнения:** [phase_2_summary.md](phases/phase_2_summary.md)
 
-### Фаза 3: Миграция SceneEditor ChatInterface  
+### Фаза 3: Миграция SceneEditor ChatInterface ✅ **Выполнено**
 **Цель:** Перенос существующего ChatInterface в соответствующую фичу scene с переходом на новый тип ChatMessage
 
 **Задачи:**
@@ -78,12 +78,14 @@
 4. Провести тестирование обратной совместимости
 
 **Критерии готовности:**
-- [ ] SceneChatInterface создан в features/scene/ui/ChatInterface/
-- [ ] Специфичная логика (addNewObjectTool, debug-панель) перенесена
-- [ ] Все импорты в sceneEditor обновлены на новый тип ChatMessage
-- [ ] Старые импорты из @src/shared/lib/openAIAPI.ts заменены на новые из shared/entities/chat
-- [ ] Функциональность sceneEditor работает без изменений
-- [ ] Debug-панель с JSON выводом сохранена и работает
+- [x] SceneChatInterface создан в features/scene/ui/ChatInterface/
+- [x] Специфичная логика (addNewObjectTool, debug-панель) перенесена
+- [x] Все импорты в sceneEditor обновлены на новый тип ChatMessage
+- [x] Старые импорты из @src/shared/lib/openAIAPI.ts заменены на новые из shared/entities/chat
+- [x] Функциональность sceneEditor работает без изменений
+- [x] Debug-панель с JSON выводом сохранена и работает
+
+**Детали выполнения:** [phase_3_summary.md](phases/phase_3_summary.md)
 
 ### Фаза 4: Создание ObjectEditor ChatInterface
 **Цель:** Реализация chat-функциональности для objectEditor с интеграцией в новый layout

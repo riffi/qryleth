@@ -1,4 +1,4 @@
-import type {ChatMessage} from '../openAIAPI'
+import type {ChatMessage} from '@/shared/entities/chat'
 import type {OpenAISettingsConnection} from '../openAISettings'
 import type { DynamicStructuredTool } from '@langchain/core/tools'
 

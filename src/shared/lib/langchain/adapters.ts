@@ -1,4 +1,4 @@
-import type {ChatMessage} from '../openAIAPI'
+import type {ChatMessage} from '@/shared/entities/chat'
 import type {LangChainChatResponse} from './types'
 import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from '@langchain/core/messages'
 

@@ -1,6 +1,7 @@
 /**
  * Экспорт UI-компонентов фичи сцены.
  */
+export * from './ChatInterface'
 export * from './objectManager/AddObjectFromLibraryModal.tsx'
 export * from './objectManager/LightingControls.tsx'
 export * from './renderer/Scene3D.tsx'
