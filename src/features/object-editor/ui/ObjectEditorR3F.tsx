@@ -63,68 +63,75 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     useObjectStore.getState().selectPrimitive(0)
   }, [objectData])
 
-  // Создаем компонент header controls для передачи в layout
-  const headerControls = (
-    <Group gap="xs">
-      <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
-        <ActionIcon
-          variant={gridVisible ? 'filled' : 'light'}
-          c={gridVisible ? 'white' : 'gray'}
-          onClick={toggleGridVisibility}
-          size="md"
-        >
-          <IconGridDots size={18} />
-        </ActionIcon>
-      </Tooltip>
-
-      <Group gap="xs">
-        <Tooltip label="Перемещение">
-          <ActionIcon
-            size="md"
-            variant={transformMode === 'translate' ? 'filled' : 'light'}
-            color="blue"
-            onClick={() => setTransformMode('translate')}
-          >
-            <IconArrowRightBar size={16} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Поворот">
-          <ActionIcon
-            size="md"
-            variant={transformMode === 'rotate' ? 'filled' : 'light'}
-            color="green"
-            onClick={() => setTransformMode('rotate')}
-          >
-            <IconRotate size={16} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Масштаб">
-          <ActionIcon
-            size="md"
-            variant={transformMode === 'scale' ? 'filled' : 'light'}
-            color="orange"
-            onClick={() => setTransformMode('scale')}
-          >
-            <IconResize size={16} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-
-      <SegmentedControl
-        value={renderMode}
-        onChange={(v) => setRenderMode(v as 'solid' | 'wireframe')}
-        data={[
-          { value: 'solid', label: 'Solid' },
-          { value: 'wireframe', label: 'Wireframe' }
-        ]}
-        size="xs"
-      />
-    </Group>
-  )
-
   // Создаем компонент 3D сцены с дополнительными контролами
   const sceneContent = (
     <Box style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Box
+        style={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+          zIndex: 10,
+          padding: 6
+        }}
+      >
+        <Group gap="xs">
+          <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
+            <ActionIcon
+              variant={gridVisible ? 'filled' : 'light'}
+              c={gridVisible ? 'white' : 'gray'}
+              onClick={toggleGridVisibility}
+              size="md"
+            >
+              <IconGridDots size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Group gap="xs">
+            <Tooltip label="Перемещение">
+              <ActionIcon
+                size="md"
+                variant={transformMode === 'translate' ? 'filled' : 'light'}
+                color="blue"
+                onClick={() => setTransformMode('translate')}
+              >
+                <IconArrowRightBar size={16} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Поворот">
+              <ActionIcon
+                size="md"
+                variant={transformMode === 'rotate' ? 'filled' : 'light'}
+                color="green"
+                onClick={() => setTransformMode('rotate')}
+              >
+                <IconRotate size={16} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Масштаб">
+              <ActionIcon
+                size="md"
+                variant={transformMode === 'scale' ? 'filled' : 'light'}
+                color="orange"
+                onClick={() => setTransformMode('scale')}
+              >
+                <IconResize size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+
+          <SegmentedControl
+            value={renderMode}
+            onChange={(v) => setRenderMode(v as 'solid' | 'wireframe')}
+            data={[
+              { value: 'solid', label: 'Solid' },
+              { value: 'wireframe', label: 'Wireframe' }
+            ]}
+            size="xs"
+          />
+        </Group>
+      </Box>
+
       <Box style={{ width: '100%', height: '100%' }}>
         <ObjectScene3D />
       </Box>
@@ -136,7 +143,6 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       onClose={onClose}
       onSave={onSave}
       objectData={objectData}
-      headerControls={headerControls}
       externalPanelState={externalPanelState}
       hideHeader={modalMode}
     >
