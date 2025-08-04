@@ -7,7 +7,7 @@ import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 import { ObjectEditorR3F, useObjectEditorToolRegistration, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
-import { IconCheck, IconX } from '@tabler/icons-react'
+import { IconCheck, IconPlanet, IconX } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -267,12 +267,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
-            <Tooltip label="Библиотека">
-              <ActionIcon component={Link} to="/" variant="subtle" size="sm" c={"gray.4"}>
-                <IconBooks size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
-
             <Tooltip label="Настройки">
               <ActionIcon
                 variant="subtle"
@@ -444,7 +438,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                     value: 'orbit',
                     label: (
                       <Group gap={4} wrap="nowrap">
-                        <IconEye size={14} />
+                        <IconPlanet size={14} />
                         <span>Orbit</span>
                       </Group>
                     )
