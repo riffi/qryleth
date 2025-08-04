@@ -1,24 +1,7 @@
-import type {Tool as OpenAITool, ChatMessage} from '../openAIAPI'
-import type {LangChainTool, LangChainChatResponse} from './types'
+import type {ChatMessage} from '../openAIAPI'
+import type {LangChainChatResponse} from './types'
 import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from '@langchain/core/messages'
 
-/**
- * Converts OpenAI tool format to LangChain tool format
- */
-export function adaptOpenAIToolToLangChain(openAITool: OpenAITool): LangChainTool {
-  return {
-    name: openAITool.function.name,
-    description: openAITool.function.description,
-    schema: openAITool.function.parameters,
-  }
-}
-
-/**
- * Converts OpenAI tools array to LangChain tools array
- */
-export function adaptOpenAIToolsToLangChain(openAITools: OpenAITool[]): LangChainTool[] {
-  return openAITools.map(adaptOpenAIToolToLangChain)
-}
 
 /**
  * Converts ChatMessage array to LangChain BaseMessage array
