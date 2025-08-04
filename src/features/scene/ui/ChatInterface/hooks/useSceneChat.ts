@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChat } from '@/shared/entities/chat'
 import type { ChatMessage, ChatConfig } from '@/shared/entities/chat'
 import { langChainChatService, LangChainChatService } from '@/shared/lib/langchain'
@@ -28,6 +28,7 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
   const { onObjectAdded, debugMode = true } = options
   const debugChatServiceRef = useRef<LangChainChatService | null>(null)
   const connectionRef = useRef<OpenAISettingsConnection | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Конфигурация чата для scene
   const chatConfig: ChatConfig = {
@@ -42,9 +43,12 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     generateMessageId: () => nanoid()
   })
 
-  // Scene-специфичная обработка отправки сообщений
+  /**
+   * Отправляет сообщение в LangChain сервис и управляет состоянием загрузки.
+   * Пока агент обрабатывает запрос, интерфейс блокируется и отображается индикатор загрузки.
+   */
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || baseChat.isLoading) return
+    if (!content.trim() || isLoading) return
 
     const userMessage: ChatMessage = {
       id: nanoid(),
@@ -54,6 +58,7 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
 
     baseChat.addMessage(userMessage)
+    setIsLoading(true)
 
     try {
       // Используем LangChain агент для обработки сообщений
@@ -76,8 +81,10 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
         timestamp: new Date()
       }
       baseChat.addMessage(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
-  }, [baseChat])
+  }, [baseChat, isLoading])
 
   // Scene-специфичный callback для обработки tool calls
   const handleToolCallback = useCallback((toolName: string, result: unknown) => {
@@ -179,6 +186,7 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
 
   return {
     ...baseChat,
+    isLoading,
     sendMessage,
     connection: connectionRef.current,
     updateModel,
