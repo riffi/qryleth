@@ -10,5 +10,7 @@ export * from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitive
 export * from './PrimitiveControlPanel/PrimitiveControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 export * from './MaterialManager/MaterialManager.tsx'
-
 export * from './MaterialControlPanel/MaterialControlPanel.tsx'
+
+// Panel management components
+export * from './PanelToggleButtons'

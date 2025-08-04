@@ -32,7 +32,7 @@
 
 ## План выполнения по фазам
 
-### Фаза 1: Создание базовой инфраструктуры
+### Фаза 1: Создание базовой инфраструктуры ✅ **Выполнено**
 **Цель:** Создание общих компонентов и типов для chat-функциональности с новым типом ChatMessage
 
 **Задачи:**
@@ -42,12 +42,14 @@
 4. Создать типы для состояния панелей (`PanelState`, `PanelType`)
 
 **Критерии готовности:**
-- [ ] Новый тип ChatMessage создан в shared/entities/chat/types/ с полями id, content, role, timestamp, toolCalls?
-- [ ] Базовые типы ChatConfig созданы в shared/entities/chat/types/
-- [ ] UI компоненты ChatContainer, ChatMessageItem, ChatInput созданы в shared/entities/chat/ui/
-- [ ] Хуки useChat, useChatScroll созданы в shared/entities/chat/lib/hooks/
-- [ ] PanelToggleButtons компонент создан в features/object-editor/ui/
-- [ ] Типы для управления состоянием панелей определены
+- [x] Новый тип ChatMessage создан в shared/entities/chat/types/ с полями id, content, role, timestamp, toolCalls?
+- [x] Базовые типы ChatConfig созданы в shared/entities/chat/types/
+- [x] UI компоненты ChatContainer, ChatMessageItem, ChatInput созданы в shared/entities/chat/ui/
+- [x] Хуки useChat, useChatScroll созданы в shared/entities/chat/lib/hooks/
+- [x] PanelToggleButtons компонент создан в features/object-editor/ui/
+- [x] Типы для управления состоянием панелей определены
+
+**Детали выполнения:** [phase_1_summary.md](phases/phase_1_summary.md)
 
 ### Фаза 2: Рефакторинг ObjectEditor layout
 **Цель:** Подготовка UI ObjectEditor для интеграции системы переключаемых панелей
