@@ -29,8 +29,19 @@
 ### `addObjectInstance(objectUuid: string, position?: Vector3, rotation?: Vector3, scale?: Vector3, visible?: boolean): AddInstanceResult`
 Создает экземпляр существующего объекта с указанной трансформацией. Проверяет наличие объекта и добавляет экземпляр в хранилище.
 
-### `getAvailableLayers()`
-Возвращает слои сцены с их идентификаторами и видимостью, доступные для размещения объектов.
+### `getAvailableLayers(): LayerInfo[]`
+Возвращает массив доступных слоёв сцены с их идентификаторами, названиями,
+видимостью и позициями. Эти данные используются для выбора слоя при
+размещении объектов.
+
+```typescript
+interface LayerInfo {
+  id: string
+  name: string
+  visible: boolean
+  position?: Vector3
+}
+```
 
 ### `canAddInstance(objectUuid: string): boolean`
 Проверяет, существует ли объект с заданным UUID и можно ли создать его экземпляр.
