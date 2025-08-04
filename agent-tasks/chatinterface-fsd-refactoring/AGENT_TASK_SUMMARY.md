@@ -33,15 +33,17 @@
 ## План выполнения по фазам
 
 ### Фаза 1: Создание базовой инфраструктуры
-**Цель:** Создание общих компонентов и типов для chat-функциональности
+**Цель:** Создание общих компонентов и типов для chat-функциональности с новым типом ChatMessage
 
 **Задачи:**
-1. Создать `shared/entities/chat` с базовой функциональностью
-2. Создать `features/object-editor/ui/PanelToggleButtons` для управления панелями ObjectEditor  
-3. Создать типы для состояния панелей (`PanelState`, `PanelType`)
+1. Создать новый тип `ChatMessage` в `shared/entities/chat` с расширенной функциональностью
+2. Создать `shared/entities/chat` с базовой функциональностью на основе нового типа
+3. Создать `features/object-editor/ui/PanelToggleButtons` для управления панелями ObjectEditor  
+4. Создать типы для состояния панелей (`PanelState`, `PanelType`)
 
 **Критерии готовности:**
-- [ ] Базовые типы ChatMessage, ChatConfig созданы в shared/entities/chat/types/
+- [ ] Новый тип ChatMessage создан в shared/entities/chat/types/ с полями id, content, role, timestamp, toolCalls?
+- [ ] Базовые типы ChatConfig созданы в shared/entities/chat/types/
 - [ ] UI компоненты ChatContainer, ChatMessageItem, ChatInput созданы в shared/entities/chat/ui/
 - [ ] Хуки useChat, useChatScroll созданы в shared/entities/chat/lib/hooks/
 - [ ] PanelToggleButtons компонент создан в features/object-editor/ui/
@@ -63,17 +65,19 @@
 - [ ] Автоматическое скрытие чата при выборе примитива/материала работает корректно
 
 ### Фаза 3: Миграция SceneEditor ChatInterface  
-**Цель:** Перенос существующего ChatInterface в соответствующую фичу scene
+**Цель:** Перенос существующего ChatInterface в соответствующую фичу scene с переходом на новый тип ChatMessage
 
 **Задачи:**
 1. Перенести специфичную логику в `features/scene/ui/ChatInterface`
-2. Обновить все импорты ChatInterface в sceneEditor
-3. Провести тестирование обратной совместимости
+2. Обновить все импорты ChatInterface в sceneEditor на новый тип из shared/entities/chat
+3. Заменить все использования старого типа ChatMessage из @src/shared/lib/openAIAPI.ts на новый
+4. Провести тестирование обратной совместимости
 
 **Критерии готовности:**
 - [ ] SceneChatInterface создан в features/scene/ui/ChatInterface/
 - [ ] Специфичная логика (addNewObjectTool, debug-панель) перенесена
-- [ ] Все импорты в sceneEditor обновлены
+- [ ] Все импорты в sceneEditor обновлены на новый тип ChatMessage
+- [ ] Старые импорты из @src/shared/lib/openAIAPI.ts заменены на новые из shared/entities/chat
 - [ ] Функциональность sceneEditor работает без изменений
 - [ ] Debug-панель с JSON выводом сохранена и работает
 
@@ -93,15 +97,20 @@
 - [ ] Чат функционирует в обоих режимах: страница редактирования и модальное окно
 
 ### Фаза 5: Финализация и тестирование
-**Цель:** Завершение миграции и проверка всей системы
+**Цель:** Завершение миграции, удаление старого типа ChatMessage и проверка всей системы
 
 **Задачи:**
 1. Удалить старый `widgets/ChatInterface.tsx`
-2. Провести полное тестирование обеих фич
-3. Проверить производительность и UX
+2. Удалить старый тип ChatMessage из `@src/shared/lib/openAIAPI.ts`
+3. Обновить все адаптеры и зависимые модули на новый тип
+4. Провести полное тестирование обеих фич
+5. Проверить производительность и UX
 
 **Критерии готовности:**
 - [ ] Старый widgets/ChatInterface.tsx удален
+- [ ] Старый тип ChatMessage удален из @src/shared/lib/openAIAPI.ts
+- [ ] Все адаптеры (langchain/adapters.ts и другие) обновлены на новый тип ChatMessage
+- [ ] Все зависимые модули переведены на новый тип из shared/entities/chat
 - [ ] Scene editor полностью функционален с новым ChatInterface
 - [ ] Object editor полностью функционален с новым ChatInterface и системой панелей
 - [ ] Нет регрессий в производительности
@@ -209,16 +218,21 @@ interface ChatConfig {
 ### Миграционные риски и решения
 
 **Потенциальные проблемы:**
-- Breaking changes при обновлении импортов
+- Breaking changes при обновлении импортов ChatMessage и ChatInterface
 - Дублирование LangChain логики между фичами  
 - Проблемы с hot reload при рефакторинге
 - Синхронизация состояния чатов
+- Конфликт типов при одновременном существовании старого и нового ChatMessage
+- Необходимость обновления всех адаптеров и зависимых модулей
 
 **Решения:**
+- Создать новый тип ChatMessage с расширенной функциональностью (добавить id и toolCalls?)
+- Поэтапная миграция: сначала создать новый тип, затем постепенно переводить код
 - Создать общий `useLangChainService` хук в shared
 - Вынести tool registration в отдельные модули
 - Использовать единую конфигурацию OpenAI подключений
-- Поэтапная миграция с промежуточным тестированием
+- Обновить адаптеры (langchain/adapters.ts) только после миграции всех компонентов
+- Удалить старый тип ChatMessage только на финальной стадии
 
 ## Критерии успеха
 
