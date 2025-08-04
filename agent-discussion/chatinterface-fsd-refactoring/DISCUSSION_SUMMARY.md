@@ -102,14 +102,25 @@ src/features/scene/ui/ChatInterface/
     └── useSceneChat.ts
 ```
 
-**3. Структура для objectEditor:**
+**3. Структура для objectEditor (обновлено):**
 ```
-src/features/object-editor/ui/ChatInterface/
-├── ObjectChatInterface.tsx
-├── components/
-│   └── ObjectToolCallbacks/
-└── hooks/
-    └── useObjectChat.ts
+src/features/object-editor/ui/
+├── ChatInterface/
+│   ├── ObjectChatInterface.tsx
+│   ├── components/
+│   │   └── ObjectToolCallbacks/
+│   └── hooks/
+│       └── useObjectChat.ts
+├── PanelToggleButtons/
+│   ├── PanelToggleButtons.tsx
+│   ├── types.ts
+│   └── hooks/
+│       └── usePanelState.ts
+└── ObjectEditorLayout/
+    ├── ObjectEditorLayout.tsx
+    └── components/
+        ├── HeaderControls/
+        └── PanelContainer/
 ```
 
 ### Решение размещения UI для objectEditor
@@ -165,15 +176,64 @@ src/features/object-editor/ui/ChatInterface/
 - в левой же панели окно чата
 
 Итого: в верхней панели будет 3 иконки: чат(новый компонент), свойства(PrimitiveControlPanel или MaterialControlPanel), менеджер (ObjectManagementPanel)
-- При активации  "менеджер", будет открываться/скрываться ObjectManagementPanel
+- При активации "менеджер", будет открываться/скрываться ObjectManagementPanel
 - При активации чата будет отображаться слева чат. если открыты "свойства", они будут автоматически скрываться.
 - При выборе в менеджере примитива или материала, чат будет скрываться и отображаться свойства.
 - Иконки будут отображать активность соответствующих панелей.
 - Для страницы редактирования объекта - иконки в rightSection header
 - Для модального окна - иконки в шапке окна рядом с иконкой закрытия окна
 
-Предлагаю:
-- для страницы редактирова
+### Обновленное решение UI для ObjectEditor
+
+**Принятое решение**: Размещение чата в левой панели с переключателями в шапке
+
+**Техническая реализация:**
+1. **Создание компонента ToggleButtons** для управления панелями:
+   - Иконка чата (новый компонент)
+   - Иконка свойств (PrimitiveControlPanel/MaterialControlPanel)
+   - Иконка менеджера (ObjectManagementPanel)
+
+2. **Логика переключения панелей:**
+   - Чат и свойства - взаимоисключающие (левая панель)
+   - Менеджер - независимый (правая панель)
+   - Автоматическое скрытие чата при выборе примитива/материала
+   - Визуальная индикация активных панелей
+
+3. **Интеграция в двух режимах:**
+   - **Страница редактирования**: кнопки в rightSection header
+   - **Модальное окно**: кнопки в шапке рядом с крестиком закрытия
+
+4. **Состояние панелей:**
+   - Использовать общий стейт для управления видимостью
+   - Синхронизация между режимами отображения
+   - Сохранение предпочтений пользователя
+
+### Обновленный план миграции (с учетом пользовательских требований)
+
+**Фаза 1: Создание базовой инфраструктуры**
+1. Создать `shared/entities/chat` с базовой функциональностью
+2. Создать `shared/ui/PanelToggleButtons` для переключения панелей
+3. Создать типы для состояния панелей (`PanelState`, `PanelType`)
+
+**Фаза 2: Рефакторинг ObjectEditor layout**
+1. Создать `ObjectEditorLayout` компонент для управления панелями
+2. Интегрировать toggle buttons в header (страница) и modal header
+3. Реализовать логику взаимоисключающего отображения левых панелей
+
+**Фаза 3: Миграция SceneEditor ChatInterface**
+1. Перенести специфичную логику в `features/scene/ui/ChatInterface`
+2. Обновить импорты в sceneEditor
+3. Тестирование обратной совместимости
+
+**Фаза 4: Создание ObjectEditor ChatInterface**
+1. Создать `features/object-editor/ui/ChatInterface/ObjectChatInterface`
+2. Интегрировать в новый layout с toggle системой
+3. Добавить специфичные для object-editor AI tools
+
+**Фаза 5: Финализация и тестирование**
+1. Удаление старого `widgets/ChatInterface.tsx`
+2. Полное тестирование обеих фич
+3. Проверка производительности и UX
 
 ## Этапы валидации
 - **Быстрое прототипирование**: [не проводилось]
