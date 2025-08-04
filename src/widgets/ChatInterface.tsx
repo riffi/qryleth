@@ -6,9 +6,8 @@ import {
   IconRobot,
   IconArrowsDiagonalMinimize2
 } from '@tabler/icons-react'
-import { fetchWithTools, AVAILABLE_TOOLS } from '@/shared/lib/openAIAPI'
 import { addNewObjectTool, createAddNewObjectTool } from '@/features/scene/lib/ai/tools'
-import type { ChatMessage, ToolCall } from '@/shared/lib/openAIAPI'
+import type { ChatMessage } from '@/shared/lib/openAIAPI'
 import { langChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection, getProviderModels } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
@@ -34,7 +33,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
   /**
    * Выполняет инструмент add_new_object и возвращает созданный объект
    */
-  const executeAddNewObject = async (args: any): Promise<GfxObjectWithTransform> => {
+  const executeAddNewObject = async (args: Record<string, unknown>): Promise<GfxObjectWithTransform> => {
     const result = await addNewObjectTool.func(args)
     const parsed = JSON.parse(result)
     if (parsed.success && parsed.object) {
@@ -65,25 +64,26 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
         await langChainChatService.initialize()
 
         // Устанавливаем общий callback для инструментов
-        langChainChatService.setToolCallback((toolName: string, result: any) => {
+        langChainChatService.setToolCallback((toolName: string, result: unknown) => {
+          const res = result as { success?: boolean; object?: GfxObjectWithTransform }
           // Обрабатываем успешное добавление объектов
           if (toolName === 'add_new_object') {
-            if (result.success && result.object) {
+            if (res.success && res.object) {
               // Добавляем сообщение об успешном добавлении
               const successMessage: ChatMessage = {
                 role: 'assistant',
-                content: `✅ Новый объект "${result.object.name}" был добавлен в сцену.`,
+                content: `✅ Новый объект "${res.object.name}" был добавлен в сцену.`,
                 timestamp: new Date()
               }
               setMessages(prev => [...prev, successMessage])
             }
           }
           if (toolName === 'add_object_from_library') {
-            if (result.success && result.object) {
+            if (res.success && res.object) {
               // Добавляем сообщение об успешном добавлении
               const successMessage: ChatMessage = {
                 role: 'assistant',
-                content: `📘 Объект "${result.object.name}" из библиотеки был добавлен в сцену.`,
+                content: `📘 Объект "${res.object.name}" из библиотеки был добавлен в сцену.`,
                 timestamp: new Date()
               }
               setMessages(prev => [...prev, successMessage])
@@ -192,6 +192,9 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
     }
   }
 
+  /**
+   * Отправляет промпт в отладочный сервис и отображает результат.
+   */
   const handleDebugSend = async () => {
     if (!debugPrompt.trim() || isDebugLoading || !debugChatServiceRef.current) return
 
@@ -203,10 +206,11 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
       // Set up callback to capture tool execution results
       let toolExecutionResult: string | null = null
       let objectData: string | null = null
-      debugService.setToolCallback((toolName: string, result: any) => {
+      debugService.setToolCallback((toolName: string, result: unknown) => {
+        const res = result as { object?: unknown }
         if (toolName === 'add_new_object') {
-          toolExecutionResult = JSON.stringify(result, null, 2)
-          objectData = JSON.stringify(result.object, null, 2)
+          toolExecutionResult = JSON.stringify(res, null, 2)
+          objectData = JSON.stringify(res.object, null, 2)
         }
       })
 
@@ -234,6 +238,9 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
     }
   }
 
+  /**
+   * Применяет объект, сформированный в отладочном JSON.
+   */
   const handleApplyDebugObject = async () => {
     try {
       const objectData = JSON.parse(debugResponse)
@@ -242,7 +249,7 @@ export const ChatInterface: React.FC<Props> = ({ onCollapse }) => {
         return
       }
       // Используем LangChain инструмент для создания объекта из debug данных
-      const gfxObject = await executeAddNewObject(objectData)
+      await executeAddNewObject(objectData)
     } catch (error) {
       console.error('Failed to apply debug object:', error)
     }
