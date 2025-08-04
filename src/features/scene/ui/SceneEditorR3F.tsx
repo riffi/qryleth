@@ -289,11 +289,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
-            <Tooltip label="Справка">
-              <ActionIcon variant="subtle" size="sm" c={"gray.4"}>
-                <IconInfoCircle size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
           </>
         )}
       >
