@@ -54,7 +54,7 @@ const ObjectEditorPage: React.FC = () => {
       activeLeftPanel={globalPanelState.panelState.leftPanel}
       activeRightPanel={globalPanelState.panelState.rightPanel}
       onToggle={globalPanelState.togglePanel}
-      size="sm"
+      size="md"
     />
   )
 

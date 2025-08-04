@@ -101,7 +101,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
-  
+
   // Глобальное состояние панелей для ObjectEditor
   const globalPanelState = useGlobalPanelState()
 
@@ -497,7 +497,22 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         opened={editorOpened}
         onClose={() => setEditorOpened(false)}
         fullScreen
-        styles={{ body: { height: 'calc(100vh - 120px)', padding: 0 }, content: { height: '100vh' }, header: { padding: '1rem' } }}
+        styles={{
+          body: {
+            height: 'calc(100vh - 120px)',
+            padding: 0
+          },
+          content: {
+            height: '100vh'
+          },
+          header: {
+            padding: '1rem'
+          },
+          title:{
+            flexGrow: 1,
+            marginRight: '2rem'
+          }
+        }}
         title={
           <Group justify="space-between" style={{ width: '100%' }}>
             <Text size="lg" fw={500}>
@@ -508,7 +523,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 activeLeftPanel={globalPanelState.panelState.leftPanel}
                 activeRightPanel={globalPanelState.panelState.rightPanel}
                 onToggle={globalPanelState.togglePanel}
-                size="sm"
+                size="md"
               />
             </Group>
           </Group>
