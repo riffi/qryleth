@@ -49,6 +49,11 @@
 - **[Object Placement](features/scene-management/object-placement.md)** - Управление объектами
 - **[Lighting System](features/scene-management/lighting-system.md)** - Управление освещением
 - **[Scripting Panel](features/scene-management/scripting-panel.md)** - Выполнение пользовательских скриптов
+- **[Keyboard Shortcuts](features/scene-management/keyboard-shortcuts.md)** - Клавиатурные сокращения
+
+### Редактирование объектов
+- **[Overview](features/object-editing/README.md)** - общая информация
+- **[Keyboard Shortcuts](features/object-editing/keyboard-shortcuts.md)** - Горячие клавиши редактора объектов
 
 ### Интеграция ИИ
 - **[LLM Integration](features/ai-integration/llm-integration.md)** - Настройка языковой модели

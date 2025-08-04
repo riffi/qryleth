@@ -127,7 +127,7 @@ const PrimitiveRenderer = ({ primitive, object }) => {
 - **Автосохранение** изменений
 - **Отмена действий** через браузерный undo
 - **Drag & drop** для реорганизации
-- **Клавиатурные сокращения**
+- **Горячие клавиши** — обрабатываются хуком `useOEKeyboardShortcuts`; см. [список](keyboard-shortcuts.md)
 
 ---
 

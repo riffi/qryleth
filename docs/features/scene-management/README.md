@@ -362,6 +362,7 @@ useEffect(() => {
 - [AI Integration](../ai-integration/README.md) - AI assistant capabilities
 - [Type System](../../api/types/README.md) - Scene-related types
 - [Component Patterns](../../architecture/patterns/component-patterns.md) - React patterns
+- [Keyboard Shortcuts](keyboard-shortcuts.md) - Клавиатурное управление сценой
 
 
 ## Точки расширения
