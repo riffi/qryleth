@@ -5,6 +5,9 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 
+/**
+ * Создаёт инструмент для анализа структуры объекта и генерации рекомендаций.
+ */
 export const createAnalyzeObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'analyzeObject',
@@ -19,6 +22,9 @@ export const createAnalyzeObjectTool = () => {
   })
 }
 
+/**
+ * Создаёт инструмент для оптимизации объекта с целью повышения производительности.
+ */
 export const createOptimizeObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'optimizeObject',
@@ -34,6 +40,9 @@ export const createOptimizeObjectTool = () => {
   })
 }
 
+/**
+ * Создаёт инструмент для проверки объекта на корректность и поиск проблем.
+ */
 export const createValidateObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'validateObject',
@@ -43,12 +52,15 @@ export const createValidateObjectTool = () => {
         .optional().default(['geometry', 'materials', 'transforms']),
       strict: z.boolean().optional().default(false)
     }),
-    func: async (input) => {
+    func: async () => {
       return 'Валидация объекта выполнена'
     }
   })
 }
 
+/**
+ * Создаёт инструмент для предложения улучшений объекта на основе текущего состояния.
+ */
 export const createSuggestImprovementsTool = () => {
   return new DynamicStructuredTool({
     name: 'suggestImprovements',
@@ -64,6 +76,9 @@ export const createSuggestImprovementsTool = () => {
   })
 }
 
+/**
+ * Создаёт инструмент для подсчёта статистики объекта.
+ */
 export const createCalculateStatsTool = () => {
   return new DynamicStructuredTool({
     name: 'calculateStats',
@@ -72,12 +87,15 @@ export const createCalculateStatsTool = () => {
       includeEstimates: z.boolean().optional().default(true),
       compareWithStandards: z.boolean().optional().default(false)
     }),
-    func: async (input) => {
+    func: async () => {
       return 'Статистика объекта подсчитана'
     }
   })
 }
 
+/**
+ * Создаёт инструмент для генерации вариаций объекта.
+ */
 export const createGenerateVariationsTool = () => {
   return new DynamicStructuredTool({
     name: 'generateVariations',

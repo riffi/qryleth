@@ -1,168 +1,101 @@
 /**
- * AI инструменты для работы с примитивами в ObjectEditor
+ * LangChain инструменты для работы с примитивами в ObjectEditor
  */
 
-import type { ToolDefinition } from '@/shared/entities/chat'
+import { DynamicStructuredTool } from '@langchain/core/tools'
+import { z } from 'zod'
 
-export const addPrimitivesTool: ToolDefinition = {
-  name: 'addPrimitives',
-  description: 'Добавить один или несколько примитивов к объекту (массовая операция)',
-  parameters: {
-    type: 'object',
-    properties: {
-      primitives: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            primitiveType: { 
-              type: 'string',
-              enum: ['box', 'sphere', 'cylinder', 'cone', 'torus', 'plane'],
-              description: 'Тип примитива'
-            },
-            position: { 
-              type: 'object',
-              properties: {
-                x: { type: 'number' },
-                y: { type: 'number' },
-                z: { type: 'number' }
-              },
-              required: ['x', 'y', 'z'],
-              description: 'Позиция примитива в пространстве'
-            },
-            rotation: { 
-              type: 'object',
-              properties: {
-                x: { type: 'number' },
-                y: { type: 'number' },
-                z: { type: 'number' }
-              },
-              required: ['x', 'y', 'z'],
-              description: 'Поворот примитива (в радианах)'
-            },
-            scale: { 
-              type: 'object',
-              properties: {
-                x: { type: 'number', minimum: 0.1 },
-                y: { type: 'number', minimum: 0.1 },
-                z: { type: 'number', minimum: 0.1 }
-              },
-              required: ['x', 'y', 'z'],
-              description: 'Масштабирование примитива'
-            },
-            materialUuid: { 
-              type: 'string',
-              description: 'UUID материала (опционально)'
-            },
-            name: {
-              type: 'string',
-              description: 'Название примитива (опционально)'
-            }
-          },
-          required: ['primitiveType']
-        },
-        minItems: 1,
-        maxItems: 10,
-        description: 'Массив примитивов для добавления'
-      }
-    },
-    required: ['primitives']
-  }
+// Схемы для примитивов
+const Vector3Schema = z.object({
+  x: z.number(),
+  y: z.number(),
+  z: z.number()
+})
+
+const PrimitiveSchema = z.object({
+  primitiveType: z.enum(['box', 'sphere', 'cylinder', 'cone', 'torus', 'plane']),
+  position: Vector3Schema.optional().default({ x: 0, y: 0, z: 0 }),
+  rotation: Vector3Schema.optional().default({ x: 0, y: 0, z: 0 }),
+  scale: Vector3Schema.optional().default({ x: 1, y: 1, z: 1 }),
+  materialUuid: z.string().optional(),
+  name: z.string().optional()
+})
+
+/**
+ * Создаёт инструмент для добавления новых примитивов в объект.
+ * Используй его, когда требуется создать один или несколько примитивов.
+ */
+export const createAddPrimitivesTool = () => {
+  return new DynamicStructuredTool({
+    name: 'addPrimitives',
+    description: 'Добавить один или несколько примитивов к объекту (массовая операция). Используй этот инструмент когда пользователь просит создать примитивы.',
+    schema: z.object({
+      primitives: z.array(PrimitiveSchema).min(1).max(10)
+    }),
+    func: async (input) => {
+      // Обработка будет происходить через tool callback
+      return `Добавлено ${input.primitives.length} примитив(ов)`
+    }
+  })
 }
 
-export const modifyPrimitiveTool: ToolDefinition = {
-  name: 'modifyPrimitive',
-  description: 'Изменить существующий примитив по индексу',
-  parameters: {
-    type: 'object',
-    properties: {
-      index: {
-        type: 'number',
-        minimum: 0,
-        description: 'Индекс примитива в массиве'
-      },
-      updates: {
-        type: 'object',
-        properties: {
-          position: {
-            type: 'object',
-            properties: {
-              x: { type: 'number' },
-              y: { type: 'number' },
-              z: { type: 'number' }
-            }
-          },
-          rotation: {
-            type: 'object', 
-            properties: {
-              x: { type: 'number' },
-              y: { type: 'number' },
-              z: { type: 'number' }
-            }
-          },
-          scale: {
-            type: 'object',
-            properties: {
-              x: { type: 'number', minimum: 0.1 },
-              y: { type: 'number', minimum: 0.1 },
-              z: { type: 'number', minimum: 0.1 }
-            }
-          },
-          materialUuid: { type: 'string' },
-          name: { type: 'string' },
-          visible: { type: 'boolean' }
-        },
-        description: 'Объект с обновлениями для примитива'
-      }
-    },
-    required: ['index', 'updates']
-  }
+/**
+ * Создаёт инструмент для изменения существующего примитива по индексу.
+ * Полезно при изменении позиции, поворота, масштаба или материала примитива.
+ */
+export const createModifyPrimitiveTool = () => {
+  return new DynamicStructuredTool({
+    name: 'modifyPrimitive',
+    description: 'Изменить существующий примитив по индексу. Используй когда нужно изменить позицию, поворот, масштаб или материал примитива.',
+    schema: z.object({
+      index: z.number().int().min(0),
+      updates: z.object({
+        position: Vector3Schema.optional(),
+        rotation: Vector3Schema.optional(),
+        scale: Vector3Schema.optional(),
+        materialUuid: z.string().optional(),
+        name: z.string().optional(),
+        visible: z.boolean().optional()
+      })
+    }),
+    func: async (input) => {
+      return `Примитив ${input.index} обновлен`
+    }
+  })
 }
 
-export const removePrimitiveTool: ToolDefinition = {
-  name: 'removePrimitive',
-  description: 'Удалить примитив по индексу',
-  parameters: {
-    type: 'object',
-    properties: {
-      index: {
-        type: 'number',
-        minimum: 0,
-        description: 'Индекс примитива для удаления'
-      }
-    },
-    required: ['index']
-  }
+/**
+ * Создаёт инструмент для удаления примитива по индексу.
+ * Используй при необходимости удалить конкретный примитив.
+ */
+export const createRemovePrimitiveTool = () => {
+  return new DynamicStructuredTool({
+    name: 'removePrimitive',
+    description: 'Удалить примитив по индексу. Используй когда пользователь просит удалить конкретный примитив.',
+    schema: z.object({
+      index: z.number().int().min(0)
+    }),
+    func: async (input) => {
+      return `Примитив ${input.index} удален`
+    }
+  })
 }
 
-export const duplicatePrimitiveTool: ToolDefinition = {
-  name: 'duplicatePrimitive',
-  description: 'Дублировать примитив с возможностью смещения',
-  parameters: {
-    type: 'object',
-    properties: {
-      index: {
-        type: 'number',
-        minimum: 0,
-        description: 'Индекс примитива для дублирования'
-      },
-      offset: {
-        type: 'object',
-        properties: {
-          x: { type: 'number', default: 1 },
-          y: { type: 'number', default: 0 },
-          z: { type: 'number', default: 0 }
-        },
-        description: 'Смещение дублированного примитива'
-      },
-      count: {
-        type: 'number',
-        minimum: 1,
-        maximum: 10,
-        default: 1,
-        description: 'Количество копий'
-      }
-    },
-    required: ['index']
-  }
+/**
+ * Создаёт инструмент для дублирования примитива с опциональным смещением.
+ * Применяй для быстрого создания копий существующих примитивов.
+ */
+export const createDuplicatePrimitiveTool = () => {
+  return new DynamicStructuredTool({
+    name: 'duplicatePrimitive',
+    description: 'Дублировать примитив с возможностью смещения. Используй для создания копий существующих примитивов.',
+    schema: z.object({
+      index: z.number().int().min(0),
+      offset: Vector3Schema.optional().default({ x: 1, y: 0, z: 0 }),
+      count: z.number().int().min(1).max(10).optional().default(1)
+    }),
+    func: async (input) => {
+      return `Создано ${input.count} копий примитива`
+    }
+  })
 }

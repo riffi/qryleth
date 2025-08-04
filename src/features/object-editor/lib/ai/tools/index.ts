@@ -1,71 +1,55 @@
 /**
- * AI инструменты для ObjectEditor
+ * LangChain инструменты для ObjectEditor
  */
 
-export * from './primitiveTools'
-export * from './materialTools'
-export * from './objectStructureTools'
-
-import { 
-  addPrimitivesTool,
-  modifyPrimitiveTool,
-  removePrimitiveTool,
-  duplicatePrimitiveTool
+export {
+  createAddPrimitivesTool,
+  createModifyPrimitiveTool,
+  createRemovePrimitiveTool,
+  createDuplicatePrimitiveTool
 } from './primitiveTools'
 
-import {
-  createMaterialTool,
-  updateMaterialTool,
-  assignMaterialTool,
-  removeMaterialTool,
-  duplicateMaterialTool
+export {
+  createCreateMaterialTool,
+  createUpdateMaterialTool,
+  createAssignMaterialTool,
+  createRemoveMaterialTool,
+  createDuplicateMaterialTool
 } from './materialTools'
 
-import {
-  analyzeObjectTool,
-  optimizeObjectTool,
-  validateObjectTool,
-  suggestImprovementsTool,
-  calculateStatsTool,
-  generateVariationsTool
-} from './objectStructureTools'
-
-import type { ToolDefinition } from '@/shared/entities/chat'
+export {
+  createAnalyzeObjectTool,
+  createOptimizeObjectTool,
+  createValidateObjectTool,
+  createSuggestImprovementsTool,
+  createCalculateStatsTool,
+  createGenerateVariationsTool
+} from './analysisTools'
 
 /**
- * Все доступные AI инструменты для ObjectEditor
+ * Возвращает массив всех инструментов ObjectEditor.
+ * Вызывай эту функцию для регистрации инструментов в чат-сервисе.
  */
-export const objectEditorAITools: ToolDefinition[] = [
+export const createObjectEditorTools = () => [
   // Инструменты для работы с примитивами
-  addPrimitivesTool,
-  modifyPrimitiveTool,
-  removePrimitiveTool,
-  duplicatePrimitiveTool,
-  
+  createAddPrimitivesTool(),
+  createModifyPrimitiveTool(),
+  createRemovePrimitiveTool(),
+  createDuplicatePrimitiveTool(),
+
   // Инструменты для работы с материалами
-  createMaterialTool,
-  updateMaterialTool,
-  assignMaterialTool,
-  removeMaterialTool,
-  duplicateMaterialTool,
-  
+  createCreateMaterialTool(),
+  createUpdateMaterialTool(),
+  createAssignMaterialTool(),
+  createRemoveMaterialTool(),
+  createDuplicateMaterialTool(),
+
   // Инструменты для анализа и оптимизации
-  analyzeObjectTool,
-  optimizeObjectTool,
-  validateObjectTool,
-  suggestImprovementsTool,
-  calculateStatsTool,
-  generateVariationsTool
+  createAnalyzeObjectTool(),
+  createOptimizeObjectTool(),
+  createValidateObjectTool(),
+  createSuggestImprovementsTool(),
+  createCalculateStatsTool(),
+  createGenerateVariationsTool()
 ]
 
-/**
- * Группировка инструментов по категориям
- */
-export const toolCategories = {
-  primitives: [addPrimitivesTool, modifyPrimitiveTool, removePrimitiveTool, duplicatePrimitiveTool],
-  materials: [createMaterialTool, updateMaterialTool, assignMaterialTool, removeMaterialTool, duplicateMaterialTool],
-  analysis: [analyzeObjectTool, optimizeObjectTool, validateObjectTool, suggestImprovementsTool, calculateStatsTool, generateVariationsTool]
-} as const
-
-// Обратная совместимость
-export const objectEditorTools = objectEditorAITools
