@@ -48,7 +48,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const renderMode = useObjectRenderMode()
   const selectedMaterialUuid = useSelectedMaterialUuid()
   const internalPanelState = usePanelState()
-  
+
   // Используем внешнее состояние панелей если передано, иначе внутреннее
   const { panelState, togglePanel, showPanel } = externalPanelState || internalPanelState
 
@@ -128,20 +128,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
   return (
     <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {!hideHeader && (
-        <Group justify="space-between" gap="sm" p="md">
-          <Group>
-            <Title order={3}>{objectData ? `Редактор объекта: ${objectData.name}` : 'Новый объект'}</Title>
-            {renderMode === 'wireframe' && (
-              <Badge color="orange" variant="light">Wireframe</Badge>
-            )}
-          </Group>
-          <Group>
-            {headerControls}
-          </Group>
-        </Group>
-      )}
-      
+
       <Container
         size="xl"
         fluid
