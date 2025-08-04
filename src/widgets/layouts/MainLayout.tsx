@@ -1,5 +1,7 @@
 import React from 'react'
-import {AppShell, Container, Group, Image} from '@mantine/core'
+import {ActionIcon, AppShell, Button, Container, Group, Image, NavLink} from '@mantine/core'
+import {IconLibrary} from "@tabler/icons-react";
+import {useNavigate} from 'react-router-dom';
 
 
 interface MainLayoutProps {
@@ -8,6 +10,8 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }) => {
+  const navigate = useNavigate()
+
   return (
     <AppShell
       header={{ height: 60 }}
@@ -25,11 +29,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
           <Group h="100%" justify="space-between">
             <Group gap="sm" pl={"sm"}>
               <Image src="/logo.png" h={35} />
-              {/*<IconBrain size={24} color="var(--mantine-color-gray-6)" />*/}
-              {/*<Title order={3} c="gray.5">*/}
-              {/*  Qryleth 3D*/}
-              {/*</Title>*/}
             </Group>
+
+            <Group gap="md">
+              <Button
+                  variant="subtle"
+                  leftSection={<IconLibrary size={16} />}
+                  onClick={() => navigate('/')}
+              >
+                Библиотека
+              </Button>
+            </Group>
+
             <Group gap="xs">{rightSection}</Group>
           </Group>
         </Container>
