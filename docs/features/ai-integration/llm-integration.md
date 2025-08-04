@@ -57,8 +57,8 @@
 - `add_object_from_library` - добавление объекта из библиотеки
 
 **Object Editor Tools** (регистрируются в `features/object-editor`):
-- `update_primitive_properties` - обновление свойств примитива (geometry, position, rotation, scale)
-- `update_material_properties` - обновление свойств материала (цвет, шероховатость, металличность)
+ - `getObjectData` - получение полных данных текущего объекта
+ - `addPrimitives` - добавление одного или нескольких примитивов
 
 ### Система регистрации инструментов
 

@@ -105,8 +105,8 @@ interface PanelState {
 
 - **Анализ текущего объекта** - чат получает информацию о редактируемом объекте
 - **Специализированные AI tools**:
-  - `update_primitive_properties` - обновление параметров примитива
-  - `update_material_properties` - обновление свойств материала
+  - `getObjectData` - получение полных данных объекта
+  - `addPrimitives` - добавление новых примитивов
 - **Контекстные промпты** - системные промпты адаптируются под текущий контекст
 
 ---
@@ -210,21 +210,17 @@ const aiGeneratedObject = {
 }
 
 // AI tools для редактирования объектов
-const updatePrimitiveProperties = {
-  name: 'update_primitive_properties',
-  description: 'Обновить свойства примитива',
-  parameters: {
-    primitiveIndex: number,
-    updates: Partial<GfxPrimitive>
-  }
+const getObjectDataTool = {
+  name: 'getObjectData',
+  description: 'Получить полные данные текущего объекта',
+  parameters: {}
 }
 
-const updateMaterialProperties = {
-  name: 'update_material_properties', 
-  description: 'Обновить свойства материала',
+const addPrimitivesTool = {
+  name: 'addPrimitives',
+  description: 'Добавить один или несколько примитивов к объекту',
   parameters: {
-    materialUuid: string,
-    updates: Partial<GfxMaterial>
+    primitives: GfxPrimitive[]
   }
 }
 ```

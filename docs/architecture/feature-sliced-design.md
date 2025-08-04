@@ -43,7 +43,7 @@ src/
 │     │  └─ ObjectEditorLayout/  # Layout с переключаемыми панелями
 │     ├─ lib/
 │     │  └─ ai/   # AI инструменты для редактирования объектов
-│     │     └─ tools/  # updatePrimitive, updateMaterial tools
+│     │     └─ tools/  # getObjectData и addPrimitives
 │     └─ index.ts
 ├─ shared/
 │  ├─ entities/
@@ -168,7 +168,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 2. **ObjectChatInterface**:
    - Система переключаемых панелей (чат ⟷ свойства)
    - Контекстная помощь на основе редактируемого объекта
-   - Специализированные AI tools (updatePrimitive, updateMaterial)
+   - Специализированные AI tools (getObjectData, addPrimitives)
    - Поддержка режимов страницы и модального окна
 
 3. **Shared chat entities**:
