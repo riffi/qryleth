@@ -4,6 +4,7 @@
 
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
+import { ObjectEditorAPI } from '../../objectEditorApi'
 
 // Схемы для примитивов
 const Vector3Schema = z.object({
@@ -22,80 +23,92 @@ const PrimitiveSchema = z.object({
 })
 
 /**
- * Создаёт инструмент для добавления новых примитивов в объект.
- * Используй его, когда требуется создать один или несколько примитивов.
+ * Инструмент для добавления новых примитивов в объект
  */
-export const createAddPrimitivesTool = () => {
-  return new DynamicStructuredTool({
-    name: 'addPrimitives',
-    description: 'Добавить один или несколько примитивов к объекту (массовая операция). Используй этот инструмент когда пользователь просит создать примитивы.',
-    schema: z.object({
-      primitives: z.array(PrimitiveSchema).min(1).max(10)
-    }),
-    func: async (input) => {
-      // Обработка будет происходить через tool callback
-      return `Добавлено ${input.primitives.length} примитив(ов)`
+export const addPrimitivesTool = new DynamicStructuredTool({
+  name: 'add_primitives',
+  description: 'Добавить один или несколько примитивов в текущий объект.',
+  schema: z.object({
+    primitives: z.array(PrimitiveSchema).min(1).max(10)
+  }),
+  func: async ({ primitives }) => {
+    try {
+      const result = ObjectEditorAPI.addPrimitives(primitives)
+      return JSON.stringify(result, null, 2)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      return JSON.stringify({ success: false, error: msg })
     }
-  })
-}
+  }
+})
 
 /**
- * Создаёт инструмент для изменения существующего примитива по индексу.
- * Полезно при изменении позиции, поворота, масштаба или материала примитива.
+ * Инструмент для изменения существующего примитива
  */
-export const createModifyPrimitiveTool = () => {
-  return new DynamicStructuredTool({
-    name: 'modifyPrimitive',
-    description: 'Изменить существующий примитив по индексу. Используй когда нужно изменить позицию, поворот, масштаб или материал примитива.',
-    schema: z.object({
-      index: z.number().int().min(0),
-      updates: z.object({
-        position: Vector3Schema.optional(),
-        rotation: Vector3Schema.optional(),
-        scale: Vector3Schema.optional(),
-        materialUuid: z.string().optional(),
-        name: z.string().optional(),
-        visible: z.boolean().optional()
-      })
-    }),
-    func: async (input) => {
-      return `Примитив ${input.index} обновлен`
+export const modifyPrimitiveTool = new DynamicStructuredTool({
+  name: 'modify_primitive',
+  description: 'Изменить примитив по индексу.',
+  schema: z.object({
+    index: z.number().int().min(0),
+    updates: z.object({
+      position: Vector3Schema.optional(),
+      rotation: Vector3Schema.optional(),
+      scale: Vector3Schema.optional(),
+      materialUuid: z.string().optional(),
+      name: z.string().optional(),
+      visible: z.boolean().optional()
+    })
+  }),
+  func: async ({ index, updates }) => {
+    try {
+      const result = ObjectEditorAPI.modifyPrimitive(index, updates)
+      return JSON.stringify(result, null, 2)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      return JSON.stringify({ success: false, error: msg, index })
     }
-  })
-}
+  }
+})
 
 /**
- * Создаёт инструмент для удаления примитива по индексу.
- * Используй при необходимости удалить конкретный примитив.
+ * Инструмент для удаления примитива
  */
-export const createRemovePrimitiveTool = () => {
-  return new DynamicStructuredTool({
-    name: 'removePrimitive',
-    description: 'Удалить примитив по индексу. Используй когда пользователь просит удалить конкретный примитив.',
-    schema: z.object({
-      index: z.number().int().min(0)
-    }),
-    func: async (input) => {
-      return `Примитив ${input.index} удален`
+export const removePrimitiveTool = new DynamicStructuredTool({
+  name: 'remove_primitive',
+  description: 'Удалить примитив по индексу.',
+  schema: z.object({
+    index: z.number().int().min(0)
+  }),
+  func: async ({ index }) => {
+    try {
+      const result = ObjectEditorAPI.removePrimitive(index)
+      return JSON.stringify(result, null, 2)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      return JSON.stringify({ success: false, error: msg, index })
     }
-  })
-}
+  }
+})
 
 /**
- * Создаёт инструмент для дублирования примитива с опциональным смещением.
- * Применяй для быстрого создания копий существующих примитивов.
+ * Инструмент для дублирования примитива
  */
-export const createDuplicatePrimitiveTool = () => {
-  return new DynamicStructuredTool({
-    name: 'duplicatePrimitive',
-    description: 'Дублировать примитив с возможностью смещения. Используй для создания копий существующих примитивов.',
-    schema: z.object({
-      index: z.number().int().min(0),
-      offset: Vector3Schema.optional().default({ x: 1, y: 0, z: 0 }),
-      count: z.number().int().min(1).max(10).optional().default(1)
-    }),
-    func: async (input) => {
-      return `Создано ${input.count} копий примитива`
+export const duplicatePrimitiveTool = new DynamicStructuredTool({
+  name: 'duplicate_primitive',
+  description: 'Дублировать примитив с указанным смещением и количеством.',
+  schema: z.object({
+    index: z.number().int().min(0),
+    offset: Vector3Schema.optional().default({ x: 1, y: 0, z: 0 }),
+    count: z.number().int().min(1).max(10).optional().default(1)
+  }),
+  func: async ({ index, offset, count }) => {
+    try {
+      const result = ObjectEditorAPI.duplicatePrimitive(index, offset, count)
+      return JSON.stringify(result, null, 2)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      return JSON.stringify({ success: false, error: msg })
     }
-  })
-}
+  }
+})
+

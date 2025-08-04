@@ -5,14 +5,46 @@
 import React from 'react'
 import type { ToolProvider } from '@/shared/lib/langchain/types'
 import { toolRegistry } from '@/shared/lib/langchain/toolRegistry'
-import { objectEditorTools } from './tools'
+import {
+  addPrimitivesTool,
+  modifyPrimitiveTool,
+  removePrimitiveTool,
+  duplicatePrimitiveTool,
+  createMaterialTool,
+  updateMaterialTool,
+  assignMaterialTool,
+  removeMaterialTool,
+  duplicateMaterialTool,
+  analyzeObjectTool,
+  optimizeObjectTool,
+  validateObjectTool,
+  suggestImprovementsTool,
+  calculateStatsTool,
+  generateVariationsTool
+} from './tools'
 
 /**
  * Провайдер инструментов object-editor для LangChain
  */
 export const objectEditorToolProvider: ToolProvider = {
   featureName: 'object-editor',
-  getTools: () => [...objectEditorTools]
+  getTools: () => [
+    addPrimitivesTool,
+    modifyPrimitiveTool,
+    removePrimitiveTool,
+    duplicatePrimitiveTool,
+    createMaterialTool,
+    updateMaterialTool,
+    assignMaterialTool,
+    removeMaterialTool,
+    duplicateMaterialTool,
+    analyzeObjectTool,
+    optimizeObjectTool,
+    validateObjectTool,
+    suggestImprovementsTool,
+    calculateStatsTool,
+    generateVariationsTool
+  ]
 }
 
 /**
@@ -39,3 +71,4 @@ export function useObjectEditorToolRegistration(): void {
     return () => unregisterObjectEditorTools()
   }, [])
 }
+

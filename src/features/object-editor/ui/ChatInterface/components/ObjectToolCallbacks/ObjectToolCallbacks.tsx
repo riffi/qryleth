@@ -47,21 +47,21 @@ export const ObjectToolCallbacks: React.FC<ObjectToolCallbacksProps> = ({
 
 function getToolDisplayName(toolName: string): string {
   const displayNames: Record<string, string> = {
-    addPrimitives: 'Добавление примитивов',
-    modifyPrimitive: 'Изменение примитива',
-    removePrimitive: 'Удаление примитива',
-    duplicatePrimitive: 'Дублирование примитива',
-    createMaterial: 'Создание материала',
-    updateMaterial: 'Обновление материала',
-    assignMaterial: 'Назначение материала',
-    removeMaterial: 'Удаление материала',
-    duplicateMaterial: 'Дублирование материала',
-    analyzeObject: 'Анализ объекта',
-    optimizeObject: 'Оптимизация объекта',
-    validateObject: 'Валидация объекта',
-    suggestImprovements: 'Предложения улучшений',
-    calculateStats: 'Подсчет статистики',
-    generateVariations: 'Генерация вариаций'
+    add_primitives: 'Добавление примитивов',
+    modify_primitive: 'Изменение примитива',
+    remove_primitive: 'Удаление примитива',
+    duplicate_primitive: 'Дублирование примитива',
+    create_material: 'Создание материала',
+    update_material: 'Обновление материала',
+    assign_material: 'Назначение материала',
+    remove_material: 'Удаление материала',
+    duplicate_material: 'Дублирование материала',
+    analyze_object: 'Анализ объекта',
+    optimize_object: 'Оптимизация объекта',
+    validate_object: 'Валидация объекта',
+    suggest_improvements: 'Предложения улучшений',
+    calculate_stats: 'Подсчет статистики',
+    generate_variations: 'Генерация вариаций'
   }
   
   return displayNames[toolName] || toolName
@@ -75,9 +75,9 @@ function formatToolResult(toolName: string, result: any): React.ReactNode {
   if (typeof result === 'object') {
     // Специальное форматирование для разных типов результатов
     switch (toolName) {
-      case 'analyzeObject':
-      case 'validateObject':
-      case 'calculateStats':
+      case 'analyze_object':
+      case 'validate_object':
+      case 'calculate_stats':
         return (
           <div className="result-formatted">
             {result.summary && <div className="result-summary">{result.summary}</div>}
