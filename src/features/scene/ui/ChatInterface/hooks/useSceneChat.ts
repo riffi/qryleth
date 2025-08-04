@@ -101,7 +101,15 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
   }, [onObjectAdded, baseChat.addMessage])
 
-  // Обновление модели
+  const handleToolCallbackRef = useRef(handleToolCallback)
+
+  // Синхронизация актуального callback'а инструментов с сервисом LangChain
+  useEffect(() => {
+    handleToolCallbackRef.current = handleToolCallback
+    langChainChatService.setToolCallback(handleToolCallback)
+  }, [handleToolCallback])
+
+  // Обновление модели: сохраняет новую модель и переинициализирует сервис
   const updateModel = useCallback(async (model: string) => {
     if (!connectionRef.current) return
     
@@ -126,7 +134,7 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
   }, [baseChat.addMessage])
 
-  // Инициализация сервисов
+  // Инициализация сервисов выполняется только при первом монтировании
   useEffect(() => {
     const initializeServices = async () => {
       const activeConnection = await getActiveConnection()
@@ -135,14 +143,14 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
       // Инициализируем основной LangChain сервис
       try {
         await langChainChatService.initialize()
-        langChainChatService.setToolCallback(handleToolCallback)
+        langChainChatService.setToolCallback(handleToolCallbackRef.current)
         console.log('LangChain сервис инициализирован с инструментами:', langChainChatService.getRegisteredTools())
       } catch (error) {
         console.error('Ошибка инициализации LangChain сервиса:', error)
-        
+
         const errorMessage: ChatMessage = {
           id: nanoid(),
-          role: 'assistant',  
+          role: 'assistant',
           content: `❌ Ошибка инициализации чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
           timestamp: new Date()
         }
@@ -167,7 +175,7 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
 
     initializeServices()
-  }, [debugMode, handleToolCallback, baseChat.addMessage])
+  }, [debugMode, baseChat.addMessage])
 
   return {
     ...baseChat,
