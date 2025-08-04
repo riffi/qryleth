@@ -60,7 +60,7 @@
 
 ### Рабочие процессы
 - **[Agent Tasks](development/workflows/agent-tasks.md)** - Система агентских задач
-
+- [agent-discussion.md](development/workflows/agent-discussion.md) - Система обсуждения задачи агентами
 ### Тестирование
 @TODO
 
