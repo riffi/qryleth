@@ -18,8 +18,16 @@
 ## 🏗️ Архитектура
 
 - **[Design Principles](architecture/design-principles.md)** - Основные архитектурные принципы
-- **[Feature-Sliced Design](architecture/feature-sliced-design.md)** - Детали реализации FSD
+- **[Feature-Sliced Design](architecture/feature-sliced-design.md)** - Детали реализации FSD (обновлено с новой Chat архитектурой)
 - **[Component Patterns](architecture/patterns/component-patterns.md)** - Паттерны React компонентов
+
+### 🆕 Недавние архитектурные обновления
+
+**Рефакторинг ChatInterface (август 2025):**
+- Полный переход на архитектуру Feature-Sliced Design
+- Создание shared chat entities для переиспользования
+- Специализированные ChatInterface для сцен и объектов
+- Новая система панелей для ObjectEditor
 
 ---
 
@@ -37,6 +45,7 @@
 
 ### Компоненты
 - **[Component Library](api/components/README.md)** - Переиспользуемые компоненты
+- **[Chat Components](api/components/chat-components.md)** - Компоненты чата и системы панелей (новое)
 - **[Scene Editor](api/components/scene-editor.md)** - Компоненты редактора сцены
 
 ---

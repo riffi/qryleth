@@ -56,16 +56,24 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Конфигурация освещения
 - Доступ к редактированию объектов
 
-### 💬 ChatInterface
-**Location**: `src/widgets/ChatInterface.tsx`
+### 💬 SceneChatInterface  
+**Location**: `src/features/scene/ui/ChatInterface/SceneChatInterface.tsx`
 
-Виджет общения с ИИ агентом для манипулирования сценой на естественном языке.
+Специализированный чат для работы со сценами с интеграцией AI агента (после рефакторинга FSD).
 
 **Функции:**
 - Обработка команд на естественном языке
 - Генерация сцен из описаний
-- Создание и модификация объектов
+- Создание и модификация объектов  
 - Интеграция вызовов инструментов
+- Debug-панель с JSON выводом для разработчиков
+- Автоматическая регистрация scene-специфичных AI tools
+
+**Особенности реализации:**
+- Использует shared компоненты из `shared/entities/chat`
+- Scene-специфичная логика изолирована в feature
+- Поддержка полноэкранного режима
+- Debug режим для анализа AI responses
 ### 📜 ScriptingPanel
 **Location**: `src/features/scene/ui/ScriptingPanel/ScriptingPanel.tsx`
 
@@ -235,10 +243,11 @@ const {
 
 ```
 SceneEditorR3F
-├── ChatInterface                    # AI agent communication
-│   ├── MessageList                 # Chat history
-│   ├── MessageInput                # User input
-│   └── ToolCallHandler             # AI tool execution
+├── SceneChatInterface              # AI agent communication (FSD)
+│   ├── ChatContainer               # Chat history (shared)
+│   ├── ChatInput                   # User input (shared)
+│   ├── SceneDebugPanel             # JSON debug output
+│   └── SceneToolCallbacks          # Scene AI tool execution
 ├── Scene3D                         # Three.js canvas
 │   ├── SceneContent                # 3D scene rendering
 │   ├── CameraControls              # Camera manipulation
@@ -262,10 +271,12 @@ SceneEditorR3F
 
 ### 🔧 Детали компонентов
 
-#### **ChatInterface**
+#### **SceneChatInterface**
 - Возвращает полные сцены через `onSceneGenerated`
 - Возвращает отдельные объекты через `onObjectAdded`
 - Интегрируется с системой вызова инструментов ИИ
+- Использует shared chat компоненты для базовой функциональности
+- Debug-панель для анализа AI responses и tool calls
 
 #### **Scene3D**
 - Рендерит `SceneContent` с освещением, управлением и объектами
@@ -358,8 +369,10 @@ useEffect(() => {
 ## Связанная документация
 
 - [Scene Store API](../../api/stores/scene-store.md) - Scene state management
-- [Object Editing](../object-editing/README.md) - Object editor features
-- [AI Integration](../ai-integration/README.md) - AI assistant capabilities
+- [Object Editing](../object-editing/README.md) - Object editor features  
+- [AI Integration](../ai-integration/llm-integration.md) - AI assistant capabilities и SceneChatInterface
+- [Chat Components](../../api/components/chat-components.md) - Документация по chat компонентам
+- [Feature-Sliced Design](../../architecture/feature-sliced-design.md) - Архитектурные принципы FSD
 - [Type System](../../api/types/README.md) - Scene-related types
 - [Component Patterns](../../architecture/patterns/component-patterns.md) - React patterns
 - [Keyboard Shortcuts](keyboard-shortcuts.md) - Клавиатурное управление сценой

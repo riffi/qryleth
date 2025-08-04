@@ -41,12 +41,12 @@
 ## Контракт
 
 
-Структуры данных для общения с моделью определены в `openAIAPI.ts`:
+Структуры данных для общения с моделью определены в `shared/entities/chat/types`:
 
-- `ChatMessage` – роль, текст и время сообщения
-- `Tool` – описание инструмента, который может быть вызван моделью
+- `ChatMessage` – расширенная структура с поддержкой id, роли, текста, времени и toolCalls
+- `ChatConfig` – конфигурация чата с указанием feature, tools и systemPrompt
+- `Tool` – описание инструмента, который может быть вызван моделью  
 - `ToolCall` – фактический вызов с именем функции и аргументами
-- `ChatResponse` – ответ модели, содержащий текст и список `ToolCall`
 
 ### Доступные инструменты
 
@@ -57,7 +57,8 @@
 - `add_object_from_library` - добавление объекта из библиотеки
 
 **Object Editor Tools** (регистрируются в `features/object-editor`):
-- Инструменты для редактирования объектов (подготовлена инфраструктура)
+- `update_primitive_properties` - обновление свойств примитива (geometry, position, rotation, scale)
+- `update_material_properties` - обновление свойств материала (цвет, шероховатость, металличность)
 
 ### Система регистрации инструментов
 
@@ -101,6 +102,81 @@ export function SceneEditorR3F() {
 
 ---
 
+## ChatInterface архитектура
+
+### Общая структура (после рефакторинга)
+
+ChatInterface была полностью перестроена в соответствии с принципами FSD:
+
+1. **Shared entities** (`src/shared/entities/chat/`):
+   - **types/** - базовые типы ChatMessage, ChatConfig
+   - **ui/** - переиспользуемые компоненты (ChatContainer, ChatInput, ChatMessageItem)
+   - **lib/** - базовые хуки (useChat, useChatScroll) и утилиты
+
+2. **Feature-специфичные ChatInterface**:
+   - **SceneChatInterface** (`features/scene/ui/ChatInterface/`)
+   - **ObjectChatInterface** (`features/object-editor/ui/ChatInterface/`)
+
+### SceneChatInterface
+
+Специализированный чат для работы со сценами:
+
+**Особенности:**
+- Debug-панель с JSON выводом responses и tool calls
+- Интеграция с scene-специфичными AI tools  
+- Полноэкранный режим для детального анализа
+- Автоматическая регистрация scene tools при монтировании
+
+**Структура:**
+```
+features/scene/ui/ChatInterface/
+├── SceneChatInterface.tsx      # Главный компонент
+├── components/
+│   ├── SceneDebugPanel/        # Debug-панель с JSON
+│   └── SceneToolCallbacks/     # Обработка tool callbacks
+└── hooks/
+    └── useSceneChat.ts         # Scene-специфичная логика
+```
+
+### ObjectChatInterface
+
+Специализированный чат для редактирования объектов:
+
+**Особенности:**
+- Система переключаемых панелей (чат ⟷ свойства объекта)
+- Контекстная помощь на основе текущего редактируемого объекта
+- Поддержка режимов страницы и модального окна
+- Интеграция с object-editor AI tools
+- Автоматическое скрытие при выборе примитива/материала
+
+**Структура:**
+```
+features/object-editor/ui/ChatInterface/
+├── ObjectChatInterface.tsx     # Главный компонент
+├── components/
+│   └── ObjectToolCallbacks/    # Обработка tool callbacks
+└── hooks/
+    ├── useObjectChat.ts        # Object-editor логика
+    └── useObjectContextPrompt.ts  # Контекстные промпты
+```
+
+**Система панелей ObjectEditor:**
+```
+features/object-editor/ui/
+├── PanelToggleButtons/         # Кнопки переключения панелей
+├── ObjectEditorLayout/         # Layout с поддержкой панелей
+└── ChatInterface/              # ChatInterface для объектов
+```
+
+### Принципы использования ChatInterface
+
+1. **Автоматическая регистрация tools** - каждый ChatInterface автоматически регистрирует свои AI инструменты при монтировании компонента
+2. **Контекстная адаптация** - интерфейс адаптируется под редактируемые данные
+3. **Переиспользование базовых компонентов** - все ChatInterface используют общие UI компоненты из shared/entities/chat
+4. **Feature изоляция** - каждая feature управляет своим ChatInterface независимо
+
+---
+
 ##  Пример последовательности
 
 1. Пользователь отправляет запрос в чат
@@ -119,13 +195,17 @@ export function SceneEditorR3F() {
 ## Связанные файлы
 
 **Shared Layer:**
+- `src/shared/entities/chat/` - Базовая chat функциональность (типы, UI, хуки)
 - `src/shared/lib/langchain/chatService.ts` - Основной сервис LangChain
 - `src/shared/lib/langchain/toolRegistry.ts` - Реестр AI инструментов
 - `src/shared/lib/langchain/types.ts` - Типы для AI системы
-- `src/shared/lib/openAIAPI.ts` - API integration
 
 **Features Layer:**
+- `src/features/scene/ui/ChatInterface/` - ChatInterface для сцен
 - `src/features/scene/lib/ai/` - AI инструменты для работы со сценой
+- `src/features/object-editor/ui/ChatInterface/` - ChatInterface для объектов
+- `src/features/object-editor/ui/PanelToggleButtons/` - Система панелей
+- `src/features/object-editor/ui/ObjectEditorLayout/` - Layout с панелями
 - `src/features/object-editor/lib/ai/` - AI инструменты для редактирования объектов
 
 **Документация:**

@@ -11,7 +11,8 @@
       "Bash(python:*)",
       "Bash(mkdir:*)",
       "Bash(find:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(timeout 10 npm run dev)"
     ],
     "deny": []
   }

@@ -28,6 +28,7 @@ src/
 │  ├─ scene/
 │  │  ├─ model/   # Состояние и бизнес-логика
 │  │  ├─ ui/      # React-компоненты
+│  │  │  └─ ChatInterface/  # SceneChatInterface с debug-панелью
 │  │  ├─ lib/     # Вспомогательные функции
 │  │  │  └─ ai/   # AI инструменты для сценарии
 │  │  │     ├─ tools/     # Конкретные AI tools
@@ -37,10 +38,19 @@ src/
 │  └─ object-editor/
 │     ├─ model/
 │     ├─ ui/
+│     │  ├─ ChatInterface/    # ObjectChatInterface для объектов
+│     │  ├─ PanelToggleButtons/  # Система управления панелями  
+│     │  └─ ObjectEditorLayout/  # Layout с переключаемыми панелями
 │     ├─ lib/
 │     │  └─ ai/   # AI инструменты для редактирования объектов
+│     │     └─ tools/  # updatePrimitive, updateMaterial tools
 │     └─ index.ts
 ├─ shared/
+│  ├─ entities/
+│  │  └─ chat/             # Общая chat функциональность
+│  │     ├─ types/         # ChatMessage, ChatConfig
+│  │     ├─ ui/            # ChatContainer, ChatInput, ChatMessageItem
+│  │     └─ lib/           # useChat, useChatScroll, chatUtils
 │  └─ lib/
 │     └─ langchain/
 │        ├─ chatService.ts    # Базовый сервис (без зависимостей от features)
@@ -108,4 +118,64 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 
 ---
 
-> Соблюдение FSD делает кодовую базу модульной и поддерживаемой. Правильная архитектура AI Tools гарантирует возможность независимого развития различных функций редактора.
+## Chat архитектура в FSD
+
+### Принципы организации ChatInterface
+
+После рефакторинга ChatInterface была перестроена в соответствии с принципами FSD:
+
+1. **Shared entities** - базовая функциональность:
+   ```
+   shared/entities/chat/
+   ├── types/           # ChatMessage, ChatConfig (расширенные типы)
+   ├── ui/              # Переиспользуемые компоненты
+   │   ├── ChatContainer/
+   │   ├── ChatInput/
+   │   └── ChatMessageItem/
+   └── lib/             # Базовые хуки и утилиты
+       ├── hooks/       # useChat, useChatScroll
+       └── utils/       # chatUtils
+   ```
+
+2. **Feature-специфичные ChatInterface**:
+   - `features/scene/ui/ChatInterface/SceneChatInterface` - для работы со сценами
+   - `features/object-editor/ui/ChatInterface/ObjectChatInterface` - для редактирования объектов
+
+### Миграция от монолитного подхода
+
+**До рефакторинга** (нарушение FSD):
+```typescript
+// widgets/ChatInterface.tsx - монолитный компонент 480 строк
+// - Содержал как общую логику чата, так и специфичную для scene
+// - Не переиспользовался в object-editor
+// - Нарушал принципы FSD (widgets содержал бизнес-логику)
+```
+
+**После рефакторинга** (соответствие FSD):
+```typescript
+// shared/entities/chat - базовая функциональность
+// features/scene/ui/ChatInterface - специфично для сцен
+// features/object-editor/ui/ChatInterface - специфично для объектов
+```
+
+### Особенности реализации ChatInterface
+
+1. **SceneChatInterface**:
+   - Debug-панель с JSON выводом
+   - Интеграция с addNewObjectTool
+   - Полноэкранный режим
+
+2. **ObjectChatInterface**:
+   - Система переключаемых панелей (чат ⟷ свойства)
+   - Контекстная помощь на основе редактируемого объекта
+   - Специализированные AI tools (updatePrimitive, updateMaterial)
+   - Поддержка режимов страницы и модального окна
+
+3. **Shared chat entities**:
+   - Расширенный тип ChatMessage с поддержкой toolCalls и id
+   - Переиспользуемые UI компоненты
+   - Общие хуки для управления состоянием чата
+
+---
+
+> Соблюдение FSD делает кодовую базу модульной и поддерживаемой. Правильная архитектура AI Tools и ChatInterface гарантирует возможность независимого развития различных функций редактора.
