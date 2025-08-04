@@ -20,7 +20,7 @@ export const ObjectManagementPanel: React.FC = () => {
       <Box
           style={{
             width: "100%",
-            height: 'calc(100vh-60px)',
+            height: 'calc(100vh - 60px)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
