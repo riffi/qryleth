@@ -23,20 +23,18 @@ const PrimitiveSchema = z.object({
 })
 
 /**
- * Создаёт инструмент для добавления новых примитивов в объект.
- * Используй его, когда требуется создать один или несколько примитивов.
+ * Инструмент для добавления новых примитивов в объект.
+ * Используется, когда необходимо создать один или несколько примитивов.
  */
-export const createAddPrimitivesTool = () => {
-  return new DynamicStructuredTool({
-    name: 'addPrimitives',
-    description: 'Добавить один или несколько примитивов к объекту. Используй когда пользователь просит создать примитивы.',
-    schema: z.object({
-      primitives: z.array(PrimitiveSchema).min(1).max(10)
-    }),
-    func: async (input) => {
-      const added = ObjectEditorApi.addPrimitives(input.primitives)
-      return JSON.stringify({ success: true, added })
-    }
-  })
-}
+export const addPrimitivesTool = new DynamicStructuredTool({
+  name: 'addPrimitives',
+  description: 'Добавить один или несколько примитивов к объекту. Используй когда пользователь просит создать примитивы.',
+  schema: z.object({
+    primitives: z.array(PrimitiveSchema).min(1).max(10)
+  }),
+  func: async (input) => {
+    const added = ObjectEditorApi.addPrimitives(input.primitives)
+    return JSON.stringify({ success: true, added })
+  }
+})
 

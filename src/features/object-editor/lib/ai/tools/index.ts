@@ -2,17 +2,16 @@
  * LangChain инструменты для ObjectEditor
  */
 
-export { createAddPrimitivesTool } from './primitiveTools'
-export { createGetObjectDataTool } from './objectTools'
+import { addPrimitivesTool } from './primitiveTools'
+import { getObjectDataTool } from './objectTools'
 
 /**
  * Возвращает массив всех инструментов ObjectEditor.
  * Вызывай эту функцию для регистрации инструментов в чат-сервисе.
  */
 export const createObjectEditorTools = () => [
-  createGetObjectDataTool(),
-  createAddPrimitivesTool()
+  getObjectDataTool,
+  addPrimitivesTool
 ]
 
-export const objectEditorTools = createObjectEditorTools()
 

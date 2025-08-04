@@ -5,9 +5,8 @@
 import React from 'react'
 import type { ToolProvider } from '@/shared/lib/langchain/types'
 import { toolRegistry } from '@/shared/lib/langchain/toolRegistry'
-import {
-  addPrimitivesTool,
-} from './tools'
+import { getObjectDataTool } from './tools/objectTools'
+import { addPrimitivesTool } from './tools/primitiveTools'
 
 /**
  * Провайдер инструментов object-editor для LangChain
@@ -15,6 +14,7 @@ import {
 export const objectEditorToolProvider: ToolProvider = {
   featureName: 'object-editor',
   getTools: () => [
+    getObjectDataTool,
     addPrimitivesTool,
   ]
 }
