@@ -175,7 +175,7 @@ export const PrimitiveManager: React.FC = () => {
         userSelect: 'none'
       }}
     >
-      <Stack gap={0} style={{ height: '100%' }}>
+      <Stack gap={0} style={{ height: '100%', minHeight: 0 }}>
         {/* Заголовок */}
         <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>
           <Group justify="space-between">
@@ -189,7 +189,7 @@ export const PrimitiveManager: React.FC = () => {
         </Box>
 
         {/* Список примитивов */}
-        <ScrollArea style={{ flex: 1 }} p="sm">
+        <ScrollArea style={{ flex: 1 , minHeight: 0 }} p="sm">
           <Stack gap="xs">
             {primitives.map((primitive, index) => (
               <PrimitiveItem

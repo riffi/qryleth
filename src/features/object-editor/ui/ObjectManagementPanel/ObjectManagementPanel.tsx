@@ -39,13 +39,13 @@ export const ObjectManagementPanel: React.FC = () => {
           {/* flex:1 + overflow:hidden гарантируют, что содержимое не выходит за рамки панели */}
           <Tabs.Panel
               value="primitives"
-              style={{ flex: 1, display: 'flex', overflow: 'hidden' }}
+              style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0  }}
           >
             <PrimitiveManager />
           </Tabs.Panel>
           <Tabs.Panel
               value="materials"
-              style={{ flex: 1, display: 'flex', overflow: 'hidden' }}
+              style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0  }}
           >
             <MaterialManager />
           </Tabs.Panel>
