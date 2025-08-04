@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Box, Group, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { ObjectEditorLayout } from './ObjectEditorLayout'
+import { ObjectChatInterface } from './ChatInterface'
 import {
   useObjectStore,
   useObjectRenderMode,
@@ -138,6 +139,23 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     </Box>
   )
 
+  // Создаем компонент чата для ObjectEditor
+  const chatComponent = (
+    <ObjectChatInterface
+      isVisible={true} // Управляется через panelState
+      mode={modalMode ? 'modal' : 'page'}
+      onPrimitiveAdded={(primitive) => {
+        console.log('Primitive added via AI:', primitive)
+      }}
+      onMaterialCreated={(material) => {
+        console.log('Material created via AI:', material)
+      }}
+      onObjectModified={(modifications) => {
+        console.log('Object modified via AI:', modifications)
+      }}
+    />
+  )
+
   return (
     <ObjectEditorLayout
       onClose={onClose}
@@ -145,6 +163,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       objectData={objectData}
       externalPanelState={externalPanelState}
       hideHeader={modalMode}
+      chatComponent={chatComponent}
     >
       {sceneContent}
     </ObjectEditorLayout>

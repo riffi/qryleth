@@ -15,3 +15,6 @@ export * from './MaterialControlPanel/MaterialControlPanel.tsx'
 // Panel management components
 export * from './PanelToggleButtons'
 export * from './ObjectEditorLayout'
+
+// Chat interface
+export * from './ChatInterface'
