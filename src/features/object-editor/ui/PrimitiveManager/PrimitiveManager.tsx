@@ -21,7 +21,7 @@ import {
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GroupTreeNode } from '@/entities/primitiveGroup'
-import { buildGroupTree } from '@/entities/primitiveGroup'
+import { buildGroupTree, findGroupChildren } from '@/entities/primitiveGroup'
 import { GroupNameModal } from './GroupNameModal'
 import { PrimitiveItem } from './PrimitiveItem'
 import { PrimitiveGroupItem } from './PrimitiveGroupItem'
@@ -151,18 +151,38 @@ export const PrimitiveManager: React.FC = () => {
     })
   }, [])
 
+  /**
+   * Обрабатывает выбор группы и выделяет все примитивы,
+   * входящие в неё и во все её подгруппы.
+   * @param groupUuid UUID группы, которую требуется выделить
+   * @param event Событие клика для поддержки множественного выбора
+   */
   const handleSelectGroup = React.useCallback((groupUuid: string, event?: React.MouseEvent) => {
-    // Clear primitive selection when selecting groups
-    if (selectedPrimitivesCount > 0) {
-      setSelectedPrimitives([])
-    }
-
     if (event?.ctrlKey || event?.metaKey) {
       toggleGroupSelection(groupUuid)
     } else {
       selectGroup(groupUuid)
     }
-  }, [selectedPrimitivesCount, setSelectedPrimitives, toggleGroupSelection, selectGroup])
+
+    const {
+      selectedGroupUuids,
+      primitiveGroupAssignments,
+      primitiveGroups,
+      primitives
+    } = useObjectStore.getState()
+
+    const allGroupUuids = new Set<string>()
+    selectedGroupUuids.forEach(uuid => {
+      allGroupUuids.add(uuid)
+      findGroupChildren(uuid, primitiveGroups).forEach(childUuid => allGroupUuids.add(childUuid))
+    })
+
+    const indices = primitives
+      .map((p, index) => allGroupUuids.has(primitiveGroupAssignments[p.uuid]) ? index : -1)
+      .filter(index => index !== -1)
+
+    setSelectedPrimitives(indices)
+  }, [setSelectedPrimitives, toggleGroupSelection, selectGroup])
   /**
    * Открывает модальное окно для создания новой корневой группы.
    */
