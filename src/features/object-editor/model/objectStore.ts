@@ -80,6 +80,8 @@ interface ObjectStoreActions {
   deleteGroup: (groupUuid: string) => void
   /** Переименовывает группу */
   renameGroup: (groupUuid: string, newName: string) => void
+  /** Обновляет свойства группы */
+  updateGroup: (groupUuid: string, updates: Partial<GfxPrimitiveGroup>) => void
   /** Создает подгруппу */
   createSubGroup: (name: string, parentGroupUuid: string) => string
   /** Привязывает примитив к группе по UUID */
@@ -383,6 +385,17 @@ export const useObjectStore = create<ObjectStore>()(
           [groupUuid]: {
             ...state.primitiveGroups[groupUuid],
             name: newName
+          }
+        }
+      })),
+
+    updateGroup: (groupUuid: string, updates: Partial<GfxPrimitiveGroup>) =>
+      set(state => ({
+        primitiveGroups: {
+          ...state.primitiveGroups,
+          [groupUuid]: {
+            ...state.primitiveGroups[groupUuid],
+            ...updates
           }
         }
       })),

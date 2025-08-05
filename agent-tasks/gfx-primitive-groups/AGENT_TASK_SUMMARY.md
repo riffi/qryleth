@@ -197,7 +197,7 @@ export interface GfxObject {
 - `src/features/object-editor/ui/PrimitiveManager/GroupNameModal.tsx` (новый)
 
 ### Фаза 4: Обновление рендеринга и трансформации в ObjectEditor
-**Статус**: В процессе
+**Статус**: ✅ Выполнено
 **Отчет**: [phase_4.1_summary.md](phases/phase_4.1_summary.md)
 
 **Описание**: Реализовать рекурсивное рендеринг иерархических групп через вложенные Three.js `<group>` компоненты с поддержкой трансформации через gizmo controls.
@@ -211,7 +211,7 @@ export interface GfxObject {
 - **Селектор дочерних групп**: `useGroupChildren` возвращает только прямых потомков, предотвращая дублирование и бесконечные циклы
   - **Селектор примитивов группы**: `useGroupPrimitives` использует независимые подписки и мемоизирует список примитивов с индексами, что устраняет предупреждение `getSnapshot` и бесконечный перерендер
 
-**Подфаза 4.2: Система координат** - Частично реализовано
+**Подфаза 4.2: Система координат** - ✅ Выполнено
 - **Относительные координаты**: Примитивы всегда хранят относительные координаты в существующих полях `position/rotation/scale`
 - **Автоматические трансформации**: Three.js `<group>` элементы автоматически применяют иерархические трансформации (уже работает благодаря рекурсивному GroupRenderer)
 - **Утилиты для перемещения между группами**:  создать  `coordinateUtils.ts`:
@@ -223,7 +223,7 @@ export interface GfxObject {
     scale?: Vector3;
     };`
 
-**Подфаза 4.3: Pivot Point и Gizmo Controls**
+**Подфаза 4.3: Pivot Point и Gizmo Controls** ✅ Выполнено
 - **Динамический pivot для групп**: Расчет геометрического центра группы с помощью `calculateGroupBounds(groupUuid)` для позиционирования gizmo
 - **Расширение PrimitiveTransformGizmo**: 
   - Добавить поддержку трансформации групп через новый проп `selectedGroupUuids?: string[]`
@@ -238,13 +238,14 @@ export interface GfxObject {
   - **Интеграция в UI**: Показывать GroupControlPanel вместо PrimitiveControlPanel когда выделена группа
   - **Отображение значений**: Показывать значения свойства transform GfxPrimitiveGroup
 
-**Подфаза 4.4: Обработка взаимодействий**
+**Подфаза 4.4: Обработка взаимодействий** - ✅ Выполнено
+**Отчет**: [phase_4.4_summary.md](phases/phase_4.4_summary.md)
 - **Обработка кликов по группам**: Расширить обработчик в ObjectScenePrimitives:
   - При клике на примитив проверять `userData.groupUuid` и определять нужно ли выделить группу или примитив
   - Логика: Ctrl+Click на примитив = выделить группу, обычный клик = выделить примитив
   - Добавить в objectStore: `selectGroup(groupUuid)`, `toggleGroupSelection(groupUuid)`
 - **Drag-and-drop между группами**: Обновить PrimitiveManager:
-  - При перемещении примитива между группами вызывать `moveprimitiveToGroup()` для пересчета координат
+  - При перемещении примитива между группами вызывать `movePrimitiveToGroup()` для пересчета координат
   - Обновить обработчики onDrop для работы с групповой иерархией
 - **Интеграция с gizmo**: Обновить PrimitiveTransformGizmo:
   - Слушать изменения `selectedGroupUuids` и `selectedItemType`  

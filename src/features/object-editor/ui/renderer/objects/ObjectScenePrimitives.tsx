@@ -21,15 +21,27 @@ export const ObjectScenePrimitives: React.FC = () => {
   const renderMode = useObjectStore(state => state.renderMode)
 
   /**
-   * Обрабатывает клик по примитиву, поддерживая множественный выбор через Shift.
+   * Обрабатывает клик по примитиву, поддерживая выделение групп через Ctrl+Click
+   * и множественный выбор примитивов через Shift+Click.
    */
   const handleObjectClick = (event: any) => {
     event.stopPropagation()
     const primitiveIndex = event.object.userData.primitiveIndex
+    const groupUuid = event.object.userData.groupUuid
     const store = useObjectStore.getState()
-    if (event.shiftKey) {
+    
+    if (event.ctrlKey && groupUuid) {
+      // Ctrl+Click на примитив в группе = выделить группу
+      if (event.shiftKey) {
+        store.toggleGroupSelection(groupUuid)
+      } else {
+        store.selectGroup(groupUuid)
+      }
+    } else if (event.shiftKey) {
+      // Shift+Click = множественное выделение примитивов
       store.togglePrimitiveSelection(primitiveIndex)
     } else {
+      // Обычный клик = выделить примитив
       store.selectPrimitive(primitiveIndex)
     }
   }

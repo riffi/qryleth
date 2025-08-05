@@ -33,6 +33,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   const primitiveGroupAssignments = usePrimitiveGroupAssignments()
   const transformMode = useObjectStore(state => state.transformMode)
   const updatePrimitive = useObjectStore(state => state.updatePrimitive)
+  const updateGroup = useObjectStore(state => state.updateGroup)
   const { selectedMeshes } = useOEPrimitiveSelection()
 
   const groupCenter = useMemo(() => {
@@ -209,11 +210,28 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   }, [selectedPrimitiveIds, selectedMeshes, groupHelper, orbitControlsRef])
 
   const applyPendingUpdates = useCallback(() => {
-    pendingUpdates.current.forEach((update, id) => {
-      updatePrimitive(id, { transform: update })
-    })
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      // Для группы применяем трансформацию к самой группе
+      if (transformControlsRef.current?.object) {
+        const gizmoObject = transformControlsRef.current.object
+        const groupUuid = selectedGroupUuids[0]
+        
+        updateGroup(groupUuid, {
+          transform: {
+            position: { x: gizmoObject.position.x, y: gizmoObject.position.y, z: gizmoObject.position.z },
+            rotation: { x: gizmoObject.rotation.x, y: gizmoObject.rotation.y, z: gizmoObject.rotation.z },
+            scale: { x: gizmoObject.scale.x, y: gizmoObject.scale.y, z: gizmoObject.scale.z }
+          }
+        })
+      }
+    } else {
+      // Для примитивов применяем изменения как раньше
+      pendingUpdates.current.forEach((update, id) => {
+        updatePrimitive(id, { transform: update })
+      })
+    }
     pendingUpdates.current.clear()
-  }, [updatePrimitive])
+  }, [updatePrimitive, updateGroup, selectedItemType, selectedGroupUuids])
 
   const handleMouseUp = useCallback(() => {
     applyPendingUpdates()

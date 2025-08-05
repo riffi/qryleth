@@ -22,6 +22,7 @@ import {
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GroupTreeNode } from '@/entities/primitiveGroup'
 import { buildGroupTree, findGroupChildren } from '@/entities/primitiveGroup'
+import { movePrimitiveToGroup } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import { GroupNameModal } from './GroupNameModal'
 import { PrimitiveItem } from './PrimitiveItem'
 import { PrimitiveGroupItem } from './PrimitiveGroupItem'
@@ -79,7 +80,8 @@ export const PrimitiveManager: React.FC = () => {
     toggleGroupVisibility,
     selectGroup,
     toggleGroupSelection,
-    moveGroup
+    moveGroup,
+    updatePrimitive
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
@@ -285,6 +287,7 @@ export const PrimitiveManager: React.FC = () => {
    * Завершает операцию перетаскивания. В зависимости от типа
    * перетаскиваемого элемента назначает примитивы группе либо
    * перемещает группы в новую родительскую группу.
+   * При перемещении примитивов пересчитывает их координаты.
    * @param e объект события сброса
    * @param targetGroupUuid UUID целевой группы или undefined для корня
    */
@@ -295,11 +298,38 @@ export const PrimitiveManager: React.FC = () => {
       if (!draggedItem) return
 
       if (draggedItem.type === 'primitive') {
-        if (targetGroupUuid && targetGroupUuid !== 'ungrouped') {
-          draggedItem.uuids.forEach(uuid => assignPrimitiveToGroup(uuid, targetGroupUuid))
-        } else {
-          draggedItem.uuids.forEach(uuid => removePrimitiveFromGroup(uuid))
-        }
+        draggedItem.uuids.forEach(primitiveUuid => {
+          // Получаем текущую группу примитива
+          const fromGroupUuid = primitiveGroupAssignments[primitiveUuid] || null
+          const toGroupUuid = targetGroupUuid && targetGroupUuid !== 'ungrouped' ? targetGroupUuid : null
+          
+          // Пересчитываем координаты при перемещении между группами
+          if (fromGroupUuid !== toGroupUuid) {
+            const updatedPrimitive = movePrimitiveToGroup(
+              primitiveUuid,
+              fromGroupUuid,
+              toGroupUuid,
+              primitives,
+              groups
+            )
+            
+            if (updatedPrimitive) {
+              // Находим индекс примитива для обновления
+              const primitiveIndex = primitives.findIndex(p => p.uuid === primitiveUuid)
+              if (primitiveIndex !== -1) {
+                // Передаём только изменения в transform, не весь примитив
+                updatePrimitive(primitiveIndex, { transform: updatedPrimitive.transform })
+              }
+            }
+          }
+          
+          // Обновляем привязку к группе
+          if (toGroupUuid) {
+            assignPrimitiveToGroup(primitiveUuid, toGroupUuid)
+          } else {
+            removePrimitiveFromGroup(primitiveUuid)
+          }
+        })
       } else if (draggedItem.type === 'group') {
         const newParent = targetGroupUuid && targetGroupUuid !== 'ungrouped'
           ? targetGroupUuid
@@ -312,7 +342,7 @@ export const PrimitiveManager: React.FC = () => {
       setDraggedItem(null)
       setDropTarget(null)
     },
-    [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup, moveGroup]
+    [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup, moveGroup, primitiveGroupAssignments, primitives, groups, updatePrimitive]
   )
 
   /**
