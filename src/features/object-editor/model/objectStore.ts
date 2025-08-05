@@ -152,7 +152,7 @@ export const useObjectStore = create<ObjectStore>()(
           uuid: primitive.uuid || generateUUID()
         }))
         const list = ensurePrimitiveNames(primitivesWithUuid.map(normalizePrimitive))
-        
+
         // Очищаем привязки для примитивов, которых больше нет
         const currentUuids = new Set(list.map(p => p.uuid))
         const newAssignments: Record<string, string> = {}
@@ -161,7 +161,7 @@ export const useObjectStore = create<ObjectStore>()(
             newAssignments[primitiveUuid] = groupUuid
           }
         })
-        
+
         return {
           primitives: list,
           primitiveGroupAssignments: newAssignments,
@@ -209,17 +209,17 @@ export const useObjectStore = create<ObjectStore>()(
     removePrimitive: (index: number) =>
       set(state => {
         if (index < 0 || index >= state.primitives.length) return state
-        
+
         const removedPrimitive = state.primitives[index]
         const list = state.primitives.filter((_, i) => i !== index)
         const normalized = ensurePrimitiveNames(list)
-        
+
         // Удаляем привязку к группе для удаленного примитива
         const newAssignments = { ...state.primitiveGroupAssignments }
         if (removedPrimitive.uuid && newAssignments[removedPrimitive.uuid]) {
           delete newAssignments[removedPrimitive.uuid]
         }
-        
+
         const selected = state.selectedPrimitiveIds
           .filter(id => id !== index)
           .map(id => (id > index ? id - 1 : id))
@@ -317,7 +317,7 @@ export const useObjectStore = create<ObjectStore>()(
         const newSelectedMaterialUuid = state.selectedMaterialUuid === materialUuid
           ? null
           : state.selectedMaterialUuid
-        
+
         return {
           materials: newMaterials,
           selectedMaterialUuid: newSelectedMaterialUuid
@@ -341,16 +341,21 @@ export const useObjectStore = create<ObjectStore>()(
         uuid: groupUuid,
         name,
         visible: true,
-        parentGroupUuid
+        parentGroupUuid,
+        transform:{
+          position: [0,0,0],
+          rotation: [0,0,0],
+          scale: [1,1,1]
+        }
       }
-      
+
       set(state => ({
         primitiveGroups: {
           ...state.primitiveGroups,
           [groupUuid]: newGroup
         }
       }))
-      
+
       return groupUuid
     },
 
@@ -359,13 +364,13 @@ export const useObjectStore = create<ObjectStore>()(
         // Удаляем дочерние группы рекурсивно
         const childrenUuids = findGroupChildren(groupUuid, state.primitiveGroups)
         const allToRemove = [groupUuid, ...childrenUuids]
-        
+
         // Удаляем группы
         const newGroups = { ...state.primitiveGroups }
         allToRemove.forEach(uuid => {
           delete newGroups[uuid]
         })
-        
+
         // Удаляем привязки примитивов к удаленным группам
         const newAssignments = { ...state.primitiveGroupAssignments }
         Object.keys(newAssignments).forEach(primitiveUuid => {
@@ -373,12 +378,12 @@ export const useObjectStore = create<ObjectStore>()(
             delete newAssignments[primitiveUuid]
           }
         })
-        
+
         // Удаляем из выделения
         const newSelectedGroups = state.selectedGroupUuids.filter(
           uuid => !allToRemove.includes(uuid)
         )
-        
+
         return {
           primitiveGroups: newGroups,
           primitiveGroupAssignments: newAssignments,
@@ -430,14 +435,14 @@ export const useObjectStore = create<ObjectStore>()(
         visible: true,
         parentGroupUuid
       }
-      
+
       set(state => ({
         primitiveGroups: {
           ...state.primitiveGroups,
           [groupUuid]: newGroup
         }
       }))
-      
+
       return groupUuid
     },
 
@@ -463,7 +468,7 @@ export const useObjectStore = create<ObjectStore>()(
           console.warn('Cannot move group to its descendant')
           return state
         }
-        
+
         return {
           primitiveGroups: {
             ...state.primitiveGroups,
@@ -479,7 +484,7 @@ export const useObjectStore = create<ObjectStore>()(
       set(state => {
         // Обеспечиваем валидность UUID в импортируемом объекте
         const validatedObject = ensureValidUuids(object)
-        
+
         // Разрешаем конфликты
         const currentObject: GfxObject = {
           uuid: generateUUID(),
@@ -489,14 +494,14 @@ export const useObjectStore = create<ObjectStore>()(
           primitiveGroupAssignments: state.primitiveGroupAssignments,
           materials: state.materials
         }
-        
+
         const resolution = resolveImportConflicts(validatedObject, currentObject)
         const importResult = applyImportResolution(validatedObject, resolution, groupName)
-        
+
         // Обновляем состояние
         const newPrimitives = [...state.primitives, ...importResult.importedPrimitives]
         const normalized = ensurePrimitiveNames(newPrimitives)
-        
+
         return {
           primitives: normalized,
           primitiveGroups: {
@@ -524,7 +529,7 @@ export const useObjectStore = create<ObjectStore>()(
         const newSelection = isSelected
           ? state.selectedGroupUuids.filter(uuid => uuid !== groupUuid)
           : [...state.selectedGroupUuids, groupUuid]
-        
+
         return { selectedGroupUuids: newSelection }
       }),
 
@@ -709,7 +714,7 @@ export const useGroupVisibility = (groupUuid: string) => useObjectStore(s => {
 export const useSelectedItemType = () => useObjectStore(s => {
   const hasSelectedPrimitives = s.selectedPrimitiveIds.length > 0
   const hasSelectedGroups = s.selectedGroupUuids.length > 0
-  
+
   if (hasSelectedPrimitives && hasSelectedGroups) {
     return 'mixed' as const
   } else if (hasSelectedGroups) {

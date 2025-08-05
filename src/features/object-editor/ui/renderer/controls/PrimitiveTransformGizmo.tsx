@@ -46,7 +46,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
       return new THREE.Vector3(center[0], center[1], center[2])
     }
-    
+
     // Handle primitive selection (existing logic)
     if (selectedMeshes.length === 0) return new THREE.Vector3()
 
@@ -67,7 +67,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       helper.userData.isSelectedGroup = true
       return helper
     }
-    
+
     // For multiple primitive selection
     if (selectedMeshes.length === 0) return null
 
@@ -81,7 +81,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     if (!scene) return
 
     const shouldShowHelper = (selectedPrimitiveIds.length > 1) || (selectedItemType === 'group' && selectedGroupUuids.length === 1)
-    
+
     if (shouldShowHelper && groupHelper && !groupHelper.parent) {
       groupHelper.position.copy(groupCenter)
       scene.add(groupHelper)
@@ -187,7 +187,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const handleMouseDown = useCallback(() => {
     initialTransforms.current.clear()
-    
+
     // Очищаем временные трансформации при начале перетаскивания
     if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
       clearTemporaryGroupTransform(selectedGroupUuids[0])
@@ -238,15 +238,15 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       if (transformControlsRef.current?.object) {
         const gizmoObject = transformControlsRef.current.object
         const groupUuid = selectedGroupUuids[0]
-        
+
         updateGroup(groupUuid, {
           transform: {
-            position: { x: gizmoObject.position.x, y: gizmoObject.position.y, z: gizmoObject.position.z },
-            rotation: { x: gizmoObject.rotation.x, y: gizmoObject.rotation.y, z: gizmoObject.rotation.z },
-            scale: { x: gizmoObject.scale.x, y: gizmoObject.scale.y, z: gizmoObject.scale.z }
+            position: [gizmoObject.position.x, gizmoObject.position.y, gizmoObject.position.z],
+            rotation: [gizmoObject.rotation.x, gizmoObject.rotation.y, gizmoObject.rotation.z ],
+            scale: [gizmoObject.scale.x, gizmoObject.scale.y, gizmoObject.scale.z]
           }
         })
-        
+
         // Очищаем временную трансформацию
         clearTemporaryGroupTransform(groupUuid)
       }

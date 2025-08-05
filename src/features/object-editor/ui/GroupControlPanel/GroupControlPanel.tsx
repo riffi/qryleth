@@ -64,8 +64,19 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
   /**
    * Вычисление средних значений трансформации всех примитивов группы
    */
-  const getAverageTransform = useMemo(() => {
+  const getGroupTransform = useMemo(() => {
     if (!selectedGroup) return null
+
+    // Если у группы есть своя трансформация, используем её
+    if (selectedGroup.transform) {
+      return {
+        position: selectedGroup.transform.position || [0, 0, 0],
+        rotation: selectedGroup.transform.rotation || [0, 0, 0],
+        scale: selectedGroup.transform.scale || [1, 1, 1]
+      }
+    }
+
+    console.log('selectedGroup.transform', selectedGroup.transform)
 
     const groupUuid = selectedGroup.uuid
     const groupPrimitives = primitives.filter(p =>
@@ -80,17 +91,11 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
       }
     }
 
-    // Если у группы есть своя трансформация, используем её
-    if (selectedGroup.transform) {
-      return {
-        position: selectedGroup.transform.position || [0, 0, 0],
-        rotation: selectedGroup.transform.rotation || [0, 0, 0],
-        scale: selectedGroup.transform.scale || [1, 1, 1]
-      }
-    }
+
 
     // Иначе вычисляем геометрический центр
     const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
+
 
     return {
       position: center,
@@ -250,7 +255,7 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
           <IconRefresh size={12} />
         </ActionIcon>
       </Group>
-      <Group gap="xs">
+      {Array.isArray(values) && <Group gap="xs">
         {values?.map((value, index) => (
           <TransformInput
             key={index}
@@ -261,11 +266,12 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
             onCommit={updateGroupTransform}
           />
         ))}
-      </Group>
+      </Group>}
+      {JSON.stringify(values)}
     </Box>
   )
 
-  if (!selectedGroup || !getAverageTransform) return null
+  if (!selectedGroup || !getGroupTransform) return null
 
   return (
     <Paper
@@ -288,17 +294,17 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
           <TransformBlock
             label="Position"
             property="position"
-            values={getAverageTransform.position}
+            values={getGroupTransform.position}
           />
           <TransformBlock
             label="Rotation"
             property="rotation"
-            values={getAverageTransform.rotation}
+            values={getGroupTransform.rotation}
           />
           <TransformBlock
             label="Scale"
             property="scale"
-            values={getAverageTransform.scale}
+            values={getGroupTransform.scale}
           />
         </Stack>
 
