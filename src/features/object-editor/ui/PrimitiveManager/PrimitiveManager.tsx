@@ -367,12 +367,12 @@ export const PrimitiveManager: React.FC = () => {
     handleDragOver(e)
   }, [handleDragOver])
 
-  // Special drop handler for ungrouped area
+  // Специальный обработчик сброса для области без групп
   const handleUngroupedDrop = React.useCallback((e: React.DragEvent) => {
     handleDrop(e)
   }, [handleDrop])
 
-  // Render primitive function for use in GroupTree - memoized with proper dependencies
+  // Функция рендеринга примитива, мемоизированная с корректными зависимостями
   const renderPrimitive = React.useCallback((primitive: GfxPrimitive, index: number) => (
     <PrimitiveItem
       key={primitive.uuid}
