@@ -304,30 +304,32 @@ export interface GfxObject {
 - Возможное переиспользование `src/features/object-editor/ui/renderer/objects/GroupRenderer.tsx`
 
 ### Фаза 6: Обновление objectEditorApi и tools
-**Статус**: Не выполнено
+**Статус**: ✅ Выполнено
+**Отчет**: [phase_6_summary.md](phases/phase_6_summary.md)
 
 #### Обновление objectEditorApi
 **Описание**: Расширить API объект-редактора для поддержки операций с группами.
 
 **Детальные действия**:
-- Обеспечить правильную интеграцию с tools системой
-- Обновить существующие API методы с учетом групп
-  - выводить информацию о группах в getObjectData
-  - addPrimitives - обновить для опциональной возможности создания новых групп при добавления примитивов и привязки добавляемых примитивов к создаваемым группам
+✅ Обеспечить правильную интеграцию с tools системой
+✅ Обновить существующие API методы с учетом групп:
+  ✅ выводить информацию о группах в getObjectData (добавлены primitiveGroups и primitiveGroupAssignments)
+  ✅ addPrimitives - обновить для опциональной возможности создания новых групп при добавлении примитивов и привязки добавляемых примитивов к создаваемым группам
+
 **Файлы для изменения**:
-- `src/features/object-editor/lib/objectEditorApi.ts`
-- 
+✅ `src/features/object-editor/lib/objectEditorApi.ts`
+
 #### Расширение tools для objectEditor
 
 **Описание**: Обновить AI tools для управления учета групп примитивов в объект-редакторе.
 
 **Детальные действия**:
-- Обновить tool `getObjectDataTool` с учетом новой структуры
-- Обновить tool `addPrimitivesTool` для опциональной возможности создания новых групп при добавления примитивов и привязки добавляемых примитивов к создаваемым группам
+✅ Обновить tool `getObjectDataTool` с учетом новой структуры (автоматически через обновленный API)
+✅ Обновить tool `addPrimitivesTool` для опциональной возможности создания новых групп при добавлении примитивов и привязки добавляемых примитивов к создаваемым группам
 
 **Файлы для изменения**:
-- `src/features/object-editor/lib/ai/tools/objectTools.ts`
-- `src/features/object-editor/lib/ai/tools/primitiveTools.ts`
+✅ `src/features/object-editor/lib/ai/tools/objectTools.ts` (без изменений - tool автоматически получил поддержку групп)
+✅ `src/features/object-editor/lib/ai/tools/primitiveTools.ts`
 
 
 ### Фаза 7: Расширение tools для sceneEditor

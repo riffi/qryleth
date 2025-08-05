@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid'
 export class ObjectEditorApi {
   /**
    * Возвращает полные данные текущего объекта.
-   * Включает примитивы, материалы и BoundingBox.
+   * Включает примитивы, материалы, группы и BoundingBox.
    */
   static getObjectData(): GfxObject {
     const state = useObjectStore.getState()
@@ -23,7 +23,9 @@ export class ObjectEditorApi {
       materials: state.materials,
       boundingBox: state.boundingBox ?? (state.primitives.length
         ? calculateObjectBoundingBox({ uuid: '', name: '', primitives: state.primitives })
-        : undefined)
+        : undefined),
+      primitiveGroups: state.primitiveGroups,
+      primitiveGroupAssignments: state.primitiveGroupAssignments
     }
   }
 
@@ -34,9 +36,15 @@ export class ObjectEditorApi {
    * и при необходимости генерируется имя.
    *
    * @param primitives список примитивов для добавления
-   * @returns количество фактически добавленных примитивов
+   * @param groupName опциональное имя группы для создания и привязки примитивов
+   * @param parentGroupUuid опциональный UUID родительской группы
+   * @returns количество фактически добавленных примитивов и UUID созданной группы (если была создана)
    */
-  static addPrimitives(primitives: GfxPrimitive[]): number {
+  static addPrimitives(
+    primitives: GfxPrimitive[], 
+    groupName?: string, 
+    parentGroupUuid?: string
+  ): { addedCount: number; groupUuid?: string } {
     const store = useObjectStore.getState()
 
     const normalized = primitives.map((p, index) => ({
@@ -56,8 +64,24 @@ export class ObjectEditorApi {
       } })
     }))
 
+    // Добавляем примитивы
     normalized.forEach(prim => store.addPrimitive(prim))
-    return normalized.length
+
+    // Создаем группу, если указано имя
+    let groupUuid: string | undefined
+    if (groupName && groupName.trim() !== '') {
+      groupUuid = store.createGroup(groupName.trim(), parentGroupUuid)
+      
+      // Привязываем все добавленные примитивы к созданной группе
+      normalized.forEach(prim => {
+        store.assignPrimitiveToGroup(prim.uuid, groupUuid!)
+      })
+    }
+
+    return { 
+      addedCount: normalized.length,
+      groupUuid
+    }
   }
 }
 

@@ -75,16 +75,28 @@ const PrimitiveSchema = z.discriminatedUnion('type', [
 /**
  * Инструмент для добавления новых примитивов в объект.
  * Используется, когда необходимо создать один или несколько примитивов.
+ * Поддерживает создание групп для организации примитивов.
  */
 export const addPrimitivesTool = new DynamicStructuredTool({
   name: 'addPrimitives',
-  description: 'Добавить один или несколько примитивов к объекту. Используй когда пользователь просит создать примитивы.',
+  description: 'Добавить один или несколько примитивов к объекту. Опционально можно создать группу для примитивов. Используй когда пользователь просит создать примитивы.',
   schema: z.object({
-    primitives: z.array(PrimitiveSchema).min(1).max(10)
+    primitives: z.array(PrimitiveSchema).min(1).max(10),
+    groupName: z.string().min(1).optional().describe('Имя группы для создания и привязки добавляемых примитивов'),
+    parentGroupUuid: z.string().optional().describe('UUID родительской группы для создания подгруппы')
   }),
   func: async (input) => {
-    const added = ObjectEditorApi.addPrimitives(input.primitives)
-    return JSON.stringify({ success: true, added })
+    const result = ObjectEditorApi.addPrimitives(
+      input.primitives, 
+      input.groupName, 
+      input.parentGroupUuid
+    )
+    return JSON.stringify({ 
+      success: true, 
+      addedCount: result.addedCount,
+      groupUuid: result.groupUuid,
+      groupCreated: !!result.groupUuid
+    })
   }
 })
 
