@@ -231,7 +231,7 @@ export interface GfxObject {
 - `src/features/object-editor/lib/ai/tools/primitiveTools.ts`
 
 
-### Фаза 7: Расширение tools для sceneEditor
+### Фаза 6: Расширение tools для sceneEditor
 **Статус**: Не выполнено
 
 **Описание**: Добавить AI tools для работы с группами примитивов в сцен-редакторе.
@@ -244,7 +244,7 @@ export interface GfxObject {
 **Файлы для изменения**:
 - `src/features/scene/lib/ai/tools/objectTools.ts`
 
-### Фаза 8: Обновление objectEditorApi
+### Фаза 7: Обновление objectEditorApi
 **Статус**: Не выполнено
 
 **Описание**: Расширить API объект-редактора для поддержки операций с группами.
@@ -258,7 +258,7 @@ export interface GfxObject {
 - `src/features/object-editor/lib/objectEditorApi.ts`
 
 
-### Фаза 10: Обновление документации
+### Фаза 8: Обновление документации
 **Статус**: Не выполнено
 
 **Описание**: Обновить проектную документацию с учетом новой функциональности группировки примитивов.
