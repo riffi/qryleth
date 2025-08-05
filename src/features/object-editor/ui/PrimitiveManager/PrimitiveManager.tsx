@@ -6,32 +6,25 @@ import {
   Group,
   Badge,
   ScrollArea,
-  ActionIcon,
   Box,
-  Menu,
   Button
 } from '@mantine/core'
-import {
-  IconTrash,
-  IconFolderPlus,
-  IconPencil,
-  IconChevronRight,
-  IconChevronDown,
-  IconFolder,
-  IconFolderOpen
-} from '@tabler/icons-react'
+import { IconFolderPlus } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId,
   useObjectStore,
   useObjectPrimitiveGroups,
-  usePrimitiveGroupAssignments
+  usePrimitiveGroupAssignments,
+  useSelectedGroupUuids
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
-import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
+import type { GroupTreeNode } from '@/entities/primitiveGroup'
+import { buildGroupTree } from '@/entities/primitiveGroup'
 import { GroupNameModal } from './GroupNameModal'
 import { PrimitiveItem } from './PrimitiveItem'
+import { PrimitiveGroupItem } from './PrimitiveGroupItem'
 
 
 /**
@@ -42,8 +35,15 @@ export const PrimitiveManager: React.FC = () => {
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
 
-  // Step 1: Add groups hook - test if this causes infinite loop
+  // Список всех групп
   const groups = useObjectPrimitiveGroups()
+  const selectedGroupUuids = useSelectedGroupUuids()
+
+  // Строим дерево групп локально, чтобы избежать бесконечных рендеров
+  const groupTree = React.useMemo<GroupTreeNode[]>(
+    () => buildGroupTree(groups),
+    [groups]
+  )
 
   // Step 5: Add primitiveGroupAssignments hook
   const primitiveGroupAssignments = usePrimitiveGroupAssignments()
@@ -68,6 +68,7 @@ export const PrimitiveManager: React.FC = () => {
     removePrimitive,
     // Step 2: Add createGroup action - test if this causes infinite loop
     createGroup,
+    createSubGroup,
     // Step 4: Add deleteGroup action
     deleteGroup,
     // Step 5: Add assignment actions
@@ -77,8 +78,7 @@ export const PrimitiveManager: React.FC = () => {
     renameGroup,
     toggleGroupVisibility,
     selectGroup,
-    toggleGroupSelection,
-    clearGroupSelection
+    toggleGroupSelection
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
@@ -93,8 +93,7 @@ export const PrimitiveManager: React.FC = () => {
 
   // Состояние для модального окна ввода названия группы
   const [groupModalOpened, setGroupModalOpened] = React.useState(false)
-  const [groupModalInitialName, setGroupModalInitialName] = React.useState('')
-  const [groupModalGroupUuid, setGroupModalGroupUuid] = React.useState<string | null>(null)
+  const [groupModalParentUuid, setGroupModalParentUuid] = React.useState<string | null>(null)
 
   /**
    * Обработчик клика по примитиву. Поддерживает одиночное, множественное
@@ -167,44 +166,41 @@ export const PrimitiveManager: React.FC = () => {
    * Открывает модальное окно для создания новой корневой группы.
    */
   const handleCreateGroup = React.useCallback(() => {
-    setGroupModalInitialName('')
-    setGroupModalGroupUuid(null)
+    setGroupModalParentUuid(null)
     setGroupModalOpened(true)
   }, [])
 
   /**
-   * Открывает модальное окно переименования существующей группы.
-   * @param group группа, которую требуется переименовать
+   * Открывает модальное окно для создания подгруппы указанной группы.
+   * @param parentGroupUuid UUID родительской группы
    */
-  const handleOpenRenameGroup = React.useCallback((group: GfxPrimitiveGroup) => {
-    setGroupModalInitialName(group.name)
-    setGroupModalGroupUuid(group.uuid)
+  const handleCreateSubGroup = React.useCallback((parentGroupUuid: string) => {
+    setGroupModalParentUuid(parentGroupUuid)
     setGroupModalOpened(true)
   }, [])
 
   /**
    * Обрабатывает подтверждение в модальном окне: создаёт новую группу
-   * или переименовывает существующую.
+   * или подгруппу в зависимости от выбранного родителя.
    * @param name введённое пользователем название
    */
   const handleGroupModalSubmit = React.useCallback((name: string) => {
-    if (groupModalGroupUuid) {
-      renameGroup(groupModalGroupUuid, name)
+    let groupUuid: string
+    if (groupModalParentUuid) {
+      groupUuid = createSubGroup(name, groupModalParentUuid)
+      setExpandedGroups(prev => new Set([...prev, groupModalParentUuid!, groupUuid]))
     } else {
-      const groupUuid = createGroup(name)
-      if (groupUuid) {
-        setExpandedGroups(prev => new Set([...prev, groupUuid]))
-      }
+      groupUuid = createGroup(name)
+      setExpandedGroups(prev => new Set([...prev, groupUuid]))
     }
-  }, [groupModalGroupUuid, renameGroup, createGroup])
+  }, [groupModalParentUuid, createSubGroup, createGroup])
 
   /**
    * Закрывает модальное окно и очищает временное состояние.
    */
   const handleGroupModalClose = React.useCallback(() => {
     setGroupModalOpened(false)
-    setGroupModalGroupUuid(null)
-    setGroupModalInitialName('')
+    setGroupModalParentUuid(null)
   }, [])
 
   const handleDeleteGroup = React.useCallback((groupUuid: string) => {
@@ -223,11 +219,6 @@ export const PrimitiveManager: React.FC = () => {
   // Drag and drop handlers - memoized to prevent unnecessary re-renders
   const handleDragStart = React.useCallback((e: React.DragEvent, primitiveUuid: string) => {
     setDraggedItem({ type: 'primitive', uuid: primitiveUuid })
-    e.dataTransfer.effectAllowed = 'move'
-  }, [])
-
-  const handleGroupDragStart = React.useCallback((e: React.DragEvent, groupUuid: string) => {
-    setDraggedItem({ type: 'group', uuid: groupUuid })
     e.dataTransfer.effectAllowed = 'move'
   }, [])
 
@@ -288,6 +279,46 @@ export const PrimitiveManager: React.FC = () => {
     />
   ), [selectedPrimitiveIds, hoveredPrimitiveId, handlePrimitiveSelect, handlePrimitiveHover, togglePrimitiveVisibility, removePrimitive, handleDragStart, handlePrimitiveDragOver])
 
+  /**
+   * Рекурсивно рендерит узел дерева групп вместе с принадлежащими ему примитивами.
+   * @param node узел дерева групп
+   */
+  const renderGroupNode = (node: GroupTreeNode): React.ReactNode => {
+    const primitivesInGroup = primitives.filter(
+      p => primitiveGroupAssignments[p.uuid] === node.group.uuid
+    )
+
+    return (
+      <PrimitiveGroupItem
+        key={node.group.uuid}
+        group={node.group}
+        isExpanded={expandedGroups.has(node.group.uuid)}
+        isSelected={selectedGroupUuids.includes(node.group.uuid)}
+        primitiveCount={primitivesInGroup.length}
+        level={node.depth}
+        onToggleExpand={handleToggleGroupExpand}
+        onSelect={handleSelectGroup}
+        onRename={renameGroup}
+        onDelete={handleDeleteGroup}
+        onCreateSubGroup={handleCreateSubGroup}
+        onCreateGroup={handleCreateGroup}
+        onToggleVisibility={handleToggleGroupVisibility}
+        onDragOver={(e) => handleDragOver(e, node.group.uuid)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, node.group.uuid)}
+        isDropTarget={dropTarget === node.group.uuid}
+      >
+        <Stack gap="xs">
+          {node.children.map(renderGroupNode)}
+          {primitivesInGroup.map(primitive => {
+            const originalIndex = primitives.findIndex(p => p.uuid === primitive.uuid)
+            return renderPrimitive(primitive, originalIndex)
+          })}
+        </Stack>
+      </PrimitiveGroupItem>
+    )
+  }
+
   return (
     <>
       <Paper
@@ -335,114 +366,7 @@ export const PrimitiveManager: React.FC = () => {
         {/* Древовидная структура примитивов и групп */}
         <ScrollArea style={{ flex: 1 , minHeight: 0 }} p="sm">
           <Stack gap="xs">
-            {/* Root level groups - each group shows its primitives inside */}
-            {Object.values(groups)
-              .filter(group => !group.parentGroupUuid) // Only root level groups
-              .map((group) => (
-                <Box key={group.uuid}>
-                  <Box
-                    onDragOver={(e) => handleDragOver(e, group.uuid)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, group.uuid)}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: 4,
-                      backgroundColor: dropTarget === group.uuid
-                        ? 'var(--mantine-color-green-8)'
-                        : 'transparent',
-                      border: dropTarget === group.uuid
-                        ? '2px dashed var(--mantine-color-green-4)'
-                        : 'none',
-                      marginBottom: '4px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <Group justify="space-between" align="center">
-                      <Group gap="xs">
-                        <ActionIcon
-                          size="xs"
-                          variant="transparent"
-                          onClick={() => handleToggleGroupExpand(group.uuid)}
-                          style={{ width: 16, height: 16, minWidth: 16 }}
-                        >
-                          {expandedGroups.has(group.uuid) ? (
-                            <IconChevronDown size={12} />
-                          ) : (
-                            <IconChevronRight size={12} />
-                          )}
-                        </ActionIcon>
-
-                        {expandedGroups.has(group.uuid) ? (
-                          <IconFolderOpen size={14}  />
-                        ) : (
-                          <IconFolder size={14}  />
-                        )}
-
-                        <Text
-                          size="sm"
-                          fw={500}
-                          style={{  cursor: 'pointer' }}
-                          onClick={() => handleToggleGroupExpand(group.uuid)}
-                        >
-                          {group.name}
-                        </Text>
-                      </Group>
-
-                      <Menu shadow="md" width={150}>
-                        <Menu.Target>
-                          <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
-                            <Text size="xs" fw={700} style={{ color: 'var(--mantine-color-yellow-1)' }}>⋮</Text>
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          <Menu.Item
-                            leftSection={<IconPencil size={14} />}
-                            onClick={() => handleOpenRenameGroup(group)}
-                          >
-                            Переименовать
-                          </Menu.Item>
-                          <Menu.Item
-                            leftSection={<IconTrash size={14} />}
-                            color="red"
-                            onClick={() => handleDeleteGroup(group.uuid)}
-                          >
-                            Удалить группу
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
-                    </Group>
-                  </Box>
-
-                  {/* Show primitives in this group when expanded */}
-                  {expandedGroups.has(group.uuid) && (
-                    <Box style={{ paddingLeft: '16px', marginTop: '0px' }}>
-                      <Stack gap="xs">
-                        {primitives
-                          .filter(primitive => primitiveGroupAssignments[primitive.uuid] === group.uuid)
-                          .map((primitive, index) => {
-                            const originalIndex = primitives.findIndex(p => p.uuid === primitive.uuid)
-                            return (
-                              <PrimitiveItem
-                                key={primitive.uuid}
-                                primitive={primitive}
-                                index={originalIndex}
-                                isSelected={selectedPrimitiveIds.includes(originalIndex)}
-                                isHovered={hoveredPrimitiveId === originalIndex}
-                                onSelect={handlePrimitiveSelect}
-                                onHover={handlePrimitiveHover}
-                                onToggleVisibility={togglePrimitiveVisibility}
-                                onRemove={removePrimitive}
-                                onDragStart={handleDragStart}
-                                dragOver={handlePrimitiveDragOver}
-                                isDropTarget={false}
-                              />
-                            )
-                          })}
-                      </Stack>
-                    </Box>
-                  )}
-                </Box>
-              ))}
+            {groupTree.map(renderGroupNode)}
 
             {/* Ungrouped primitives */}
             <Box
@@ -463,7 +387,7 @@ export const PrimitiveManager: React.FC = () => {
             >
               <Text size="sm" fw={500} c="dimmed" mb="xs">Без группы:</Text>
               <Stack gap="xs">
-                {ungroupedPrimitives.map((primitive, index) => {
+                {ungroupedPrimitives.map(primitive => {
                   const originalIndex = primitives.findIndex(p => p.uuid === primitive.uuid)
                   return (
                     <PrimitiveItem
@@ -511,9 +435,9 @@ export const PrimitiveManager: React.FC = () => {
       </Paper>
       <GroupNameModal
         opened={groupModalOpened}
-        initialName={groupModalInitialName}
-        title={groupModalGroupUuid ? 'Переименовать группу' : 'Новая группа'}
-        confirmLabel={groupModalGroupUuid ? 'Сохранить' : 'Создать'}
+        initialName=""
+        title={groupModalParentUuid ? 'Новая подгруппа' : 'Новая группа'}
+        confirmLabel="Создать"
         onClose={handleGroupModalClose}
         onSubmit={handleGroupModalSubmit}
       />
