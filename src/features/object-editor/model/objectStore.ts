@@ -270,7 +270,7 @@ export const useObjectStore = create<ObjectStore>()(
     // Записывает ID наведённого примитива
     setHoveredPrimitive: (index: number | null) => set({ hoveredPrimitiveId: index }),
     // Снимает выделение
-    clearSelection: () => set({ selectedPrimitiveIds: [] }),
+    clearSelection: () => set({ selectedPrimitiveIds: [], selectedGroupUuids: [] }),
     // Очищает сцену и сбрасывает освещение
     clearScene: () =>
       set({
