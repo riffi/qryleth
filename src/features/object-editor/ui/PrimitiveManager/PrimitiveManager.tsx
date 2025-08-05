@@ -12,22 +12,19 @@ import {
   Menu,
   Button
 } from '@mantine/core'
-import { IconEye, IconEyeOff, IconTrash, IconFolderPlus } from '@tabler/icons-react'
+import { IconEye, IconEyeOff, IconTrash, IconFolderPlus, IconPencil } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId,
   useObjectStore,
   useObjectPrimitiveGroups,
-  usePrimitiveGroupAssignments,
-  useUngroupedPrimitives,
-  useGroupTree,
-  useSelectedGroupUuids
+  usePrimitiveGroupAssignments
 } from '../../model/objectStore.ts'
 import { getPrimitiveDisplayName, getPrimitiveIcon } from '@/entities/primitive'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
-import { GroupTree } from './GroupTree'
+import { GroupNameModal } from './GroupNameModal'
 
 /**
  * Элемент примитива в списке PrimitiveManager
@@ -149,19 +146,10 @@ export const PrimitiveManager: React.FC = () => {
     [primitives, primitiveGroupAssignments]
   )
   
-  // Add hooks for tree structure - DISABLED due to infinite loop 
-  // const groupTree = useGroupTree()
-  // const selectedGroupUuids = useSelectedGroupUuids()
-  
-  // Temporary replacements to avoid infinite loop
-  const groupTree = React.useMemo(() => [], []) // Empty tree for now
-  const selectedGroupUuids: string[] = []
-
-  // Use direct values to avoid memoization issues
+  // Use direct values to avoid мемоизации
   const primitivesCount = primitives.length
   const selectedPrimitivesCount = selectedPrimitiveIds.length
   const groupsCount = Object.keys(groups).length
-  const selectedGroupsCount = selectedGroupUuids.length
   
   const {
     selectPrimitive,
@@ -178,7 +166,6 @@ export const PrimitiveManager: React.FC = () => {
     assignPrimitiveToGroup,
     removePrimitiveFromGroup,
     // Add other actions for tree structure
-    createSubGroup,
     renameGroup,
     toggleGroupVisibility,
     selectGroup,
@@ -190,11 +177,16 @@ export const PrimitiveManager: React.FC = () => {
   const lastSelectedRef = React.useRef<number | null>(null)
   
   // State for expanded groups
-  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
-  
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set()) 
+
   // State for drag and drop
   const [draggedItem, setDraggedItem] = React.useState<{type: 'primitive' | 'group', uuid: string} | null>(null)
   const [dropTarget, setDropTarget] = React.useState<string | null>(null)
+
+  // Состояние для модального окна ввода названия группы
+  const [groupModalOpened, setGroupModalOpened] = React.useState(false)
+  const [groupModalInitialName, setGroupModalInitialName] = React.useState('')
+  const [groupModalGroupUuid, setGroupModalGroupUuid] = React.useState<string | null>(null)
 
   /**
    * Обработчик клика по примитиву. Поддерживает одиночное, множественное
@@ -259,24 +251,49 @@ export const PrimitiveManager: React.FC = () => {
       selectGroup(groupUuid)
     }
   }, [selectedPrimitivesCount, setSelectedPrimitives, toggleGroupSelection, selectGroup])
-
+  /**
+   * Открывает модальное окно для создания новой корневой группы.
+   */
   const handleCreateGroup = React.useCallback(() => {
-    const groupUuid = createGroup('Новая группа')
-    if (groupUuid) {
-      setExpandedGroups(prev => new Set([...prev, groupUuid]))
-    }
-  }, [createGroup])
+    setGroupModalInitialName('')
+    setGroupModalGroupUuid(null)
+    setGroupModalOpened(true)
+  }, [])
 
-  const handleCreateSubGroup = React.useCallback((parentGroupUuid: string) => {
-    const groupUuid = createSubGroup('Новая подгруппа', parentGroupUuid)
-    if (groupUuid) {
-      setExpandedGroups(prev => new Set([...prev, parentGroupUuid, groupUuid]))
-    }
-  }, [createSubGroup])
+  /**
+   * Открывает модальное окно переименования существующей группы.
+   * @param group группа, которую требуется переименовать
+   */
+  const handleOpenRenameGroup = React.useCallback((group: GfxPrimitiveGroup) => {
+    setGroupModalInitialName(group.name)
+    setGroupModalGroupUuid(group.uuid)
+    setGroupModalOpened(true)
+  }, [])
 
-  const handleRenameGroup = React.useCallback((groupUuid: string, newName: string) => {
-    renameGroup(groupUuid, newName)
-  }, [renameGroup])
+  /**
+   * Обрабатывает подтверждение в модальном окне: создаёт новую группу
+   * или переименовывает существующую.
+   * @param name введённое пользователем название
+   */
+  const handleGroupModalSubmit = React.useCallback((name: string) => {
+    if (groupModalGroupUuid) {
+      renameGroup(groupModalGroupUuid, name)
+    } else {
+      const groupUuid = createGroup(name)
+      if (groupUuid) {
+        setExpandedGroups(prev => new Set([...prev, groupUuid]))
+      }
+    }
+  }, [groupModalGroupUuid, renameGroup, createGroup])
+
+  /**
+   * Закрывает модальное окно и очищает временное состояние.
+   */
+  const handleGroupModalClose = React.useCallback(() => {
+    setGroupModalOpened(false)
+    setGroupModalGroupUuid(null)
+    setGroupModalInitialName('')
+  }, [])
 
   const handleDeleteGroup = React.useCallback((groupUuid: string) => {
     deleteGroup(groupUuid)
@@ -360,7 +377,8 @@ export const PrimitiveManager: React.FC = () => {
   ), [selectedPrimitiveIds, hoveredPrimitiveId, handlePrimitiveSelect, handlePrimitiveHover, togglePrimitiveVisibility, removePrimitive, handleDragStart, handlePrimitiveDragOver])
 
   return (
-    <Paper
+    <>
+      <Paper
       shadow="sm"
       style={{
         width: "100%",
@@ -449,6 +467,12 @@ export const PrimitiveManager: React.FC = () => {
                           </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
+                          <Menu.Item
+                            leftSection={<IconPencil size={14} />}
+                            onClick={() => handleOpenRenameGroup(group)}
+                          >
+                            Переименовать
+                          </Menu.Item>
                           <Menu.Item
                             leftSection={<IconTrash size={14} />}
                             color="red"
@@ -556,6 +580,15 @@ export const PrimitiveManager: React.FC = () => {
           </Box>
         )}
       </Stack>
-    </Paper>
+      </Paper>
+      <GroupNameModal
+        opened={groupModalOpened}
+        initialName={groupModalInitialName}
+        title={groupModalGroupUuid ? 'Переименовать группу' : 'Новая группа'}
+        confirmLabel={groupModalGroupUuid ? 'Сохранить' : 'Создать'}
+        onClose={handleGroupModalClose}
+        onSubmit={handleGroupModalSubmit}
+      />
+    </>
   )
 }
