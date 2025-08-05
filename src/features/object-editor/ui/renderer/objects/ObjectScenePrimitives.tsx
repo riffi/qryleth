@@ -1,20 +1,28 @@
 import React from 'react'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
+import { GroupRenderer } from './GroupRenderer.tsx'
 import {
   useObjectPrimitives,
   useObjectStore,
-  useObjectMaterials
+  useObjectMaterials,
+  useRootGroups,
+  usePrimitiveGroupAssignments
 } from '../../../model/objectStore.ts'
 
 /**
- * Отрисовывает примитивы выбранного объекта и обрабатывает их выбор.
+ * Отрисовывает примитивы и группы выбранного объекта, а также обрабатывает их выбор.
  */
 export const ObjectScenePrimitives: React.FC = () => {
   const primitives = useObjectPrimitives()
+  const groupAssignments = usePrimitiveGroupAssignments()
+  const rootGroups = useRootGroups()
   const objectMaterials = useObjectMaterials()
   const clearSelection = useObjectStore(state => state.clearSelection)
   const renderMode = useObjectStore(state => state.renderMode)
 
+  /**
+   * Обрабатывает клик по примитиву, поддерживая множественный выбор через Shift.
+   */
   const handleObjectClick = (event: any) => {
     event.stopPropagation()
     const primitiveIndex = event.object.userData.primitiveIndex
@@ -28,10 +36,19 @@ export const ObjectScenePrimitives: React.FC = () => {
 
   return (
     <group onPointerMissed={() => clearSelection()}>
+      {rootGroups.map(group => (
+        <GroupRenderer
+          key={group.uuid}
+          groupUuid={group.uuid}
+          renderMode={renderMode}
+          objectMaterials={objectMaterials}
+          onPrimitiveClick={handleObjectClick}
+        />
+      ))}
       {primitives.map((primitive, index) => (
-        primitive.visible === false ? null : (
+        groupAssignments[primitive.uuid] || primitive.visible === false ? null : (
           <PrimitiveRenderer
-            key={index}
+            key={primitive.uuid}
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={objectMaterials}

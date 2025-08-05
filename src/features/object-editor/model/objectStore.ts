@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import { useMemo } from 'react'
+import { shallow } from 'zustand/shallow'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial, CreateGfxMaterial } from '@/entities/material'
 import type { GfxObject } from '@/entities/object'
@@ -577,24 +579,27 @@ export const useSelectedGroupUuids = () => useObjectStore(s => s.selectedGroupUu
 /** Селектор иерархического дерева групп */
 export const useGroupTree = () => useObjectStore(s => buildGroupTree(s.primitiveGroups))
 
-/** Селектор примитивов в указанной группе */
-export const useGroupPrimitives = (groupUuid: string) => useObjectStore(s => {
-  return s.primitives.filter(primitive => 
-    s.primitiveGroupAssignments[primitive.uuid] === groupUuid
-  )
-})
-
 /** Селектор всех примитивов без группы */
 export const useUngroupedPrimitives = () => useObjectStore(s => {
-  return s.primitives.filter(primitive => 
+  return s.primitives.filter(primitive =>
     !s.primitiveGroupAssignments[primitive.uuid]
   )
 })
 
-/** Селектор корневых групп (без родителя) */
-export const useRootGroups = () => useObjectStore(s => {
-  return Object.values(s.primitiveGroups).filter(group => !group.parentGroupUuid)
-})
+/**
+ * Селектор корневых групп (без родителя).
+ * Возвращает мемоизированный массив, чтобы избежать бесконечного перерендера.
+ */
+export const useRootGroups = () => {
+  const primitiveGroups = useObjectStore(s => s.primitiveGroups, shallow)
+  return useMemo(
+    () =>
+      Object.values(primitiveGroups).filter(
+        group => !group.parentGroupUuid
+      ),
+    [primitiveGroups]
+  )
+}
 
 /** Селектор глубины группы в иерархии */
 export const useGroupDepth = (groupUuid: string) => useObjectStore(s => {
@@ -602,11 +607,51 @@ export const useGroupDepth = (groupUuid: string) => useObjectStore(s => {
   return path.length - 1
 })
 
-/** Селектор дочерних групп для указанной группы */
-export const useGroupChildren = (groupUuid: string) => useObjectStore(s => {
-  const childrenUuids = findGroupChildren(groupUuid, s.primitiveGroups)
-  return childrenUuids.map(uuid => s.primitiveGroups[uuid]).filter(Boolean)
-})
+/**
+ * Селектор прямых дочерних групп для указанной группы
+ * @param groupUuid UUID группы, дочерние элементы которой нужны
+ * @returns Массив групп, имеющих заданного родителя
+ */
+export const useGroupChildren = (groupUuid: string) => {
+  const primitiveGroups = useObjectStore(s => s.primitiveGroups, shallow)
+  return useMemo(
+    () =>
+      Object.values(primitiveGroups).filter(
+        group => group.parentGroupUuid === groupUuid
+      ),
+    [primitiveGroups, groupUuid]
+  )
+}
+
+/**
+ * Селектор примитивов, принадлежащих указанной группе.
+ * Возвращает мемоизированный массив пар `{ primitive, index }`,
+ * чтобы исключить создание новых объектов при каждом рендере и
+ * предотвратить бесконечные циклы обновления React.
+ * @param groupUuid UUID группы, примитивы которой необходимо получить
+ * @returns Массив примитивов группы с их индексами
+ */
+export const useGroupPrimitives = (groupUuid: string) => {
+  // Отдельные подписки на части состояния исключают создание нового
+  // объекта-снимка при каждом рендере и предотвращают предупреждение
+  // "The result of getSnapshot should be cached"
+  const primitives = useObjectStore(s => s.primitives)
+  const primitiveGroupAssignments = useObjectStore(s => s.primitiveGroupAssignments)
+
+  return useMemo(
+    () =>
+      primitives.reduce<{ primitive: GfxPrimitive; index: number }[]>(
+        (acc, primitive, index) => {
+          if (primitiveGroupAssignments[primitive.uuid] === groupUuid) {
+            acc.push({ primitive, index })
+          }
+          return acc
+        },
+        []
+      ),
+    [primitives, primitiveGroupAssignments, groupUuid]
+  )
+}
 
 /** Селектор для получения группы по UUID */
 export const useGroupByUuid = (groupUuid: string) => useObjectStore(s => {
