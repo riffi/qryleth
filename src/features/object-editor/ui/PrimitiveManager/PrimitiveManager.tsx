@@ -71,7 +71,7 @@ const PrimitiveItem = React.memo<{
       onDragStart={onDragStart ? (e) => onDragStart(e, primitive.uuid) : undefined}
       onDragOver={dragOver}
       style={{
-        padding: '8px 12px',
+        padding: '4px 12px',
         borderRadius: 4,
         cursor: 'pointer',
         backgroundColor: isSelected
@@ -517,7 +517,7 @@ export const PrimitiveManager: React.FC = () => {
 
                   {/* Show primitives in this group when expanded */}
                   {expandedGroups.has(group.uuid) && (
-                    <Box style={{ paddingLeft: '16px', marginTop: '4px' }}>
+                    <Box style={{ paddingLeft: '16px', marginTop: '0px' }}>
                       <Stack gap="xs">
                         {primitives
                           .filter(primitive => primitiveGroupAssignments[primitive.uuid] === group.uuid)
