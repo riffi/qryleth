@@ -143,24 +143,24 @@ export const PrimitiveManager: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
-  
+
   // Step 1: Add groups hook - test if this causes infinite loop
   const groups = useObjectPrimitiveGroups()
-  
+
   // Step 5: Add primitiveGroupAssignments hook
   const primitiveGroupAssignments = usePrimitiveGroupAssignments()
-  
+
   // Step 6: Avoid problematic useUngroupedPrimitives hook - compute directly
-  const ungroupedPrimitives = React.useMemo(() => 
+  const ungroupedPrimitives = React.useMemo(() =>
     primitives.filter(primitive => !primitiveGroupAssignments[primitive.uuid]),
     [primitives, primitiveGroupAssignments]
   )
-  
+
   // Use direct values to avoid мемоизации
   const primitivesCount = primitives.length
   const selectedPrimitivesCount = selectedPrimitiveIds.length
   const groupsCount = Object.keys(groups).length
-  
+
   const {
     selectPrimitive,
     togglePrimitiveSelection,
@@ -185,9 +185,9 @@ export const PrimitiveManager: React.FC = () => {
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
   const lastSelectedRef = React.useRef<number | null>(null)
-  
+
   // State for expanded groups
-  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set()) 
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
 
   // State for drag and drop
   const [draggedItem, setDraggedItem] = React.useState<{type: 'primitive' | 'group', uuid: string} | null>(null)
@@ -329,7 +329,7 @@ export const PrimitiveManager: React.FC = () => {
   }, [])
 
   const handleGroupDragStart = React.useCallback((e: React.DragEvent, groupUuid: string) => {
-    setDraggedItem({ type: 'group', uuid: groupUuid })  
+    setDraggedItem({ type: 'group', uuid: groupUuid })
     e.dataTransfer.effectAllowed = 'move'
   }, [])
 
@@ -345,7 +345,7 @@ export const PrimitiveManager: React.FC = () => {
 
   const handleDrop = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
     e.preventDefault()
-    
+
     if (!draggedItem) return
 
     if (draggedItem.type === 'primitive') {
@@ -449,12 +449,12 @@ export const PrimitiveManager: React.FC = () => {
                     style={{
                       padding: '8px 12px',
                       borderRadius: 4,
-                      backgroundColor: dropTarget === group.uuid 
-                        ? 'var(--mantine-color-green-8)' 
-                        : 'var(--mantine-color-yellow-9)',
+                      backgroundColor: dropTarget === group.uuid
+                        ? 'var(--mantine-color-green-8)'
+                        : 'transparent',
                       border: dropTarget === group.uuid
                         ? '2px dashed var(--mantine-color-green-4)'
-                        : '1px solid var(--mantine-color-yellow-6)',
+                        : 'none',
                       marginBottom: '4px',
                       transition: 'all 0.15s ease'
                     }}
@@ -475,24 +475,21 @@ export const PrimitiveManager: React.FC = () => {
                         </ActionIcon>
 
                         {expandedGroups.has(group.uuid) ? (
-                          <IconFolderOpen size={14} color="var(--mantine-color-yellow-1)" />
+                          <IconFolderOpen size={14}  />
                         ) : (
-                          <IconFolder size={14} color="var(--mantine-color-yellow-1)" />
+                          <IconFolder size={14}  />
                         )}
 
                         <Text
                           size="sm"
                           fw={500}
-                          style={{ color: 'var(--mantine-color-yellow-1)', cursor: 'pointer' }}
+                          style={{  cursor: 'pointer' }}
                           onClick={() => handleToggleGroupExpand(group.uuid)}
                         >
                           {group.name}
                         </Text>
-                        <Badge size="xs" variant="light" color="yellow">
-                          Группа
-                        </Badge>
                       </Group>
-                      
+
                       <Menu shadow="md" width={150}>
                         <Menu.Target>
                           <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
