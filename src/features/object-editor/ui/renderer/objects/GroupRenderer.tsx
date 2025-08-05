@@ -5,7 +5,8 @@ import type { GfxMaterial } from '@/entities/material'
 import {
   useGroupChildren,
   useGroupVisibility,
-  useGroupPrimitives
+  useGroupPrimitives,
+  useGroupByUuid
 } from '../../../model/objectStore.ts'
 
 export interface GroupRendererProps {
@@ -32,9 +33,22 @@ export const GroupRenderer: React.FC<GroupRendererProps> = ({
   const isVisible = useGroupVisibility(groupUuid)
   const childGroups = useGroupChildren(groupUuid)
   const primitives = useGroupPrimitives(groupUuid)
+  const group = useGroupByUuid(groupUuid)
+
+  // Применяем transform группы если он есть
+  const groupTransform = group?.transform
+  const position = groupTransform?.position ? [groupTransform.position.x, groupTransform.position.y, groupTransform.position.z] : undefined
+  const rotation = groupTransform?.rotation ? [groupTransform.rotation.x, groupTransform.rotation.y, groupTransform.rotation.z] : undefined
+  const scale = groupTransform?.scale ? [groupTransform.scale.x, groupTransform.scale.y, groupTransform.scale.z] : undefined
 
   return (
-    <group visible={isVisible} userData={{ groupUuid }}>
+    <group 
+      visible={isVisible} 
+      userData={{ groupUuid }}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+    >
       {primitives.map(({ primitive, index }) => (
         primitive.visible === false ? null : (
           <PrimitiveRenderer

@@ -12,7 +12,8 @@
       "Bash(mkdir:*)",
       "Bash(find:*)",
       "Bash(rg:*)",
-      "Bash(timeout 10 npm run dev)"
+      "Bash(timeout 10 npm run dev)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

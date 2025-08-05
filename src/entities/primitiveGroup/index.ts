@@ -18,3 +18,9 @@ export {
   applyImportResolution,
   ensureValidUuids
 } from './model/importUtils';
+
+export {
+  movePrimitiveToGroup,
+  calculateGroupBounds,
+  getGroupCenter
+} from './lib/coordinateUtils';

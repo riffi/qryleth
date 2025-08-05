@@ -227,7 +227,7 @@ export interface GfxObject {
 - **Динамический pivot для групп**: Расчет геометрического центра группы с помощью `calculateGroupBounds(groupUuid)` для позиционирования gizmo
 - **Расширение PrimitiveTransformGizmo**: 
   - Добавить поддержку трансформации групп через новый проп `selectedGroupUuids?: string[]`
-  - При выделении группы показывать gizmo на геометрическом центре всех примитивов группы
+  - При выделении группы в primitivemanager показывать gizmo на геометрическом центре всех примитивов группы
 - **Обновление objectStore**: 
   - Добавить селектор `useSelectedItemType()` возвращающий `'primitive' | 'group' | 'mixed'` 
   - Добавить action `setTransformMode(mode: 'primitive' | 'group')` для переключения режимов

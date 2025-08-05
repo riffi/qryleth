@@ -2,6 +2,8 @@
  * Типы для системы группировки примитивов GfxObject
  */
 
+import type { Vector3 } from "@/shared/types";
+
 /**
  * Интерфейс группы примитивов с поддержкой иерархии
  */
@@ -20,6 +22,13 @@ export interface GfxPrimitiveGroup {
   
   /** UUID исходного объекта при импорте объекта как группы */
   sourceObjectUuid?: string;
+  
+  /** Трансформация группы для позиционирования и масштабирования */
+  transform?: {
+    position?: Vector3;
+    rotation?: Vector3;
+    scale?: Vector3;
+  };
 }
 
 /**
