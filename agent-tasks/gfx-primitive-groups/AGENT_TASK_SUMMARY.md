@@ -211,22 +211,45 @@ export interface GfxObject {
 - **Селектор дочерних групп**: `useGroupChildren` возвращает только прямых потомков, предотвращая дублирование и бесконечные циклы
   - **Селектор примитивов группы**: `useGroupPrimitives` использует независимые подписки и мемоизирует список примитивов с индексами, что устраняет предупреждение `getSnapshot` и бесконечный перерендер
 
-**Подфаза 4.2: Система координат**
+**Подфаза 4.2: Система координат** - ✅ Автоматически реализовано
 - **Относительные координаты**: Примитивы всегда хранят относительные координаты в существующих полях `position/rotation/scale`
-- **Автоматические трансформации**: Three.js `<group>` элементы автоматически применяют иерархические трансформации
-- **Утилиты координат**: Функции для пересчета координат при перемещении между группами
+- **Автоматические трансформации**: Three.js `<group>` элементы автоматически применяют иерархические трансформации (уже работает благодаря рекурсивному GroupRenderer)
+- **Утилиты для перемещения между группами**:  создать  `coordinateUtils.ts`:
+  - `moveprimitiveToGroup(primitiveUuid, fromGroupUuid, toGroupUuid)` - пересчитывает координаты при drag-and-drop
+  - `calculateGroupBounds(groupUuid)` - для расчета pivot point группы
+  - добавить в GfxPrimitiveGroup свойство  `transform?: {
+    position?: Vector3;
+    rotation?: Vector3;
+    scale?: Vector3;
+    };`
 
 **Подфаза 4.3: Pivot Point и Gizmo Controls**
-- **Динамический pivot**: Расчет pivot point как геометрического центра группы (без сохранения в данных)
-- **Расширение gizmo**: Поддержка режимов трансформации примитива/группы/множественных групп
-- **Состояние store**: Добавить `selectedItemType: 'primitive' | 'group' | 'mixed'`
-- **Переключение режимов**: Логика определения что трансформировать на основе выделения
+- **Динамический pivot для групп**: Расчет геометрического центра группы с помощью `calculateGroupBounds(groupUuid)` для позиционирования gizmo
+- **Расширение PrimitiveTransformGizmo**: 
+  - Добавить поддержку трансформации групп через новый проп `selectedGroupUuids?: string[]`
+  - При выделении группы показывать gizmo на геометрическом центре всех примитивов группы
+- **Обновление objectStore**: 
+  - Добавить селектор `useSelectedItemType()` возвращающий `'primitive' | 'group' | 'mixed'` 
+  - Добавить action `setTransformMode(mode: 'primitive' | 'group')` для переключения режимов
+- **Создание GroupControlPanel**: Аналог PrimitiveControlPanel для управления трансформациями групп:
+  - **Показ панели**: Отображается при выделении одной группы (selectedGroupUuids.length === 1)
+  - **Интерфейс как у PrimitiveControlPanel**: Те же блоки Position/Rotation/Scale с полями X/Y/Z
+  - **Логика трансформации**: Изменения применяются к свойству transform GfxPrimitiveGroup 
+  - **Интеграция в UI**: Показывать GroupControlPanel вместо PrimitiveControlPanel когда выделена группа
+  - **Отображение значений**: Показывать средние значения Position/Rotation/Scale всех примитивов группы
 
 **Подфаза 4.4: Обработка взаимодействий**
-- **Клики по группам**: Обработка через `userData.groupUuid`
-- **Выбор примитив vs группа**: Логика выбора в зависимости от места клика
-- **Drag-and-drop**: Автоматический пересчет координат при перемещении между группами
-- **Сохранение мировых координат**: При перемещении примитивов между группами
+- **Обработка кликов по группам**: Расширить обработчик в ObjectScenePrimitives:
+  - При клике на примитив проверять `userData.groupUuid` и определять нужно ли выделить группу или примитив
+  - Логика: Ctrl+Click на примитив = выделить группу, обычный клик = выделить примитив
+  - Добавить в objectStore: `selectGroup(groupUuid)`, `toggleGroupSelection(groupUuid)`
+- **Drag-and-drop между группами**: Обновить PrimitiveManager:
+  - При перемещении примитива между группами вызывать `moveprimitiveToGroup()` для пересчета координат
+  - Обновить обработчики onDrop для работы с групповой иерархией
+- **Интеграция с gizmo**: Обновить PrimitiveTransformGizmo:
+  - Слушать изменения `selectedGroupUuids` и `selectedItemType`  
+  - При трансформации группы  изменения применять к свойству transform GfxPrimitiveGroup
+  - Сохранять относительные позиции примитивов внутри группы
 
 **Критерии успешности**:
 ✅ Группы рендерятся как вложенные `<group>` элементы
@@ -241,11 +264,13 @@ export interface GfxObject {
 ✅ Селекторы корневых и дочерних групп мемоизированы, что исключает бесконечный перерендер
 
 **Файлы для изменения**:
-- `src/features/object-editor/ui/renderer/objects/ObjectScenePrimitives.tsx`
-- `src/features/object-editor/ui/renderer/objects/GroupRenderer.tsx` (новый)
-- `src/features/object-editor/ui/renderer/controls/PrimitiveTransformGizmo.tsx`
-- `src/features/object-editor/model/objectStore.ts` (добавить selectedItemType)
-- `src/entities/primitiveGroup/lib/coordinateUtils.ts` (новый) - утилиты для работы с координатами
+- `src/features/object-editor/ui/renderer/objects/ObjectScenePrimitives.tsx` (обработка кликов)
+- `src/features/object-editor/ui/renderer/objects/GroupRenderer.tsx` (уже создан)
+- `src/features/object-editor/ui/renderer/controls/PrimitiveTransformGizmo.tsx` (поддержка групп)
+- `src/features/object-editor/ui/GroupControlPanel/GroupControlPanel.tsx` (новый) - панель управления группами
+- `src/features/object-editor/model/objectStore.ts` (селекторы и actions для групп)
+- `src/entities/primitiveGroup/lib/coordinateUtils.ts` (новый) - утилиты координат
+- `src/features/object-editor/ui/PrimitiveManager/PrimitiveManager.tsx` (drag-and-drop координат)
 
 
 ### Фаза 5: Обновление рендеринга в SceneEditor
