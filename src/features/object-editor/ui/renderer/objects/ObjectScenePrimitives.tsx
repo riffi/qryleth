@@ -48,7 +48,9 @@ export const ObjectScenePrimitives: React.FC = () => {
       {primitives.map((primitive, index) => (
         groupAssignments[primitive.uuid] || primitive.visible === false ? null : (
           <PrimitiveRenderer
-            key={primitive.uuid}
+            // Ключ включает префикс "root" для корректного
+            // перемонтирования при перемещении примитива в группу
+            key={`root-${primitive.uuid}`}
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={objectMaterials}

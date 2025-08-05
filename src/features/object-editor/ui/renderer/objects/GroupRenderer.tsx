@@ -38,7 +38,9 @@ export const GroupRenderer: React.FC<GroupRendererProps> = ({
       {primitives.map(({ primitive, index }) => (
         primitive.visible === false ? null : (
           <PrimitiveRenderer
-            key={primitive.uuid}
+            // Используем составной ключ, чтобы примитив корректно
+            // перемонтировался при смене группы
+            key={`${groupUuid}-${primitive.uuid}`}
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={objectMaterials}
