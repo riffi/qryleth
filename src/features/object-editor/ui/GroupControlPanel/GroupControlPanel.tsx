@@ -14,7 +14,6 @@ import type { NumberFormatValues, SourceInfo } from 'react-number-format'
 import {
   useObjectStore,
   useSelectedGroupUuids,
-  useGroupByUuid,
   useObjectPrimitives,
   useObjectPrimitiveGroups,
   usePrimitiveGroupAssignments
@@ -50,7 +49,7 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
   const primitives = useObjectPrimitives()
   const primitiveGroups = useObjectPrimitiveGroups()
   const primitiveGroupAssignments = usePrimitiveGroupAssignments()
-  
+
   /**
    * Получение выбранной группы для редактирования (только одна группа)
    */
@@ -69,40 +68,34 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
     if (!selectedGroup) return null
 
     const groupUuid = selectedGroup.uuid
-    const groupPrimitives = primitives.filter(p => 
+    const groupPrimitives = primitives.filter(p =>
       primitiveGroupAssignments[p.uuid] === groupUuid
     )
 
     if (groupPrimitives.length === 0) {
       return {
-        position: [0, 0, 0] as [number, number, number],
-        rotation: [0, 0, 0] as [number, number, number],
-        scale: [1, 1, 1] as [number, number, number]
+        position: [0, 0, 0] as Vector3,
+        rotation: [0, 0, 0] as Vector3,
+        scale: [1, 1, 1] as Vector3
       }
     }
 
     // Если у группы есть своя трансформация, используем её
     if (selectedGroup.transform) {
       return {
-        position: selectedGroup.transform.position ? 
-          [selectedGroup.transform.position.x, selectedGroup.transform.position.y, selectedGroup.transform.position.z] as [number, number, number] :
-          [0, 0, 0] as [number, number, number],
-        rotation: selectedGroup.transform.rotation ?
-          [selectedGroup.transform.rotation.x, selectedGroup.transform.rotation.y, selectedGroup.transform.rotation.z] as [number, number, number] :
-          [0, 0, 0] as [number, number, number],
-        scale: selectedGroup.transform.scale ?
-          [selectedGroup.transform.scale.x, selectedGroup.transform.scale.y, selectedGroup.transform.scale.z] as [number, number, number] :
-          [1, 1, 1] as [number, number, number]
+        position: selectedGroup.transform.position || [0, 0, 0],
+        rotation: selectedGroup.transform.rotation || [0, 0, 0],
+        scale: selectedGroup.transform.scale || [1, 1, 1]
       }
     }
 
     // Иначе вычисляем геометрический центр
     const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
-    
+
     return {
-      position: [center.x, center.y, center.z] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-      scale: [1, 1, 1] as [number, number, number]
+      position: center,
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1]
     }
   }, [selectedGroup, primitives, primitiveGroups, primitiveGroupAssignments])
 
@@ -116,18 +109,12 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
   ) => {
     if (!selectedGroup) return
 
-    const axisNames = ['x', 'y', 'z'] as const
-    const axisName = axisNames[axis]
-    
     // Получаем текущую трансформацию группы
     const currentTransform = selectedGroup.transform || {}
-    const currentProperty = currentTransform[property] || 
-      (property === 'scale' ? { x: 1, y: 1, z: 1 } : { x: 0, y: 0, z: 0 })
-    
-    const newProperty = {
-      ...currentProperty,
-      [axisName]: value
-    }
+    const currentProperty: Vector3 = currentTransform[property] || (property === 'scale' ? [1, 1, 1] : [0, 0, 0])
+
+    const newProperty: Vector3 = [...currentProperty]
+    newProperty[axis] = value
 
     // Обновляем группу в store
     const updatedGroup = {
@@ -153,10 +140,10 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
   const resetTransform = (property: 'position' | 'rotation' | 'scale') => {
     if (!selectedGroup) return
 
-    const defaultValue = property === 'scale' 
-      ? { x: 1, y: 1, z: 1 } 
-      : { x: 0, y: 0, z: 0 }
-    
+    const defaultValue: Vector3 = property === 'scale'
+      ? [1, 1, 1]
+      : [0, 0, 0]
+
     const currentTransform = selectedGroup.transform || {}
     const updatedGroup = {
       ...selectedGroup,
@@ -248,7 +235,7 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
   }: {
     label: string
     property: 'position' | 'rotation' | 'scale'
-    values: [number, number, number]
+    values: Vector3
     labels?: string[]
   }) => (
     <Box>
@@ -264,7 +251,7 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
         </ActionIcon>
       </Group>
       <Group gap="xs">
-        {values.map((value, index) => (
+        {values?.map((value, index) => (
           <TransformInput
             key={index}
             index={index as 0 | 1 | 2}
@@ -290,7 +277,7 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
         <Group>
           <Text size="lg" fw={500}>Трансформации группы</Text>
         </Group>
-        
+
         <Box>
           <Text size="sm" c="dimmed" mb="md">
             Группа: {selectedGroup.name}

@@ -2,11 +2,12 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import type { TransformControls as ThreeTransformControls } from 'three/examples/jsm/controls/TransformControls'
+import type { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { useObjectStore, useSelectedGroupUuids, useObjectPrimitives, useObjectPrimitiveGroups, usePrimitiveGroupAssignments, useSelectedItemType } from '../../../model/objectStore.ts'
 import { useOEPrimitiveSelection } from '../../../lib/hooks/useOEPrimitiveSelection.ts'
 import { getGroupCenter } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import type {
-  PrimitiveTransformEvent,
   SelectedObjectPrimitive,
   TransformMode
 } from '@/shared/types/ui'
@@ -22,9 +23,9 @@ export interface PrimitiveTransformGizmoProps {
  * Gizmo для трансформации выбранного примитива.
  * Синхронизирует изменения с состоянием стора и блокирует OrbitControls во время перетаскивания.
  */
-export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<any> }> = ({ orbitControlsRef }) => {
+export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { orbitControlsRef?: React.RefObject<ThreeOrbitControls> }> = ({ orbitControlsRef }) => {
   const { camera, gl, scene } = useThree()
-  const transformControlsRef = useRef<any>()
+  const transformControlsRef = useRef<ThreeTransformControls | null>(null)
   const selectedPrimitiveIds = useObjectStore(state => state.selectedPrimitiveIds)
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
@@ -43,7 +44,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
       const groupUuid = selectedGroupUuids[0]
       const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
-      return new THREE.Vector3(center.x, center.y, center.z)
+      return new THREE.Vector3(center[0], center[1], center[2])
     }
     
     // Handle primitive selection (existing logic)
@@ -178,7 +179,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     })
   }, [selectedPrimitiveIds, selectedItemType, selectedGroupUuids, transformMode, setTemporaryGroupTransform])
 
-  const handleDraggingChanged = useCallback((event: any) => {
+  const handleDraggingChanged = useCallback((event: { value: boolean }) => {
     if (orbitControlsRef?.current) {
       orbitControlsRef.current.enabled = !event.value
     }

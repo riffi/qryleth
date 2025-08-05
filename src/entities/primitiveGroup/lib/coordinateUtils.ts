@@ -6,9 +6,6 @@ import type { Vector3, BoundingBox } from "@/shared/types";
 import type { GfxPrimitive } from "@/entities/primitive";
 import type { GfxPrimitiveGroup } from "../model/types";
 
-/** Внутренний тип для координат в объектном формате */
-type Vector3Object = { x: number; y: number; z: number };
-
 /**
  * Пересчитывает координаты примитива при перемещении между группами
  * @param primitiveUuid UUID примитива для перемещения
@@ -32,32 +29,30 @@ export function movePrimitiveToGroup(
   // Если обе группы одинаковые, координаты не меняются
   if (fromGroupUuid === toGroupUuid) return primitive;
 
-  // Получаем мировые координаты примитива в текущей группе
   const worldTransform = getWorldTransform(primitive, fromGroupUuid, groups);
-  
+
   // Получаем обратную трансформацию для целевой группы
   const targetGroupInverseTransform = getGroupInverseTransform(toGroupUuid, groups);
-  
+
   // Применяем обратную трансформацию к мировым координатам
   const newLocalTransform = applyTransform(worldTransform, targetGroupInverseTransform);
 
-
   // Создаём новый transform только если он существенно отличается от значений по умолчанию
-  const newTransform: any = {};
-  
-  // Добавляем position только если он не равен [0, 0, 0]
-  if (newLocalTransform.position.x !== 0 || newLocalTransform.position.y !== 0 || newLocalTransform.position.z !== 0) {
-    newTransform.position = [newLocalTransform.position.x, newLocalTransform.position.y, newLocalTransform.position.z];
+  const newTransform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 } = {};
+
+  const [px, py, pz] = newLocalTransform.position;
+  if (px !== 0 || py !== 0 || pz !== 0) {
+    newTransform.position = [px, py, pz];
   }
-  
-  // Добавляем rotation только если он не равен [0, 0, 0]
-  if (newLocalTransform.rotation.x !== 0 || newLocalTransform.rotation.y !== 0 || newLocalTransform.rotation.z !== 0) {
-    newTransform.rotation = [newLocalTransform.rotation.x, newLocalTransform.rotation.y, newLocalTransform.rotation.z];
+
+  const [rx, ry, rz] = newLocalTransform.rotation;
+  if (rx !== 0 || ry !== 0 || rz !== 0) {
+    newTransform.rotation = [rx, ry, rz];
   }
-  
-  // Добавляем scale только если он не равен [1, 1, 1]
-  if (newLocalTransform.scale.x !== 1 || newLocalTransform.scale.y !== 1 || newLocalTransform.scale.z !== 1) {
-    newTransform.scale = [newLocalTransform.scale.x, newLocalTransform.scale.y, newLocalTransform.scale.z];
+
+  const [sx, sy, sz] = newLocalTransform.scale;
+  if (sx !== 1 || sy !== 1 || sz !== 1) {
+    newTransform.scale = [sx, sy, sz];
   }
 
   return {
@@ -91,20 +86,20 @@ export function calculateGroupBounds(
   for (const primitive of groupPrimitives) {
     const bounds = getPrimitiveBounds(primitive);
     if (bounds) {
-      minX = Math.min(minX, bounds.min.x);
-      minY = Math.min(minY, bounds.min.y);
-      minZ = Math.min(minZ, bounds.min.z);
-      maxX = Math.max(maxX, bounds.max.x);
-      maxY = Math.max(maxY, bounds.max.y);
-      maxZ = Math.max(maxZ, bounds.max.z);
+      minX = Math.min(minX, bounds.min[0]);
+      minY = Math.min(minY, bounds.min[1]);
+      minZ = Math.min(minZ, bounds.min[2]);
+      maxX = Math.max(maxX, bounds.max[0]);
+      maxY = Math.max(maxY, bounds.max[1]);
+      maxZ = Math.max(maxZ, bounds.max[2]);
     }
   }
 
   if (minX === Infinity) return null;
 
   return {
-    min: { x: minX, y: minY, z: minZ },
-    max: { x: maxX, y: maxY, z: maxZ }
+    min: [minX, minY, minZ],
+    max: [maxX, maxY, maxZ]
   };
 }
 
@@ -121,18 +116,18 @@ export function getGroupCenter(
   primitives: GfxPrimitive[],
   groups: Record<string, GfxPrimitiveGroup>,
   groupAssignments: Record<string, string>
-): Vector3Object {
+): Vector3 {
   const bounds = calculateGroupBounds(groupUuid, primitives, groups, groupAssignments);
-  
+
   if (!bounds) {
-    return { x: 0, y: 0, z: 0 };
+    return [0, 0, 0];
   }
 
-  return {
-    x: (bounds.min.x + bounds.max.x) / 2,
-    y: (bounds.min.y + bounds.max.y) / 2,
-    z: (bounds.min.z + bounds.max.z) / 2
-  };
+  return [
+    (bounds.min[0] + bounds.max[0]) / 2,
+    (bounds.min[1] + bounds.max[1]) / 2,
+    (bounds.min[2] + bounds.max[2]) / 2
+  ];
 }
 
 /**
@@ -142,26 +137,20 @@ function getWorldTransform(
   primitive: GfxPrimitive,
   groupUuid: string | null,
   groups: Record<string, GfxPrimitiveGroup>
-): { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object } {
+): { position: Vector3; rotation: Vector3; scale: Vector3 } {
   const localTransform = {
-    position: primitive.transform?.position 
-      ? { x: primitive.transform.position[0], y: primitive.transform.position[1], z: primitive.transform.position[2] }
-      : { x: 0, y: 0, z: 0 },
-    rotation: primitive.transform?.rotation
-      ? { x: primitive.transform.rotation[0], y: primitive.transform.rotation[1], z: primitive.transform.rotation[2] }
-      : { x: 0, y: 0, z: 0 },
-    scale: primitive.transform?.scale
-      ? { x: primitive.transform.scale[0], y: primitive.transform.scale[1], z: primitive.transform.scale[2] }
-      : { x: 1, y: 1, z: 1 }
+    position: primitive.transform?.position ? [...primitive.transform.position] as Vector3 : [0, 0, 0],
+    rotation: primitive.transform?.rotation ? [...primitive.transform.rotation] as Vector3 : [0, 0, 0],
+    scale: primitive.transform?.scale ? [...primitive.transform.scale] as Vector3 : [1, 1, 1]
   };
 
   if (!groupUuid) return localTransform;
 
   // Получаем цепочку групп до корня
   const groupChain = getGroupChain(groupUuid, groups);
-  
+
   let worldTransform = { ...localTransform };
-  
+
   // Применяем трансформации всех родительских групп
   for (const group of groupChain) {
     if (group.transform) {
@@ -178,21 +167,21 @@ function getWorldTransform(
 function getGroupInverseTransform(
   groupUuid: string | null,
   groups: Record<string, GfxPrimitiveGroup>
-): { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object } {
+): { position: Vector3; rotation: Vector3; scale: Vector3 } {
   if (!groupUuid) {
     return {
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 }
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1]
     };
   }
 
   const groupChain = getGroupChain(groupUuid, groups);
-  
+
   let inverseTransform = {
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 }
+    position: [0, 0, 0] as Vector3,
+    rotation: [0, 0, 0] as Vector3,
+    scale: [1, 1, 1] as Vector3
   };
 
   // Применяем обратные трансформации в обратном порядке
@@ -226,25 +215,25 @@ function getGroupChain(groupUuid: string, groups: Record<string, GfxPrimitiveGro
  * Применяет трансформацию к другой трансформации
  */
 function applyTransform(
-  transform: { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object },
-  parentTransform: { position?: Vector3Object; rotation?: Vector3Object; scale?: Vector3Object }
-): { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object } {
+  transform: { position: Vector3; rotation: Vector3; scale: Vector3 },
+  parentTransform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }
+): { position: Vector3; rotation: Vector3; scale: Vector3 } {
   return {
-    position: {
-      x: transform.position.x + (parentTransform.position?.x || 0),
-      y: transform.position.y + (parentTransform.position?.y || 0),
-      z: transform.position.z + (parentTransform.position?.z || 0)
-    },
-    rotation: {
-      x: transform.rotation.x + (parentTransform.rotation?.x || 0),
-      y: transform.rotation.y + (parentTransform.rotation?.y || 0),
-      z: transform.rotation.z + (parentTransform.rotation?.z || 0)
-    },
-    scale: {
-      x: transform.scale.x * (parentTransform.scale?.x || 1),
-      y: transform.scale.y * (parentTransform.scale?.y || 1),
-      z: transform.scale.z * (parentTransform.scale?.z || 1)
-    }
+    position: [
+      transform.position[0] + (parentTransform.position?.[0] ?? 0),
+      transform.position[1] + (parentTransform.position?.[1] ?? 0),
+      transform.position[2] + (parentTransform.position?.[2] ?? 0)
+    ],
+    rotation: [
+      transform.rotation[0] + (parentTransform.rotation?.[0] ?? 0),
+      transform.rotation[1] + (parentTransform.rotation?.[1] ?? 0),
+      transform.rotation[2] + (parentTransform.rotation?.[2] ?? 0)
+    ],
+    scale: [
+      transform.scale[0] * (parentTransform.scale?.[0] ?? 1),
+      transform.scale[1] * (parentTransform.scale?.[1] ?? 1),
+      transform.scale[2] * (parentTransform.scale?.[2] ?? 1)
+    ]
   };
 }
 
@@ -252,25 +241,25 @@ function applyTransform(
  * Применяет обратную трансформацию
  */
 function applyInverseTransform(
-  transform: { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object },
-  parentTransform: { position?: Vector3Object; rotation?: Vector3Object; scale?: Vector3Object }
-): { position: Vector3Object; rotation: Vector3Object; scale: Vector3Object } {
+  transform: { position: Vector3; rotation: Vector3; scale: Vector3 },
+  parentTransform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }
+): { position: Vector3; rotation: Vector3; scale: Vector3 } {
   return {
-    position: {
-      x: transform.position.x - (parentTransform.position?.x || 0),
-      y: transform.position.y - (parentTransform.position?.y || 0),
-      z: transform.position.z - (parentTransform.position?.z || 0)
-    },
-    rotation: {
-      x: transform.rotation.x - (parentTransform.rotation?.x || 0),
-      y: transform.rotation.y - (parentTransform.rotation?.y || 0),
-      z: transform.rotation.z - (parentTransform.rotation?.z || 0)
-    },
-    scale: {
-      x: (parentTransform.scale?.x || 1) !== 0 ? transform.scale.x / (parentTransform.scale.x || 1) : transform.scale.x,
-      y: (parentTransform.scale?.y || 1) !== 0 ? transform.scale.y / (parentTransform.scale.y || 1) : transform.scale.y,
-      z: (parentTransform.scale?.z || 1) !== 0 ? transform.scale.z / (parentTransform.scale.z || 1) : transform.scale.z
-    }
+    position: [
+      transform.position[0] - (parentTransform.position?.[0] ?? 0),
+      transform.position[1] - (parentTransform.position?.[1] ?? 0),
+      transform.position[2] - (parentTransform.position?.[2] ?? 0)
+    ],
+    rotation: [
+      transform.rotation[0] - (parentTransform.rotation?.[0] ?? 0),
+      transform.rotation[1] - (parentTransform.rotation?.[1] ?? 0),
+      transform.rotation[2] - (parentTransform.rotation?.[2] ?? 0)
+    ],
+    scale: [
+      (parentTransform.scale?.[0] ?? 1) !== 0 ? transform.scale[0] / (parentTransform.scale?.[0] ?? 1) : transform.scale[0],
+      (parentTransform.scale?.[1] ?? 1) !== 0 ? transform.scale[1] / (parentTransform.scale?.[1] ?? 1) : transform.scale[1],
+      (parentTransform.scale?.[2] ?? 1) !== 0 ? transform.scale[2] / (parentTransform.scale?.[2] ?? 1) : transform.scale[2]
+    ]
   };
 }
 
@@ -305,89 +294,76 @@ function getGroupPrimitivesRecursive(
  * Получает приблизительные границы примитива на основе его геометрии и трансформации
  */
 function getPrimitiveBounds(primitive: GfxPrimitive): BoundingBox | null {
-  const positionArray = primitive.transform?.position || [0, 0, 0];
-  const scaleArray = primitive.transform?.scale || [1, 1, 1];
-  
-  const position = { x: positionArray[0], y: positionArray[1], z: positionArray[2] };
-  const scale = { x: scaleArray[0], y: scaleArray[1], z: scaleArray[2] };
+  const position = primitive.transform?.position || [0, 0, 0];
+  const scale = primitive.transform?.scale || [1, 1, 1];
 
   let size: Vector3;
 
   switch (primitive.type) {
     case 'box': {
-      size = {
-        x: primitive.geometry.width * scale.x,
-        y: primitive.geometry.height * scale.y,
-        z: primitive.geometry.depth * scale.z
-      };
+      size = [
+        primitive.geometry.width * scale[0],
+        primitive.geometry.height * scale[1],
+        primitive.geometry.depth * scale[2]
+      ];
       break;
     }
     case 'sphere': {
-      const radius = primitive.geometry.radius * Math.max(scale.x, scale.y, scale.z);
-      size = { x: radius * 2, y: radius * 2, z: radius * 2 };
+      const radius = primitive.geometry.radius * Math.max(scale[0], scale[1], scale[2]);
+      size = [radius * 2, radius * 2, radius * 2];
       break;
     }
     case 'cylinder': {
-      size = {
-        x: Math.max(primitive.geometry.radiusTop, primitive.geometry.radiusBottom) * 2 * Math.max(scale.x, scale.z),
-        y: primitive.geometry.height * scale.y,
-        z: Math.max(primitive.geometry.radiusTop, primitive.geometry.radiusBottom) * 2 * Math.max(scale.x, scale.z)
-      };
+      const diameter = Math.max(primitive.geometry.radiusTop, primitive.geometry.radiusBottom) * 2 * Math.max(scale[0], scale[2]);
+      size = [
+        diameter,
+        primitive.geometry.height * scale[1],
+        diameter
+      ];
       break;
     }
     case 'cone': {
-      size = {
-        x: primitive.geometry.radius * 2 * Math.max(scale.x, scale.z),
-        y: primitive.geometry.height * scale.y,
-        z: primitive.geometry.radius * 2 * Math.max(scale.x, scale.z)
-      };
+      const diameter = primitive.geometry.radius * 2 * Math.max(scale[0], scale[2]);
+      size = [
+        diameter,
+        primitive.geometry.height * scale[1],
+        diameter
+      ];
       break;
     }
     case 'pyramid': {
-      size = {
-        x: primitive.geometry.baseSize * scale.x,
-        y: primitive.geometry.height * scale.y,
-        z: primitive.geometry.baseSize * scale.z
-      };
+      size = [
+        primitive.geometry.baseSize * scale[0],
+        primitive.geometry.height * scale[1],
+        primitive.geometry.baseSize * scale[2]
+      ];
       break;
     }
     case 'plane': {
-      size = {
-        x: primitive.geometry.width * scale.x,
-        y: 0,
-        z: primitive.geometry.height * scale.z
-      };
+      size = [
+        primitive.geometry.width * scale[0],
+        0,
+        primitive.geometry.height * scale[2]
+      ];
       break;
     }
     case 'torus': {
-      const outerRadius = (primitive.geometry.majorRadius + primitive.geometry.minorRadius) * Math.max(scale.x, scale.z);
-      size = { 
-        x: outerRadius * 2, 
-        y: primitive.geometry.minorRadius * 2 * scale.y, 
-        z: outerRadius * 2 
-      };
+      const outerRadius = (primitive.geometry.majorRadius + primitive.geometry.minorRadius) * Math.max(scale[0], scale[2]);
+      size = [
+        outerRadius * 2,
+        primitive.geometry.minorRadius * 2 * scale[1],
+        outerRadius * 2
+      ];
       break;
     }
     default:
       return null;
   }
 
-  const halfSize = {
-    x: size.x / 2,
-    y: size.y / 2,
-    z: size.z / 2
-  };
+  const halfSize: Vector3 = [size[0] / 2, size[1] / 2, size[2] / 2];
 
   return {
-    min: {
-      x: position.x - halfSize.x,
-      y: position.y - halfSize.y,
-      z: position.z - halfSize.z
-    },
-    max: {
-      x: position.x + halfSize.x,
-      y: position.y + halfSize.y,
-      z: position.z + halfSize.z
-    }
+    min: [position[0] - halfSize[0], position[1] - halfSize[1], position[2] - halfSize[2]],
+    max: [position[0] + halfSize[0], position[1] + halfSize[1], position[2] + halfSize[2]]
   };
 }
