@@ -2,13 +2,16 @@ import React, { useEffect } from 'react'
 import { Box, Group, Badge, Title, Container, Paper } from '@mantine/core'
 import { ObjectScene3D } from '../renderer/ObjectScene3D'
 import { PrimitiveControlPanel } from '../PrimitiveControlPanel/PrimitiveControlPanel'
+import { GroupControlPanel } from '../GroupControlPanel/GroupControlPanel'
 import { MaterialControlPanel } from '../MaterialControlPanel/MaterialControlPanel'
 import { ObjectManagementPanel } from '../ObjectManagementPanel/ObjectManagementPanel'
 import { usePanelState } from '../PanelToggleButtons/hooks/usePanelState'
 import {
   useObjectStore,
   useObjectRenderMode,
-  useSelectedMaterialUuid
+  useSelectedMaterialUuid,
+  useSelectedGroupUuids,
+  useSelectedItemType
 } from '../../model/objectStore'
 import type { GfxObject } from '@/entities/object'
 
@@ -47,17 +50,19 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 }) => {
   const renderMode = useObjectRenderMode()
   const selectedMaterialUuid = useSelectedMaterialUuid()
+  const selectedGroupUuids = useSelectedGroupUuids()
+  const selectedItemType = useSelectedItemType()
   const internalPanelState = usePanelState()
 
   // Используем внешнее состояние панелей если передано, иначе внутреннее
   const { panelState, togglePanel, showPanel } = externalPanelState || internalPanelState
 
-  // Автоматическое переключение на свойства при выборе примитива/материала
+  // Автоматическое переключение на свойства при выборе примитива/материала/группы
   useEffect(() => {
-    if (selectedMaterialUuid && panelState.leftPanel === 'chat') {
+    if ((selectedMaterialUuid || selectedGroupUuids.length > 0) && panelState.leftPanel === 'chat') {
       showPanel('properties')
     }
-  }, [selectedMaterialUuid, panelState.leftPanel, showPanel])
+  }, [selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, showPanel])
 
   /**
    * Сохраняет изменения и передаёт их во внешний обработчик.
@@ -70,6 +75,8 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       primitives: state.primitives.map(p => ({ ...p })),
       boundingBox: state.boundingBox,
       materials: state.materials,
+      primitiveGroups: state.primitiveGroups,
+      primitiveGroupAssignments: state.primitiveGroupAssignments,
     }
 
     onSave(updatedObject)
@@ -100,6 +107,8 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         >
           {selectedMaterialUuid ? (
             <MaterialControlPanel onClose={onClose} onSave={handleSave} />
+          ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
+            <GroupControlPanel onClose={onClose} onSave={handleSave} />
           ) : (
             <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
           )}

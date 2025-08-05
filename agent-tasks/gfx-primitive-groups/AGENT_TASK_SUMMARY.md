@@ -236,7 +236,7 @@ export interface GfxObject {
   - **Интерфейс как у PrimitiveControlPanel**: Те же блоки Position/Rotation/Scale с полями X/Y/Z
   - **Логика трансформации**: Изменения применяются к свойству transform GfxPrimitiveGroup 
   - **Интеграция в UI**: Показывать GroupControlPanel вместо PrimitiveControlPanel когда выделена группа
-  - **Отображение значений**: Показывать средние значения Position/Rotation/Scale всех примитивов группы
+  - **Отображение значений**: Показывать значения свойства transform GfxPrimitiveGroup
 
 **Подфаза 4.4: Обработка взаимодействий**
 - **Обработка кликов по группам**: Расширить обработчик в ObjectScenePrimitives:

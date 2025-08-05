@@ -8,6 +8,7 @@ export * from '@/features/object-editor/ui/renderer/controls/PrimitiveTransformG
 export * from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting'
 export * from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives'
 export * from './PrimitiveControlPanel/PrimitiveControlPanel.tsx'
+export * from './GroupControlPanel/GroupControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 export * from './MaterialManager/MaterialManager.tsx'
 export * from './MaterialControlPanel/MaterialControlPanel.tsx'

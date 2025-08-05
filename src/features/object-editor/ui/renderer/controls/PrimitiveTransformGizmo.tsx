@@ -2,8 +2,9 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useObjectStore } from '../../../model/objectStore.ts'
+import { useObjectStore, useSelectedGroupUuids, useObjectPrimitives, useObjectPrimitiveGroups, usePrimitiveGroupAssignments, useSelectedItemType } from '../../../model/objectStore.ts'
 import { useOEPrimitiveSelection } from '../../../lib/hooks/useOEPrimitiveSelection.ts'
+import { getGroupCenter } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import type {
   PrimitiveTransformEvent,
   SelectedObjectPrimitive,
@@ -14,6 +15,7 @@ import type {Transform} from "@/shared/types";
 export interface PrimitiveTransformGizmoProps {
   selectedPrimitive?: SelectedObjectPrimitive
   transformMode: TransformMode
+  selectedGroupUuids?: string[]
 }
 
 /**
@@ -24,11 +26,24 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   const { camera, gl, scene } = useThree()
   const transformControlsRef = useRef<any>()
   const selectedPrimitiveIds = useObjectStore(state => state.selectedPrimitiveIds)
+  const selectedGroupUuids = useSelectedGroupUuids()
+  const selectedItemType = useSelectedItemType()
+  const primitives = useObjectPrimitives()
+  const primitiveGroups = useObjectPrimitiveGroups()
+  const primitiveGroupAssignments = usePrimitiveGroupAssignments()
   const transformMode = useObjectStore(state => state.transformMode)
   const updatePrimitive = useObjectStore(state => state.updatePrimitive)
   const { selectedMeshes } = useOEPrimitiveSelection()
 
   const groupCenter = useMemo(() => {
+    // Handle group selection
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      const groupUuid = selectedGroupUuids[0]
+      const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
+      return new THREE.Vector3(center.x, center.y, center.z)
+    }
+    
+    // Handle primitive selection (existing logic)
     if (selectedMeshes.length === 0) return new THREE.Vector3()
 
     const center = new THREE.Vector3()
@@ -37,21 +52,33 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     })
     center.divideScalar(selectedMeshes.length)
     return center
-  }, [selectedMeshes])
+  }, [selectedMeshes, selectedItemType, selectedGroupUuids, primitives, primitiveGroups, primitiveGroupAssignments])
 
   const groupHelper = useMemo(() => {
+    // For group selection, always create a helper at the group center
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      const helper = new THREE.Object3D()
+      helper.position.copy(groupCenter)
+      helper.userData.isGroupHelper = true
+      helper.userData.isSelectedGroup = true
+      return helper
+    }
+    
+    // For multiple primitive selection
     if (selectedMeshes.length === 0) return null
 
     const helper = new THREE.Object3D()
     helper.position.copy(groupCenter)
     helper.userData.isGroupHelper = true
     return helper
-  }, [groupCenter, selectedMeshes.length])
+  }, [groupCenter, selectedMeshes.length, selectedItemType, selectedGroupUuids])
 
   useEffect(() => {
     if (!scene) return
 
-    if (selectedPrimitiveIds.length > 1 && groupHelper && !groupHelper.parent) {
+    const shouldShowHelper = (selectedPrimitiveIds.length > 1) || (selectedItemType === 'group' && selectedGroupUuids.length === 1)
+    
+    if (shouldShowHelper && groupHelper && !groupHelper.parent) {
       groupHelper.position.copy(groupCenter)
       scene.add(groupHelper)
       return () => {
@@ -62,7 +89,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     } else if (groupHelper && groupHelper.parent) {
       groupHelper.position.copy(groupCenter)
     }
-  }, [selectedPrimitiveIds.length, groupHelper, groupCenter, scene])
+  }, [selectedPrimitiveIds.length, selectedItemType, selectedGroupUuids.length, groupHelper, groupCenter, scene])
 
   const initialTransforms = useRef<Map<number, {
     position: THREE.Vector3;
@@ -212,12 +239,16 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     }
   }, [selectedPrimitiveIds, orbitControlsRef, transformMode, handlePrimitiveChange, handleDraggingChanged, handleMouseDown, handleMouseUp])
 
-  if (selectedPrimitiveIds.length === 0) return null
+  if (selectedPrimitiveIds.length === 0 && selectedGroupUuids.length === 0) return null
 
   return (
     <TransformControls
       ref={transformControlsRef}
-      object={selectedPrimitiveIds.length > 1 ? groupHelper : selectedMeshes[0]}
+      object={
+        (selectedItemType === 'group' && selectedGroupUuids.length === 1) || selectedPrimitiveIds.length > 1 
+          ? groupHelper 
+          : selectedMeshes[0]
+      }
       mode={transformMode}
       camera={camera}
       gl={gl}

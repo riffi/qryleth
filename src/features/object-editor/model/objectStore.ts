@@ -669,3 +669,19 @@ export const useGroupVisibility = (groupUuid: string) => useObjectStore(s => {
   // Группа видима, если все группы в пути видимы
   return groupPath.every(group => group.visible !== false)
 })
+
+/** Селектор типа выделенных элементов */
+export const useSelectedItemType = () => useObjectStore(s => {
+  const hasSelectedPrimitives = s.selectedPrimitiveIds.length > 0
+  const hasSelectedGroups = s.selectedGroupUuids.length > 0
+  
+  if (hasSelectedPrimitives && hasSelectedGroups) {
+    return 'mixed' as const
+  } else if (hasSelectedGroups) {
+    return 'group' as const
+  } else if (hasSelectedPrimitives) {
+    return 'primitive' as const
+  } else {
+    return null
+  }
+})

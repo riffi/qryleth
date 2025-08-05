@@ -105,6 +105,9 @@ export const PrimitiveManager: React.FC = () => {
     // При выборе примитива необходимо сбросить выбранный материал,
     // чтобы левая панель переключилась в режим редактирования примитива.
     useObjectStore.getState().selectMaterial(null)
+    
+    // При выборе примитива сбрасываем выделение групп
+    useObjectStore.getState().setSelectedGroups([])
 
     const event = window.event as KeyboardEvent
 
@@ -152,36 +155,20 @@ export const PrimitiveManager: React.FC = () => {
   }, [])
 
   /**
-   * Обрабатывает выбор группы и выделяет все примитивы,
-   * входящие в неё и во все её подгруппы.
+   * Обрабатывает выбор группы. Выделяет только саму группу,
+   * не затрагивая примитивы.
    * @param groupUuid UUID группы, которую требуется выделить
    * @param event Событие клика для поддержки множественного выбора
    */
   const handleSelectGroup = React.useCallback((groupUuid: string, event?: React.MouseEvent) => {
+    // При выборе группы сбрасываем выделение примитивов
+    setSelectedPrimitives([])
+    
     if (event?.ctrlKey || event?.metaKey) {
       toggleGroupSelection(groupUuid)
     } else {
       selectGroup(groupUuid)
     }
-
-    const {
-      selectedGroupUuids,
-      primitiveGroupAssignments,
-      primitiveGroups,
-      primitives
-    } = useObjectStore.getState()
-
-    const allGroupUuids = new Set<string>()
-    selectedGroupUuids.forEach(uuid => {
-      allGroupUuids.add(uuid)
-      findGroupChildren(uuid, primitiveGroups).forEach(childUuid => allGroupUuids.add(childUuid))
-    })
-
-    const indices = primitives
-      .map((p, index) => allGroupUuids.has(primitiveGroupAssignments[p.uuid]) ? index : -1)
-      .filter(index => index !== -1)
-
-    setSelectedPrimitives(indices)
   }, [setSelectedPrimitives, toggleGroupSelection, selectGroup])
   /**
    * Открывает модальное окно для создания новой корневой группы.
