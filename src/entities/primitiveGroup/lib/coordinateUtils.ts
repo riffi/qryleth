@@ -305,8 +305,11 @@ function getGroupPrimitivesRecursive(
  * Получает приблизительные границы примитива на основе его геометрии и трансформации
  */
 function getPrimitiveBounds(primitive: GfxPrimitive): BoundingBox | null {
-  const position = primitive.transform?.position || { x: 0, y: 0, z: 0 };
-  const scale = primitive.transform?.scale || { x: 1, y: 1, z: 1 };
+  const positionArray = primitive.transform?.position || [0, 0, 0];
+  const scaleArray = primitive.transform?.scale || [1, 1, 1];
+  
+  const position = { x: positionArray[0], y: positionArray[1], z: positionArray[2] };
+  const scale = { x: scaleArray[0], y: scaleArray[1], z: scaleArray[2] };
 
   let size: Vector3;
 

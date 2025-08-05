@@ -34,6 +34,8 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   const transformMode = useObjectStore(state => state.transformMode)
   const updatePrimitive = useObjectStore(state => state.updatePrimitive)
   const updateGroup = useObjectStore(state => state.updateGroup)
+  const setTemporaryGroupTransform = useObjectStore(state => state.setTemporaryGroupTransform)
+  const clearTemporaryGroupTransform = useObjectStore(state => state.clearTemporaryGroupTransform)
   const { selectedMeshes } = useOEPrimitiveSelection()
 
   const groupCenter = useMemo(() => {
@@ -106,9 +108,24 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
   const pendingUpdates = useRef<Map<number, Transform>>(new Map())
 
   const handlePrimitiveChange = useCallback(() => {
-    if (!transformControlsRef.current?.object || selectedPrimitiveIds.length === 0 || !initialGroupTransform.current) return
+    if (!transformControlsRef.current?.object) return
 
     const gizmoObject = transformControlsRef.current.object
+
+    // Для групп применяем временную трансформацию
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      const groupUuid = selectedGroupUuids[0]
+      setTemporaryGroupTransform(groupUuid, {
+        position: [gizmoObject.position.x, gizmoObject.position.y, gizmoObject.position.z],
+        rotation: [gizmoObject.rotation.x, gizmoObject.rotation.y, gizmoObject.rotation.z],
+        scale: [gizmoObject.scale.x, gizmoObject.scale.y, gizmoObject.scale.z]
+      })
+      return
+    }
+
+    // Для примитивов оставляем существующую логику
+    if (selectedPrimitiveIds.length === 0 || !initialGroupTransform.current) return
+
     const currentGroupPos = gizmoObject.position
     const currentGroupRot = gizmoObject.rotation
     const currentGroupScale = gizmoObject.scale
@@ -159,7 +176,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         scale: [newScale.x, newScale.y, newScale.z]
       })
     })
-  }, [selectedPrimitiveIds, transformMode])
+  }, [selectedPrimitiveIds, selectedItemType, selectedGroupUuids, transformMode, setTemporaryGroupTransform])
 
   const handleDraggingChanged = useCallback((event: any) => {
     if (orbitControlsRef?.current) {
@@ -169,6 +186,11 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   const handleMouseDown = useCallback(() => {
     initialTransforms.current.clear()
+    
+    // Очищаем временные трансформации при начале перетаскивания
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      clearTemporaryGroupTransform(selectedGroupUuids[0])
+    }
 
     if (selectedPrimitiveIds.length === 1) {
       const mesh = selectedMeshes[0]
@@ -207,11 +229,11 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     if (orbitControlsRef?.current) {
       orbitControlsRef.current.enabled = false
     }
-  }, [selectedPrimitiveIds, selectedMeshes, groupHelper, orbitControlsRef])
+  }, [selectedPrimitiveIds, selectedMeshes, groupHelper, orbitControlsRef, selectedItemType, selectedGroupUuids, clearTemporaryGroupTransform])
 
   const applyPendingUpdates = useCallback(() => {
     if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
-      // Для группы применяем трансформацию к самой группе
+      // Для группы сохраняем финальную трансформацию в store и очищаем временную
       if (transformControlsRef.current?.object) {
         const gizmoObject = transformControlsRef.current.object
         const groupUuid = selectedGroupUuids[0]
@@ -223,6 +245,9 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
             scale: { x: gizmoObject.scale.x, y: gizmoObject.scale.y, z: gizmoObject.scale.z }
           }
         })
+        
+        // Очищаем временную трансформацию
+        clearTemporaryGroupTransform(groupUuid)
       }
     } else {
       // Для примитивов применяем изменения как раньше
@@ -231,7 +256,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
       })
     }
     pendingUpdates.current.clear()
-  }, [updatePrimitive, updateGroup, selectedItemType, selectedGroupUuids])
+  }, [updatePrimitive, updateGroup, selectedItemType, selectedGroupUuids, clearTemporaryGroupTransform])
 
   const handleMouseUp = useCallback(() => {
     applyPendingUpdates()
@@ -259,14 +284,24 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
 
   if (selectedPrimitiveIds.length === 0 && selectedGroupUuids.length === 0) return null
 
+  // Определяем объект для gizmo
+  const gizmoObject = (() => {
+    if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
+      return groupHelper
+    } else if (selectedPrimitiveIds.length > 1) {
+      return groupHelper
+    } else {
+      return selectedMeshes[0]
+    }
+  })()
+
+  // Не показываем gizmo если нет объекта для привязки
+  if (!gizmoObject) return null
+
   return (
     <TransformControls
       ref={transformControlsRef}
-      object={
-        (selectedItemType === 'group' && selectedGroupUuids.length === 1) || selectedPrimitiveIds.length > 1 
-          ? groupHelper 
-          : selectedMeshes[0]
-      }
+      object={gizmoObject}
       mode={transformMode}
       camera={camera}
       gl={gl}

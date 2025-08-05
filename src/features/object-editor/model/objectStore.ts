@@ -27,6 +27,8 @@ interface ObjectStoreState {
   primitiveGroupAssignments: Record<string, string>
   /** UUID выбранных групп */
   selectedGroupUuids: string[]
+  /** Временные трансформации групп во время перетаскивания gizmo */
+  temporaryGroupTransforms: Record<string, { position?: Vector3; rotation?: Vector3; scale?: Vector3 }>
   lighting: LightingSettings
   /** Текущий BoundingBox объекта */
   boundingBox?: BoundingBox
@@ -82,6 +84,10 @@ interface ObjectStoreActions {
   renameGroup: (groupUuid: string, newName: string) => void
   /** Обновляет свойства группы */
   updateGroup: (groupUuid: string, updates: Partial<GfxPrimitiveGroup>) => void
+  /** Устанавливает временную трансформацию группы (во время перетаскивания gizmo) */
+  setTemporaryGroupTransform: (groupUuid: string, transform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }) => void
+  /** Очищает временную трансформацию группы */
+  clearTemporaryGroupTransform: (groupUuid: string) => void
   /** Создает подгруппу */
   createSubGroup: (name: string, parentGroupUuid: string) => string
   /** Привязывает примитив к группе по UUID */
@@ -126,6 +132,7 @@ export const useObjectStore = create<ObjectStore>()(
     primitiveGroups: {},
     primitiveGroupAssignments: {},
     selectedGroupUuids: [],
+    temporaryGroupTransforms: {},
     lighting: initialLighting,
     boundingBox: undefined,
     viewMode: 'orbit',
@@ -273,6 +280,7 @@ export const useObjectStore = create<ObjectStore>()(
         primitiveGroups: {},
         primitiveGroupAssignments: {},
         selectedGroupUuids: [],
+        temporaryGroupTransforms: {},
         lighting: initialLighting,
         selectedPrimitiveIds: [],
         hoveredPrimitiveId: null,
@@ -399,6 +407,20 @@ export const useObjectStore = create<ObjectStore>()(
           }
         }
       })),
+
+    setTemporaryGroupTransform: (groupUuid: string, transform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }) =>
+      set(state => ({
+        temporaryGroupTransforms: {
+          ...state.temporaryGroupTransforms,
+          [groupUuid]: transform
+        }
+      })),
+
+    clearTemporaryGroupTransform: (groupUuid: string) =>
+      set(state => {
+        const { [groupUuid]: _, ...rest } = state.temporaryGroupTransforms
+        return { temporaryGroupTransforms: rest }
+      }),
 
     createSubGroup: (name: string, parentGroupUuid: string) => {
       const groupUuid = generateUUID()
@@ -698,3 +720,6 @@ export const useSelectedItemType = () => useObjectStore(s => {
     return null
   }
 })
+
+/** Селектор для получения временной трансформации группы */
+export const useTemporaryGroupTransform = (groupUuid: string) => useObjectStore(s => s.temporaryGroupTransforms[groupUuid] || null)

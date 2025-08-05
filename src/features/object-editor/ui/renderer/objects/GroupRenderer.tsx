@@ -6,7 +6,8 @@ import {
   useGroupChildren,
   useGroupVisibility,
   useGroupPrimitives,
-  useGroupByUuid
+  useGroupByUuid,
+  useTemporaryGroupTransform
 } from '../../../model/objectStore.ts'
 
 export interface GroupRendererProps {
@@ -34,12 +35,29 @@ export const GroupRenderer: React.FC<GroupRendererProps> = ({
   const childGroups = useGroupChildren(groupUuid)
   const primitives = useGroupPrimitives(groupUuid)
   const group = useGroupByUuid(groupUuid)
+  const temporaryTransform = useTemporaryGroupTransform(groupUuid)
 
-  // Применяем transform группы если он есть
-  const groupTransform = group?.transform
-  const position = groupTransform?.position ? [groupTransform.position.x, groupTransform.position.y, groupTransform.position.z] : undefined
-  const rotation = groupTransform?.rotation ? [groupTransform.rotation.x, groupTransform.rotation.y, groupTransform.rotation.z] : undefined
-  const scale = groupTransform?.scale ? [groupTransform.scale.x, groupTransform.scale.y, groupTransform.scale.z] : undefined
+  // Используем временную трансформацию если есть, иначе постоянную
+  const activeTransform = temporaryTransform || group?.transform
+  
+  // Обрабатываем различные форматы координат (массив для временных, объект для постоянных)
+  const position = activeTransform?.position ? (
+    Array.isArray(activeTransform.position) 
+      ? [activeTransform.position[0], activeTransform.position[1], activeTransform.position[2]]
+      : [activeTransform.position.x, activeTransform.position.y, activeTransform.position.z]
+  ) : undefined
+  
+  const rotation = activeTransform?.rotation ? (
+    Array.isArray(activeTransform.rotation)
+      ? [activeTransform.rotation[0], activeTransform.rotation[1], activeTransform.rotation[2]]
+      : [activeTransform.rotation.x, activeTransform.rotation.y, activeTransform.rotation.z]
+  ) : undefined
+  
+  const scale = activeTransform?.scale ? (
+    Array.isArray(activeTransform.scale)
+      ? [activeTransform.scale[0], activeTransform.scale[1], activeTransform.scale[2]]
+      : [activeTransform.scale.x, activeTransform.scale.y, activeTransform.scale.z]
+  ) : undefined
 
   return (
     <group 
