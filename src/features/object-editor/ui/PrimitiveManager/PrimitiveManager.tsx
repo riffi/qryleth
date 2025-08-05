@@ -9,22 +9,27 @@ import {
   ActionIcon,
   Box,
   Tooltip,
-  Menu
+  Menu,
+  Button
 } from '@mantine/core'
-import { IconEye, IconEyeOff, IconTrash } from '@tabler/icons-react'
+import { IconEye, IconEyeOff, IconTrash, IconFolderPlus } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
   useObjectHoveredPrimitiveId,
-  useObjectStore
+  useObjectStore,
+  useObjectPrimitiveGroups,
+  usePrimitiveGroupAssignments,
+  useUngroupedPrimitives
 } from '../../model/objectStore.ts'
 import { getPrimitiveDisplayName, getPrimitiveIcon } from '@/entities/primitive'
 import type { GfxPrimitive } from '@/entities/primitive'
+import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 
 /**
  * Элемент примитива в списке PrimitiveManager
  */
-const PrimitiveItem: React.FC<{
+const PrimitiveItem = React.memo<{
   primitive: GfxPrimitive
   index: number
   isSelected: boolean
@@ -33,7 +38,10 @@ const PrimitiveItem: React.FC<{
   onHover: (index: number | null) => void
   onToggleVisibility: (index: number) => void
   onRemove: (index: number) => void
-}> = ({
+  onDragStart?: (e: React.DragEvent, primitiveUuid: string) => void
+  dragOver?: (e: React.DragEvent) => void
+  isDropTarget?: boolean
+}>(({
   primitive,
   index,
   isSelected,
@@ -41,20 +49,30 @@ const PrimitiveItem: React.FC<{
   onSelect,
   onHover,
   onToggleVisibility,
-  onRemove
+  onRemove,
+  onDragStart,
+  dragOver,
+  isDropTarget
 }) => {
 
   return (
     <Box
+      draggable={!!onDragStart}
+      onDragStart={onDragStart ? (e) => onDragStart(e, primitive.uuid) : undefined}
+      onDragOver={dragOver}
       style={{
         padding: '8px 12px',
         borderRadius: 4,
         cursor: 'pointer',
         backgroundColor: isSelected
           ? 'var(--mantine-color-blue-9)'
+          : isDropTarget
+          ? 'var(--mantine-color-green-8)'
           : 'transparent',
         border: isSelected
           ? '1px solid var(--mantine-color-blue-6)'
+          : isDropTarget
+          ? '1px dashed var(--mantine-color-green-4)'
           : '1px solid transparent',
         transition: 'all 0.15s ease'
       }}
@@ -106,7 +124,7 @@ const PrimitiveItem: React.FC<{
       </Group>
     </Box>
   )
-}
+})
 
 /**
  * Панель управления примитивами, аналогичная ObjectManager по стилю
@@ -115,17 +133,59 @@ export const PrimitiveManager: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const hoveredPrimitiveId = useObjectHoveredPrimitiveId()
+  
+  // Step 1: Add groups hook - test if this causes infinite loop
+  const groups = useObjectPrimitiveGroups()
+  
+  // Step 5: Add primitiveGroupAssignments hook
+  const primitiveGroupAssignments = usePrimitiveGroupAssignments()
+  
+  // Step 6: DISABLED - ungroupedPrimitives hook causes infinite loop  
+  // const ungroupedPrimitives = useUngroupedPrimitives()
+  
+  // Temporarily disable other new hooks to test step by step
+  // const groupTree = useGroupTree()
+  // const selectedGroupUuids = useSelectedGroupUuids()
+
+  // Use direct values to avoid memoization issues
+  const primitivesCount = primitives.length
+  const selectedPrimitivesCount = selectedPrimitiveIds.length
+  const groupsCount = Object.keys(groups).length
+  // const selectedGroupsCount = selectedGroupUuids.length
+  
   const {
     selectPrimitive,
     togglePrimitiveSelection,
     setHoveredPrimitive,
     setSelectedPrimitives,
     togglePrimitiveVisibility,
-    removePrimitive
+    removePrimitive,
+    // Step 2: Add createGroup action - test if this causes infinite loop
+    createGroup,
+    // Step 4: Add deleteGroup action
+    deleteGroup,
+    // Step 5: Add assignment actions
+    assignPrimitiveToGroup,
+    removePrimitiveFromGroup
+    // Temporarily disable other new actions to test step by step
+    // createSubGroup,
+    // renameGroup,
+    // toggleGroupVisibility,
+    // selectGroup,
+    // toggleGroupSelection,
+    // clearGroupSelection
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
   const lastSelectedRef = React.useRef<number | null>(null)
+  
+  // Temporarily disable all new state to test infinite loop
+  // State for expanded groups
+  // const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
+  
+  // State for drag and drop
+  // const [draggedItem, setDraggedItem] = React.useState<{type: 'primitive' | 'group', uuid: string} | null>(null)
+  // const [dropTarget, setDropTarget] = React.useState<string | null>(null)
 
   /**
    * Обработчик клика по примитиву. Поддерживает одиночное, множественное
@@ -165,6 +225,157 @@ export const PrimitiveManager: React.FC = () => {
     setHoveredPrimitive(index)
   }
 
+  // Step 2: Add simple group creation handler without memoization
+  const handleCreateGroup = () => {
+    createGroup('Новая группа')
+  }
+
+  // Step 4: Add simple group deletion handler
+  const handleDeleteGroup = (groupUuid: string) => {
+    deleteGroup(groupUuid)
+  }
+
+  // Step 5: Add simple assignment handlers
+  const handleAssignPrimitiveToGroup = (primitiveUuid: string, groupUuid: string) => {
+    assignPrimitiveToGroup(primitiveUuid, groupUuid)
+  }
+
+  const handleRemovePrimitiveFromGroup = (primitiveUuid: string) => {
+    removePrimitiveFromGroup(primitiveUuid)
+  }
+
+  // Temporarily disable all new handlers to test infinite loop
+  /*
+  // Group management handlers - memoized to prevent unnecessary re-renders
+  const handleToggleGroupExpand = React.useCallback((groupUuid: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(groupUuid)) {
+        newSet.delete(groupUuid)
+      } else {
+        newSet.add(groupUuid)
+      }
+      return newSet
+    })
+  }, [])
+
+  const handleSelectGroup = React.useCallback((groupUuid: string, event?: React.MouseEvent) => {
+    // Clear primitive selection when selecting groups
+    if (selectedPrimitivesCount > 0) {
+      setSelectedPrimitives([])
+    }
+
+    if (event?.ctrlKey || event?.metaKey) {
+      toggleGroupSelection(groupUuid)
+    } else {
+      selectGroup(groupUuid)
+    }
+  }, [selectedPrimitivesCount, setSelectedPrimitives, toggleGroupSelection, selectGroup])
+
+  const handleCreateGroup = React.useCallback(() => {
+    const groupUuid = createGroup('Новая группа')
+    if (groupUuid) {
+      setExpandedGroups(prev => new Set([...prev, groupUuid]))
+    }
+  }, [createGroup])
+
+  const handleCreateSubGroup = React.useCallback((parentGroupUuid: string) => {
+    const groupUuid = createSubGroup('Новая подгруппа', parentGroupUuid)
+    if (groupUuid) {
+      setExpandedGroups(prev => new Set([...prev, parentGroupUuid, groupUuid]))
+    }
+  }, [createSubGroup])
+
+  const handleRenameGroup = React.useCallback((groupUuid: string, newName: string) => {
+    renameGroup(groupUuid, newName)
+  }, [renameGroup])
+
+  const handleDeleteGroup = React.useCallback((groupUuid: string) => {
+    deleteGroup(groupUuid)
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(groupUuid)
+      return newSet
+    })
+  }, [deleteGroup])
+
+  const handleToggleGroupVisibility = React.useCallback((groupUuid: string) => {
+    toggleGroupVisibility(groupUuid)
+  }, [toggleGroupVisibility])
+
+  // Drag and drop handlers - memoized to prevent unnecessary re-renders
+  const handleDragStart = React.useCallback((e: React.DragEvent, primitiveUuid: string) => {
+    setDraggedItem({ type: 'primitive', uuid: primitiveUuid })
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleGroupDragStart = React.useCallback((e: React.DragEvent, groupUuid: string) => {
+    setDraggedItem({ type: 'group', uuid: groupUuid })
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleDragOver = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (targetGroupUuid) {
+      setDropTarget(targetGroupUuid)
+    } else {
+      setDropTarget(null)
+    }
+  }, [])
+
+  const handleDragLeave = React.useCallback(() => {
+    setDropTarget(null)
+  }, [])
+
+  const handleDrop = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
+    e.preventDefault()
+    
+    if (!draggedItem) return
+
+    if (draggedItem.type === 'primitive') {
+      if (targetGroupUuid) {
+        assignPrimitiveToGroup(draggedItem.uuid, targetGroupUuid)
+      } else {
+        // Drop on root - remove from any group
+        removePrimitiveFromGroup(draggedItem.uuid)
+      }
+    }
+
+    setDraggedItem(null)
+    setDropTarget(null)
+  }, [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup])
+
+  // Special drag over handler for primitives (no target group)
+  const handlePrimitiveDragOver = React.useCallback((e: React.DragEvent) => {
+    handleDragOver(e)
+  }, [handleDragOver])
+
+  // Special drop handler for ungrouped area
+  const handleUngroupedDrop = React.useCallback((e: React.DragEvent) => {
+    handleDrop(e)
+  }, [handleDrop])
+
+  // Render primitive function for use in GroupTree - memoized with proper dependencies
+  const renderPrimitive = React.useCallback((primitive: GfxPrimitive, index: number) => (
+    <PrimitiveItem
+      key={primitive.uuid}
+      primitive={primitive}
+      index={index}
+      isSelected={selectedPrimitiveIds.includes(index)}
+      isHovered={hoveredPrimitiveId === index}
+      onSelect={handlePrimitiveSelect}
+      onHover={handlePrimitiveHover}
+      onToggleVisibility={togglePrimitiveVisibility}
+      onRemove={removePrimitive}
+      // Temporarily disable drag-and-drop to test infinite loop
+      // onDragStart={handleDragStart}
+      // dragOver={handlePrimitiveDragOver}
+      // isDropTarget={false}
+    />
+  ), [selectedPrimitiveIds, hoveredPrimitiveId, handlePrimitiveSelect, handlePrimitiveHover, togglePrimitiveVisibility, removePrimitive])
+  */
+
   return (
     <Paper
       shadow="sm"
@@ -178,33 +389,142 @@ export const PrimitiveManager: React.FC = () => {
       <Stack gap={0} style={{ height: '100%', minHeight: 0 }}>
         {/* Заголовок */}
         <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>
-          <Group justify="space-between">
+          <Group justify="space-between" mb="sm">
             <Text size="lg" fw={500} style={{ userSelect: 'none' }}>
               Примитивы
             </Text>
-            <Badge variant="light" color="blue" size="sm">
-              {primitives.length}
-            </Badge>
+            <Group gap="xs">
+              <Badge variant="light" color="blue" size="sm">
+                {primitivesCount}
+              </Badge>
+              {groupsCount > 0 && (
+                <Badge variant="light" color="yellow" size="sm">
+                  {groupsCount} групп
+                </Badge>
+              )}
+            </Group>
           </Group>
+
+          {/* Step 2: Add simple group creation button */}
+          <Group gap="xs">
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconFolderPlus size={14} />}
+              onClick={handleCreateGroup}
+            >
+              Создать группу
+            </Button>
+          </Group>
+
+          {/* Step 5: Simple assignment testing buttons */}
+          {selectedPrimitivesCount > 0 && Object.keys(groups).length > 0 && (
+            <Group gap="xs" mt="xs">
+              <Text size="xs" c="dimmed">
+                Назначить выбранные примитивы в:
+              </Text>
+              {Object.values(groups).slice(0, 2).map((group) => (
+                <Button
+                  key={group.uuid}
+                  size="xs"
+                  variant="outline"
+                  onClick={() => {
+                    selectedPrimitiveIds.forEach(index => {
+                      const primitive = primitives[index]
+                      if (primitive) {
+                        handleAssignPrimitiveToGroup(primitive.uuid, group.uuid)
+                      }
+                    })
+                  }}
+                >
+                  {group.name}
+                </Button>
+              ))}
+              {Object.keys(groups).length > 2 && (
+                <Text size="xs" c="dimmed">
+                  +{Object.keys(groups).length - 2} ещё
+                </Text>
+              )}
+            </Group>
+          )}
         </Box>
 
-        {/* Список примитивов */}
+        {/* Список примитивов с группами */}
         <ScrollArea style={{ flex: 1 , minHeight: 0 }} p="sm">
           <Stack gap="xs">
-            {primitives.map((primitive, index) => (
-              <PrimitiveItem
-                key={index}
-                primitive={primitive}
-                index={index}
-                isSelected={selectedPrimitiveIds.includes(index)}
-                isHovered={hoveredPrimitiveId === index}
-                onSelect={handlePrimitiveSelect}
-                onHover={handlePrimitiveHover}
-                onToggleVisibility={togglePrimitiveVisibility}
-                onRemove={removePrimitive}
-              />
+            {/* Step 3 & 4: Simple groups display with delete functionality */}
+            {Object.values(groups).map((group) => (
+              <Box
+                key={group.uuid}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 4,
+                  backgroundColor: 'var(--mantine-color-yellow-9)',
+                  border: '1px solid var(--mantine-color-yellow-6)',
+                  marginBottom: '4px'
+                }}
+              >
+                <Group justify="space-between" align="center">
+                  <Group gap="xs">
+                    <Text size="sm" fw={500} style={{ color: 'var(--mantine-color-yellow-1)' }}>
+                      📁 {group.name}
+                    </Text>
+                    <Badge size="xs" variant="light" color="yellow">
+                      Группа
+                    </Badge>
+                  </Group>
+                  
+                  {/* Simple delete button */}
+                  <Menu shadow="md" width={150}>
+                    <Menu.Target>
+                      <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
+                        <Text size="xs" fw={700} style={{ color: 'var(--mantine-color-yellow-1)' }}>⋮</Text>
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<IconTrash size={14} />}
+                        color="red"
+                        onClick={() => handleDeleteGroup(group.uuid)}
+                      >
+                        Удалить группу
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
+              </Box>
             ))}
-            {primitives.length === 0 && (
+
+            {/* Step 6: Simple grouped/ungrouped display without hook */}
+            {primitives.map((primitive, index) => {
+              const assignedGroupUuid = primitiveGroupAssignments[primitive.uuid]
+              const assignedGroup = assignedGroupUuid ? groups[assignedGroupUuid] : undefined
+              
+              return (
+                <Box key={primitive.uuid}>
+                  <PrimitiveItem
+                    primitive={primitive}
+                    index={index}
+                    isSelected={selectedPrimitiveIds.includes(index)}
+                    isHovered={hoveredPrimitiveId === index}
+                    onSelect={handlePrimitiveSelect}
+                    onHover={handlePrimitiveHover}
+                    onToggleVisibility={togglePrimitiveVisibility}
+                    onRemove={removePrimitive}
+                  />
+                  {/* Step 5: Simple group assignment indicator */}
+                  {assignedGroup && (
+                    <Box style={{ paddingLeft: '24px', marginTop: '2px' }}>
+                      <Badge size="xs" variant="light" color="cyan">
+                        в группе: {assignedGroup.name}
+                      </Badge>
+                    </Box>
+                  )}
+                </Box>
+              )
+            })}
+
+            {primitivesCount === 0 && (
               <Text
                 size="sm"
                 c="dimmed"
@@ -219,10 +539,10 @@ export const PrimitiveManager: React.FC = () => {
         </ScrollArea>
 
         {/* Статус выбора */}
-        {selectedPrimitiveIds.length > 0 && (
+        {selectedPrimitivesCount > 0 && (
           <Box p="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-8)' }}>
             <Text size="xs" c="dimmed" style={{ userSelect: 'none' }}>
-              Выбрано: {selectedPrimitiveIds.length} примитив(ов)
+              Выбрано: {selectedPrimitivesCount} примитив(ов)
             </Text>
           </Box>
         )}

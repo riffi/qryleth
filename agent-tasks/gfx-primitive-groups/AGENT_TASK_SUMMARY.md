@@ -168,7 +168,8 @@ export interface GfxObject {
 - `src/features/object-editor/model/objectStore.ts`
 
 ### Фаза 3: Расширение UI PrimitiveManager для групп  
-**Статус**: Не выполнено
+**Статус**: ✅ Выполнено
+**Отчет**: [phase_3_summary.md](phases/phase_3_summary.md)
 
 **Описание**: Создать древовидный интерфейс для управления иерархическими группами примитивов с drag-and-drop функциональностью.
 
