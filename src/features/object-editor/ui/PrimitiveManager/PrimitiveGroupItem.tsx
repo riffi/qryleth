@@ -149,7 +149,7 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
             : 'transparent',
           marginBottom: '2px',
           borderRadius: '4px',
-          padding: '6px 8px',
+          padding: '6px 4px',
           border: isSelected
             ? '1px solid var(--mantine-color-blue-6)'
             : isDropTarget
@@ -181,7 +181,7 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
               ) : null}
             </ActionIcon>
 
-            <FolderIcon size={14} color="var(--mantine-color-yellow-6)" />
+            <FolderIcon size={14} color="var(--mantine-color-orange-5)" />
 
             {isRenaming ? (
               <input
@@ -225,7 +225,7 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
               <ActionIcon
                 size="xs"
                 variant="subtle"
-                color={group.visible === false ? 'gray' : 'yellow'}
+                color={group.visible === false ? 'gray' : 'blue'}
                 onClick={handleToggleVisibilityClick}
                 style={{
                   width: '16px',

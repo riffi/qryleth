@@ -45,7 +45,7 @@ export const PrimitiveItem = React.memo<{
       onDragStart={onDragStart ? (e) => onDragStart(e, primitive.uuid) : undefined}
       onDragOver={dragOver}
       style={{
-        padding: '4px 12px',
+        padding: '4px 4px',
         borderRadius: 4,
         cursor: 'pointer',
         backgroundColor: isSelected
