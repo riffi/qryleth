@@ -78,7 +78,8 @@ export const PrimitiveManager: React.FC = () => {
     renameGroup,
     toggleGroupVisibility,
     selectGroup,
-    toggleGroupSelection
+    toggleGroupSelection,
+    moveGroup
   } = useObjectStore()
 
   // Храним последний индекс, выбранный пользователем, для поддержки диапазонного выделения
@@ -223,15 +224,37 @@ export const PrimitiveManager: React.FC = () => {
    * @param e объект события перетаскивания
    * @param primitiveUuid UUID примитива, с которого начато перетаскивание
    */
-  const handleDragStart = React.useCallback((e: React.DragEvent, primitiveUuid: string) => {
-    const selectedUuids = selectedPrimitiveIds.map(index => primitives[index].uuid)
-    const uuidsToDrag = selectedUuids.includes(primitiveUuid)
-      ? selectedUuids
-      : [primitiveUuid]
+  const handlePrimitiveDragStart = React.useCallback(
+    (e: React.DragEvent, primitiveUuid: string) => {
+      const selectedUuids = selectedPrimitiveIds.map(index => primitives[index].uuid)
+      const uuidsToDrag = selectedUuids.includes(primitiveUuid)
+        ? selectedUuids
+        : [primitiveUuid]
 
-    setDraggedItem({ type: 'primitive', uuids: uuidsToDrag })
-    e.dataTransfer.effectAllowed = 'move'
-  }, [selectedPrimitiveIds, primitives])
+      setDraggedItem({ type: 'primitive', uuids: uuidsToDrag })
+      e.dataTransfer.effectAllowed = 'move'
+    },
+    [selectedPrimitiveIds, primitives]
+  )
+
+  /**
+   * Инициирует перетаскивание группы. Если перетаскиваемая группа
+   * присутствует в текущем выделении, в состояние помещаются UUID всех
+   * выбранных групп, иначе — только перетаскиваемая группа.
+   * @param e объект события перетаскивания
+   * @param groupUuid UUID группы, с которой начато перетаскивание
+   */
+  const handleGroupDragStart = React.useCallback(
+    (e: React.DragEvent, groupUuid: string) => {
+      const uuidsToDrag = selectedGroupUuids.includes(groupUuid)
+        ? selectedGroupUuids
+        : [groupUuid]
+
+      setDraggedItem({ type: 'group', uuids: uuidsToDrag })
+      e.dataTransfer.effectAllowed = 'move'
+    },
+    [selectedGroupUuids]
+  )
 
   /**
    * Разрешает сброс и подсвечивает текущую цель перетаскивания.
@@ -252,27 +275,38 @@ export const PrimitiveManager: React.FC = () => {
   }, [])
 
   /**
-   * Завершает операцию перетаскивания и назначает все перетаскиваемые
-   * примитивы указанной группе либо удаляет их из групп.
+   * Завершает операцию перетаскивания. В зависимости от типа
+   * перетаскиваемого элемента назначает примитивы группе либо
+   * перемещает группы в новую родительскую группу.
    * @param e объект события сброса
-   * @param targetGroupUuid UUID целевой группы или undefined для "без группы"
+   * @param targetGroupUuid UUID целевой группы или undefined для корня
    */
-  const handleDrop = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
-    e.preventDefault()
+  const handleDrop = React.useCallback(
+    (e: React.DragEvent, targetGroupUuid?: string) => {
+      e.preventDefault()
 
-    if (!draggedItem) return
+      if (!draggedItem) return
 
-    if (draggedItem.type === 'primitive') {
-      if (targetGroupUuid && targetGroupUuid !== 'ungrouped') {
-        draggedItem.uuids.forEach(uuid => assignPrimitiveToGroup(uuid, targetGroupUuid))
-      } else {
-        draggedItem.uuids.forEach(uuid => removePrimitiveFromGroup(uuid))
+      if (draggedItem.type === 'primitive') {
+        if (targetGroupUuid && targetGroupUuid !== 'ungrouped') {
+          draggedItem.uuids.forEach(uuid => assignPrimitiveToGroup(uuid, targetGroupUuid))
+        } else {
+          draggedItem.uuids.forEach(uuid => removePrimitiveFromGroup(uuid))
+        }
+      } else if (draggedItem.type === 'group') {
+        const newParent = targetGroupUuid && targetGroupUuid !== 'ungrouped'
+          ? targetGroupUuid
+          : undefined
+        draggedItem.uuids
+          .filter(uuid => uuid !== targetGroupUuid)
+          .forEach(uuid => moveGroup(uuid, newParent))
       }
-    }
 
-    setDraggedItem(null)
-    setDropTarget(null)
-  }, [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup])
+      setDraggedItem(null)
+      setDropTarget(null)
+    },
+    [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup, moveGroup]
+  )
 
   /**
    * Обработчик наведения на примитив, передающий событие в общий
@@ -304,11 +338,20 @@ export const PrimitiveManager: React.FC = () => {
       onHover={handlePrimitiveHover}
       onToggleVisibility={togglePrimitiveVisibility}
       onRemove={removePrimitive}
-      onDragStart={handleDragStart}
+      onDragStart={handlePrimitiveDragStart}
       dragOver={handlePrimitiveDragOver}
       isDropTarget={false}
     />
-  ), [selectedPrimitiveIds, hoveredPrimitiveId, handlePrimitiveSelect, handlePrimitiveHover, togglePrimitiveVisibility, removePrimitive, handleDragStart, handlePrimitiveDragOver])
+  ), [
+    selectedPrimitiveIds,
+    hoveredPrimitiveId,
+    handlePrimitiveSelect,
+    handlePrimitiveHover,
+    togglePrimitiveVisibility,
+    removePrimitive,
+    handlePrimitiveDragStart,
+    handlePrimitiveDragOver
+  ])
 
   /**
    * Рекурсивно рендерит узел дерева групп вместе с принадлежащими ему примитивами.
@@ -334,6 +377,7 @@ export const PrimitiveManager: React.FC = () => {
         onCreateSubGroup={handleCreateSubGroup}
         onCreateGroup={handleCreateGroup}
         onToggleVisibility={handleToggleGroupVisibility}
+        onDragStart={(e) => handleGroupDragStart(e, node.group.uuid)}
         onDragOver={(e) => handleDragOver(e, node.group.uuid)}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, node.group.uuid)}
@@ -431,7 +475,7 @@ export const PrimitiveManager: React.FC = () => {
                       onHover={handlePrimitiveHover}
                       onToggleVisibility={togglePrimitiveVisibility}
                       onRemove={removePrimitive}
-                      onDragStart={handleDragStart}
+                      onDragStart={handlePrimitiveDragStart}
                       dragOver={handlePrimitiveDragOver}
                       isDropTarget={false}
                     />
