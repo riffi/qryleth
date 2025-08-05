@@ -29,7 +29,7 @@ export const ObjectScenePrimitives: React.FC = () => {
     const primitiveIndex = event.object.userData.primitiveIndex
     const groupUuid = event.object.userData.groupUuid
     const store = useObjectStore.getState()
-    
+
     if (event.ctrlKey && groupUuid) {
       // Ctrl+Click на примитив в группе = выделить группу
       if (event.shiftKey) {
@@ -52,6 +52,7 @@ export const ObjectScenePrimitives: React.FC = () => {
         <GroupRenderer
           key={group.uuid}
           groupUuid={group.uuid}
+          groupName={group.name}
           renderMode={renderMode}
           objectMaterials={objectMaterials}
           onPrimitiveClick={handleObjectClick}
