@@ -175,11 +175,12 @@ export interface GfxObject {
 
 **Детальные действия**:
 - **PrimitiveGroupItem**: Компонент группы с expand/collapse, индикатором импорта
-- **Древовидная структура**: Рекурсивное отображение иерархии групп  
+- **Древовидная структура**: Рекурсивное отображение иерархии групп
 - **Drag-and-drop**: Перемещение примитивов и групп между группами
-- **Контекстное меню**: Создать группу/подгруппу, переименовать, удалить  
+- **Контекстное меню**: Создать группу/подгруппу, переименовать, удалить
 - **Индикация**: Визуальные индикаторы для импортированных групп
 - **Выделение**: Поддержка множественного выбора групп и примитивов
+- **GroupNameModal**: Модальное окно для создания и переименования групп
 
 **Критерии успешности**:
 ✅ Древовидная структура корректно отображает иерархию групп  
@@ -192,7 +193,8 @@ export interface GfxObject {
 **Файлы для изменения**:
 - `src/features/object-editor/ui/PrimitiveManager/PrimitiveManager.tsx`
 - `src/features/object-editor/ui/PrimitiveManager/PrimitiveGroupItem.tsx` (новый)
-- `src/features/object-editor/ui/PrimitiveManager/GroupTree.tsx` (новый)
+- `src/features/object-editor/ui/PrimitiveManager/PrimitiveItem.tsx`
+- `src/features/object-editor/ui/PrimitiveManager/GroupNameModal.tsx` (новый)
 
 ### Фаза 4: Обновление рендеринга в ObjectEditor
 **Статус**: Не выполнено
