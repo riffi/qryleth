@@ -88,7 +88,7 @@ export const PrimitiveManager: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
 
   // State for drag and drop
-  const [draggedItem, setDraggedItem] = React.useState<{type: 'primitive' | 'group', uuid: string} | null>(null)
+  const [draggedItem, setDraggedItem] = React.useState<{type: 'primitive' | 'group', uuids: string[]} | null>(null)
   const [dropTarget, setDropTarget] = React.useState<string | null>(null)
 
   // Состояние для модального окна ввода названия группы
@@ -216,22 +216,47 @@ export const PrimitiveManager: React.FC = () => {
     toggleGroupVisibility(groupUuid)
   }, [toggleGroupVisibility])
 
-  // Drag and drop handlers - memoized to prevent unnecessary re-renders
+  /**
+   * Инициирует перетаскивание примитива. Если перетаскиваемый элемент
+   * входит в набор выделенных, в состояние заносятся UUID всех выделенных
+   * примитивов, иначе — только текущий примитив.
+   * @param e объект события перетаскивания
+   * @param primitiveUuid UUID примитива, с которого начато перетаскивание
+   */
   const handleDragStart = React.useCallback((e: React.DragEvent, primitiveUuid: string) => {
-    setDraggedItem({ type: 'primitive', uuid: primitiveUuid })
-    e.dataTransfer.effectAllowed = 'move'
-  }, [])
+    const selectedUuids = selectedPrimitiveIds.map(index => primitives[index].uuid)
+    const uuidsToDrag = selectedUuids.includes(primitiveUuid)
+      ? selectedUuids
+      : [primitiveUuid]
 
+    setDraggedItem({ type: 'primitive', uuids: uuidsToDrag })
+    e.dataTransfer.effectAllowed = 'move'
+  }, [selectedPrimitiveIds, primitives])
+
+  /**
+   * Разрешает сброс и подсвечивает текущую цель перетаскивания.
+   * @param e объект события перетаскивания
+   * @param targetGroupUuid UUID целевой группы
+   */
   const handleDragOver = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDropTarget(targetGroupUuid || 'ungrouped')
   }, [])
 
+  /**
+   * Сбрасывает подсветку потенциальной зоны сброса при выходе курсора.
+   */
   const handleDragLeave = React.useCallback(() => {
     setDropTarget(null)
   }, [])
 
+  /**
+   * Завершает операцию перетаскивания и назначает все перетаскиваемые
+   * примитивы указанной группе либо удаляет их из групп.
+   * @param e объект события сброса
+   * @param targetGroupUuid UUID целевой группы или undefined для "без группы"
+   */
   const handleDrop = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
     e.preventDefault()
 
@@ -239,11 +264,9 @@ export const PrimitiveManager: React.FC = () => {
 
     if (draggedItem.type === 'primitive') {
       if (targetGroupUuid && targetGroupUuid !== 'ungrouped') {
-        // Assign primitive to group
-        assignPrimitiveToGroup(draggedItem.uuid, targetGroupUuid)
+        draggedItem.uuids.forEach(uuid => assignPrimitiveToGroup(uuid, targetGroupUuid))
       } else {
-        // Drop on ungrouped area - remove from any group
-        removePrimitiveFromGroup(draggedItem.uuid)
+        draggedItem.uuids.forEach(uuid => removePrimitiveFromGroup(uuid))
       }
     }
 
@@ -251,12 +274,20 @@ export const PrimitiveManager: React.FC = () => {
     setDropTarget(null)
   }, [draggedItem, assignPrimitiveToGroup, removePrimitiveFromGroup])
 
-  // Special drag over handler for primitives (no target group)
+  /**
+   * Обработчик наведения на примитив, передающий событие в общий
+   * обработчик для поддержки областей без группы.
+   * @param e объект события перетаскивания
+   */
   const handlePrimitiveDragOver = React.useCallback((e: React.DragEvent) => {
     handleDragOver(e)
   }, [handleDragOver])
 
-  // Специальный обработчик сброса для области без групп
+  /**
+   * Обработчик сброса в область "без группы", удаляет привязку
+   * всех перетаскиваемых примитивов к группам.
+   * @param e объект события сброса
+   */
   const handleUngroupedDrop = React.useCallback((e: React.DragEvent) => {
     handleDrop(e)
   }, [handleDrop])
