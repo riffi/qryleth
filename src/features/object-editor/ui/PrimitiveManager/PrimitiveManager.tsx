@@ -305,11 +305,7 @@ export const PrimitiveManager: React.FC = () => {
   const handleDragOver = React.useCallback((e: React.DragEvent, targetGroupUuid?: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    if (targetGroupUuid) {
-      setDropTarget(targetGroupUuid)
-    } else {
-      setDropTarget(null)
-    }
+    setDropTarget(targetGroupUuid || 'ungrouped')
   }, [])
 
   const handleDragLeave = React.useCallback(() => {
@@ -322,11 +318,11 @@ export const PrimitiveManager: React.FC = () => {
     if (!draggedItem) return
 
     if (draggedItem.type === 'primitive') {
-      if (targetGroupUuid) {
+      if (targetGroupUuid && targetGroupUuid !== 'ungrouped') {
         // Assign primitive to group
         assignPrimitiveToGroup(draggedItem.uuid, targetGroupUuid)
       } else {
-        // Drop on root - remove from any group
+        // Drop on ungrouped area - remove from any group
         removePrimitiveFromGroup(draggedItem.uuid)
       }
     }
@@ -404,36 +400,6 @@ export const PrimitiveManager: React.FC = () => {
             </Button>
           </Group>
 
-          {/* Step 5: Simple assignment testing buttons */}
-          {selectedPrimitivesCount > 0 && Object.keys(groups).length > 0 && (
-            <Group gap="xs" mt="xs">
-              <Text size="xs" c="dimmed">
-                Назначить выбранные примитивы в:
-              </Text>
-              {Object.values(groups).slice(0, 2).map((group) => (
-                <Button
-                  key={group.uuid}
-                  size="xs"
-                  variant="outline"
-                  onClick={() => {
-                    selectedPrimitiveIds.forEach(index => {
-                      const primitive = primitives[index]
-                      if (primitive) {
-                        assignPrimitiveToGroup(primitive.uuid, group.uuid)
-                      }
-                    })
-                  }}
-                >
-                  {group.name}
-                </Button>
-              ))}
-              {Object.keys(groups).length > 2 && (
-                <Text size="xs" c="dimmed">
-                  +{Object.keys(groups).length - 2} ещё
-                </Text>
-              )}
-            </Group>
-          )}
         </Box>
 
         {/* Древовидная структура примитивов и групп */}
@@ -445,12 +411,20 @@ export const PrimitiveManager: React.FC = () => {
               .map((group) => (
                 <Box key={group.uuid}>
                   <Box
+                    onDragOver={(e) => handleDragOver(e, group.uuid)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, group.uuid)}
                     style={{
                       padding: '8px 12px',
                       borderRadius: 4,
-                      backgroundColor: 'var(--mantine-color-yellow-9)',
-                      border: '1px solid var(--mantine-color-yellow-6)',
-                      marginBottom: '4px'
+                      backgroundColor: dropTarget === group.uuid 
+                        ? 'var(--mantine-color-green-8)' 
+                        : 'var(--mantine-color-yellow-9)',
+                      border: dropTarget === group.uuid
+                        ? '2px dashed var(--mantine-color-green-4)'
+                        : '1px solid var(--mantine-color-yellow-6)',
+                      marginBottom: '4px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <Group justify="space-between" align="center">
@@ -506,6 +480,9 @@ export const PrimitiveManager: React.FC = () => {
                                 onHover={handlePrimitiveHover}
                                 onToggleVisibility={togglePrimitiveVisibility}
                                 onRemove={removePrimitive}
+                                onDragStart={handleDragStart}
+                                dragOver={handlePrimitiveDragOver}
+                                isDropTarget={false}
                               />
                             )
                           })}
@@ -516,7 +493,22 @@ export const PrimitiveManager: React.FC = () => {
               ))}
 
             {/* Ungrouped primitives */}
-            <Box>
+            <Box
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleUngroupedDrop}
+              style={{
+                padding: '8px',
+                borderRadius: 4,
+                backgroundColor: dropTarget === 'ungrouped'
+                  ? 'var(--mantine-color-green-9)'
+                  : 'transparent',
+                border: dropTarget === 'ungrouped'
+                  ? '2px dashed var(--mantine-color-green-4)'
+                  : '1px solid transparent',
+                transition: 'all 0.15s ease'
+              }}
+            >
               <Text size="sm" fw={500} c="dimmed" mb="xs">Без группы:</Text>
               <Stack gap="xs">
                 {ungroupedPrimitives.map((primitive, index) => {
@@ -532,6 +524,9 @@ export const PrimitiveManager: React.FC = () => {
                       onHover={handlePrimitiveHover}
                       onToggleVisibility={togglePrimitiveVisibility}
                       onRemove={removePrimitive}
+                      onDragStart={handleDragStart}
+                      dragOver={handlePrimitiveDragOver}
+                      isDropTarget={false}
                     />
                   )
                 })}
