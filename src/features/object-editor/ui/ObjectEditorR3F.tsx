@@ -55,13 +55,23 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   useEffect(() => {
     if (!objectData) return
 
-    useObjectStore.getState().clearScene()
-    useObjectStore.getState().setPrimitives(
+    const store = useObjectStore.getState()
+    store.clearScene()
+    store.setPrimitives(
       objectData.primitives.map(p => ({ ...p }))
     )
-    useObjectStore.getState().setMaterials(objectData.materials ?? [])
-
-    useObjectStore.getState().selectPrimitive(0)
+    store.setMaterials(objectData.materials ?? [])
+    
+    // Устанавливаем группы примитивов и их назначения
+    if (objectData.primitiveGroups) {
+      store.setPrimitiveGroups(objectData.primitiveGroups)
+    }
+    
+    if (objectData.primitiveGroupAssignments) {
+      store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
+    }
+    
+    store.selectPrimitive(0)
   }, [objectData])
 
   // Создаем компонент 3D сцены с дополнительными контролами

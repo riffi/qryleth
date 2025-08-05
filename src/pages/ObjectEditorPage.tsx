@@ -36,7 +36,6 @@ const ObjectEditorPage: React.FC = () => {
    */
   const handleSave = async (object: GfxObject) => {
     if (!objectRecord) return
-
     try {
       await db.updateObject(objectRecord.uuid, {
         objectData: object

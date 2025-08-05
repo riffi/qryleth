@@ -76,6 +76,10 @@ interface ObjectStoreActions {
   isMaterialNameUnique: (name: string, excludeUuid?: string) => boolean
 
   // Group management actions
+  /** Устанавливает группы примитивов */
+  setPrimitiveGroups: (groups: Record<string, GfxPrimitiveGroup>) => void
+  /** Устанавливает назначения примитивов к группам */
+  setPrimitiveGroupAssignments: (assignments: Record<string, string>) => void
   /** Создает новую группу */
   createGroup: (name: string, parentGroupUuid?: string) => string
   /** Удаляет группу по UUID */
@@ -335,6 +339,12 @@ export const useObjectStore = create<ObjectStore>()(
     },
 
     // Group management actions
+    setPrimitiveGroups: (groups: Record<string, GfxPrimitiveGroup>) =>
+      set({ primitiveGroups: groups }),
+
+    setPrimitiveGroupAssignments: (assignments: Record<string, string>) =>
+      set({ primitiveGroupAssignments: assignments }),
+
     createGroup: (name: string, parentGroupUuid?: string) => {
       const groupUuid = generateUUID()
       const newGroup: GfxPrimitiveGroup = {
