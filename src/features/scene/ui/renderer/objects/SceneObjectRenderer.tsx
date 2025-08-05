@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
+import { SceneGroupRenderer } from './SceneGroupRenderer.tsx'
 import { useRenderMode } from '../../../model/sceneStore.ts'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import type {
@@ -66,6 +67,19 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   }
 
 
+  // Проверяем есть ли группы в объекте
+  const hasGroups = sceneObject.primitiveGroups && Object.keys(sceneObject.primitiveGroups).length > 0
+  const assignments = sceneObject.primitiveGroupAssignments || {}
+
+  // Получаем корневые группы (без parentGroupUuid)
+  const rootGroups = hasGroups 
+    ? Object.values(sceneObject.primitiveGroups!).filter(group => !group.parentGroupUuid)
+    : []
+
+  // Получаем примитивы, не привязанные ни к одной группе
+  const ungroupedPrimitives = sceneObject.primitives?.map((primitive, index) => ({ primitive, index }))
+    .filter(({ primitive }) => !assignments[primitive.uuid]) || []
+
   return (
     <group
       ref={groupRef}
@@ -84,18 +98,34 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {sceneObject.primitives?.map((primitive, index) => (
+      {/* Рендеринг корневых групп */}
+      {rootGroups.map(group => (
+        <SceneGroupRenderer
+          key={group.uuid}
+          groupUuid={group.uuid}
+          groupName={group.name}
+          sceneObject={sceneObject}
+          instance={instance}
+          renderMode={renderMode}
+          onClick={onClick}
+        />
+      ))}
+      
+      {/* Рендеринг примитивов без группы (обратная совместимость) */}
+      {ungroupedPrimitives.map(({ primitive, index }) => (
         <PrimitiveRenderer
-          key={index}
+          key={primitive.uuid || index}
           primitive={primitive}
           renderMode={renderMode}
           objectMaterials={sceneObject.materials}
           userData={{
             generated: true,
+            primitiveIndex: index,
             objectUuid: instance.objectUuid,
             objectInstanceUuid: instance.uuid,
             layerId: sceneObject.layerId || 'objects'
           }}
+          onClick={handleClick}
         />
       ))}
     </group>

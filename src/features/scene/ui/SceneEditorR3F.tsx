@@ -224,7 +224,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     updateObject(object.uuid, {
       primitives: object.primitives,
       materials: object.materials,
-      boundingBox: object.boundingBox
+      boundingBox: object.boundingBox,
+      primitiveGroups: object.primitiveGroups,
+      primitiveGroupAssignments: object.primitiveGroupAssignments,
     })
 
     notifications.show({

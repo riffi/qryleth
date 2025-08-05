@@ -3,20 +3,57 @@ import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/Sce
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
 import {WaterLayer, type WaterLayerProps} from '../landscape/WaterLayer.tsx'
 
-// Memoized  for better performance
+// Memoized SceneObject for better performance with primitive groups support
 export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
   SceneObjectRenderer,
   (prevProps, nextProps) => {
-    // Custom comparison function for optimal re-rendering
-    return (
-      prevProps.sceneObject === nextProps.sceneObject &&
-      prevProps.instance === nextProps.instance &&
-      prevProps.instanceIndex === nextProps.instanceIndex &&
-      prevProps.isSelected === nextProps.isSelected &&
-      prevProps.isHovered === nextProps.isHovered &&
-      prevProps.renderMode === nextProps.renderMode &&
-      prevProps.visible === nextProps.visible
-    )
+    // Basic property comparison
+    if (
+      prevProps.instance !== nextProps.instance ||
+      prevProps.instanceIndex !== nextProps.instanceIndex ||
+      prevProps.isSelected !== nextProps.isSelected ||
+      prevProps.isHovered !== nextProps.isHovered ||
+      prevProps.renderMode !== nextProps.renderMode ||
+      prevProps.visible !== nextProps.visible
+    ) {
+      return false
+    }
+
+    // Deep comparison for sceneObject properties that affect rendering
+    const prev = prevProps.sceneObject
+    const next = nextProps.sceneObject
+
+    // Basic object properties
+    if (
+      prev.uuid !== next.uuid ||
+      prev.name !== next.name ||
+      prev.layerId !== next.layerId ||
+      prev.visible !== next.visible
+    ) {
+      return false
+    }
+
+    // Primitives comparison
+    if (prev.primitives !== next.primitives) {
+      return false
+    }
+
+    // Materials comparison
+    if (prev.materials !== next.materials) {
+      return false
+    }
+
+    // Primitive groups comparison
+    if (prev.primitiveGroups !== next.primitiveGroups) {
+      return false
+    }
+
+    // Primitive group assignments comparison
+    if (prev.primitiveGroupAssignments !== next.primitiveGroupAssignments) {
+      return false
+    }
+
+    return true
   }
 )
 
