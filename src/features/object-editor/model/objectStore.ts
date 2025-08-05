@@ -2,6 +2,10 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial, CreateGfxMaterial } from '@/entities/material'
+import type { GfxObject } from '@/entities/object'
+import type { GfxPrimitiveGroup, GroupTreeNode } from '@/entities/primitiveGroup'
+import { buildGroupTree, findGroupChildren, getGroupPath, isGroupDescendant } from '@/entities/primitiveGroup/model/utils'
+import { resolveImportConflicts, applyImportResolution, ensureValidUuids } from '@/entities/primitiveGroup/model/importUtils'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { RenderMode, TransformMode, ViewMode } from '@/shared/types/ui'
 import type { LightingSettings } from '@/entities/lighting/model/types.ts'
@@ -15,6 +19,12 @@ interface ObjectStoreState {
   materials: GfxMaterial[]
   /** UUID выбранного материала */
   selectedMaterialUuid: string | null
+  /** Группы примитивов */
+  primitiveGroups: Record<string, GfxPrimitiveGroup>
+  /** Привязка примитивов к группам по UUID */
+  primitiveGroupAssignments: Record<string, string>
+  /** UUID выбранных групп */
+  selectedGroupUuids: string[]
   lighting: LightingSettings
   /** Текущий BoundingBox объекта */
   boundingBox?: BoundingBox
@@ -60,6 +70,34 @@ interface ObjectStoreActions {
   selectMaterial: (materialUuid: string | null) => void
   /** Проверяет уникальность имени материала в рамках объекта */
   isMaterialNameUnique: (name: string, excludeUuid?: string) => boolean
+
+  // Group management actions
+  /** Создает новую группу */
+  createGroup: (name: string, parentGroupUuid?: string) => string
+  /** Удаляет группу по UUID */
+  deleteGroup: (groupUuid: string) => void
+  /** Переименовывает группу */
+  renameGroup: (groupUuid: string, newName: string) => void
+  /** Создает подгруппу */
+  createSubGroup: (name: string, parentGroupUuid: string) => string
+  /** Привязывает примитив к группе по UUID */
+  assignPrimitiveToGroup: (primitiveUuid: string, groupUuid: string) => void
+  /** Удаляет примитив из группы */
+  removePrimitiveFromGroup: (primitiveUuid: string) => void
+  /** Перемещает группу в другую группу */
+  moveGroup: (groupUuid: string, newParentUuid?: string) => void
+  /** Импортирует объект как группу */
+  importObjectAsGroup: (object: GfxObject, groupName: string) => void
+  /** Выбирает группу */
+  selectGroup: (groupUuid: string) => void
+  /** Переключает выделение группы */
+  toggleGroupSelection: (groupUuid: string) => void
+  /** Устанавливает выбранные группы */
+  setSelectedGroups: (groupUuids: string[]) => void
+  /** Очищает выделение групп */
+  clearGroupSelection: () => void
+  /** Переключает видимость группы */
+  toggleGroupVisibility: (groupUuid: string) => void
 }
 
 export type ObjectStore = ObjectStoreState & ObjectStoreActions
@@ -77,6 +115,9 @@ export const useObjectStore = create<ObjectStore>()(
     primitives: [],
     materials: [],
     selectedMaterialUuid: null,
+    primitiveGroups: {},
+    primitiveGroupAssignments: {},
+    selectedGroupUuids: [],
     lighting: initialLighting,
     boundingBox: undefined,
     viewMode: 'orbit',
@@ -89,10 +130,26 @@ export const useObjectStore = create<ObjectStore>()(
     // Устанавливает список примитивов, нормализуя их
     // и заполняя отсутствующие имена
     setPrimitives: (primitives: GfxPrimitive[]) =>
-      set(() => {
-        const list = ensurePrimitiveNames(primitives.map(normalizePrimitive))
+      set((state) => {
+        // Обеспечиваем UUID для всех примитивов
+        const primitivesWithUuid = primitives.map(primitive => ({
+          ...primitive,
+          uuid: primitive.uuid || generateUUID()
+        }))
+        const list = ensurePrimitiveNames(primitivesWithUuid.map(normalizePrimitive))
+        
+        // Очищаем привязки для примитивов, которых больше нет
+        const currentUuids = new Set(list.map(p => p.uuid))
+        const newAssignments: Record<string, string> = {}
+        Object.entries(state.primitiveGroupAssignments).forEach(([primitiveUuid, groupUuid]) => {
+          if (currentUuids.has(primitiveUuid)) {
+            newAssignments[primitiveUuid] = groupUuid
+          }
+        })
+        
         return {
           primitives: list,
+          primitiveGroupAssignments: newAssignments,
           boundingBox: list.length
             ? calculateObjectBoundingBox({ uuid: '', name: '', primitives: list })
             : undefined
@@ -101,7 +158,12 @@ export const useObjectStore = create<ObjectStore>()(
     // Добавляет новый примитив в хранилище
     addPrimitive: (primitive: GfxPrimitive) =>
       set(state => {
-        const list = [...state.primitives, normalizePrimitive(primitive)]
+        // Обеспечиваем наличие UUID у примитива
+        const primitiveWithUuid = {
+          ...primitive,
+          uuid: primitive.uuid || generateUUID()
+        }
+        const list = [...state.primitives, normalizePrimitive(primitiveWithUuid)]
         const normalized = ensurePrimitiveNames(list)
         return {
           primitives: normalized,
@@ -131,8 +193,18 @@ export const useObjectStore = create<ObjectStore>()(
     // Удаляет примитив по индексу и корректирует выделение
     removePrimitive: (index: number) =>
       set(state => {
+        if (index < 0 || index >= state.primitives.length) return state
+        
+        const removedPrimitive = state.primitives[index]
         const list = state.primitives.filter((_, i) => i !== index)
         const normalized = ensurePrimitiveNames(list)
+        
+        // Удаляем привязку к группе для удаленного примитива
+        const newAssignments = { ...state.primitiveGroupAssignments }
+        if (removedPrimitive.uuid && newAssignments[removedPrimitive.uuid]) {
+          delete newAssignments[removedPrimitive.uuid]
+        }
+        
         const selected = state.selectedPrimitiveIds
           .filter(id => id !== index)
           .map(id => (id > index ? id - 1 : id))
@@ -146,6 +218,7 @@ export const useObjectStore = create<ObjectStore>()(
                 : state.hoveredPrimitiveId
         return {
           primitives: normalized,
+          primitiveGroupAssignments: newAssignments,
           selectedPrimitiveIds: selected,
           hoveredPrimitiveId: hovered,
           boundingBox: normalized.length
@@ -189,6 +262,9 @@ export const useObjectStore = create<ObjectStore>()(
         primitives: [],
         materials: [],
         selectedMaterialUuid: null,
+        primitiveGroups: {},
+        primitiveGroupAssignments: {},
+        selectedGroupUuids: [],
         lighting: initialLighting,
         selectedPrimitiveIds: [],
         hoveredPrimitiveId: null,
@@ -240,7 +316,195 @@ export const useObjectStore = create<ObjectStore>()(
       return !state.materials.some(material =>
         material.name === name && material.uuid !== excludeUuid
       )
-    }
+    },
+
+    // Group management actions
+    createGroup: (name: string, parentGroupUuid?: string) => {
+      const groupUuid = generateUUID()
+      const newGroup: GfxPrimitiveGroup = {
+        uuid: groupUuid,
+        name,
+        visible: true,
+        parentGroupUuid
+      }
+      
+      set(state => ({
+        primitiveGroups: {
+          ...state.primitiveGroups,
+          [groupUuid]: newGroup
+        }
+      }))
+      
+      return groupUuid
+    },
+
+    deleteGroup: (groupUuid: string) =>
+      set(state => {
+        // Удаляем дочерние группы рекурсивно
+        const childrenUuids = findGroupChildren(groupUuid, state.primitiveGroups)
+        const allToRemove = [groupUuid, ...childrenUuids]
+        
+        // Удаляем группы
+        const newGroups = { ...state.primitiveGroups }
+        allToRemove.forEach(uuid => {
+          delete newGroups[uuid]
+        })
+        
+        // Удаляем привязки примитивов к удаленным группам
+        const newAssignments = { ...state.primitiveGroupAssignments }
+        Object.keys(newAssignments).forEach(primitiveUuid => {
+          if (allToRemove.includes(newAssignments[primitiveUuid])) {
+            delete newAssignments[primitiveUuid]
+          }
+        })
+        
+        // Удаляем из выделения
+        const newSelectedGroups = state.selectedGroupUuids.filter(
+          uuid => !allToRemove.includes(uuid)
+        )
+        
+        return {
+          primitiveGroups: newGroups,
+          primitiveGroupAssignments: newAssignments,
+          selectedGroupUuids: newSelectedGroups
+        }
+      }),
+
+    renameGroup: (groupUuid: string, newName: string) =>
+      set(state => ({
+        primitiveGroups: {
+          ...state.primitiveGroups,
+          [groupUuid]: {
+            ...state.primitiveGroups[groupUuid],
+            name: newName
+          }
+        }
+      })),
+
+    createSubGroup: (name: string, parentGroupUuid: string) => {
+      const groupUuid = generateUUID()
+      const newGroup: GfxPrimitiveGroup = {
+        uuid: groupUuid,
+        name,
+        visible: true,
+        parentGroupUuid
+      }
+      
+      set(state => ({
+        primitiveGroups: {
+          ...state.primitiveGroups,
+          [groupUuid]: newGroup
+        }
+      }))
+      
+      return groupUuid
+    },
+
+    assignPrimitiveToGroup: (primitiveUuid: string, groupUuid: string) =>
+      set(state => ({
+        primitiveGroupAssignments: {
+          ...state.primitiveGroupAssignments,
+          [primitiveUuid]: groupUuid
+        }
+      })),
+
+    removePrimitiveFromGroup: (primitiveUuid: string) =>
+      set(state => {
+        const newAssignments = { ...state.primitiveGroupAssignments }
+        delete newAssignments[primitiveUuid]
+        return { primitiveGroupAssignments: newAssignments }
+      }),
+
+    moveGroup: (groupUuid: string, newParentUuid?: string) =>
+      set(state => {
+        // Проверяем, что новый родитель не является потомком перемещаемой группы
+        if (newParentUuid && isGroupDescendant(newParentUuid, groupUuid, state.primitiveGroups)) {
+          console.warn('Cannot move group to its descendant')
+          return state
+        }
+        
+        return {
+          primitiveGroups: {
+            ...state.primitiveGroups,
+            [groupUuid]: {
+              ...state.primitiveGroups[groupUuid],
+              parentGroupUuid: newParentUuid
+            }
+          }
+        }
+      }),
+
+    importObjectAsGroup: (object: GfxObject, groupName: string) =>
+      set(state => {
+        // Обеспечиваем валидность UUID в импортируемом объекте
+        const validatedObject = ensureValidUuids(object)
+        
+        // Разрешаем конфликты
+        const currentObject: GfxObject = {
+          uuid: generateUUID(),
+          name: 'current',
+          primitives: state.primitives,
+          primitiveGroups: state.primitiveGroups,
+          primitiveGroupAssignments: state.primitiveGroupAssignments,
+          materials: state.materials
+        }
+        
+        const resolution = resolveImportConflicts(validatedObject, currentObject)
+        const importResult = applyImportResolution(validatedObject, resolution, groupName)
+        
+        // Обновляем состояние
+        const newPrimitives = [...state.primitives, ...importResult.importedPrimitives]
+        const normalized = ensurePrimitiveNames(newPrimitives)
+        
+        return {
+          primitives: normalized,
+          primitiveGroups: {
+            ...state.primitiveGroups,
+            ...importResult.allGroups
+          },
+          primitiveGroupAssignments: {
+            ...state.primitiveGroupAssignments,
+            ...importResult.allAssignments
+          },
+          boundingBox: calculateObjectBoundingBox({
+            uuid: '',
+            name: '',
+            primitives: normalized
+          })
+        }
+      }),
+
+    selectGroup: (groupUuid: string) =>
+      set({ selectedGroupUuids: [groupUuid] }),
+
+    toggleGroupSelection: (groupUuid: string) =>
+      set(state => {
+        const isSelected = state.selectedGroupUuids.includes(groupUuid)
+        const newSelection = isSelected
+          ? state.selectedGroupUuids.filter(uuid => uuid !== groupUuid)
+          : [...state.selectedGroupUuids, groupUuid]
+        
+        return { selectedGroupUuids: newSelection }
+      }),
+
+    setSelectedGroups: (groupUuids: string[]) =>
+      set({ selectedGroupUuids: groupUuids }),
+
+    clearGroupSelection: () =>
+      set({ selectedGroupUuids: [] }),
+
+    toggleGroupVisibility: (groupUuid: string) =>
+      set(state => ({
+        primitiveGroups: {
+          ...state.primitiveGroups,
+          [groupUuid]: {
+            ...state.primitiveGroups[groupUuid],
+            visible: state.primitiveGroups[groupUuid].visible !== false 
+              ? false 
+              : true
+          }
+        }
+      }))
   }))
 )
 
@@ -266,4 +530,63 @@ export const useSelectedMaterialUuid = () => useObjectStore(s => s.selectedMater
 export const useSelectedMaterial = () => useObjectStore(s => {
   if (!s.selectedMaterialUuid) return null
   return s.materials.find(m => m.uuid === s.selectedMaterialUuid) || null
+})
+
+// Group selectors
+/** Селектор групп примитивов */
+export const useObjectPrimitiveGroups = () => useObjectStore(s => s.primitiveGroups)
+/** Селектор привязок примитивов к группам */
+export const usePrimitiveGroupAssignments = () => useObjectStore(s => s.primitiveGroupAssignments)
+/** Селектор UUID выбранных групп */
+export const useSelectedGroupUuids = () => useObjectStore(s => s.selectedGroupUuids)
+
+/** Селектор иерархического дерева групп */
+export const useGroupTree = () => useObjectStore(s => buildGroupTree(s.primitiveGroups))
+
+/** Селектор примитивов в указанной группе */
+export const useGroupPrimitives = (groupUuid: string) => useObjectStore(s => {
+  return s.primitives.filter(primitive => 
+    s.primitiveGroupAssignments[primitive.uuid] === groupUuid
+  )
+})
+
+/** Селектор всех примитивов без группы */
+export const useUngroupedPrimitives = () => useObjectStore(s => {
+  return s.primitives.filter(primitive => 
+    !s.primitiveGroupAssignments[primitive.uuid]
+  )
+})
+
+/** Селектор корневых групп (без родителя) */
+export const useRootGroups = () => useObjectStore(s => {
+  return Object.values(s.primitiveGroups).filter(group => !group.parentGroupUuid)
+})
+
+/** Селектор глубины группы в иерархии */
+export const useGroupDepth = (groupUuid: string) => useObjectStore(s => {
+  const path = getGroupPath(groupUuid, s.primitiveGroups)
+  return path.length - 1
+})
+
+/** Селектор дочерних групп для указанной группы */
+export const useGroupChildren = (groupUuid: string) => useObjectStore(s => {
+  const childrenUuids = findGroupChildren(groupUuid, s.primitiveGroups)
+  return childrenUuids.map(uuid => s.primitiveGroups[uuid]).filter(Boolean)
+})
+
+/** Селектор для получения группы по UUID */
+export const useGroupByUuid = (groupUuid: string) => useObjectStore(s => {
+  return s.primitiveGroups[groupUuid] || null
+})
+
+/** Селектор пути до группы (массив групп от корня до указанной) */
+export const useGroupPath = (groupUuid: string) => useObjectStore(s => {
+  return getGroupPath(groupUuid, s.primitiveGroups)
+})
+
+/** Селектор для проверки видимости группы с учетом родительских групп */
+export const useGroupVisibility = (groupUuid: string) => useObjectStore(s => {
+  const groupPath = getGroupPath(groupUuid, s.primitiveGroups)
+  // Группа видима, если все группы в пути видимы
+  return groupPath.every(group => group.visible !== false)
 })
