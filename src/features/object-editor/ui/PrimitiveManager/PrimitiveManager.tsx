@@ -12,7 +12,17 @@ import {
   Menu,
   Button
 } from '@mantine/core'
-import { IconEye, IconEyeOff, IconTrash, IconFolderPlus, IconPencil } from '@tabler/icons-react'
+import {
+  IconEye,
+  IconEyeOff,
+  IconTrash,
+  IconFolderPlus,
+  IconPencil,
+  IconChevronRight,
+  IconChevronDown,
+  IconFolder,
+  IconFolderOpen
+} from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
@@ -226,7 +236,11 @@ export const PrimitiveManager: React.FC = () => {
     setHoveredPrimitive(index)
   }
 
-  // Group management handlers - memoized to prevent unnecessary re-renders
+  /**
+   * Переключает состояние развёрнутости конкретной группы.
+   * При повторном вызове сворачивает уже раскрытую группу и наоборот.
+   * @param groupUuid UUID группы, для которой меняется состояние
+   */
   const handleToggleGroupExpand = React.useCallback((groupUuid: string) => {
     setExpandedGroups(prev => {
       const newSet = new Set(prev)
@@ -447,13 +461,32 @@ export const PrimitiveManager: React.FC = () => {
                   >
                     <Group justify="space-between" align="center">
                       <Group gap="xs">
-                        <Text 
-                          size="sm" 
-                          fw={500} 
+                        <ActionIcon
+                          size="xs"
+                          variant="transparent"
+                          onClick={() => handleToggleGroupExpand(group.uuid)}
+                          style={{ width: 16, height: 16, minWidth: 16 }}
+                        >
+                          {expandedGroups.has(group.uuid) ? (
+                            <IconChevronDown size={12} />
+                          ) : (
+                            <IconChevronRight size={12} />
+                          )}
+                        </ActionIcon>
+
+                        {expandedGroups.has(group.uuid) ? (
+                          <IconFolderOpen size={14} color="var(--mantine-color-yellow-1)" />
+                        ) : (
+                          <IconFolder size={14} color="var(--mantine-color-yellow-1)" />
+                        )}
+
+                        <Text
+                          size="sm"
+                          fw={500}
                           style={{ color: 'var(--mantine-color-yellow-1)', cursor: 'pointer' }}
                           onClick={() => handleToggleGroupExpand(group.uuid)}
                         >
-                          {expandedGroups.has(group.uuid) ? '📂' : '📁'} {group.name}
+                          {group.name}
                         </Text>
                         <Badge size="xs" variant="light" color="yellow">
                           Группа
