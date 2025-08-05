@@ -96,7 +96,11 @@ interface ObjectStoreActions {
   setSelectedGroups: (groupUuids: string[]) => void
   /** Очищает выделение групп */
   clearGroupSelection: () => void
-  /** Переключает видимость группы */
+  /**
+   * Переключает видимость группы и всех её дочерних групп
+   * вместе с привязанными к ним примитивами
+   * @param groupUuid UUID группы, видимость которой нужно изменить
+   */
   toggleGroupVisibility: (groupUuid: string) => void
 }
 
@@ -493,18 +497,48 @@ export const useObjectStore = create<ObjectStore>()(
     clearGroupSelection: () =>
       set({ selectedGroupUuids: [] }),
 
+    /**
+     * Переключает видимость указанной группы и всех её дочерних групп.
+     * Одновременно обновляет видимость всех примитивов,
+     * привязанных к этим группам.
+     * @param groupUuid UUID группы, видимость которой требуется изменить
+     */
     toggleGroupVisibility: (groupUuid: string) =>
-      set(state => ({
-        primitiveGroups: {
-          ...state.primitiveGroups,
-          [groupUuid]: {
-            ...state.primitiveGroups[groupUuid],
-            visible: state.primitiveGroups[groupUuid].visible !== false 
-              ? false 
-              : true
-          }
+      set(state => {
+        // Определяем новое значение видимости (undefined трактуем как true)
+        const currentVisible = state.primitiveGroups[groupUuid]?.visible !== false
+        const newVisible = !currentVisible
+
+        // Получаем UUID всех дочерних групп
+        const allGroupUuids = [
+          groupUuid,
+          ...findGroupChildren(groupUuid, state.primitiveGroups)
+        ]
+
+        // Обновляем видимость групп
+        const updatedGroups: Record<string, GfxPrimitiveGroup> = {
+          ...state.primitiveGroups
         }
-      }))
+        allGroupUuids.forEach(uuid => {
+          const grp = updatedGroups[uuid]
+          if (grp) {
+            updatedGroups[uuid] = { ...grp, visible: newVisible }
+          }
+        })
+
+        // Обновляем видимость всех примитивов, принадлежащих собранным группам
+        const updatedPrimitives = state.primitives.map(primitive => {
+          const assignedGroup = state.primitiveGroupAssignments[primitive.uuid]
+          return allGroupUuids.includes(assignedGroup)
+            ? { ...primitive, visible: newVisible }
+            : primitive
+        })
+
+        return {
+          primitiveGroups: updatedGroups,
+          primitives: updatedPrimitives
+        }
+      })
   }))
 )
 

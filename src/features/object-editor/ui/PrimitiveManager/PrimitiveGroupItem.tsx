@@ -24,7 +24,6 @@ import {
   IconDownload
 } from '@tabler/icons-react'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
-import { useObjectStore } from '../../model/objectStore'
 
 interface PrimitiveGroupItemProps {
   group: GfxPrimitiveGroup
@@ -47,6 +46,10 @@ interface PrimitiveGroupItemProps {
   isDropTarget?: boolean
 }
 
+/**
+ * Элемент дерева групп с действиями управления.
+ * Отображает одну группу, её подгруппы и примитивы.
+ */
 export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
   group,
   isExpanded,
@@ -71,12 +74,18 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
   const [nameValue, setNameValue] = React.useState(group.name)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
+  /**
+   * Включает режим переименования группы и устанавливает фокус на поле ввода.
+   */
   const handleRenameStart = () => {
     setIsRenaming(true)
     setNameValue(group.name)
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
+  /**
+   * Подтверждает новое имя группы, если оно изменилось и не пустое.
+   */
   const handleRenameSubmit = () => {
     if (nameValue.trim() && nameValue !== group.name) {
       onRename(group.uuid, nameValue.trim())
@@ -84,11 +93,18 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
     setIsRenaming(false)
   }
 
+  /**
+   * Отменяет переименование и возвращает исходное имя группы.
+   */
   const handleRenameCancel = () => {
     setNameValue(group.name)
     setIsRenaming(false)
   }
 
+  /**
+   * Обрабатывает нажатия клавиш в поле ввода имени группы.
+   * Enter подтверждает изменение, Escape отменяет.
+   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleRenameSubmit()
@@ -97,10 +113,21 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
     }
   }
 
+  /**
+   * Обрабатывает выбор группы при клике по её области.
+   */
   const handleClick = (event: React.MouseEvent) => {
     if (!isRenaming) {
       onSelect(group.uuid, event)
     }
+  }
+
+  /**
+   * Переключает видимость текущей группы.
+   */
+  const handleToggleVisibilityClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggleVisibility(group.uuid)
   }
 
   const isImported = !!group.sourceObjectUuid
@@ -197,11 +224,9 @@ export const PrimitiveGroupItem: React.FC<PrimitiveGroupItemProps> = ({
             <Tooltip label={group.visible === false ? 'Показать группу' : 'Скрыть группу'}>
               <ActionIcon
                 size="xs"
-                variant="transparent"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onToggleVisibility(group.uuid)
-                }}
+                variant="subtle"
+                color={group.visible === false ? 'gray' : 'yellow'}
+                onClick={handleToggleVisibilityClick}
                 style={{
                   width: '16px',
                   height: '16px',
