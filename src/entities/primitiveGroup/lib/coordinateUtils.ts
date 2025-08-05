@@ -131,6 +131,37 @@ export function getGroupCenter(
 }
 
 /**
+ * Получает геометрический центр группы с учетом трансформации самой группы
+ * @param groupUuid UUID группы
+ * @param primitives Массив всех примитивов объекта
+ * @param groups Все группы объекта
+ * @param groupAssignments Привязки примитивов к группам
+ * @returns Координаты центра группы с учетом трансформации
+ */
+export function getGroupCenterWithTransform(
+  groupUuid: string,
+  primitives: GfxPrimitive[],
+  groups: Record<string, GfxPrimitiveGroup>,
+  groupAssignments: Record<string, string>
+): Vector3 {
+  // Сначала получаем базовый геометрический центр группы
+  const baseCenter = getGroupCenter(groupUuid, primitives, groups, groupAssignments);
+  
+  // Получаем группу для проверки трансформации
+  const group = groups[groupUuid];
+  if (!group?.transform?.position) {
+    return baseCenter;
+  }
+
+  // Применяем трансформацию группы к базовому центру
+  return [
+    baseCenter[0] + (group.transform.position[0] || 0),
+    baseCenter[1] + (group.transform.position[1] || 0),
+    baseCenter[2] + (group.transform.position[2] || 0)
+  ];
+}
+
+/**
  * Получает мировые координаты примитива с учетом иерархии групп
  */
 function getWorldTransform(

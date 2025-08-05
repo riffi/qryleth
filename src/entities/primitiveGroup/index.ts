@@ -22,5 +22,6 @@ export {
 export {
   movePrimitiveToGroup,
   calculateGroupBounds,
-  getGroupCenter
+  getGroupCenter,
+  getGroupCenterWithTransform
 } from './lib/coordinateUtils';

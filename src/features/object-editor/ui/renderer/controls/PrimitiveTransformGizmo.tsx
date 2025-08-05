@@ -6,7 +6,7 @@ import type { TransformControls as ThreeTransformControls } from 'three/examples
 import type { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { useObjectStore, useSelectedGroupUuids, useObjectPrimitives, useObjectPrimitiveGroups, usePrimitiveGroupAssignments, useSelectedItemType } from '../../../model/objectStore.ts'
 import { useOEPrimitiveSelection } from '../../../lib/hooks/useOEPrimitiveSelection.ts'
-import { getGroupCenter } from '@/entities/primitiveGroup/lib/coordinateUtils'
+import { getGroupCenter, getGroupCenterWithTransform } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import type {
   SelectedObjectPrimitive,
   TransformMode
@@ -43,7 +43,7 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     // Handle group selection
     if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
       const groupUuid = selectedGroupUuids[0]
-      const center = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
+      const center = getGroupCenterWithTransform(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
       return new THREE.Vector3(center[0], center[1], center[2])
     }
 
@@ -116,8 +116,15 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
     // Для групп применяем временную трансформацию
     if (selectedItemType === 'group' && selectedGroupUuids.length === 1) {
       const groupUuid = selectedGroupUuids[0]
+      // Получаем базовый центр группы (без трансформации)
+      const baseCenter = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
+      // Вычисляем смещение gizmo относительно базового центра
+      const deltaX = gizmoObject.position.x - baseCenter[0]
+      const deltaY = gizmoObject.position.y - baseCenter[1]
+      const deltaZ = gizmoObject.position.z - baseCenter[2]
+      
       setTemporaryGroupTransform(groupUuid, {
-        position: [gizmoObject.position.x, gizmoObject.position.y, gizmoObject.position.z],
+        position: [deltaX, deltaY, deltaZ],
         rotation: [gizmoObject.rotation.x, gizmoObject.rotation.y, gizmoObject.rotation.z],
         scale: [gizmoObject.scale.x, gizmoObject.scale.y, gizmoObject.scale.z]
       })
@@ -239,9 +246,16 @@ export const PrimitiveTransformGizmo: React.FC<PrimitiveTransformGizmoProps & { 
         const gizmoObject = transformControlsRef.current.object
         const groupUuid = selectedGroupUuids[0]
 
+        // Получаем базовый центр группы (без трансформации)
+        const baseCenter = getGroupCenter(groupUuid, primitives, primitiveGroups, primitiveGroupAssignments)
+        // Вычисляем смещение gizmo относительно базового центра
+        const deltaX = gizmoObject.position.x - baseCenter[0]
+        const deltaY = gizmoObject.position.y - baseCenter[1]
+        const deltaZ = gizmoObject.position.z - baseCenter[2]
+        
         updateGroup(groupUuid, {
           transform: {
-            position: [gizmoObject.position.x, gizmoObject.position.y, gizmoObject.position.z],
+            position: [deltaX, deltaY, deltaZ],
             rotation: [gizmoObject.rotation.x, gizmoObject.rotation.y, gizmoObject.rotation.z ],
             scale: [gizmoObject.scale.x, gizmoObject.scale.y, gizmoObject.scale.z]
           }
