@@ -44,7 +44,7 @@ export interface TorusGeometry {
 // Общие свойства примитивов
 export interface PrimitiveCommon {
   /** Уникальный идентификатор примитива */
-  uuid?: string;
+  uuid: string;
   /** Название примитива */
   name?: string;
   

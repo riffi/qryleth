@@ -3,6 +3,7 @@
  * 
  * Barrel export всех доменных entities согласно FSD:
  * - Primitive - базовые 3D примитивы
+ * - PrimitiveGroup - группы примитивов
  * - Object - 3D объекты 
  * - Layer - слои сцены
  * - ObjectInstance - экземпляры объектов
@@ -13,6 +14,7 @@
 
 // Domain entities
 export * from './primitive'
+export * from './primitiveGroup'
 export * from './object'
 export * from './layer'
 export * from './objectInstance'

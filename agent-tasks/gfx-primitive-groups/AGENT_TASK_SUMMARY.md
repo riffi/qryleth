@@ -68,7 +68,7 @@ export interface GfxPrimitive {
   visible?: boolean;
 }
 
-export interface PrimitiveGroup {
+export interface GfxPrimitiveGroup {
   uuid: string;
   name: string;
   visible?: boolean;
@@ -83,7 +83,7 @@ export interface GfxObject {
   name: string;
   primitives: GfxPrimitive[];
   // Новые опциональные поля
-  primitiveGroups?: Record<string, PrimitiveGroup>; // 🔄 uuid -> PrimitiveGroup
+  primitiveGroups?: Record<string, GfxPrimitiveGroup>; // 🔄 uuid -> GfxPrimitiveGroup
   // Привязка примитивов к группам по UUID
   primitiveGroupAssignments?: Record<string, string>; // 🔄 primitiveUuid -> groupUuid
   materials?: GfxMaterial[];
@@ -115,14 +115,15 @@ export interface GfxObject {
 ## План выполнения задачи по фазам
 
 ### Фаза 1: Расширение типов и моделей данных
-**Статус**: Не выполнено
+**Статус**: ✅ Выполнено
+**Отчет**: [phase_1_summary.md](phases/phase_1_summary.md)
 
 **Описание**: Расширить интерфейсы для поддержки групп примитивов с обязательными UUID и эффективным хранением.
 
 **Детальные действия**:
 - **Обновить GfxPrimitive**: Сделать поле `uuid` обязательным
 - **Создать PrimitiveGroup**: Интерфейс с полями uuid, name, visible, parentGroupUuid, sourceObjectUuid
-- **Обновить GfxObject**: Добавить `primitiveGroups` как Record<string, PrimitiveGroup> и `primitiveGroupAssignments` как Record<string, string>
+- **Обновить GfxObject**: Добавить `primitiveGroups` как Record<string, GfxPrimitiveGroup> и `primitiveGroupAssignments` как Record<string, string>
 - **Утилиты для групп**: Функции для работы с иерархией, поиска, создания дерева
 - **Утилиты для импорта**: Функции разрешения конфликтов UUID и имен
 - **Генерация UUID**: Централизованная логика создания UUID для примитивов и групп
