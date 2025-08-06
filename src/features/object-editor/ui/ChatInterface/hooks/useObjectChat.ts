@@ -2,10 +2,10 @@
  * Хук для chat функциональности в ObjectEditor
  */
 
-import { useCallback, useMemo, useEffect, useState } from 'react'
+import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import { useChat } from '@/shared/entities/chat'
 import type { ChatConfig, ChatMessage } from '@/shared/entities/chat'
-import { langChainChatService } from '@/shared/lib/langchain'
+import { createLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { createObjectEditorTools } from '@/features/object-editor/lib/ai/tools'
 import { useObjectContextPrompt } from './useObjectContextPrompt'
 import { nanoid } from 'nanoid'
@@ -16,7 +16,8 @@ interface UseObjectChatOptions {
 
 export const useObjectChat = (options: UseObjectChatOptions = {}) => {
   const { mode = 'page' } = options
-  const { systemPrompt, objectInfo, contextualHints } = useObjectContextPrompt()
+  const { systemPrompt, objectInfo } = useObjectContextPrompt()
+  const objectChatServiceRef = useRef<LangChainChatService | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   // Конфигурация чата для object-editor
@@ -51,7 +52,10 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
 
     try {
       // Используем LangChain агент для обработки сообщений
-      const langChainResponse = await langChainChatService.chat([...baseChatState.messages, userMessage])
+      if (!objectChatServiceRef.current) {
+        throw new Error('Object chat service not initialized')
+      }
+      const langChainResponse = await objectChatServiceRef.current.chat([...baseChatState.messages, userMessage])
 
       const assistantMessage: ChatMessage = {
         id: nanoid(),
@@ -75,37 +79,18 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
     }
   }, [baseChatState, isLoading])
 
-  // Добавление системного сообщения с контекстом
-  const addSystemMessage = useCallback((content: string) => {
-    const systemMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'system',
-      content,
-      timestamp: new Date()
-    }
-    baseChatState.addMessage(systemMessage)
-  }, [baseChatState])
-
-  // Информационное сообщение с подсказками
-  const showContextualHints = useCallback(() => {
-    if (contextualHints.length > 0) {
-      const hintsMessage = `💡 Подсказки:\n${contextualHints.map(hint => `• ${hint}`).join('\n')}`
-      addSystemMessage(hintsMessage)
-    }
-  }, [contextualHints, addSystemMessage])
 
   // Инициализация LangChain сервиса при монтировании
   useEffect(() => {
     const initializeService = async () => {
       try {
-        await langChainChatService.initialize()
-
-        // Очищаем существующие tools и регистрируем наши
-        langChainChatService.clearTools()
+        // Создаем отдельный экземпляр для object editor
+        objectChatServiceRef.current = createLangChainChatService(systemPrompt)
+        await objectChatServiceRef.current.initialize()
 
         const objectEditorTools = createObjectEditorTools()
         objectEditorTools.forEach(tool => {
-          langChainChatService.registerDynamicTool(tool)
+          objectChatServiceRef.current!.registerDynamicTool(tool)
         })
 
         console.log('ObjectEditor LangChain сервис инициализирован с', objectEditorTools.length, 'инструментами')
@@ -115,7 +100,7 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
         const errorMessage: ChatMessage = {
           id: nanoid(),
           role: 'assistant',
-          content: `❌ Ошибка инициализации чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+          content: `❌ Ошибка инициализации ObjectEditor чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
           timestamp: new Date()
         }
         baseChatState.addMessage(errorMessage)
@@ -123,16 +108,13 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
     }
 
     initializeService()
-  }, [baseChatState.addMessage])
+  }, [baseChatState.addMessage, systemPrompt])
 
   return {
     ...baseChatState,
     isLoading,
     sendMessage, // Переопределенный sendMessage
     objectInfo,
-    contextualHints,
-    addSystemMessage,
-    showContextualHints,
     isCompactMode: mode === 'modal'
   }
 }

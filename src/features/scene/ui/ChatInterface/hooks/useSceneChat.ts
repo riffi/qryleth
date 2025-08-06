@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChat } from '@/shared/entities/chat'
 import type { ChatMessage, ChatConfig } from '@/shared/entities/chat'
-import { langChainChatService, LangChainChatService } from '@/shared/lib/langchain'
+import { createLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 import { createAddNewObjectTool } from '@/features/scene/lib/ai/tools'
@@ -26,17 +26,23 @@ interface UseSceneChatReturn {
 
 export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatReturn => {
   const { onObjectAdded, debugMode = true } = options
+  const sceneChatServiceRef = useRef<LangChainChatService | null>(null)
   const debugChatServiceRef = useRef<LangChainChatService | null>(null)
   const connectionRef = useRef<OpenAISettingsConnection | null>(null)
   const mainServiceInitializedRef = useRef(false)
   const debugServiceInitializedRef = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Системный промпт для scene editor
+  const SCENE_SYSTEM_PROMPT = 'You are a helpful assistant that can use tools to interact with a 3D scene. ' +
+    'When user wants to add new object to scene, first search existing objects in a library, if not found - create it. ' +
+    'When creating primitives always generate meaningful Russian names.'
+
   // Конфигурация чата для scene
   const chatConfig: ChatConfig = {
     feature: 'scene',
     tools: [], // Tools регистрируются через LangChain сервис
-    systemPrompt: 'You are a helpful assistant that can use tools to interact with a 3D scene.',
+    systemPrompt: SCENE_SYSTEM_PROMPT,
     debugMode
   }
 
@@ -64,7 +70,10 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
 
     try {
       // Используем LangChain агент для обработки сообщений
-      const langChainResponse = await langChainChatService.chat([...baseChat.messages, userMessage])
+      if (!sceneChatServiceRef.current) {
+        throw new Error('Scene chat service not initialized')
+      }
+      const langChainResponse = await sceneChatServiceRef.current.chat([...baseChat.messages, userMessage])
 
       const assistantMessage: ChatMessage = {
         id: nanoid(),
@@ -115,7 +124,9 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
   // Синхронизация актуального callback'а инструментов с сервисом LangChain
   useEffect(() => {
     handleToolCallbackRef.current = handleToolCallback
-    langChainChatService.setToolCallback(handleToolCallback)
+    if (sceneChatServiceRef.current) {
+      sceneChatServiceRef.current.setToolCallback(handleToolCallback)
+    }
   }, [handleToolCallback])
 
   // Обновление модели: сохраняет новую модель и переинициализирует сервис
@@ -128,10 +139,12 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
 
     // Переинициализируем LangChain сервис с новой моделью
     try {
-      await langChainChatService.updateConnection()
-      console.log('LangChain сервис обновлен с новой моделью:', model)
+      if (sceneChatServiceRef.current) {
+        await sceneChatServiceRef.current.updateConnection()
+        console.log('Scene LangChain сервис обновлен с новой моделью:', model)
+      }
     } catch (error) {
-      console.error('Ошибка обновления LangChain сервиса:', error)
+      console.error('Ошибка обновления Scene LangChain сервиса:', error)
       // Добавляем сообщение об ошибке смены модели
       const errorMessage: ChatMessage = {
         id: nanoid(),
@@ -153,16 +166,18 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
       connectionRef.current = activeConnection
 
       try {
-        await langChainChatService.initialize()
-        langChainChatService.setToolCallback(handleToolCallbackRef.current)
-        console.log('LangChain сервис инициализирован с инструментами:', langChainChatService.getRegisteredTools())
+        // Создаем отдельный экземпляр для scene editor
+        sceneChatServiceRef.current = createLangChainChatService(SCENE_SYSTEM_PROMPT)
+        await sceneChatServiceRef.current.initialize()
+        sceneChatServiceRef.current.setToolCallback(handleToolCallbackRef.current)
+        console.log('Scene LangChain сервис инициализирован с инструментами:', sceneChatServiceRef.current.getRegisteredTools())
       } catch (error) {
-        console.error('Ошибка инициализации LangChain сервиса:', error)
+        console.error('Ошибка инициализации Scene LangChain сервиса:', error)
 
         const errorMessage: ChatMessage = {
           id: nanoid(),
           role: 'assistant',
-          content: `❌ Ошибка инициализации чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+          content: `❌ Ошибка инициализации Scene чата: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
           timestamp: new Date()
         }
         baseChat.addMessage(errorMessage)

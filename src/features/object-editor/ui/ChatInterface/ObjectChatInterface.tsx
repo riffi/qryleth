@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Stack, Paper, Text, Group, Badge, ActionIcon } from '@mantine/core'
-import { IconTrash, IconBulb, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react'
+import { IconTrash, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react'
 import { ChatContainer, ChatInput, useChatScroll } from '@/shared/entities/chat'
 import { useObjectChat } from './hooks'
 import { ObjectToolCallbacks } from './components/ObjectToolCallbacks'
@@ -36,10 +36,7 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
     isLoading,
     sendMessage,
     clearMessages,
-    objectInfo,
-    contextualHints,
-    showContextualHints,
-    addSystemMessage
+    objectInfo
   } = useObjectChat({
     mode,
     onPrimitiveAdded,
@@ -49,17 +46,6 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
 
   const { scrollAreaRef } = useChatScroll(messages)
 
-  useEffect(() => {
-    if (isVisible && messages.length === 0) {
-      const welcomeMessage = `Ты ассистент по редактированию 3d объекта. Учти, что нужно использовать Y-up систему координат, например, поднять элемент вверх на один метр: position: [0,1,0]`
-
-      addSystemMessage(welcomeMessage)
-
-      if (contextualHints.length > 0) {
-        setTimeout(() => showContextualHints(), 1000)
-      }
-    }
-  }, [isVisible, messages.length, objectInfo, addSystemMessage, showContextualHints, contextualHints.length])
 
   /**
    * Отправляет введенное пользователем сообщение и очищает поле ввода.
@@ -85,16 +71,6 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
             )}
           </Group>
           <Group gap="xs">
-            {contextualHints.length > 0 && (
-              <ActionIcon
-                variant="light"
-                size="sm"
-                onClick={showContextualHints}
-                aria-label="Показать подсказки"
-              >
-                <IconBulb size={16} />
-              </ActionIcon>
-            )}
             <ActionIcon
               variant="light"
               size="sm"

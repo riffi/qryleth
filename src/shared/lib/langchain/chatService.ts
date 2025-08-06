@@ -232,6 +232,8 @@ export class LangChainChatService {
 }
 
 /**
- * Global instance of the chat service
+ * Factory function to create new chat service instances
  */
-export const langChainChatService = new LangChainChatService()
+export const createLangChainChatService = (systemPrompt?: string) => {
+  return new LangChainChatService(systemPrompt)
+}
