@@ -40,7 +40,6 @@ import {
   IconChevronRight,
   IconCode
 } from '@tabler/icons-react'
-import { OpenAISettingsModal } from '../../../widgets/OpenAISettingsModal'
 import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
 
@@ -95,7 +94,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   // Initialize scene history for undo/redo and get controls
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 
-  const [settingsOpened, setSettingsOpened] = useState(false)
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
@@ -269,16 +267,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
-            <Tooltip label="Настройки">
-              <ActionIcon
-                variant="subtle"
-                size="sm"
-                onClick={() => setSettingsOpened(true)}
-                c={"gray.4"}
-              >
-                <IconSettings size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
 
             <Tooltip label="Панель скриптинга">
               <ActionIcon
@@ -483,7 +471,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         )}
       </Container>
       </MainLayout>
-      <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
       <Modal
         opened={editorOpened}
         onClose={() => setEditorOpened(false)}
