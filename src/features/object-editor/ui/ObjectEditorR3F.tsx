@@ -13,12 +13,6 @@ import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler
 import type { GfxObject } from '@/entities/object'
 
 interface ObjectEditorR3FProps {
-  onClose: () => void
-  /**
-   * Колбэк сохранения редактируемого объекта
-   * @param object итоговый объект с обновлёнными примитивами
-   */
-  onSave: (object: GfxObject) => void
   /** Данные редактируемого объекта */
   objectData?: GfxObject
   /** Внешнее управление состоянием панелей (из page header) */
@@ -33,8 +27,6 @@ interface ObjectEditorR3FProps {
  * Управление открытием/закрытием осуществляется родительским компонентом.
  */
 export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
-  onClose,
-  onSave,
   objectData,
   externalPanelState,
   modalMode = false
@@ -167,15 +159,13 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   )
 
   return (
-    <ObjectEditorLayout
-      onClose={onClose}
-      onSave={onSave}
-      objectData={objectData}
-      externalPanelState={externalPanelState}
-      hideHeader={modalMode}
-      chatComponent={chatComponent}
-    >
-      {sceneContent}
-    </ObjectEditorLayout>
-  )
-}
+      <ObjectEditorLayout
+        objectData={objectData}
+        externalPanelState={externalPanelState}
+        hideHeader={modalMode}
+        chatComponent={chatComponent}
+      >
+        {sceneContent}
+      </ObjectEditorLayout>
+    )
+  }

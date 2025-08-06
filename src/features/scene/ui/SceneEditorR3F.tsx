@@ -7,7 +7,7 @@ import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 import { ObjectEditorR3F, useObjectEditorToolRegistration, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
-import { IconCheck, IconPlanet, IconX } from '@tabler/icons-react'
+import { IconCheck, IconPlanet, IconX, IconDeviceFloppy } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -42,6 +42,7 @@ import {
 } from '@tabler/icons-react'
 import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
+import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -233,6 +234,16 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       color: 'green',
       icon: <IconCheck size="1rem" />
     })
+  }
+
+  /**
+   * Формирует объект из состояния редактора и закрывает модальное окно.
+   */
+  const handleEditorSaveClick = () => {
+    if (!editingObjectData) return
+    const updated = buildUpdatedObject(editingObjectData)
+    handleSaveObjectEdit(updated)
+    setEditorOpened(false)
   }
 
   const editingObjectData = React.useMemo(() => {
@@ -496,7 +507,12 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             <Text size="lg" fw={500}>
               {editingObjectData ? `Редактор объекта: ${editingObjectData.name}` : 'Редактор объекта'}
             </Text>
-            <Group>
+            <Group gap="xs">
+              <Tooltip label="Сохранить" withArrow>
+                <ActionIcon color="green" variant="filled" onClick={handleEditorSaveClick}>
+                  <IconDeviceFloppy size={16} />
+                </ActionIcon>
+              </Tooltip>
               <PanelToggleButtons
                 activeLeftPanel={globalPanelState.panelState.leftPanel}
                 activeRightPanel={globalPanelState.panelState.rightPanel}
@@ -507,13 +523,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Group>
         }
       >
-        <ObjectEditorR3F
-          onClose={() => setEditorOpened(false)}
-          objectData={editingObjectData}
-          onSave={handleSaveObjectEdit}
-          externalPanelState={globalPanelState}
-          modalMode={true}
-        />
+          <ObjectEditorR3F
+            objectData={editingObjectData}
+            externalPanelState={globalPanelState}
+            modalMode={true}
+          />
       </Modal>
       <SaveSceneModal
         opened={saveSceneModalOpened}

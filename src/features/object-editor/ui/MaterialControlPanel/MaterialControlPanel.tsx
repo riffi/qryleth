@@ -6,11 +6,8 @@ import {
   Text,
   TextInput,
   NumberInput,
-  ColorInput,
-  Button
+  ColorInput
 } from '@mantine/core'
-import { IconCheck, IconX } from '@tabler/icons-react'
-import { notifications } from '@mantine/notifications'
 import {
   useSelectedMaterial,
   useSelectedMaterialUuid,
@@ -18,22 +15,14 @@ import {
 } from '../../model/objectStore.ts'
 import type { GfxMaterial } from '@/entities/material'
 
-export interface MaterialControlPanelProps {
-  onClose: () => void
-  onSave: () => void
-}
-
 /**
  * Левая панель редактирования свойств материала объекта.
  * Позволяет изменить основные параметры материала и сохранить их.
  */
-export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
-  onClose,
-  onSave
-}) => {
+export const MaterialControlPanel: React.FC = () => {
   const selectedMaterial = useSelectedMaterial()
   const selectedUuid = useSelectedMaterialUuid()
-  const { updateMaterial, isMaterialNameUnique } = useObjectStore()
+  const { updateMaterial } = useObjectStore()
 
   // Локальное состояние полей формы
   const [name, setName] = useState('')
@@ -83,40 +72,6 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
     setEmissive(selectedMaterial.properties.emissive ?? '#000000')
     setEmissiveIntensity(selectedMaterial.properties.emissiveIntensity ?? 1)
   }, [selectedUuid, selectedMaterial])
-
-  /**
-   * Сохраняет изменения материала в хранилище объекта.
-   * Выполняет валидацию имени и выводит уведомление об ошибке.
-   */
-  const handleSave = () => {
-    if (!selectedMaterial) return
-    const trimmed = name.trim()
-    if (!trimmed) return
-
-    if (!isMaterialNameUnique(trimmed, selectedMaterial.uuid)) {
-      notifications.show({
-        title: 'Ошибка',
-        message: 'Материал с таким именем уже существует',
-        color: 'red'
-      })
-      return
-    }
-
-    updateMaterial(selectedMaterial.uuid, {
-      name: trimmed,
-      properties: {
-        ...selectedMaterial.properties,
-        color,
-        opacity,
-        metalness,
-        roughness,
-        emissive,
-        emissiveIntensity
-      }
-    })
-
-    onSave()
-  }
 
   if (!selectedMaterial) {
     return (
@@ -229,25 +184,7 @@ export const MaterialControlPanel: React.FC<MaterialControlPanelProps> = ({
           />
         </Stack>
 
-        <Group gap="xs" mt="auto">
-          <Button
-            variant="light"
-            color="gray"
-            onClick={onClose}
-            leftSection={<IconX size={16} />}
-            style={{ flex: 1 }}
-          >
-            Отмена
-          </Button>
-          <Button
-            onClick={handleSave}
-            leftSection={<IconCheck size={16} />}
-            style={{ flex: 1 }}
-          >
-            Сохранить
-          </Button>
-        </Group>
-      </Stack>
-    </Paper>
-  )
-}
+        </Stack>
+      </Paper>
+    )
+  }

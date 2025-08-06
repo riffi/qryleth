@@ -4,13 +4,12 @@ import {
   Box,
   Stack,
   Group,
-  Button,
   Text,
   ActionIcon,
   NumberInput,
   Select
 } from '@mantine/core'
-import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
+import { IconRefresh } from '@tabler/icons-react'
 import type { NumberFormatValues, SourceInfo } from 'react-number-format'
 import {
   useObjectStore,
@@ -20,11 +19,6 @@ import {
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
-
-export interface PrimitiveControlPanelProps {
-  onClose: () => void
-  onSave: () => void
-}
 
 /**
  * Перевод радиан в градусы для отображения значения пользователю.
@@ -44,7 +38,10 @@ const degToRad = (deg: number): number => (deg * Math.PI) / 180
  * Боковая панель управления выбранными примитивами объекта.
  * Содержит список примитивов, выбор режима трансформации и редакторы координат.
  */
-export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ onClose, onSave }) => {
+/**
+ * Компонент боковой панели управления примитивами без внутренних кнопок сохранения.
+ */
+export const PrimitiveControlPanel: React.FC = () => {
   const primitives = useObjectPrimitives()
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
   const objectMaterials = useObjectMaterials()
@@ -443,20 +440,12 @@ export const PrimitiveControlPanel: React.FC<PrimitiveControlPanelProps> = ({ on
             </Box>
           </Stack>
         )}
-        {selectedPrimitiveIds.length > 1 && (
-          <Text size="sm" c="dimmed" mt="md">
-            Выбрано {selectedPrimitiveIds.length} примитивов
-          </Text>
-        )}
-        <Group gap="xs" mt="auto">
-          <Button variant="light" color="gray" onClick={onClose} leftSection={<IconX size={16} />} style={{ flex: 1 }}>
-            Отмена
-          </Button>
-          <Button onClick={onSave} leftSection={<IconCheck size={16} />} style={{ flex: 1 }}>
-            Сохранить
-          </Button>
-        </Group>
-      </Stack>
-    </Paper>
-  )
-}
+          {selectedPrimitiveIds.length > 1 && (
+            <Text size="sm" c="dimmed" mt="md">
+              Выбрано {selectedPrimitiveIds.length} примитивов
+            </Text>
+          )}
+        </Stack>
+      </Paper>
+    )
+  }

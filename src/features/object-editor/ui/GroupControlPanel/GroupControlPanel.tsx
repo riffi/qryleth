@@ -4,12 +4,11 @@ import {
   Box,
   Stack,
   Group,
-  Button,
   Text,
   ActionIcon,
   NumberInput
 } from '@mantine/core'
-import { IconX, IconCheck, IconRefresh } from '@tabler/icons-react'
+import { IconRefresh } from '@tabler/icons-react'
 import type { NumberFormatValues, SourceInfo } from 'react-number-format'
 import {
   useObjectStore,
@@ -20,11 +19,6 @@ import {
 } from '../../model/objectStore.ts'
 import { getGroupCenter } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import type { Vector3 } from '@/shared/types'
-
-export interface GroupControlPanelProps {
-  onClose: () => void
-  onSave: () => void
-}
 
 /**
  * Перевод радиан в градусы для отображения значения пользователю.
@@ -44,7 +38,10 @@ const degToRad = (deg: number): number => (deg * Math.PI) / 180
  * Боковая панель управления выбранными группами примитивов.
  * Содержит редакторы координат для трансформации групп.
  */
-export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, onSave }) => {
+/**
+ * Панель управления группами примитивов без кнопок отмены и сохранения.
+ */
+export const GroupControlPanel: React.FC = () => {
   const selectedGroupUuids = useSelectedGroupUuids()
   const primitives = useObjectPrimitives()
   const primitiveGroups = useObjectPrimitiveGroups()
@@ -308,21 +305,12 @@ export const GroupControlPanel: React.FC<GroupControlPanelProps> = ({ onClose, o
           />
         </Stack>
 
-        {selectedGroupUuids.length > 1 && (
-          <Text size="sm" c="dimmed" mt="md">
-            Выбрано групп: {selectedGroupUuids.length}
-          </Text>
-        )}
-
-        <Group gap="xs" mt="auto">
-          <Button variant="light" color="gray" onClick={onClose} leftSection={<IconX size={16} />} style={{ flex: 1 }}>
-            Отмена
-          </Button>
-          <Button onClick={onSave} leftSection={<IconCheck size={16} />} style={{ flex: 1 }}>
-            Сохранить
-          </Button>
-        </Group>
-      </Stack>
-    </Paper>
-  )
-}
+          {selectedGroupUuids.length > 1 && (
+            <Text size="sm" c="dimmed" mt="md">
+              Выбрано групп: {selectedGroupUuids.length}
+            </Text>
+          )}
+        </Stack>
+      </Paper>
+    )
+  }

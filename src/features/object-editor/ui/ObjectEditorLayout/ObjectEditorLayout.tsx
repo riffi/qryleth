@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Box, Group, Badge, Title, Container, Paper } from '@mantine/core'
+import { Box, Container, Paper } from '@mantine/core'
 import { ObjectScene3D } from '../renderer/ObjectScene3D'
 import { PrimitiveControlPanel } from '../PrimitiveControlPanel/PrimitiveControlPanel'
 import { GroupControlPanel } from '../GroupControlPanel/GroupControlPanel'
@@ -7,8 +7,6 @@ import { MaterialControlPanel } from '../MaterialControlPanel/MaterialControlPan
 import { ObjectManagementPanel } from '../ObjectManagementPanel/ObjectManagementPanel'
 import { usePanelState } from '../PanelToggleButtons/hooks/usePanelState'
 import {
-  useObjectStore,
-  useObjectRenderMode,
   useSelectedMaterialUuid,
   useSelectedGroupUuids,
   useSelectedItemType
@@ -16,8 +14,6 @@ import {
 import type { GfxObject } from '@/entities/object'
 
 interface ObjectEditorLayoutProps {
-  onClose: () => void
-  onSave: (object: GfxObject) => void
   objectData?: GfxObject
   children?: React.ReactNode
   /** Дополнительные элементы управления в header */
@@ -39,8 +35,6 @@ interface ObjectEditorLayoutProps {
  * Реализует логику взаимоисключающих левых панелей (чат vs свойства).
  */
 export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
-  onClose,
-  onSave,
   objectData,
   children,
   headerControls,
@@ -48,14 +42,13 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   externalPanelState,
   hideHeader = false
 }) => {
-  const renderMode = useObjectRenderMode()
   const selectedMaterialUuid = useSelectedMaterialUuid()
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
   const internalPanelState = usePanelState()
 
   // Используем внешнее состояние панелей если передано, иначе внутреннее
-  const { panelState, togglePanel, showPanel } = externalPanelState || internalPanelState
+  const { panelState, showPanel } = externalPanelState || internalPanelState
 
   // Автоматическое переключение на свойства при выборе примитива/материала/группы
   useEffect(() => {
@@ -63,25 +56,6 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       showPanel('properties')
     }
   }, [selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, showPanel])
-
-  /**
-   * Сохраняет изменения и передаёт их во внешний обработчик.
-   */
-  const handleSave = () => {
-    if (!objectData) return
-    const state = useObjectStore.getState()
-    const updatedObject: GfxObject = {
-      ...objectData,
-      primitives: state.primitives.map(p => ({ ...p })),
-      boundingBox: state.boundingBox,
-      materials: state.materials,
-      primitiveGroups: state.primitiveGroups,
-      primitiveGroupAssignments: state.primitiveGroupAssignments,
-    }
-
-    onSave(updatedObject)
-    onClose()
-  }
 
   const renderLeftPanel = () => {
     if (!panelState.leftPanel) return null
@@ -106,11 +80,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           style={{ width: 400, height: '100%', flexShrink: 0 }}
         >
           {selectedMaterialUuid ? (
-            <MaterialControlPanel onClose={onClose} onSave={handleSave} />
+            <MaterialControlPanel />
           ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
-            <GroupControlPanel onClose={onClose} onSave={handleSave} />
+            <GroupControlPanel />
           ) : (
-            <PrimitiveControlPanel onClose={onClose} onSave={handleSave} />
+            <PrimitiveControlPanel />
           )}
         </Paper>
       )

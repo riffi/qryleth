@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { ObjectEditorR3F, PanelToggleButtons } from '@/features/object-editor'
-import {Box, Title} from '@mantine/core'
+import { Title, Group, ActionIcon, Tooltip } from '@mantine/core'
+import { IconDeviceFloppy } from '@tabler/icons-react'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import type { GfxObject } from '@/entities/object'
 import { useGlobalPanelState } from '@/features/object-editor/lib/hooks/useGlobalPanelState'
+import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 
 const ObjectEditorPage: React.FC = () => {
   const { id } = useParams()
@@ -26,11 +28,6 @@ const ObjectEditorPage: React.FC = () => {
   }, [id])
 
   /**
-   * Закрывает страницу редактора и возвращает пользователя в библиотеку.
-   */
-  const handleClose = () => navigate('/')
-
-  /**
    * Сохраняет изменения текущего объекта в базе данных.
    * Используем UUID записи библиотеки, иначе объект не обновится.
    */
@@ -48,18 +45,34 @@ const ObjectEditorPage: React.FC = () => {
   }
 
 
+  /**
+   * Формирует объект из состояния редактора и сохраняет его.
+   */
+  const handleSaveClick = () => {
+    if (!objectRecord?.objectData) return
+    const updated = buildUpdatedObject(objectRecord.objectData)
+    handleSave(updated)
+  }
+
   const headerRightSection = (
-      <>
-        <Title order={4} mr={"3rem"}>
-          {objectRecord?.objectData ? `Редактор объекта: ${objectRecord?.objectData.name}` : 'Новый объект'}
-        </Title>
+    <>
+      <Title order={4} mr="3rem">
+        {objectRecord?.objectData ? `Редактор объекта: ${objectRecord?.objectData.name}` : 'Новый объект'}
+      </Title>
+      <Group gap="xs">
+        <Tooltip label="Сохранить" withArrow>
+          <ActionIcon color="green" variant="filled" onClick={handleSaveClick}>
+            <IconDeviceFloppy size={16} />
+          </ActionIcon>
+        </Tooltip>
         <PanelToggleButtons
-            activeLeftPanel={globalPanelState.panelState.leftPanel}
-            activeRightPanel={globalPanelState.panelState.rightPanel}
-            onToggle={globalPanelState.togglePanel}
-            size="md"
+          activeLeftPanel={globalPanelState.panelState.leftPanel}
+          activeRightPanel={globalPanelState.panelState.rightPanel}
+          onToggle={globalPanelState.togglePanel}
+          size="md"
         />
-      </>
+      </Group>
+    </>
   )
 
   if (!isReady) {
@@ -73,8 +86,6 @@ const ObjectEditorPage: React.FC = () => {
   return (
     <MainLayout rightSection={headerRightSection}>
       <ObjectEditorR3F
-        onClose={handleClose}
-        onSave={handleSave}
         objectData={objectRecord?.objectData}
         externalPanelState={globalPanelState}
       />
