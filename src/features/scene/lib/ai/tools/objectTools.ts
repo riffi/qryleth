@@ -105,12 +105,30 @@ const ObjectMaterialSchema = z.object({
     .describe('Свойства материала')
 })
 
+// Схема для группы примитивов
+const PrimitiveGroupSchema = z.object({
+  uuid: z.string().describe('UUID группы'),
+  name: z.string().describe('Название группы'),
+  visible: z.boolean().optional().describe('Видимость группы'),
+  parentGroupUuid: z.string().optional().describe('UUID родительской группы для иерархии'),
+  sourceObjectUuid: z.string().optional().describe('UUID исходного объекта при импорте'),
+  transform: z.object({
+    position: z.array(z.number()).length(3).optional(),
+    rotation: z.array(z.number()).length(3).optional(),
+    scale: z.array(z.number()).length(3).optional()
+  }).optional().describe('Трансформация группы')
+})
+
 // Схема валидации для объекта
 const ObjectSchema = z.object({
   name: z.string().describe("Имя объекта на русском"),
   primitives: z.array(PrimitiveSchema).describe("Массив примитивов объекта. КАЖДЫЙ примитив ОБЯЗАТЕЛЬНО должен содержать objectMaterialUuid или globalMaterialUuid"),
   // Материалы объекта - используются примитивами через objectMaterialUuid
   materials: z.array(ObjectMaterialSchema).describe("ОБЯЗАТЕЛЬНЫЙ массив материалов объекта! Создай минимум один материал с uuid и укажи этот uuid в objectMaterialUuid у примитивов. Без материалов объект будет невидимым!"),
+  // Группы примитивов (опционально)
+  primitiveGroups: z.record(z.string(), PrimitiveGroupSchema).optional().describe("Опциональные группы примитивов для организации иерархии. Ключ - UUID группы"),
+  // Привязки примитивов к группам (опционально)
+  primitiveGroupAssignments: z.record(z.string(), z.string()).optional().describe("Привязка примитивов к группам. Ключ - UUID примитива, значение - UUID группы"),
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
   scale: z.array(z.number()).length(3).optional()
@@ -175,11 +193,58 @@ const ObjectSchema = z.object({
  *   }]
  * })
  *
+ * @example
+ * // Пример с группировкой примитивов в иерархию
+ * await add_new_object({
+ *   name: "Дом с группами",
+ *   materials: [{
+ *     uuid: "brick-material",
+ *     name: "Кирпич",
+ *     properties: { color: "#8B4513", roughness: 0.8 }
+ *   }, {
+ *     uuid: "roof-material", 
+ *     name: "Крыша",
+ *     properties: { color: "#654321", roughness: 0.9 }
+ *   }],
+ *   primitives: [{
+ *     type: "box",
+ *     geometry: { width: 4, height: 3, depth: 4 },
+ *     objectMaterialUuid: "brick-material"
+ *   }, {
+ *     type: "pyramid",
+ *     geometry: { baseSize: 4.5, height: 2 },
+ *     objectMaterialUuid: "roof-material",
+ *     transform: { position: [0, 2.5, 0] }
+ *   }],
+ *   primitiveGroups: {
+ *     "foundation-group": {
+ *       uuid: "foundation-group",
+ *       name: "Фундамент",
+ *       visible: true
+ *     },
+ *     "walls-group": {
+ *       uuid: "walls-group", 
+ *       name: "Стены",
+ *       visible: true,
+ *       parentGroupUuid: "foundation-group"
+ *     },
+ *     "roof-group": {
+ *       uuid: "roof-group",
+ *       name: "Крыша", 
+ *       visible: true
+ *     }
+ *   },
+ *   primitiveGroupAssignments: {
+ *     // UUID примитива-коробки -> группа стен
+ *     // UUID примитива-пирамиды -> группа крыши
+ *   }
+ * })
+ *
  */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! ВАЖНО: примитивы имеют изначальную ориентацию - конус, цилиндр, пирамида смотрят вверх по оси Y, плоскость лежит горизонтально. Используй поле rotation для изменения ориентации при необходимости.',
+    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! ВАЖНО: примитивы имеют изначальную ориентацию - конус, цилиндр, пирамида смотрят вверх по оси Y, плоскость лежит горизонтально. Используй поле rotation для изменения ориентации при необходимости. ПОДДЕРЖИВАЕТ ГРУППИРОВКУ: можешь создавать иерархические группы примитивов для лучшей организации сложных объектов.',
     schema: ObjectSchema,
     verboseParsingErrors: true,
 
@@ -238,6 +303,8 @@ export const createAddNewObjectTool = () => {
           name: validatedInput.name,
           primitives,
           ...(materials && { materials }),
+          ...(validatedInput.primitiveGroups && { primitiveGroups: validatedInput.primitiveGroups }),
+          ...(validatedInput.primitiveGroupAssignments && { primitiveGroupAssignments: validatedInput.primitiveGroupAssignments }),
           ...(validatedInput.position && {
             position: validatedInput.position as [number, number, number]
           }),
