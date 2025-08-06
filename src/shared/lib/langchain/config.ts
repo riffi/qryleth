@@ -53,5 +53,5 @@ export function createChatModel(config: LangChainConfig): ChatOpenAI {
  */
 export const DEFAULT_LANGCHAIN_CONFIG = {
   temperature: 0.7,
-  maxTokens: 4000,
+  maxTokens: 10000,
 }

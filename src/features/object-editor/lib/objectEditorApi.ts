@@ -19,9 +19,6 @@ interface PrimitiveWithMaterialConfig extends Omit<GfxPrimitive, 'objectMaterial
     type: 'object'
     objectMaterialUuid: string
   } | {
-    type: 'createNew'
-    createMaterial: CreateGfxMaterial
-  } | {
     type: 'localRef'
     localId: string
   }
@@ -216,9 +213,6 @@ export class ObjectEditorApi {
       })
     }
 
-    // Кеш для отслеживания уже созданных материалов в рамках текущего вызова
-    const materialCache = new Map<string, string>() // ключ: JSON материала, значение: UUID
-
     const normalized = primitives.map((p, index) => {
       const primUuid = uuidv4()
       const basePrimitive = {
@@ -270,36 +264,9 @@ export class ObjectEditorApi {
           ...basePrimitive,
           objectMaterialUuid: materialUuid
         }
-      } else { // createNew
-        const materialKey = JSON.stringify(p.material.createMaterial)
-        
-        // Проверяем, не создавали ли мы уже такой же материал в этом вызове
-        let materialUuid = materialCache.get(materialKey)
-        
-        if (!materialUuid) {
-          // Проверяем, нет ли уже такого материала среди существующих
-          const existingMaterial = store.materials.find(mat => 
-            this.areMaterialsEqual(mat, p.material.createMaterial)
-          )
-          
-          if (existingMaterial) {
-            // Используем существующий материал
-            materialUuid = existingMaterial.uuid
-          } else {
-            // Создаем новый материал
-            materialUuid = uuidv4()
-            store.addMaterial(p.material.createMaterial, materialUuid)
-            materialsCreated++
-          }
-          
-          // Кешируем результат
-          materialCache.set(materialKey, materialUuid)
-        }
-        
-        return {
-          ...basePrimitive,
-          objectMaterialUuid: materialUuid
-        }
+      } else {
+        // Неизвестный тип материала
+        throw new Error(`Неподдерживаемый тип материала: ${(p.material as any).type}`)
       }
     })
 

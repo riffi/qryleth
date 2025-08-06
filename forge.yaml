@@ -1,4 +1,4 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/antinomyhq/forge/refs/heads/main/forge.schema.json
 variables:
   operating_agent: forge
-model: deepseek/deepseek-r1-0528-qwen3-8b
+model: google/gemma-3n-e4b

@@ -11,7 +11,6 @@ import {
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler/icons-react'
 import type { GfxObject } from '@/entities/object'
-import { useObjectEditorToolRegistration } from '@/features/object-editor'
 
 interface ObjectEditorR3FProps {
   onClose: () => void
@@ -40,8 +39,6 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   externalPanelState,
   modalMode = false
 }) => {
-  // Регистрируем инструменты редактора объектов при монтировании
-  useObjectEditorToolRegistration()
   // Подключаем обработку горячих клавиш (Ctrl+A для выбора всех примитивов)
   useOEKeyboardShortcuts()
   const renderMode = useObjectRenderMode()
