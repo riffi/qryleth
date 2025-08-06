@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Stack, Paper, Text, Group, Badge, ActionIcon, ScrollArea } from '@mantine/core'
+import { Stack, Paper, Text, Group, Badge, ActionIcon } from '@mantine/core'
 import { IconTrash, IconBulb, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react'
-import { ChatMessageItem, ChatInput, useChatScroll } from '@/shared/entities/chat'
+import { ChatContainer, ChatInput, useChatScroll } from '@/shared/entities/chat'
 import { useObjectChat } from './hooks'
 import { ObjectToolCallbacks } from './components/ObjectToolCallbacks'
 import type { GfxPrimitive } from '@/entities/primitive'
@@ -117,39 +117,21 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
         </Group>
       </Paper>
 
-      <ScrollArea p="sm" ref={scrollAreaRef} style={{ flex: 1, minHeight: 0 }}>
-        <Stack gap="sm">
-          {messages.length === 0 && (
-            <Paper p="sm" withBorder style={{ backgroundColor: '#4e4e4e' }}>
-              <Text c="white" ta="center" style={{ fontSize: '0.8rem' }}>
-                Начните диалог с AI помощником...
-              </Text>
-            </Paper>
-          )}
-
-          {messages.map(message => (
-            <div key={message.id}>
-              <ChatMessageItem message={message} />
-              {message.toolCalls && message.toolCalls.length > 0 && (
-                <ObjectToolCallbacks toolCalls={message.toolCalls} />
-              )}
-            </div>
-          ))}
-
-          {isLoading && (
-            <Paper p="sm" withBorder style={{ backgroundColor: '#31484a' }}>
-              <Group gap="xs">
-                <Text size="sm" fw={500} c="green">
-                  Агент
-                </Text>
-              </Group>
-              <Text c="dimmed" fs="italic" style={{ fontSize: '0.8rem' }}>
-                Думаю...
-              </Text>
-            </Paper>
-          )}
-        </Stack>
-      </ScrollArea>
+      <ChatContainer
+        messages={messages}
+        isLoading={isLoading}
+        emptyStateMessage="Начните диалог с AI помощником..."
+        scrollAreaRef={scrollAreaRef}
+        style={{ flex: 1, minHeight: 0 }}
+        renderMessage={(message) => (
+          <div key={message.id}>
+            <div>{message.content}</div>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <ObjectToolCallbacks toolCalls={message.toolCalls} />
+            )}
+          </div>
+        )}
+      />
 
       <ChatInput
         value={inputValue}
