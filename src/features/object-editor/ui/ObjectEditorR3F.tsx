@@ -48,27 +48,30 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
   const gridVisible = useObjectGridVisible()
   const toggleGridVisibility = useObjectStore(s => s.toggleGridVisibility)
 
-  // Инициализация хранилища примитивов при получении данных объекта
+  // Инициализация хранилища примитивов при получении данных объекта или их отсутствии
   useEffect(() => {
-    if (!objectData) return
-
     const store = useObjectStore.getState()
     store.clearScene()
-    store.setPrimitives(
-      objectData.primitives.map(p => ({ ...p }))
-    )
-    store.setMaterials(objectData.materials ?? [])
     
-    // Устанавливаем группы примитивов и их назначения
-    if (objectData.primitiveGroups) {
-      store.setPrimitiveGroups(objectData.primitiveGroups)
+    if (objectData) {
+      store.setPrimitives(
+        objectData.primitives.map(p => ({ ...p }))
+      )
+      store.setMaterials(objectData.materials ?? [])
+      
+      // Устанавливаем группы примитивов и их назначения
+      if (objectData.primitiveGroups) {
+        store.setPrimitiveGroups(objectData.primitiveGroups)
+      }
+      
+      if (objectData.primitiveGroupAssignments) {
+        store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
+      }
+      
+      if (objectData.primitives.length > 0) {
+        store.selectPrimitive(0)
+      }
     }
-    
-    if (objectData.primitiveGroupAssignments) {
-      store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
-    }
-    
-    store.selectPrimitive(0)
   }, [objectData])
 
   // Создаем компонент 3D сцены с дополнительными контролами
