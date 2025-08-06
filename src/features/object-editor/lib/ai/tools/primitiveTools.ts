@@ -26,9 +26,9 @@ const CylinderGeometrySchema = z.object({
 })
 
 const ConeGeometrySchema = z.object({
-  radius: z.number().positive(),
-  height: z.number().positive(),
-  radialSegments: z.number().int().positive().optional()
+  radius: z.number().positive().describe('Радиус основания конуса'),
+  height: z.number().positive().describe('Высота конуса'),
+  radialSegments: z.number().int().positive().optional().describe('Количество сегментов по окружности (по умолчанию 8)')
 })
 
 const PyramidGeometrySchema = z.object({
@@ -121,7 +121,45 @@ const PrimitiveWithLocalRefSchema = z.discriminatedUnion('type', [
  */
 export const addPrimitivesTool = new DynamicStructuredTool({
   name: 'addPrimitives',
-  description: 'Добавить один или несколько примитивов к объекту с ОБЯЗАТЕЛЬНЫМ назначением материалов. Поддерживает создание материалов в рамках одного вызова и ссылки на них по localId. Материалы можно: 1) выбрать из глобальных (getGlobalMaterials), 2) выбрать из существующих материалов объекта по UUID или имени, 3) создать новые материалы в массиве materials и ссылаться на них через localId в примитивах.',
+  description: `Добавить примитивы к объекту с ОБЯЗАТЕЛЬНЫМ назначением материалов.
+
+СТРУКТУРА ДАННЫХ:
+{
+  "materials": [                    // Опционально: создать новые материалы
+    {
+      "name": "MaterialName",
+      "type": "dielectric",
+      "properties": { "color": "#FF0000", "roughness": 0.5 },
+      "localId": "matId1"           // ID для ссылки в примитивах
+    }
+  ],
+  "primitives": [
+    {
+      "type": "cone",               // cone, cylinder, box, sphere, etc
+      "geometry": { "radius": 1, "height": 4 },  // ДЛЯ КОНУСА: только radius и height
+      "material": {                 // ОБЯЗАТЕЛЬНО одна из структур:
+        "type": "localRef",         // Ссылка на материал из массива materials
+        "localId": "matId1"
+      },
+      "transform": {                // Опционально
+        "position": [0, 2, 0],
+        "rotation": [0, 0, 0]
+      }
+    }
+  ],
+  "groupName": "GroupName"          // Опционально: создать группу
+}
+
+ТИПЫ МАТЕРИАЛОВ:
+- {"type": "localRef", "localId": "id"} - ссылка на созданный в materials
+- {"type": "global", "globalMaterialUuid": "uuid"} - глобальный материал
+- {"type": "object", "objectMaterialUuid": "uuid"} - существующий материал объекта
+
+ГЕОМЕТРИИ:
+- cone: {radius, height} - ТОЛЬКО radius, НЕ radiusTop/Bottom
+- cylinder: {radiusTop, radiusBottom, height}
+- box: {width, height, depth}
+- sphere: {radius}`,
   schema: z.object({
     materials: z.array(
       CreateObjectMaterialSchema.extend({
