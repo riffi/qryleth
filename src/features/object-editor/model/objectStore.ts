@@ -65,7 +65,7 @@ interface ObjectStoreActions {
   /** Устанавливает список материалов объекта */
   setMaterials: (materials: GfxMaterial[]) => void
   /** Добавляет новый материал в объект */
-  addMaterial: (material: CreateGfxMaterial) => void
+  addMaterial: (material: CreateGfxMaterial, uuid?: string) => string
   /** Обновляет материал по UUID */
   updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) => void
   /** Удаляет материал по UUID */
@@ -295,16 +295,19 @@ export const useObjectStore = create<ObjectStore>()(
     setMaterials: (materials: GfxMaterial[]) =>
       set({ materials }),
 
-    addMaterial: (material: CreateGfxMaterial) =>
+    addMaterial: (material: CreateGfxMaterial, uuid?: string) => {
+      const materialUuid = uuid || generateUUID()
       set(state => {
         const newMaterial: GfxMaterial = {
           ...material,
-          uuid: generateUUID()
+          uuid: materialUuid
         }
         return {
           materials: [...state.materials, newMaterial]
         }
-      }),
+      })
+      return materialUuid
+    },
 
     updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) =>
       set(state => ({

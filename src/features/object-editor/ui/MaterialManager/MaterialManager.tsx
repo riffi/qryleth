@@ -88,7 +88,7 @@ export const MaterialManager: React.FC = () => {
    * Создаёт новый материал и добавляет его в хранилище объекта.
    */
   const handleAddMaterial = (material: CreateGfxMaterial) => {
-    addMaterial(material)
+    addMaterial(material) // Игнорируем возвращаемый UUID, так как он не используется в UI
   }
 
   return (

@@ -2,7 +2,7 @@
  * LangChain инструменты для ObjectEditor
  */
 
-import { addPrimitivesTool } from './primitiveTools'
+import { addPrimitivesTool, getGlobalMaterialsTool, getObjectMaterialsTool } from './primitiveTools'
 import { getObjectDataTool } from './objectTools'
 
 /**
@@ -11,7 +11,9 @@ import { getObjectDataTool } from './objectTools'
  */
 export const createObjectEditorTools = () => [
   getObjectDataTool,
-  addPrimitivesTool
+  addPrimitivesTool,
+  getGlobalMaterialsTool,
+  getObjectMaterialsTool
 ]
 
 
