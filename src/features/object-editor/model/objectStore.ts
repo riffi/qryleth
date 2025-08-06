@@ -125,7 +125,12 @@ const initialLighting: LightingSettings = {
   ambientIntensity: 0.6,
   directionalColor: '#ffffff',
   directionalIntensity: 1,
-  backgroundColor: '#222222'
+  backgroundColor: '#222222',
+  ambientOcclusion: {
+    enabled: true,
+    intensity: 1.0,
+    radius: 0.5
+  }
 }
 
 export const useObjectStore = create<ObjectStore>()(

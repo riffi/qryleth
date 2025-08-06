@@ -12,6 +12,7 @@ export * from './GroupControlPanel/GroupControlPanel.tsx'
 export * from './ObjectManagementPanel/ObjectManagementPanel.tsx'
 export * from './MaterialManager/MaterialManager.tsx'
 export * from './MaterialControlPanel/MaterialControlPanel.tsx'
+export * from './LightingControlPanel'
 
 // Panel management components
 export * from './PanelToggleButtons'

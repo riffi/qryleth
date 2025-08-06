@@ -80,7 +80,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         </Container>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" style={{backgroundColor: '#262b2c'}}>
         <Box style={{ flexGrow: 1 }}>
           <NavLink
             label="Библиотека"

@@ -1,5 +1,7 @@
 import React, { useRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
+import { EffectComposer, SSAO } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
 import { ObjectSceneLighting } from '@/features/object-editor/ui/renderer/lighting/ObjectSceneLighting.tsx'
 import { Environment } from '../../../../shared/r3f/environment/Environment.tsx'
 import { ObjectScenePrimitives } from '@/features/object-editor/ui/renderer/objects/ObjectScenePrimitives.tsx'
@@ -23,6 +25,17 @@ export const ObjectSceneContent: React.FC = () => {
       <Environment gridVisible={gridVisible} />
       <ObjectScenePrimitives />
       <PrimitiveTransformGizmo orbitControlsRef={orbitControlsRef} />
+
+      {lighting.ambientOcclusion?.enabled && (
+        <EffectComposer
+            enableNormalPass
+        >
+          <SSAO
+            intensity={lighting.ambientOcclusion.intensity || 1.0}
+            radius={lighting.ambientOcclusion.radius || 0.5}
+          />
+        </EffectComposer>
+      )}
     </>
   )
 }

@@ -4,4 +4,9 @@ export interface LightingSettings {
   directionalColor?: string;
   directionalIntensity?: number;
   backgroundColor?: string;
+  ambientOcclusion?: {
+    enabled?: boolean;
+    intensity?: number;
+    radius?: number;
+  };
 }
