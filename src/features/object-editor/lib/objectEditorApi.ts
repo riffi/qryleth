@@ -5,7 +5,7 @@
 import { useObjectStore } from '@/features/object-editor/model/objectStore'
 import type { GfxObject } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities/primitive'
-import type { CreateGfxMaterial } from '@/entities/material'
+import type { CreateGfxMaterial, GfxMaterial } from '@/entities/material'
 import { generatePrimitiveName } from '@/entities/primitive'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { v4 as uuidv4 } from 'uuid'
@@ -45,9 +45,21 @@ export class ObjectEditorApi {
   }
 
   /**
+   * Сравнивает два материала на идентичность содержимого (исключая uuid)
+   */
+  private static areMaterialsEqual(a: CreateGfxMaterial | GfxMaterial, b: CreateGfxMaterial): boolean {
+    // Если первый параметр содержит uuid, исключаем его из сравнения
+    const materialA = 'uuid' in a ? { ...a, uuid: undefined } : a
+    const cleanA = Object.fromEntries(Object.entries(materialA).filter(([key]) => key !== 'uuid'))
+    
+    return JSON.stringify(cleanA) === JSON.stringify(b)
+  }
+
+  /**
    * Добавляет примитивы в текущий объект с поддержкой различных типов материалов.
    * На вход подаются примитивы с обязательной конфигурацией материала.
    * Поддерживает: глобальные материалы, материалы объекта и создание новых материалов.
+   * Предотвращает создание дубликатов материалов при добавлении нескольких примитивов.
    *
    * @param primitives список примитивов для добавления
    * @param groupName опциональное имя группы для создания и привязки примитивов
@@ -60,6 +72,9 @@ export class ObjectEditorApi {
     parentGroupUuid?: string
   ): { addedCount: number; groupUuid?: string } {
     const store = useObjectStore.getState()
+    
+    // Кеш для отслеживания уже созданных материалов в рамках текущего вызова
+    const materialCache = new Map<string, string>() // ключ: JSON материала, значение: UUID
 
     const normalized = primitives.map((p, index) => {
       const primUuid = uuidv4()
@@ -90,15 +105,33 @@ export class ObjectEditorApi {
           objectMaterialUuid: p.material.objectMaterialUuid
         }
       } else { // createNew
-        // Генерируем UUID для нового материала заранее
-        const newMaterialUuid = uuidv4()
+        const materialKey = JSON.stringify(p.material.createMaterial)
         
-        // Создаем новый материал объекта с заданным UUID
-        store.addMaterial(p.material.createMaterial, newMaterialUuid)
+        // Проверяем, не создавали ли мы уже такой же материал в этом вызове
+        let materialUuid = materialCache.get(materialKey)
+        
+        if (!materialUuid) {
+          // Проверяем, нет ли уже такого материала среди существующих
+          const existingMaterial = store.materials.find(mat => 
+            this.areMaterialsEqual(mat, p.material.createMaterial)
+          )
+          
+          if (existingMaterial) {
+            // Используем существующий материал
+            materialUuid = existingMaterial.uuid
+          } else {
+            // Создаем новый материал
+            materialUuid = uuidv4()
+            store.addMaterial(p.material.createMaterial, materialUuid)
+          }
+          
+          // Кешируем результат
+          materialCache.set(materialKey, materialUuid)
+        }
         
         return {
           ...basePrimitive,
-          objectMaterialUuid: newMaterialUuid
+          objectMaterialUuid: materialUuid
         }
       }
     })
