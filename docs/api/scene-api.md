@@ -52,6 +52,8 @@ interface LayerInfo {
 ### `addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult`
 Добавляет новый объект и его экземпляр с трансформацией. Применяет коррекцию к данным и учитывает ландшафт при размещении.
 
+🆕 **Поддержка групп**: Метод автоматически обрабатывает объекты с иерархическими группами примитивов (`primitiveGroups` и `primitiveGroupAssignments`).
+
 ### `adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string }`
 Корректирует положение всех экземпляров объектов под ландшафт с перлин‑шумом и возвращает количество изменённых элементов.
 
@@ -76,3 +78,87 @@ interface SceneObjectInfo {
   instanceCount: number
 }
 ```
+
+---
+
+## AI Tools интеграция
+
+### Поддержка групп примитивов в AI Tools
+
+SceneAPI полностью поддерживает создание объектов с иерархическими группами через AI агенты:
+
+#### `add_new_object` tool
+AI инструмент для создания объектов теперь поддерживает:
+
+```typescript
+// Схема для создания объекта с группами
+{
+  name: string,
+  primitives: GfxPrimitive[],
+  
+  // 🆕 Новые поля для группировки
+  primitiveGroups?: Record<string, {
+    uuid: string,
+    name: string,
+    visible?: boolean,
+    parentGroupUuid?: string,
+    sourceObjectUuid?: string,
+    transform?: {
+      position?: Vector3,
+      rotation?: Vector3, 
+      scale?: Vector3
+    }
+  }>,
+  primitiveGroupAssignments?: Record<string, string> // primitiveUuid -> groupUuid
+}
+```
+
+#### Примеры использования AI tools
+
+**Создание объекта с иерархическими группами:**
+```json
+{
+  "name": "Дом с группировкой",
+  "primitives": [
+    { "uuid": "foundation-1", "type": "box", "geometry": {...} },
+    { "uuid": "wall-1", "type": "box", "geometry": {...} },
+    { "uuid": "roof-1", "type": "pyramid", "geometry": {...} }
+  ],
+  "primitiveGroups": {
+    "structure": {
+      "uuid": "structure", 
+      "name": "Конструкция"
+    },
+    "foundation": {
+      "uuid": "foundation",
+      "name": "Фундамент", 
+      "parentGroupUuid": "structure"
+    },
+    "walls": {
+      "uuid": "walls",
+      "name": "Стены",
+      "parentGroupUuid": "structure"
+    }
+  },
+  "primitiveGroupAssignments": {
+    "foundation-1": "foundation",
+    "wall-1": "walls",
+    "roof-1": "structure"
+  }
+}
+```
+
+**Возможности AI:**
+- 🏗️ Создание логически структурированных объектов
+- 📁 Автоматическая группировка связанных примитивов
+- 🌲 Создание иерархических структур (фундамент → стены → крыша)
+- 📦 Импорт объектов с сохранением групповой структуры
+
+### Связанные AI Tools
+
+- **ObjectEditor tools** (`src/features/object-editor/lib/ai/tools/`):
+  - `getObjectData` - возвращает полную информацию о группах
+  - `addPrimitives` - поддерживает создание примитивов с группами
+  
+- **SceneEditor tools** (`src/features/scene/lib/ai/tools/`):
+  - `add_new_object` - создание объектов с группами на сцене

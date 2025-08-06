@@ -40,24 +40,29 @@ src/
 ```typescript
 // Core domain types / Основные доменные типы
 import type { 
-  GfxPrimitive,    // 3D primitives (box, sphere, cylinder, etc.)
-  GfxObject,       // Composite 3D objects
-  GfxMaterial,     // Material definitions
-  GfxLayer,        // Scene layers
-  LightingSettings // Lighting configuration
+  GfxPrimitive,      // 3D primitives (box, sphere, cylinder, etc.)
+  GfxObject,         // Composite 3D objects
+  GfxPrimitiveGroup, // Primitive groups with hierarchy support
+  GfxMaterial,       // Material definitions
+  GfxLayer,          // Scene layers
+  LightingSettings   // Lighting configuration
 } from '@/entities'
 
 // Specific entity types / Специфичные entity типы
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxObject } from '@/entities/object'
+import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 import type { GfxMaterial } from '@/entities/material'
 import type { SceneObjectInstance } from '@/entities/scene/types'
 ```
 
 **Примеры использования**:
 ```typescript
-// Creating a primitive / Создание примитива
+// Creating a primitive / Создание примитива  
+import { generateUUID } from '@/shared/lib/uuid'
+
 const createBox = (): GfxPrimitive => ({
+  uuid: generateUUID(),  // 🆕 Обязательное поле
   type: 'box',
   geometry: {
     width: 2,
@@ -100,6 +105,27 @@ const getPrimitiveVolume = (primitive: GfxPrimitive): number => {
       return 0
   }
 }
+
+// Working with primitive groups / Работа с группами примитивов
+import { getPrimitivesInGroup, buildGroupTree } from '@/entities/primitiveGroup'
+
+const analyzeObjectStructure = (object: GfxObject) => {
+  console.log(`Object: ${object.name} with ${object.primitives.length} primitives`)
+  
+  if (object.primitiveGroups) {
+    const groupTree = buildGroupTree(object.primitiveGroups)
+    console.log('Group structure:', groupTree)
+    
+    Object.values(object.primitiveGroups).forEach(group => {
+      const groupPrimitives = getPrimitivesInGroup(
+        group.uuid, 
+        object.primitives,
+        object.primitiveGroupAssignments || {}
+      )
+      console.log(`Group "${group.name}": ${groupPrimitives.length} primitives`)
+    })
+  }
+}
 ```
 
 ### GfxPrimitive
@@ -117,7 +143,9 @@ type GfxPrimitive =
   | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon);
 
 interface PrimitiveCommon {
+  uuid: string;         // 🆕 ОБЯЗАТЕЛЬНОЕ поле для поддержки групп
   name?: string;
+  visible?: boolean;    // 🆕 Видимость примитива
   // Legacy material support (deprecated) / Устаревшая поддержка материалов
   material?: {
     color?: string;
@@ -174,6 +202,7 @@ interface GfxMaterial {
 ```typescript
 // Пример использования материалов в примитиве
 const primitiveWithMaterial: GfxPrimitive = {
+  uuid: '456e7890-e12b-34d5-a678-901234567890', // Обязательное поле
   type: 'box',
   geometry: { width: 1, height: 1, depth: 1 },
   objectMaterialUuid: '123e4567-e89b-12d3-a456-426614174000',
@@ -181,14 +210,116 @@ const primitiveWithMaterial: GfxPrimitive = {
 }
 ```
 
-### GfxObject с материалами
+### GfxPrimitiveGroup
+
+Система группировки примитивов с поддержкой иерархической структуры:
+
+```typescript
+interface GfxPrimitiveGroup {
+  uuid: string;                    // Уникальный идентификатор группы
+  name: string;                    // Отображаемое имя группы
+  visible?: boolean;               // Видимость группы (по умолчанию true)
+  parentGroupUuid?: string;        // UUID родительской группы для иерархии
+  sourceObjectUuid?: string;       // UUID исходного объекта при импорте
+  transform?: {                    // Трансформация группы
+    position?: Vector3;
+    rotation?: Vector3;
+    scale?: Vector3;
+  };
+}
+```
+
+#### Принципы работы с группами
+
+1. **Иерархическая структура**: Группы могут содержать подгруппы через `parentGroupUuid`
+2. **Привязка примитивов**: Примитивы привязываются к группам через `primitiveGroupAssignments`
+3. **Наследование видимости**: Дочерние группы наследуют видимость родительских
+4. **Импорт объектов**: При импорте сохраняется исходная структура групп
+
+```typescript
+// Пример создания иерархической структуры
+const groups: Record<string, GfxPrimitiveGroup> = {
+  'foundation-uuid': {
+    uuid: 'foundation-uuid',
+    name: 'Фундамент',
+    visible: true
+  },
+  'walls-uuid': {
+    uuid: 'walls-uuid', 
+    name: 'Стены',
+    visible: true,
+    parentGroupUuid: 'foundation-uuid' // Дочерняя группа
+  }
+}
+
+// Привязка примитивов к группам
+const primitiveGroupAssignments: Record<string, string> = {
+  'primitive-1-uuid': 'foundation-uuid',
+  'primitive-2-uuid': 'walls-uuid'
+}
+```
+
+### GfxObject с группами и материалами
 
 ```typescript
 interface GfxObject {
-  // ... другие поля
-  materials?: GfxMaterial[];  // Object-specific materials / Материалы объекта
-  primitives: GfxPrimitive[]; // Primitives can reference materials / Примитивы могут ссылаться на материалы
+  uuid: string;
+  name: string;
+  primitives: GfxPrimitive[];       // Примитивы с обязательными UUID
+  
+  // 🆕 Новые опциональные поля для группировки
+  primitiveGroups?: Record<string, GfxPrimitiveGroup>;     // uuid -> группа
+  primitiveGroupAssignments?: Record<string, string>;      // primitiveUuid -> groupUuid
+  
+  // Существующие поля
+  materials?: GfxMaterial[];        // Object-specific materials / Материалы объекта
+  boundingBox?: BoundingBox;
 }
+```
+
+#### Работа с группами в объектах
+
+```typescript
+// Создание объекта с группами
+const houseObject: GfxObject = {
+  uuid: 'house-uuid',
+  name: 'Дом',
+  primitives: [
+    { uuid: 'foundation-primitive', type: 'box', geometry: { width: 10, height: 1, depth: 10 } },
+    { uuid: 'wall-primitive', type: 'box', geometry: { width: 10, height: 3, depth: 0.2 } }
+  ],
+  primitiveGroups: {
+    'foundation-group': {
+      uuid: 'foundation-group',
+      name: 'Фундамент'
+    },
+    'walls-group': {
+      uuid: 'walls-group', 
+      name: 'Стены',
+      parentGroupUuid: 'foundation-group'
+    }
+  },
+  primitiveGroupAssignments: {
+    'foundation-primitive': 'foundation-group',
+    'wall-primitive': 'walls-group'
+  }
+}
+
+// Утилиты для работы с группами (из @/entities/primitiveGroup)
+import { buildGroupTree, findGroupChildren, getPrimitivesInGroup } from '@/entities/primitiveGroup'
+
+// Построение дерева групп
+const groupTree = buildGroupTree(houseObject.primitiveGroups || {})
+
+// Получение дочерних групп
+const childGroups = findGroupChildren('foundation-group', houseObject.primitiveGroups || {})
+
+// Получение примитивов в группе
+const groupPrimitives = getPrimitivesInGroup(
+  'walls-group', 
+  houseObject.primitives,
+  houseObject.primitiveGroupAssignments || {}
+)
 ```
 
 ### 2. 🔧 Core Utilities (`@/shared/types/core`)
