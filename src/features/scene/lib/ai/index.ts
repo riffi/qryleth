@@ -12,7 +12,6 @@ import {
   addObjectInstanceTool,
   canAddInstanceTool,
   getObjectInstancesTool,
-  createAddNewObjectTool,
   addNewObjectTool,
   searchObjectsInLibraryTool,
   addObjectFromLibraryTool
