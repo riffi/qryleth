@@ -112,18 +112,238 @@ const PrimitiveSchema = z.discriminatedUnion('type', [
  * Используется, когда необходимо создать один или несколько примитивов.
  * Поддерживает создание групп для организации примитивов.
  * ВАЖНО: При добавлении примитивов материалы назначать ОБЯЗАТЕЛЬНО!
+ * Поддерживает создание материалов перед примитивами и ссылки на них по localId.
  */
 export const addPrimitivesTool = new DynamicStructuredTool({
   name: 'addPrimitives',
-  description: 'Добавить один или несколько примитивов к объекту с ОБЯЗАТЕЛЬНЫМ назначением материалов. Материалы можно: 1) выбрать из глобальных (используй getGlobalMaterials), 2) выбрать из материалов объекта, 3) создать новый материал объекта и сразу назначить его. Опционально можно создать группу для примитивов.',
+  description: 'Добавить один или несколько примитивов к объекту с ОБЯЗАТЕЛЬНЫМ назначением материалов. Поддерживает создание материалов в рамках одного вызова и ссылки на них по localId. Материалы можно: 1) выбрать из глобальных (getGlobalMaterials), 2) выбрать из существующих материалов объекта по UUID или имени, 3) создать новые материалы в массиве materials и ссылаться на них через localId в примитивах.',
   schema: z.object({
-    primitives: z.array(PrimitiveSchema).min(1).max(10),
+    materials: z.array(
+      CreateObjectMaterialSchema.extend({
+        localId: z.string().describe('Локальный ID для ссылки из примитивов в рамках этого вызова')
+      })
+    ).optional().describe('Массив материалов для создания перед добавлением примитивов'),
+    primitives: z.array(
+      z.discriminatedUnion('type', [
+        z.object({ type: z.literal('box'), geometry: BoxGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('sphere'), geometry: SphereGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('cylinder'), geometry: CylinderGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('cone'), geometry: ConeGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('pyramid'), geometry: PyramidGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('plane'), geometry: PlaneGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        ),
+        z.object({ type: z.literal('torus'), geometry: TorusGeometrySchema }).merge(
+          z.object({
+            name: z.string().min(1).optional(),
+            material: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('global'),
+                globalMaterialUuid: z.string().describe('UUID глобального материала')
+              }),
+              z.object({
+                type: z.literal('object'),
+                objectMaterialUuid: z.string().describe('UUID или имя существующего материала объекта')
+              }),
+              z.object({
+                type: z.literal('createNew'),
+                createMaterial: CreateObjectMaterialSchema
+              }),
+              z.object({
+                type: z.literal('localRef'),
+                localId: z.string().describe('Ссылка на материал из массива materials по localId')
+              })
+            ]).describe('Обязательное назначение материала'),
+            transform: z
+              .object({
+                position: z.array(z.number()).length(3).optional(),
+                rotation: z.array(z.number()).length(3).optional(),
+                scale: z.array(z.number()).length(3).optional()
+              })
+              .optional()
+          })
+        )
+      ])
+    ).min(1).max(10),
     groupName: z.string().min(1).optional().describe('Имя группы для создания и привязки добавляемых примитивов'),
     parentGroupUuid: z.string().optional().describe('UUID родительской группы для создания подгруппы')
   }),
   func: async (input) => {
-    const result = ObjectEditorApi.addPrimitives(
+    const result = ObjectEditorApi.addPrimitivesWithMaterials(
       input.primitives, 
+      input.materials,
       input.groupName, 
       input.parentGroupUuid
     )
@@ -131,7 +351,8 @@ export const addPrimitivesTool = new DynamicStructuredTool({
       success: true, 
       addedCount: result.addedCount,
       groupUuid: result.groupUuid,
-      groupCreated: !!result.groupUuid
+      groupCreated: !!result.groupUuid,
+      materialsCreated: result.materialsCreated || 0
     })
   }
 })

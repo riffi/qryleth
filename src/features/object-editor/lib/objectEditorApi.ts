@@ -21,7 +21,15 @@ interface PrimitiveWithMaterialConfig extends Omit<GfxPrimitive, 'objectMaterial
   } | {
     type: 'createNew'
     createMaterial: CreateGfxMaterial
+  } | {
+    type: 'localRef'
+    localId: string
   }
+}
+
+// Интерфейс для материала с локальным ID
+interface MaterialWithLocalId extends CreateGfxMaterial {
+  localId: string
 }
 
 export class ObjectEditorApi {
@@ -100,9 +108,21 @@ export class ObjectEditorApi {
           globalMaterialUuid: p.material.globalMaterialUuid
         }
       } else if (p.material.type === 'object') {
+        // Сначала пытаемся найти материал по UUID
+        let materialUuid = p.material.objectMaterialUuid
+        
+        // Если не найден материал по UUID, пытаемся найти по имени
+        const materialByUuid = store.materials.find(mat => mat.uuid === materialUuid)
+        if (!materialByUuid) {
+          const materialByName = store.materials.find(mat => mat.name === materialUuid)
+          if (materialByName) {
+            materialUuid = materialByName.uuid
+          }
+        }
+        
         return {
           ...basePrimitive,
-          objectMaterialUuid: p.material.objectMaterialUuid
+          objectMaterialUuid: materialUuid
         }
       } else { // createNew
         const materialKey = JSON.stringify(p.material.createMaterial)
@@ -153,6 +173,154 @@ export class ObjectEditorApi {
     return { 
       addedCount: normalized.length,
       groupUuid
+    }
+  }
+
+  /**
+   * Добавляет примитивы с предварительным созданием материалов по localId.
+   * Поддерживает создание материалов в массиве и ссылки на них через localRef.
+   *
+   * @param primitives список примитивов для добавления
+   * @param materials опциональный массив материалов для создания
+   * @param groupName опциональное имя группы для создания и привязки примитивов
+   * @param parentGroupUuid опциональный UUID родительской группы
+   * @returns количество добавленных примитивов, созданных материалов и UUID группы
+   */
+  static addPrimitivesWithMaterials(
+    primitives: PrimitiveWithMaterialConfig[], 
+    materials?: MaterialWithLocalId[],
+    groupName?: string, 
+    parentGroupUuid?: string
+  ): { addedCount: number; groupUuid?: string; materialsCreated: number } {
+    const store = useObjectStore.getState()
+    
+    // Создаем материалы из массива materials и собираем мапинг localId -> UUID
+    const localIdToUuid = new Map<string, string>()
+    let materialsCreated = 0
+    
+    if (materials) {
+      materials.forEach(material => {
+        // Проверяем, нет ли уже такого материала среди существующих
+        const existingMaterial = store.materials.find(mat => 
+          this.areMaterialsEqual(mat, material)
+        )
+        
+        if (existingMaterial) {
+          localIdToUuid.set(material.localId, existingMaterial.uuid)
+        } else {
+          const materialUuid = uuidv4()
+          store.addMaterial(material, materialUuid)
+          localIdToUuid.set(material.localId, materialUuid)
+          materialsCreated++
+        }
+      })
+    }
+
+    // Кеш для отслеживания уже созданных материалов в рамках текущего вызова
+    const materialCache = new Map<string, string>() // ключ: JSON материала, значение: UUID
+
+    const normalized = primitives.map((p, index) => {
+      const primUuid = uuidv4()
+      const basePrimitive = {
+        uuid: primUuid,
+        name:
+          p.name && p.name.trim() !== ''
+            ? p.name
+            : generatePrimitiveName(p.type, store.primitives.length + index + 1),
+        type: p.type,
+        geometry: p.geometry,
+        ...(p.transform && { transform: p.transform as {
+          position?: [number, number, number]
+          rotation?: [number, number, number]
+          scale?: [number, number, number]
+        } })
+      }
+
+      // Обработка материала в зависимости от типа
+      if (p.material.type === 'global') {
+        return {
+          ...basePrimitive,
+          globalMaterialUuid: p.material.globalMaterialUuid
+        }
+      } else if (p.material.type === 'object') {
+        // Сначала пытаемся найти материал по UUID
+        let materialUuid = p.material.objectMaterialUuid
+        
+        // Если не найден материал по UUID, пытаемся найти по имени
+        const materialByUuid = store.materials.find(mat => mat.uuid === materialUuid)
+        if (!materialByUuid) {
+          const materialByName = store.materials.find(mat => mat.name === materialUuid)
+          if (materialByName) {
+            materialUuid = materialByName.uuid
+          }
+        }
+        
+        return {
+          ...basePrimitive,
+          objectMaterialUuid: materialUuid
+        }
+      } else if (p.material.type === 'localRef') {
+        // Ссылка на материал из массива materials
+        const materialUuid = localIdToUuid.get(p.material.localId)
+        if (!materialUuid) {
+          throw new Error(`Материал с localId "${p.material.localId}" не найден в массиве materials`)
+        }
+        
+        return {
+          ...basePrimitive,
+          objectMaterialUuid: materialUuid
+        }
+      } else { // createNew
+        const materialKey = JSON.stringify(p.material.createMaterial)
+        
+        // Проверяем, не создавали ли мы уже такой же материал в этом вызове
+        let materialUuid = materialCache.get(materialKey)
+        
+        if (!materialUuid) {
+          // Проверяем, нет ли уже такого материала среди существующих
+          const existingMaterial = store.materials.find(mat => 
+            this.areMaterialsEqual(mat, p.material.createMaterial)
+          )
+          
+          if (existingMaterial) {
+            // Используем существующий материал
+            materialUuid = existingMaterial.uuid
+          } else {
+            // Создаем новый материал
+            materialUuid = uuidv4()
+            store.addMaterial(p.material.createMaterial, materialUuid)
+            materialsCreated++
+          }
+          
+          // Кешируем результат
+          materialCache.set(materialKey, materialUuid)
+        }
+        
+        return {
+          ...basePrimitive,
+          objectMaterialUuid: materialUuid
+        }
+      }
+    })
+
+    // Добавляем примитивы
+    normalized.forEach(prim => store.addPrimitive(prim))
+
+    // Создаем группу, если указано имя
+    let groupUuid: string | undefined
+    if (groupName && groupName.trim() !== '') {
+      groupUuid = store.createGroup(groupName.trim(), parentGroupUuid)
+      
+      // Привязываем все добавленные примитивы к созданной группе
+      normalized.forEach(prim => {
+        store.assignPrimitiveToGroup(prim.uuid, groupUuid!)
+      })
+    }
+
+    return { 
+      addedCount: normalized.length,
+      groupUuid,
+      materialsCreated
     }
   }
 }
