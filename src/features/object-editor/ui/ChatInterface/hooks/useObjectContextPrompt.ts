@@ -71,22 +71,10 @@ ${objectInfo.selectedMaterialUuid ? '- Выбран материал для ре
     return basePrompt + contextInfo
   }, [objectInfo])
 
-  const contextualHints = useMemo(() => {
-    const hints: string[] = []
-
-    if (objectInfo.isEmpty) {
-      hints.push('Добавь базовые формы через addPrimitives')
-    } else {
-      hints.push('При необходимости получи данные объекта через getObjectData')
-    }
-
-    return hints
-  }, [objectInfo])
 
   return {
     systemPrompt,
-    objectInfo,
-    contextualHints
+    objectInfo
   }
 }
 
