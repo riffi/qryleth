@@ -72,16 +72,12 @@ const ObjectEditorPage: React.FC = () => {
 
   return (
     <MainLayout rightSection={headerRightSection}>
-      <Box h="calc(100vh)" style={{ display: 'flex', flexDirection: 'column' }}>
-        <Box style={{ flex: 1 }}>
-          <ObjectEditorR3F
-            onClose={handleClose}
-            onSave={handleSave}
-            objectData={objectRecord?.objectData}
-            externalPanelState={globalPanelState}
-          />
-        </Box>
-      </Box>
+      <ObjectEditorR3F
+        onClose={handleClose}
+        onSave={handleSave}
+        objectData={objectRecord?.objectData}
+        externalPanelState={globalPanelState}
+      />
     </MainLayout>
   )
 }

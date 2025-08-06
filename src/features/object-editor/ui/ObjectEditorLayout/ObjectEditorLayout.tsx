@@ -91,7 +91,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         <Paper
           shadow="sm"
           radius="md"
-          style={{ width: 400, height: '100%', flexShrink: 0 }}
+          style={{ width: 400, height: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column' }}
         >
           {chatComponent}
         </Paper>

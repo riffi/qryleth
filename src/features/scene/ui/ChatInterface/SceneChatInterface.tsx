@@ -13,7 +13,6 @@ interface Props {
 }
 
 export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
   const [inputValue, setInputValue] = useState('')
   
   // Используем scene-специфичный хук чата
@@ -32,7 +31,7 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
   })
 
   // Используем автоскролл из shared/entities/chat
-  useChatScroll(scrollAreaRef, messages)
+  const { scrollAreaRef } = useChatScroll(messages)
 
   // Обработчик отправки сообщения
   const handleSendMessage = async () => {
