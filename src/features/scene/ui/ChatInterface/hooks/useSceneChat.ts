@@ -28,6 +28,8 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
   const { onObjectAdded, debugMode = true } = options
   const debugChatServiceRef = useRef<LangChainChatService | null>(null)
   const connectionRef = useRef<OpenAISettingsConnection | null>(null)
+  const mainServiceInitializedRef = useRef(false)
+  const debugServiceInitializedRef = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
 
   // Конфигурация чата для scene
@@ -141,13 +143,15 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
   }, [baseChat.addMessage])
 
-  // Инициализация сервисов выполняется только при первом монтировании
+  // Инициализация основного LangChain сервиса
   useEffect(() => {
-    const initializeServices = async () => {
+    const initializeMainService = async () => {
+      if (mainServiceInitializedRef.current) return
+      mainServiceInitializedRef.current = true
+      
       const activeConnection = await getActiveConnection()
       connectionRef.current = activeConnection
 
-      // Инициализируем основной LangChain сервис
       try {
         await langChainChatService.initialize()
         langChainChatService.setToolCallback(handleToolCallbackRef.current)
@@ -163,26 +167,39 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
         }
         baseChat.addMessage(errorMessage)
       }
+    }
 
-      // Инициализируем отладочный LangChain сервис только с createAddNewObjectTool
-      if (debugMode) {
-        try {
-          const debugService = new LangChainChatService(
-            'Сразу же выполни tool по запросу пользователя, не уточняя детали'
-          )
-          await debugService.initialize()
-          debugService.clearTools()
-          debugService.registerDynamicTool(createAddNewObjectTool())
-          debugChatServiceRef.current = debugService
-          console.log('Debug LangChain сервис инициализирован с инструментами:', debugService.getRegisteredTools())
-        } catch (error) {
-          console.error('Ошибка инициализации отладочного LangChain сервиса:', error)
-        }
+    initializeMainService()
+  }, [baseChat.addMessage])
+
+  // Инициализация отладочного сервиса отдельно
+  useEffect(() => {
+    if (!debugMode) {
+      debugChatServiceRef.current = null
+      debugServiceInitializedRef.current = false
+      return
+    }
+
+    const initializeDebugService = async () => {
+      if (debugServiceInitializedRef.current) return
+      debugServiceInitializedRef.current = true
+
+      try {
+        const debugService = new LangChainChatService(
+          'Сразу же выполни tool по запросу пользователя, не уточняя детали'
+        )
+        await debugService.initialize()
+        debugService.clearTools()
+        debugService.registerDynamicTool(createAddNewObjectTool())
+        debugChatServiceRef.current = debugService
+        console.log('Debug LangChain сервис инициализирован с инструментами:', debugService.getRegisteredTools())
+      } catch (error) {
+        console.error('Ошибка инициализации отладочного LangChain сервиса:', error)
       }
     }
 
-    initializeServices()
-  }, [debugMode, baseChat.addMessage])
+    initializeDebugService()
+  }, [debugMode])
 
   return {
     ...baseChat,
