@@ -7,24 +7,25 @@
 ## Architecture Overview / Обзор архитектуры
 
 Все типы в проекте организованы согласно принципам **Feature-Sliced Design (FSD)**:
-
 ```
 src/
-├── entities/           # Domain entities / Доменные сущности
-│   ├── primitive/
-│   ├── object/ 
-│   ├── scene/
-│   └── index.ts       # Barrel export of all entities
-├── shared/             # Reusable types / Переиспользуемые типы
-│   ├── types/
-│   │   ├── core/      # Base utilities (Vector3, Transform)
-│   │   ├── ui/        # UI types (ViewMode, Selection)
-│   │   └── index.ts   # Barrel export shared types
-│   ├── api/           # Database and API types
-│   └── lib/r3f/       # R3F technical types
-└── features/           # Business logic / Бизнес-логика
-    └── scene/
-        └── model/     # Scene store and view types
+├── entities/           # Доменные сущности
+│   ├── primitive/      # GfxPrimitive и геометрии
+│   ├── primitiveGroup/ # GfxPrimitiveGroup и утилиты
+│   ├── object/         # GfxObject
+│   ├── objectInstance/ # GfxObjectInstance
+│   ├── layer/          # GfxLayer
+│   ├── lighting/       # LightingSettings и источники света
+│   ├── material/       # GfxMaterial
+│   ├── scene/          # SceneData и производные
+│   └── index.ts        # Barrel-экспорт всех entities
+├── shared/             # Переиспользуемые типы и утилиты
+│   ├── types/          # Vector3, Transform, BoundingBox, UI-типы
+│   ├── api/
+│   └── lib/r3f/
+└── features/           # Типы бизнес-логики
+├── scene/model/
+└── object-editor/
 ```
 
 ---
@@ -41,11 +42,13 @@ src/
 // Core domain types / Основные доменные типы
 import type { 
   GfxPrimitive,      // 3D primitives (box, sphere, cylinder, etc.)
-  GfxObject,         // Composite 3D objects
   GfxPrimitiveGroup, // Primitive groups with hierarchy support
-  GfxMaterial,       // Material definitions
+  GfxObject,         // Composite 3D objects
+  GfxObjectInstance, // GfxObject инстансы
   GfxLayer,          // Scene layers
-  LightingSettings   // Lighting configuration
+  GfxMaterial,       // Material definitions
+  LightingSettings,   // Lighting configuration
+  SceneData, // данные сцены
 } from '@/entities'
 
 // Specific entity types / Специфичные entity типы
@@ -56,77 +59,6 @@ import type { GfxMaterial } from '@/entities/material'
 import type { SceneObjectInstance } from '@/entities/scene/types'
 ```
 
-**Примеры использования**:
-```typescript
-// Creating a primitive / Создание примитива  
-import { generateUUID } from '@/shared/lib/uuid'
-
-const createBox = (): GfxPrimitive => ({
-  uuid: generateUUID(),  // 🆕 Обязательное поле
-  type: 'box',
-  geometry: {
-    width: 2,
-    height: 2,
-    depth: 2,
-  },
-  material: {
-    color: '#ff0000',
-    opacity: 1.0,
-  },
-  transform: {
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1],
-  },
-})
-
-// Working with composite object / Работа с композитным объектом
-const processObject = (object: GfxObject) => {
-  object.primitives.forEach(primitive => {
-    console.log(`Primitive type: ${primitive.type}`)
-    if (primitive.type === 'box') {
-      console.log(`Box dimensions: ${primitive.geometry.width}x${primitive.geometry.height}x${primitive.geometry.depth}`)
-    }
-  })
-}
-
-// Type-safe geometry access / Типобезопасный доступ к геометрии
-const getPrimitiveVolume = (primitive: GfxPrimitive): number => {
-  switch (primitive.type) {
-    case 'box':
-      return primitive.geometry.width * primitive.geometry.height * primitive.geometry.depth
-    case 'sphere':
-      return (4/3) * Math.PI * Math.pow(primitive.geometry.radius, 3)
-    case 'cylinder':
-      const avgRadius = (primitive.geometry.radiusTop + primitive.geometry.radiusBottom) / 2
-      return Math.PI * avgRadius * avgRadius * primitive.geometry.height
-    // ... другие типы
-    default:
-      return 0
-  }
-}
-
-// Working with primitive groups / Работа с группами примитивов
-import { getPrimitivesInGroup, buildGroupTree } from '@/entities/primitiveGroup'
-
-const analyzeObjectStructure = (object: GfxObject) => {
-  console.log(`Object: ${object.name} with ${object.primitives.length} primitives`)
-  
-  if (object.primitiveGroups) {
-    const groupTree = buildGroupTree(object.primitiveGroups)
-    console.log('Group structure:', groupTree)
-    
-    Object.values(object.primitiveGroups).forEach(group => {
-      const groupPrimitives = getPrimitivesInGroup(
-        group.uuid, 
-        object.primitives,
-        object.primitiveGroupAssignments || {}
-      )
-      console.log(`Group "${group.name}": ${groupPrimitives.length} primitives`)
-    })
-  }
-}
-```
 
 ### GfxPrimitive
 
@@ -304,22 +236,6 @@ const houseObject: GfxObject = {
     'wall-primitive': 'walls-group'
   }
 }
-
-// Утилиты для работы с группами (из @/entities/primitiveGroup)
-import { buildGroupTree, findGroupChildren, getPrimitivesInGroup } from '@/entities/primitiveGroup'
-
-// Построение дерева групп
-const groupTree = buildGroupTree(houseObject.primitiveGroups || {})
-
-// Получение дочерних групп
-const childGroups = findGroupChildren('foundation-group', houseObject.primitiveGroups || {})
-
-// Получение примитивов в группе
-const groupPrimitives = getPrimitivesInGroup(
-  'walls-group', 
-  houseObject.primitives,
-  houseObject.primitiveGroupAssignments || {}
-)
 ```
 
 ### 2. 🔧 Core Utilities (`@/shared/types/core`)
@@ -411,9 +327,9 @@ import type { SceneStore } from '@/features/scene/model'  // ❌ in entities lay
 ### 📋 Правила доступа слоев
 
 ```
-entities/    ← self-sufficient, no dependencies / самодостаточны
+shared/      ← НЕ МОЖЕТ импортировать слои выше (самодостаточен)
    ↑
-shared/      ← can import from entities / может импортировать из entities
+entities/    ← can import shared / может импортировать общие типы из shared
    ↑  
 features/    ← can import from shared and entities
    ↑
@@ -423,15 +339,16 @@ app/         ← can import from all layers / может импортирова�
 ### 🚫 Запрещенные импорты
 
 - **entities** → features ❌
-- **entities** → shared ❌  
+- **shared** → любой слой выше ❌
+- **shared** → entities ❌
 - **shared** → features ❌
 - Circular dependencies / Циклические зависимости ❌
 
 ### ✅ Разрешенные импорты
 
+- **entities** → shared ✅ (общие типы)
 - **features** → entities ✅
 - **features** → shared ✅
-- **shared** → entities ✅
 - **app** → any layer / любой слой ✅
 
 ---
