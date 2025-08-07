@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend API для управления агентскими задачами",
   "main": "src/index.js",
-  "type": "module",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
@@ -12,7 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "express": "^4.21.1",
     "cors": "^2.8.5",
     "gray-matter": "^4.0.3",
     "fs-extra": "^11.3.1",
@@ -20,7 +19,7 @@
     "@agent-tasks-ui/shared-types": "file:../shared-types"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
+    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.19",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.10.5",

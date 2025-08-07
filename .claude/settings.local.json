@@ -14,7 +14,13 @@
       "Bash(rg:*)",
       "Bash(timeout 10 npm run dev)",
       "Bash(npx eslint:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npm install)",
+      "Bash(start /b npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

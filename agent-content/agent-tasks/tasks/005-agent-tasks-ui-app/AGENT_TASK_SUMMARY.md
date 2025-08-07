@@ -34,10 +34,10 @@ tags: [frontend, backend, ui, management, react, typescript, express]
 - Настройка Express сервера 
 - Базовая файловая структура фронтенда и бэкенда
 
-### ⏳ Фаза 2: Backend API для чтения задач
+### ✅ Фаза 2: Backend API для чтения задач - ВЫПОЛНЕНО
 - Создание Express роутов для получения списка задач и эпиков
 - Парсинг markdown файлов и извлечение YAML метаданных
-- API endpoints: GET /api/tasks, GET /api/epics, GET /api/tasks/:id
+- API endpoints: GET /api/tasks, GET /api/epics, GET /api/tasks/:id, GET /api/epics/:id/tasks, GET /api/manager
 
 ### ⏳ Фаза 3: Frontend базовый интерфейс
 - Настройка Mantine UI компонентов
