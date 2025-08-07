@@ -11,9 +11,7 @@ const SceneEditorPage: React.FC = () => {
         <SceneEditorR3F
           uuid={id}
           isNew={isNew}
-          width={1200}
-          height={800}
-          showObjectManager={true}
+          showObjectManager
         />
     )
 }

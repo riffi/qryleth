@@ -26,7 +26,7 @@ import { generateUUID } from '@/shared/lib/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
-  IconBooks,
+  IconFolder,
   IconSettings,
   IconInfoCircle,
   IconEye,
@@ -36,9 +36,8 @@ import {
   IconArrowRightBar,
   IconRotate,
   IconResize,
-  IconChevronLeft,
-  IconChevronRight,
-  IconCode
+  IconCode,
+  IconMessages
 } from '@tabler/icons-react'
 import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
@@ -100,6 +99,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
+  const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
 
   // Глобальное состояние панелей для ObjectEditor
   const globalPanelState = useGlobalPanelState()
@@ -253,6 +253,26 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     return JSON.parse(JSON.stringify(obj))
   }, [editingObject, objects])
 
+  // Responsive sizes
+  const chatPanelWidth = scriptingPanelVisible ? 'min(42vw, 820px)' : 'clamp(280px, 28vw, 420px)'
+  const objectPanelWidth = 'clamp(260px, 24vw, 380px)'
+
+  // Handlers to toggle panels from header
+  const toggleChatPanel = () => {
+    // Ensure left panel is opened and show chat (not scripting)
+    setScriptingPanelVisible(false)
+    setChatCollapsed(prev => !prev)
+  }
+
+  const toggleScriptingPanel = () => {
+    setChatCollapsed(false)
+    setScriptingPanelVisible(prev => !prev)
+  }
+
+  const toggleRightPanel = () => {
+    setObjectPanelCollapsed(prev => !prev)
+  }
+
   return (
     <>
       <MainLayout
@@ -278,18 +298,44 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
+            {/* Panel toggles aligned with ObjectEditor style */}
+            <Group gap="xs">
+              <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={chatCollapsed ? 'subtle' : 'filled'}
+                  color={chatCollapsed ? 'gray' : 'blue'}
+                  onClick={toggleChatPanel}
+                  aria-label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'}
+                >
+                  <IconMessages size={18} />
+                </ActionIcon>
+              </Tooltip>
 
-            <Tooltip label="Панель скриптинга">
-              <ActionIcon
-                variant="subtle"
-                size="sm"
-                c={"gray.4"}
-                onClick={() => setScriptingPanelVisible(true)}
-              >
-                <IconCode size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
+              <Tooltip label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={scriptingPanelVisible ? 'filled' : 'subtle'}
+                  color={scriptingPanelVisible ? 'blue' : 'gray'}
+                  onClick={toggleScriptingPanel}
+                  aria-label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'}
+                >
+                  <IconCode size={18} />
+                </ActionIcon>
+              </Tooltip>
 
+              <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={objectPanelCollapsed ? 'subtle' : 'filled'}
+                  color={objectPanelCollapsed ? 'gray' : 'blue'}
+                  onClick={toggleRightPanel}
+                  aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
+                >
+                  <IconFolder size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </>
         )}
       >
@@ -306,7 +352,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="sm" radius="md" style={{ width: scriptingPanelVisible ? 800 : 400, height: '100%' }}>
+          <Paper shadow="sm" radius="md" style={{ width: chatPanelWidth, height: '100%', minWidth: 260 }}>
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Group justify="space-between" p="sm" bg="gray.8">
@@ -332,30 +378,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Paper>
         )}
 
-        {chatCollapsed && (
-          <Box
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: '100%'
-            }}
-          >
-            <Tooltip label="Развернуть чат">
-              <ActionIcon
-                variant="filled"
-                size="lg"
-                onClick={() => setChatCollapsed(false)}
-                style={{
-                  borderRadius: '0 8px 8px 0'
-                }}
-              >
-                <IconChevronRight size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Box>
-        )}
+        {/* No side handle for left panel; use header icons */}
 
         <Paper
           shadow="sm"
@@ -368,10 +391,17 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               top: 8,
               left: 8,
               zIndex: 10,
-              padding: 6
+              padding: 6,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 70%, transparent)',
+              backdropFilter: 'blur(6px)',
+              borderRadius: 8,
+              border: '1px solid var(--mantine-color-dark-5)'
             }}
           >
-            <Group gap="xs">
+            <Group gap="xs" wrap="nowrap">
               <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
                 <ActionIcon
                   variant={gridVisible ? 'filled' : 'light'}
@@ -383,7 +413,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </ActionIcon>
               </Tooltip>
 
-              <Group gap="xs">
+              <Group gap="xs" wrap="nowrap">
                 <Tooltip label="Перемещение">
                   <ActionIcon
                     size="md"
@@ -469,16 +499,21 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         </Paper>
 
         {showObjectManager && (
-          <Paper
-            shadow="sm"
-            radius="md"
-            style={{ width: 350, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
-          >
-            <SceneObjectManager
-              onSaveSceneToLibrary={handleSaveSceneToLibrary}
-              onEditObject={handleEditObject}
-            />
-          </Paper>
+          <>
+            {!objectPanelCollapsed && (
+              <Paper
+                shadow="sm"
+                radius="md"
+                style={{ width: objectPanelWidth, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 240 }}
+              >
+                <SceneObjectManager
+                  onSaveSceneToLibrary={handleSaveSceneToLibrary}
+                  onEditObject={handleEditObject}
+                />
+              </Paper>
+            )}
+            {/* No side handle for right panel; use header icons */}
+          </>
         )}
       </Container>
       </MainLayout>
@@ -561,7 +596,7 @@ const SaveSceneModal: React.FC<SaveSceneModalProps> = ({ opened, onClose, onSave
       return
     }
 
-    onSave(sceneName.trim(), sceneDescription.trim() || undefined)
+  onSave(sceneName.trim(), sceneDescription.trim() || undefined)
     setSceneName('')
     setSceneDescription('')
   }
