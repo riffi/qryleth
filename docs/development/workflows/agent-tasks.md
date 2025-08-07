@@ -5,7 +5,7 @@
 > **TL;DR**  
 > Работа оформляется цепочкой *эпик → задача → фазы* (или сразу «задача → фазы», если эпик не нужен).  
 > Каждая фаза должна оставлять репозиторий в рабочем состоянии.  
-> Перед стартом агент обязан открыть **agent-tasks.md** и свериться с [арх-принципами](../../architecture/design-principles.md).  
+> Перед стартом агент обязан открыть **agent-tasks.md** и свериться с [арх-принципами](../../architecture/design-principles.md)
 > Фазы могут выполнять разные агенты.
 
 ---
@@ -23,19 +23,19 @@
 ## 2. Файловая структура
 
 ```text
-agent-tasks/
-├─ epics/
-│  └─ 001-backend-integration/
-│     ├─ epic.md
-│     └─ tasks/
-│        └─ 002-auth-endpoints/
-│           ├─ AGENT_TASK_SUMMARY.md
-│           └─ phases/
-│              └─ phase_1_summary.md
-├─ tasks/                 # задачи, НЕ привязанные к эпикам
-│  └─ 003-fix-modal-scroll/…
-├─ agent-tasks.md
-└─ manager-state.json     # глобальное состояние нумерации
+agent-content/
+|   ├─agent-tasks/
+|   │  ├─ epics/
+|   │     └─ 001-backend-integration/
+|   │       ├─ epic.md
+|   │       └─ tasks/
+|   │          └─ 002-auth-endpoints/
+|   │             ├─ AGENT_TASK_SUMMARY.md
+|   │             └─ phases/
+|   │                └─ phase_1_summary.md
+|   ├─ tasks/                 # задачи, НЕ привязанные к эпикам
+|   │  └─ 003-fix-modal-scroll/…
+|   └─ manager-state.json     # глобальное состояние нумерации
 ```
 
 ---
