@@ -514,7 +514,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             copyObject={handleCopyObject}
         >
         <>
-            <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
+            <Paper shadow="xs" withBorder radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
                     <Title order={4} c="gray.6" size="md">
                         Сцена
