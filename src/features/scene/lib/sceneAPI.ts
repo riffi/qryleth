@@ -738,44 +738,6 @@ export class SceneAPI {
     return object?.materials || []
   }
 
-  /**
-   * Найти объекты использующие конкретный материал
-   */
-  static findObjectsUsingMaterial(materialUuid: string): SceneObjectInfo[] {
-    const state = useSceneStore.getState()
-    const objectsUsingMaterial: SceneObjectInfo[] = []
-
-    for (const obj of state.objects) {
-      // Проверяем материалы объекта
-      const usesMaterial = obj.materials?.some(m => m.uuid === materialUuid)
-
-      // Проверяем примитивы на использование материала через ссылки
-      const primitivesUseMaterial = obj.primitives.some(primitive =>
-        primitive.objectMaterialUuid === materialUuid ||
-        primitive.globalMaterialUuid === materialUuid
-      )
-
-      if (usesMaterial || primitivesUseMaterial) {
-        const instances = state.objectInstances.filter(inst => inst.objectUuid === obj.uuid)
-        const boundingBox = obj.boundingBox ?? calculateObjectBoundingBox(obj)
-
-        objectsUsingMaterial.push({
-          uuid: obj.uuid,
-          name: obj.name,
-          layerId: obj.layerId,
-          visible: obj.visible,
-          libraryUuid: obj.libraryUuid,
-          boundingBox,
-          primitiveCount: obj.primitives.length,
-          primitiveTypes: [...new Set(obj.primitives.map(p => p.type))],
-          hasInstances: instances.length > 0,
-          instanceCount: instances.length
-        })
-      }
-    }
-
-    return objectsUsingMaterial
-  }
 
   /**
    * Получить статистику использования материалов в сцене
