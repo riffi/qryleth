@@ -19,11 +19,12 @@
 # Clone the repository / Клонируйте репозиторий
 git clone <repository-url>
 cd qryleth
+cd apps/qryleth-front
 
 # Install dependencies / Установите зависимости
 npm install
 
-# Start development server / Запустите сервер разработки
+# Start development server for front-end app / Запустите сервер разработки фронт-приложения
 npm run dev
 ```
 
@@ -37,18 +38,23 @@ npm run dev
 
 ## Обзор структуры проекта
 
-Qryleth использует архитектуру **[Feature-Sliced Design (FSD)](../architecture/feature-sliced-design.md)**:
+Проект организован как монорепозиторий. Основное фронт-приложение находится в `apps/qryleth-front/` и использует архитектуру **[Feature-Sliced Design (FSD)](../architecture/feature-sliced-design.md)**:
 
 ```
-src/
-├── app/               # Точка входа
-├── pages/             # Компоненты маршрутов
-├── features/          # Функциональные модули
-│   ├── scene/         # управление сценой
-│   └── object-editor/ # редактирование объектов
-├── widgets/           # Составные UI блоки (чат, модальные окна)
-├── entities/          # Доменные модели
-└── shared/            # Общие утилиты
+qryleth/
+├── apps/
+│   └── qryleth-front/     # Основное фронт-приложение
+│       └── src/
+│           ├── app/       # Точка входа
+│           ├── pages/     # Компоненты маршрутов
+│           ├── features/  # Функциональные модули
+│           │   ├── scene/ # управление сценой
+│           │   └── object-editor/ # редактирование объектов
+│           ├── widgets/   # Составные UI блоки (чат, модальные окна)
+│           ├── entities/  # Доменные модели
+│           └── shared/    # Общие утилиты
+├── docs/                  # Документация
+└── agent-content/         # Контент для ИИ агентов
 ```
 
 
@@ -144,7 +150,8 @@ The development server supports hot reload:
 ### Сборка
 
 ```bash
-# Запуск сервера разработки
+# Запуск сервера разработки (из корня проекта)
+cd apps/qryleth-front
 npm run dev
 
 # Продакшн сборка
@@ -160,7 +167,7 @@ npm run lint
 
 ### Добавление новой фичи
 
-1. Create feature directory in `src/features/`
+1. Create feature directory in `apps/qryleth-front/src/features/`
 2. Implement business logic in `model/`
 3. Create UI components in `ui/`
 4. Add integration logic in `api/`
