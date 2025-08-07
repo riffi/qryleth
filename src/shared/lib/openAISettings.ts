@@ -111,31 +111,21 @@ export async function removeConnection(id: string): Promise<void> {
   }
 }
 
-/**
- * Checks if a connection is compatible with LangChain
- */
-export function isLangChainCompatible(connection: OpenAISettingsConnection): boolean {
-  // LangChain works with OpenAI-compatible APIs
-  return connection.provider === 'openai' || 
-         connection.provider === 'openrouter' || 
-         connection.provider === 'compatible' ||
-         connection.provider === 'moonshot'
-}
 
 /**
  * Gets the base URL for LangChain from connection URL
  */
 export function getLangChainBaseUrl(connection: OpenAISettingsConnection): string {
   let baseUrl = connection.url
-  
+
   // Remove common API endpoints to get base URL
   baseUrl = baseUrl.replace('/chat/completions', '')
   baseUrl = baseUrl.replace('/v1', '')
-  
+
   // Ensure it ends with /v1 for LangChain
   if (!baseUrl.endsWith('/v1')) {
     baseUrl = baseUrl + '/v1'
   }
-  
+
   return baseUrl
 }

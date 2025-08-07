@@ -88,7 +88,7 @@ function convertLegacyMaterial(legacyMaterial: {
 }): GfxMaterial {
   const opacity = legacyMaterial.opacity ?? 1.0;
   const transparent = opacity < 1.0;
-  
+
   return {
     uuid: `legacy-${Date.now()}-${Math.random()}`,
     name: 'Legacy Material',
@@ -109,13 +109,6 @@ function convertLegacyMaterial(legacyMaterial: {
   };
 }
 
-/**
- * Получает материал по UUID из реестра с fallback на дефолтный
- */
-export function getMaterialById(uuid: string): GfxMaterial {
-  const material = materialRegistry.get(uuid);
-  return material || DEFAULT_MATERIAL;
-}
 
 /**
  * Проверяет, является ли материал эмиссивным (светящимся)
@@ -146,7 +139,7 @@ export function isMetallicMaterial(material: GfxMaterial): boolean {
  */
 export function materialToThreeProps(material: GfxMaterial) {
   const props = material.properties;
-  
+
   return {
     color: props.color,
     opacity: props.opacity ?? 1.0,

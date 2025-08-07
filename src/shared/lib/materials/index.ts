@@ -4,7 +4,6 @@ export { materialRegistry } from './MaterialRegistry';
 // Утилиты для резолвинга материалов
 export {
   resolveMaterial,
-  getMaterialById,
   isEmissiveMaterial,
   isTransparentMaterial,
   isMetallicMaterial,
@@ -15,13 +14,12 @@ export {
 } from './materialResolver';
 
 // Предопределенные глобальные материалы
-export { 
+export {
   PREDEFINED_GLOBAL_MATERIALS_WITH_UUID,
-  GLOBAL_MATERIAL_UUIDS 
+  GLOBAL_MATERIAL_UUIDS
 } from './globalMaterials';
 
 // Инициализация системы материалов
 export {
   initializeMaterials,
-  getMaterialStats,
 } from './initializeMaterials';
