@@ -56,17 +56,6 @@ export async function getAllConnections(): Promise<{ connections: OpenAISettings
   return { connections, activeId };
 }
 
-export async function saveConnections(connections: OpenAISettingsConnection[], activeId?: string): Promise<void> {
-  // Save all connections
-  for (const connection of connections) {
-    await db.saveConnection(connection);
-  }
-
-  // Set active connection
-  if (activeId) {
-    await db.setActiveConnectionId(activeId);
-  }
-}
 
 export async function setActiveConnection(id: string): Promise<void> {
   await db.setActiveConnectionId(id);
