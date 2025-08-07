@@ -352,7 +352,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="xs" radius="md" withBorder style={{ width: chatPanelWidth, height: '100%', minWidth: 260, display: 'flex' }}>
+          <Paper shadow="sm" radius="md" withBorder style={{ width: chatPanelWidth, height: '100%', minWidth: 260, display: 'flex' }}>
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Group justify="space-between" p="sm" bg="gray.8">
@@ -380,7 +380,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
         {/* Center */}
         <Paper
-          shadow="xs"
+          shadow="sm"
           radius="md"
           withBorder
           style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
@@ -502,7 +502,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <>
             {!objectPanelCollapsed && (
               <Paper
-                shadow="xs"
+                shadow="sm"
                 radius="md"
                 withBorder
                 style={{ width: objectPanelWidth, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 240 }}

@@ -40,7 +40,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
     <AppShell
       header={{ height: 56 }}
       navbar={{
-        width: 260,
+        width: 280,
         breakpoint: 'sm',
         collapsed: { mobile: !sidebarOpened, desktop: !sidebarOpened }
       }}
