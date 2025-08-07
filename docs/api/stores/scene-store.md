@@ -307,10 +307,10 @@ const { updateLighting } = useSceneStore()
 
 const handleLightingChange = () => {
   updateLighting({
-    ambientIntensity: 0.3,
-    directionalLight: {
+    ambient: { intensity: 0.3 },
+    directional: {
       intensity: 1.0,
-      direction: [-1, -1, -1],
+      position: [-1, -1, -1],
       color: '#ffffff'
     }
   })

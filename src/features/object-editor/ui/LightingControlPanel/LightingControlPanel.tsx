@@ -14,7 +14,7 @@ import {
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import { useObjectStore, useObjectLighting } from '../../model/objectStore'
-import type { LightingSettings } from '@/entities/lighting/model/types'
+import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings } from '@/entities/lighting'
 
 /**
  * Панель управления освещением для редактора объектов.
@@ -25,14 +25,50 @@ export const LightingControlPanel: React.FC = () => {
   const setLighting = useObjectStore(s => s.setLighting)
   const [expanded, setExpanded] = useState(false)
 
-  const handleLightingChange = (key: keyof LightingSettings, value: any) => {
+  /**
+   * Обновляет параметр ambient света объекта.
+   */
+  const handleAmbientChange = (key: keyof AmbientLightSettings, value: string | number) => {
     setLighting({
       ...lighting,
-      [key]: value
+      ambient: {
+        ...(lighting.ambient ?? { uuid: 'ambient-light' }),
+        [key]: value
+      }
     })
   }
 
-  const handleAmbientOcclusionChange = (key: keyof NonNullable<LightingSettings['ambientOcclusion']>, value: any) => {
+  /**
+   * Обновляет параметр направленного света объекта.
+   */
+  const handleDirectionalChange = (key: keyof DirectionalLightSettings, value: string | number) => {
+    setLighting({
+      ...lighting,
+      directional: {
+        ...(lighting.directional ?? {
+          uuid: 'directional-light',
+          position: [10, 10, 10],
+          castShadow: true
+        }),
+        [key]: value
+      }
+    })
+  }
+
+  /**
+   * Изменяет цвет фона сцены объекта.
+   */
+  const handleBackgroundChange = (value: string) => {
+    setLighting({
+      ...lighting,
+      backgroundColor: value
+    })
+  }
+
+  const handleAmbientOcclusionChange = (
+    key: keyof NonNullable<LightingSettings['ambientOcclusion']>,
+    value: number | boolean
+  ) => {
     setLighting({
       ...lighting,
       ambientOcclusion: {
@@ -72,15 +108,15 @@ export const LightingControlPanel: React.FC = () => {
             <Group gap="xs">
               <ColorInput
                 size="xs"
-                value={lighting.ambientColor || '#404040'}
-                onChange={(value) => handleLightingChange('ambientColor', value)}
+                value={lighting.ambient?.color || '#404040'}
+                onChange={(value) => handleAmbientChange('color', value)}
                 withEyeDropper={false}
                 style={{ flex: 1 }}
               />
               <NumberInput
                 size="xs"
-                value={lighting.ambientIntensity || 0.6}
-                onChange={(value) => handleLightingChange('ambientIntensity', value)}
+                value={lighting.ambient?.intensity || 0.6}
+                onChange={(value) => handleAmbientChange('intensity', value)}
                 min={0}
                 max={2}
                 step={0.1}
@@ -94,15 +130,15 @@ export const LightingControlPanel: React.FC = () => {
             <Group gap="xs">
               <ColorInput
                 size="xs"
-                value={lighting.directionalColor || '#ffffff'}
-                onChange={(value) => handleLightingChange('directionalColor', value)}
+                value={lighting.directional?.color || '#ffffff'}
+                onChange={(value) => handleDirectionalChange('color', value)}
                 withEyeDropper={false}
                 style={{ flex: 1 }}
               />
               <NumberInput
                 size="xs"
-                value={lighting.directionalIntensity || 1}
-                onChange={(value) => handleLightingChange('directionalIntensity', value)}
+                value={lighting.directional?.intensity || 1}
+                onChange={(value) => handleDirectionalChange('intensity', value)}
                 min={0}
                 max={2}
                 step={0.1}
@@ -116,7 +152,7 @@ export const LightingControlPanel: React.FC = () => {
             <ColorInput
               size="xs"
               value={lighting.backgroundColor || '#222222'}
-              onChange={(value) => handleLightingChange('backgroundColor', value)}
+              onChange={(value) => handleBackgroundChange(value)}
               withEyeDropper={false}
             />
           </Box>

@@ -3,7 +3,7 @@
 ## Обзор выполненных работ
 - Добавлены типы Ambient, Directional, Point и Spot light.
 - В `LightingSettings` внедрены новые поля `ambient` и `directional`.
-- Для обратной совместимости сохранены устаревшие свойства `ambientColor` и др.
+- Устаревшие свойства `ambientColor` и др. полностью удалены.
 
 ## Проверка работоспособности
 - `npm run lint` — завершилось с ошибками в существующих файлах (`@typescript-eslint/no-explicit-any`).

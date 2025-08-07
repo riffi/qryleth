@@ -2,21 +2,20 @@ import React from 'react'
 import { useObjectLighting } from '../../../model/objectStore.ts'
 
 /**
- * Компонент, рендерящий источники света в сцене редактора объектов.
- * Поддерживает новую структуру LightingSettings с fallback на устаревшие поля,
- * чтобы обеспечить совместимость с текущим состоянием хранилища.
+ * Компонент, рендерящий источники света в сцене редактора объектов
+ * согласно новой структуре LightingSettings.
  */
 export const ObjectSceneLighting: React.FC = () => {
   const lighting = useObjectLighting()
 
-  // Параметры окружающего света с поддержкой новой и старой схемы настроек
-  const ambientColor = lighting.ambient?.color ?? lighting.ambientColor ?? '#89c8cf'
-  const ambientIntensity = lighting.ambient?.intensity ?? lighting.ambientIntensity ?? 0.6
+  // Параметры окружающего света
+  const ambientColor = lighting.ambient?.color ?? '#89c8cf'
+  const ambientIntensity = lighting.ambient?.intensity ?? 0.6
 
   // Параметры единственного направленного источника света
   const directional = lighting.directional
-  const directionalColor = directional?.color ?? lighting.directionalColor ?? '#ffffff'
-  const directionalIntensity = directional?.intensity ?? lighting.directionalIntensity ?? 1
+  const directionalColor = directional?.color ?? '#ffffff'
+  const directionalIntensity = directional?.intensity ?? 1
   const directionalPosition = directional?.position ?? [10, 10, 10]
   const castShadow = directional?.castShadow ?? true
   const shadowMapSize = directional?.shadowProps?.mapSize ?? [2048, 2048]

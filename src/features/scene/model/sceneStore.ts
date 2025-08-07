@@ -19,17 +19,25 @@ import type {
   SceneLayer
 } from '@/entities/scene/types.ts'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
-import type {LightingSettings} from "@/entities/lighting"
+import type { LightingSettings } from '@/entities/lighting'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 
 const initialLighting: LightingSettings = {
-  ambientColor: '#87CEEB',
-  ambientIntensity: 0.6,
-  directionalColor: '#FFD700',
-  directionalIntensity: 1.0,
-  backgroundColor: '#87CEEB'
+  ambient: {
+    uuid: 'ambient-light',
+    color: '#87CEEB',
+    intensity: 0.6,
+  },
+  directional: {
+    uuid: 'directional-light',
+    color: '#FFD700',
+    intensity: 1.0,
+    position: [10, 10, 10],
+    castShadow: true,
+  },
+  backgroundColor: '#87CEEB',
 }
 
 const initialLayers: SceneLayer[] = [
@@ -272,12 +280,18 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Lighting
+    /**
+     * Заменяет текущие настройки освещения сцены.
+     */
     setLighting: (lighting: LightingSettings) => {
       set({ lighting })
       get().saveToHistory()
       get().markSceneAsModified()
     },
 
+    /**
+     * Обновляет отдельные параметры освещения сцены.
+     */
     updateLighting: (updates: Partial<LightingSettings>) => {
       const lighting = { ...get().lighting, ...updates }
       set({ lighting })
@@ -479,7 +493,11 @@ export const useSceneObjects = () => useSceneStore(state => state.objects)
 export const useSceneObjectInstances = () =>
   useSceneStore(state => state.objectInstances)
 export const useSceneLayers = () => useSceneStore(state => state.layers)
-export const useSceneLighting = () => useSceneStore(state => state.lighting)
+/**
+ * Хук для доступа к настройкам освещения сцены.
+ */
+export const useSceneLighting = () =>
+  useSceneStore(state => state.lighting)
 export const useSelectedObject = () => useSceneStore(state => state.selectedObject)
 export const useHoveredObject = () => useSceneStore(state => state.hoveredObject)
 export const useViewMode = () => useSceneStore(state => state.viewMode)

@@ -91,22 +91,5 @@ export interface LightingSettings {
   };
   /** Цвет фона сцены */
   backgroundColor?: string;
-
-  /**
-   * @deprecated Цвет ambient света в устаревшей схеме
-   */
-  ambientColor?: string;
-  /**
-   * @deprecated Интенсивность ambient света в устаревшей схеме
-   */
-  ambientIntensity?: number;
-  /**
-   * @deprecated Цвет directional света в устаревшей схеме
-   */
-  directionalColor?: string;
-  /**
-   * @deprecated Интенсивность directional света в устаревшей схеме
-   */
-  directionalIntensity?: number;
 }
 

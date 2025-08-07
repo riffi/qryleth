@@ -10,7 +10,7 @@ import { buildGroupTree, findGroupChildren, getGroupPath, isGroupDescendant } fr
 import { resolveImportConflicts, applyImportResolution, ensureValidUuids } from '@/entities/primitiveGroup/model/importUtils'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { RenderMode, TransformMode, ViewMode } from '@/shared/types/ui'
-import type { LightingSettings } from '@/entities/lighting/model/types.ts'
+import type { LightingSettings } from '@/entities/lighting'
 import type {BoundingBox, Vector3} from '@/shared/types'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
@@ -121,16 +121,24 @@ interface ObjectStoreActions {
 export type ObjectStore = ObjectStoreState & ObjectStoreActions
 
 const initialLighting: LightingSettings = {
-  ambientColor: '#404040',
-  ambientIntensity: 0.6,
-  directionalColor: '#ffffff',
-  directionalIntensity: 1,
+  ambient: {
+    uuid: 'ambient-light',
+    color: '#404040',
+    intensity: 0.6,
+  },
+  directional: {
+    uuid: 'directional-light',
+    color: '#ffffff',
+    intensity: 1,
+    position: [10, 10, 10],
+    castShadow: true,
+  },
   backgroundColor: '#222222',
   ambientOcclusion: {
     enabled: true,
     intensity: 1.0,
-    radius: 0.5
-  }
+    radius: 0.5,
+  },
 }
 
 export const useObjectStore = create<ObjectStore>()(
@@ -250,8 +258,12 @@ export const useObjectStore = create<ObjectStore>()(
             : undefined
         }
       }),
-    // Заменяет настройки освещения
-    setLighting: (lighting: LightingSettings) => set({ lighting }),
+    /**
+     * Заменяет текущие настройки освещения объекта.
+     * Ожидает данные только в новой схеме.
+     */
+    setLighting: (lighting: LightingSettings) =>
+      set({ lighting }),
     // Меняет режим отображения
     setRenderMode: (mode: RenderMode) => set({ renderMode: mode }),
     // Устанавливает активный режим трансформации
@@ -604,7 +616,11 @@ export const useObjectStore = create<ObjectStore>()(
 
 // Селекторы состояния стора объекта
 export const useObjectPrimitives = () => useObjectStore(s => s.primitives)
-export const useObjectLighting = () => useObjectStore(s => s.lighting)
+/**
+ * Хук для получения текущих настроек освещения объекта.
+ */
+export const useObjectLighting = () =>
+  useObjectStore(s => s.lighting)
 export const useObjectSelectedPrimitiveIds = () => useObjectStore(s => s.selectedPrimitiveIds)
 export const useObjectHoveredPrimitiveId = () => useObjectStore(s => s.hoveredPrimitiveId)
 export const useObjectRenderMode = () => useObjectStore(s => s.renderMode)

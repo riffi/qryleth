@@ -12,7 +12,7 @@ import {
     Select
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import type {LightingSettings} from '@/entities/lighting'
+import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings } from '@/entities/lighting'
 
 interface LightingControlsProps {
     lighting?: LightingSettings
@@ -22,34 +22,26 @@ interface LightingControlsProps {
 const LIGHTING_PRESETS = {
     'bright-day': {
         name: 'Яркий день',
-        ambientColor: '#87CEEB',
-        ambientIntensity: 0.6,
-        directionalColor: '#FFD700',
-        directionalIntensity: 1.0,
+        ambient: { color: '#87CEEB', intensity: 0.6 },
+        directional: { color: '#FFD700', intensity: 1.0 },
         backgroundColor: '#87CEEB'
     },
     'evening': {
         name: 'Вечер',
-        ambientColor: '#FF6B35',
-        ambientIntensity: 0.3,
-        directionalColor: '#FF8C42',
-        directionalIntensity: 0.6,
+        ambient: { color: '#FF6B35', intensity: 0.3 },
+        directional: { color: '#FF8C42', intensity: 0.6 },
         backgroundColor: '#2C1810'
     },
     'night': {
         name: 'Ночь',
-        ambientColor: '#1E1E3F',
-        ambientIntensity: 0.2,
-        directionalColor: '#4169E1',
-        directionalIntensity: 0.3,
+        ambient: { color: '#1E1E3F', intensity: 0.2 },
+        directional: { color: '#4169E1', intensity: 0.3 },
         backgroundColor: '#0C0C1E'
     },
     'moonlight': {
         name: 'Лунный свет',
-        ambientColor: '#B0C4DE',
-        ambientIntensity: 0.25,
-        directionalColor: '#E6E6FA',
-        directionalIntensity: 0.4,
+        ambient: { color: '#B0C4DE', intensity: 0.25 },
+        directional: { color: '#E6E6FA', intensity: 0.4 },
         backgroundColor: '#191970'
     }
 } as const
@@ -61,11 +53,52 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
     const [lightingExpanded, setLightingExpanded] = useState(false)
     const [selectedPreset, setSelectedPreset] = useState<string>('bright-day')
 
-    const handleLightingChange = (key: keyof LightingSettings, value: any) => {
+    /**
+     * Изменяет параметр ambient света.
+     * @param key поле ambient-настроек
+     * @param value новое значение
+     */
+    const handleAmbientChange = (key: keyof AmbientLightSettings, value: string | number) => {
         if (onLightingChange && lighting) {
             onLightingChange({
                 ...lighting,
-                [key]: value
+                ambient: {
+                    ...(lighting.ambient ?? { uuid: 'ambient-light' }),
+                    [key]: value
+                }
+            })
+        }
+    }
+
+    /**
+     * Изменяет параметр directional света.
+     * @param key поле настроек направленного света
+     * @param value новое значение
+     */
+    const handleDirectionalChange = (key: keyof DirectionalLightSettings, value: string | number) => {
+        if (onLightingChange && lighting) {
+            onLightingChange({
+                ...lighting,
+                directional: {
+                    ...(lighting.directional ?? {
+                        uuid: 'directional-light',
+                        position: [10, 10, 10],
+                        castShadow: true
+                    }),
+                    [key]: value
+                }
+            })
+        }
+    }
+
+    /**
+     * Изменяет цвет фона сцены.
+     */
+    const handleBackgroundChange = (value: string) => {
+        if (onLightingChange && lighting) {
+            onLightingChange({
+                ...lighting,
+                backgroundColor: value
             })
         }
     }
@@ -76,10 +109,18 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
             if (preset) {
                 setSelectedPreset(presetKey)
                 onLightingChange({
-                    ambientColor: preset.ambientColor,
-                    ambientIntensity: preset.ambientIntensity,
-                    directionalColor: preset.directionalColor,
-                    directionalIntensity: preset.directionalIntensity,
+                    ambient: {
+                        ...(lighting?.ambient ?? { uuid: 'ambient-light' }),
+                        ...preset.ambient
+                    },
+                    directional: {
+                        ...(lighting?.directional ?? {
+                            uuid: 'directional-light',
+                            position: [10, 10, 10],
+                            castShadow: true
+                        }),
+                        ...preset.directional
+                    },
                     backgroundColor: preset.backgroundColor
                 })
             }
@@ -90,10 +131,10 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
     useEffect(() => {
         if (lighting) {
             const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) =>
-                preset.ambientColor === lighting.ambientColor &&
-                preset.ambientIntensity === lighting.ambientIntensity &&
-                preset.directionalColor === lighting.directionalColor &&
-                preset.directionalIntensity === lighting.directionalIntensity &&
+                preset.ambient.color === lighting.ambient?.color &&
+                preset.ambient.intensity === lighting.ambient?.intensity &&
+                preset.directional.color === lighting.directional?.color &&
+                preset.directional.intensity === lighting.directional?.intensity &&
                 preset.backgroundColor === lighting.backgroundColor
             )
             if (currentPreset) {
@@ -148,15 +189,15 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                         <Group gap="xs">
                             <ColorInput
                                 size="xs"
-                                value={lighting.ambientColor || '#6b7280'}
-                                onChange={(value) => handleLightingChange('ambientColor', value)}
+                                value={lighting.ambient?.color || '#6b7280'}
+                                onChange={(value) => handleAmbientChange('color', value)}
                                 withEyeDropper={false}
                                 style={{ flex: 1 }}
                             />
                             <NumberInput
                                 size="xs"
-                                value={lighting.ambientIntensity || 0.4}
-                                onChange={(value) => handleLightingChange('ambientIntensity', value)}
+                                value={lighting.ambient?.intensity || 0.4}
+                                onChange={(value) => handleAmbientChange('intensity', value)}
                                 min={0}
                                 max={1}
                                 step={0.1}
@@ -170,15 +211,15 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                         <Group gap="xs">
                             <ColorInput
                                 size="xs"
-                                value={lighting.directionalColor || '#ffffff'}
-                                onChange={(value) => handleLightingChange('directionalColor', value)}
+                                value={lighting.directional?.color || '#ffffff'}
+                                onChange={(value) => handleDirectionalChange('color', value)}
                                 withEyeDropper={false}
                                 style={{ flex: 1 }}
                             />
                             <NumberInput
                                 size="xs"
-                                value={lighting.directionalIntensity || 0.8}
-                                onChange={(value) => handleLightingChange('directionalIntensity', value)}
+                                value={lighting.directional?.intensity || 0.8}
+                                onChange={(value) => handleDirectionalChange('intensity', value)}
                                 min={0}
                                 max={1}
                                 step={0.1}
@@ -192,7 +233,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                         <ColorInput
                             size="xs"
                             value={lighting.backgroundColor || '#1a1b1e'}
-                            onChange={(value) => handleLightingChange('backgroundColor', value)}
+                            onChange={(value) => handleBackgroundChange(value)}
                             withEyeDropper={false}
                         />
                     </Box>
