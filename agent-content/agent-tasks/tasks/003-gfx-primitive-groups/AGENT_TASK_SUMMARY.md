@@ -9,7 +9,7 @@ tags: [gfx, primitives, groups, ui, refactor]
 # Агентская задача: Группировка примитивов GfxObject
 
 ## Обязательная информация
-!Правила работы с агентскими задачами: [agent-tasks.md](../../../docs/development/workflows/agent-tasks.md)
+!Правила работы с агентскими задачами: [agent-tasks.md](../../../../docs/development/workflows/agent-tasks.md)
 **ВАЖНО**: При выполнении каждой из фаз необходимо обязательно сверяться с требованиями и принципами из указанного файла.
 
 ## Контекст задачи
@@ -400,9 +400,9 @@ export interface GfxObject {
 
 ## Связанные файлы и документация
 
-- [Design Principles](../../../docs/architecture/design-principles.md) - Архитектурные принципы
-- [Object Editing Documentation](../../../docs/features/object-editing/README.md) - Документация по редактированию объектов
-- [Types Documentation](../../../docs/api/types/README.md) - Документация по типам API
+- [Design Principles](../../../../docs/architecture/design-principles.md) - Архитектурные принципы
+- [Object Editing Documentation](../../../../docs/features/object-editing/README.md) - Документация по редактированию объектов
+- [Types Documentation](../../../../docs/api/types/README.md) - Документация по типам API
 
 ## Примечания
 
