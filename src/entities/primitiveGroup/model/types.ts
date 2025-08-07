@@ -10,19 +10,19 @@ import type { Vector3 } from "@/shared/types";
 export interface GfxPrimitiveGroup {
   /** Уникальный идентификатор группы */
   uuid: string;
-  
+
   /** Название группы */
   name: string;
-  
+
   /** Видимость группы. Если false, все примитивы в группе скрыты */
   visible?: boolean;
-  
+
   /** UUID родительской группы для создания иерархии */
   parentGroupUuid?: string;
-  
+
   /** UUID исходного объекта при импорте объекта как группы */
   sourceObjectUuid?: string;
-  
+
   /** Трансформация группы для позиционирования и масштабирования */
   transform?: {
     position?: Vector3;
@@ -34,13 +34,13 @@ export interface GfxPrimitiveGroup {
 /**
  * Узел дерева групп для построения иерархической структуры
  */
-export interface GroupTreeNode {
+export interface GfxGroupTreeNode {
   /** Группа */
   group: GfxPrimitiveGroup;
-  
+
   /** Дочерние группы */
-  children: GroupTreeNode[];
-  
+  children: GfxGroupTreeNode[];
+
   /** Глубина вложенности */
   depth: number;
 }
@@ -51,13 +51,13 @@ export interface GroupTreeNode {
 export interface ImportConflictResolution {
   /** Маппинг старых UUID на новые для групп */
   groupUuidMapping: Record<string, string>;
-  
+
   /** Маппинг старых UUID на новые для примитивов */
   primitiveUuidMapping: Record<string, string>;
-  
+
   /** Обновленные группы с новыми UUID и именами */
   resolvedGroups: Record<string, GfxPrimitiveGroup>;
-  
+
   /** Обновленные привязки примитивов к группам */
   resolvedAssignments: Record<string, string>;
 }

@@ -20,7 +20,7 @@ import {
   useSelectedGroupUuids
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
-import type { GroupTreeNode } from '@/entities/primitiveGroup'
+import type { GfxGroupTreeNode } from '@/entities/primitiveGroup'
 import { buildGroupTree, findGroupChildren } from '@/entities/primitiveGroup'
 import { movePrimitiveToGroup } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import { GroupNameModal } from './GroupNameModal'
@@ -41,7 +41,7 @@ export const PrimitiveManager: React.FC = () => {
   const selectedGroupUuids = useSelectedGroupUuids()
 
   // Строим дерево групп локально, чтобы избежать бесконечных рендеров
-  const groupTree = React.useMemo<GroupTreeNode[]>(
+  const groupTree = React.useMemo<GfxGroupTreeNode[]>(
     () => buildGroupTree(groups),
     [groups]
   )
@@ -107,7 +107,7 @@ export const PrimitiveManager: React.FC = () => {
     // При выборе примитива необходимо сбросить выбранный материал,
     // чтобы левая панель переключилась в режим редактирования примитива.
     useObjectStore.getState().selectMaterial(null)
-    
+
     // При выборе примитива сбрасываем выделение групп
     useObjectStore.getState().setSelectedGroups([])
 
@@ -165,7 +165,7 @@ export const PrimitiveManager: React.FC = () => {
   const handleSelectGroup = React.useCallback((groupUuid: string, event?: React.MouseEvent) => {
     // При выборе группы сбрасываем выделение примитивов
     setSelectedPrimitives([])
-    
+
     if (event?.ctrlKey || event?.metaKey) {
       toggleGroupSelection(groupUuid)
     } else {
@@ -302,7 +302,7 @@ export const PrimitiveManager: React.FC = () => {
           // Получаем текущую группу примитива
           const fromGroupUuid = primitiveGroupAssignments[primitiveUuid] || null
           const toGroupUuid = targetGroupUuid && targetGroupUuid !== 'ungrouped' ? targetGroupUuid : null
-          
+
           // Пересчитываем координаты при перемещении между группами
           if (fromGroupUuid !== toGroupUuid) {
             const updatedPrimitive = movePrimitiveToGroup(
@@ -312,7 +312,7 @@ export const PrimitiveManager: React.FC = () => {
               primitives,
               groups
             )
-            
+
             if (updatedPrimitive) {
               // Находим индекс примитива для обновления
               const primitiveIndex = primitives.findIndex(p => p.uuid === primitiveUuid)
@@ -322,7 +322,7 @@ export const PrimitiveManager: React.FC = () => {
               }
             }
           }
-          
+
           // Обновляем привязку к группе
           if (toGroupUuid) {
             assignPrimitiveToGroup(primitiveUuid, toGroupUuid)
@@ -394,7 +394,7 @@ export const PrimitiveManager: React.FC = () => {
    * Рекурсивно рендерит узел дерева групп вместе с принадлежащими ему примитивами.
    * @param node узел дерева групп
    */
-  const renderGroupNode = (node: GroupTreeNode): React.ReactNode => {
+  const renderGroupNode = (node: GfxGroupTreeNode): React.ReactNode => {
     const primitivesInGroup = primitives.filter(
       p => primitiveGroupAssignments[p.uuid] === node.group.uuid
     )

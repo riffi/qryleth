@@ -1,13 +1,13 @@
-import type { GfxPrimitiveGroup, GroupTreeNode } from './types';
+import type { GfxPrimitiveGroup, GfxGroupTreeNode } from './types';
 
 /**
  * Строит иерархическое дерево групп из плоского списка
  * @param groups - Record с группами где ключ - UUID группы
  * @returns Массив корневых узлов дерева
  */
-export function buildGroupTree(groups: Record<string, GfxPrimitiveGroup>): GroupTreeNode[] {
-  const nodeMap = new Map<string, GroupTreeNode>();
-  const rootNodes: GroupTreeNode[] = [];
+export function buildGroupTree(groups: Record<string, GfxPrimitiveGroup>): GfxGroupTreeNode[] {
+  const nodeMap = new Map<string, GfxGroupTreeNode>();
+  const rootNodes: GfxGroupTreeNode[] = [];
 
   // Создаем узлы для всех групп
   Object.values(groups).forEach(group => {
@@ -21,7 +21,7 @@ export function buildGroupTree(groups: Record<string, GfxPrimitiveGroup>): Group
   // Строим иерархию и вычисляем глубину
   Object.values(groups).forEach(group => {
     const node = nodeMap.get(group.uuid)!;
-    
+
     if (group.parentGroupUuid && nodeMap.has(group.parentGroupUuid)) {
       // Добавляем как дочерний узел
       const parentNode = nodeMap.get(group.parentGroupUuid)!;
@@ -34,7 +34,7 @@ export function buildGroupTree(groups: Record<string, GfxPrimitiveGroup>): Group
   });
 
   // Сортируем дочерние узлы по имени для консистентности
-  const sortChildren = (node: GroupTreeNode) => {
+  const sortChildren = (node: GfxGroupTreeNode) => {
     node.children.sort((a, b) => a.group.name.localeCompare(b.group.name));
     node.children.forEach(sortChildren);
   };
@@ -52,23 +52,23 @@ export function buildGroupTree(groups: Record<string, GfxPrimitiveGroup>): Group
  * @returns Массив UUID дочерних групп (включая вложенные)
  */
 export function findGroupChildren(
-  groupUuid: string, 
+  groupUuid: string,
   groups: Record<string, GfxPrimitiveGroup>
 ): string[] {
   const children: string[] = [];
-  
+
   // Находим прямых потомков
   const directChildren = Object.values(groups)
     .filter(group => group.parentGroupUuid === groupUuid)
     .map(group => group.uuid);
-  
+
   children.push(...directChildren);
-  
+
   // Рекурсивно находим потомков потомков
   directChildren.forEach(childUuid => {
     children.push(...findGroupChildren(childUuid, groups));
   });
-  
+
   return children;
 }
 
@@ -84,14 +84,14 @@ export function getGroupPath(
 ): GfxPrimitiveGroup[] {
   const path: GfxPrimitiveGroup[] = [];
   let currentGroup = groups[groupUuid];
-  
+
   while (currentGroup) {
     path.unshift(currentGroup);
-    currentGroup = currentGroup.parentGroupUuid 
-      ? groups[currentGroup.parentGroupUuid] 
+    currentGroup = currentGroup.parentGroupUuid
+      ? groups[currentGroup.parentGroupUuid]
       : undefined;
   }
-  
+
   return path;
 }
 
@@ -108,14 +108,14 @@ export function isGroupDescendant(
   groups: Record<string, GfxPrimitiveGroup>
 ): boolean {
   let currentGroup = groups[childUuid];
-  
+
   while (currentGroup?.parentGroupUuid) {
     if (currentGroup.parentGroupUuid === ancestorUuid) {
       return true;
     }
     currentGroup = groups[currentGroup.parentGroupUuid];
   }
-  
+
   return false;
 }
 
@@ -126,17 +126,17 @@ export function isGroupDescendant(
  */
 export function getMaxGroupDepth(groups: Record<string, GfxPrimitiveGroup>): number {
   if (Object.keys(groups).length === 0) return 0;
-  
+
   const tree = buildGroupTree(groups);
   let maxDepth = 0;
-  
-  const findMaxDepth = (nodes: GroupTreeNode[]) => {
+
+  const findMaxDepth = (nodes: GfxGroupTreeNode[]) => {
     nodes.forEach(node => {
       maxDepth = Math.max(maxDepth, node.depth);
       findMaxDepth(node.children);
     });
   };
-  
+
   findMaxDepth(tree);
   return maxDepth;
 }
@@ -153,15 +153,15 @@ export function getGroupsByDepth(
 ): GfxPrimitiveGroup[] {
   const tree = buildGroupTree(groups);
   const result: GfxPrimitiveGroup[] = [];
-  
-  const collectByDepth = (nodes: GroupTreeNode[], currentDepth: number) => {
+
+  const collectByDepth = (nodes: GfxGroupTreeNode[], currentDepth: number) => {
     if (currentDepth === depth) {
       result.push(...nodes.map(node => node.group));
     } else if (currentDepth < depth) {
       nodes.forEach(node => collectByDepth(node.children, currentDepth + 1));
     }
   };
-  
+
   collectByDepth(tree, 0);
   return result;
 }

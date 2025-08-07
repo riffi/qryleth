@@ -1,6 +1,6 @@
 export type {
   GfxPrimitiveGroup,
-  GroupTreeNode,
+  GfxGroupTreeNode,
   ImportConflictResolution
 } from './model/types';
 
