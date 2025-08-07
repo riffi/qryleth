@@ -26,7 +26,7 @@ import { generateUUID } from '@/shared/lib/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
-  IconBooks,
+  IconFolder,
   IconSettings,
   IconInfoCircle,
   IconEye,
@@ -36,8 +36,6 @@ import {
   IconArrowRightBar,
   IconRotate,
   IconResize,
-  IconChevronLeft,
-  IconChevronRight,
   IconCode
 } from '@tabler/icons-react'
 import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
@@ -495,12 +493,16 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </Paper>
             )}
             <Box style={{ display: 'flex', alignItems: 'center' }}>
-              <Tooltip label={objectPanelCollapsed ? 'Показать менеджер объектов' : 'Свернуть менеджер объектов'}>
+              <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} position="left" withArrow>
                 <ActionIcon
-                  variant="light"
+                  size="md"
+                  variant={objectPanelCollapsed ? 'subtle' : 'filled'}
+                  color={objectPanelCollapsed ? 'gray' : 'blue'}
                   onClick={() => setObjectPanelCollapsed(v => !v)}
+                  aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
                 >
-                  {objectPanelCollapsed ? <IconChevronLeft size={18} /> : <IconChevronRight size={18} />}
+                  {/* Match ObjectEditor manager icon */}
+                  <IconFolder size={20} />
                 </ActionIcon>
               </Tooltip>
             </Box>
