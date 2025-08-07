@@ -151,7 +151,10 @@ export interface GfxObject {
 - Обновить `src/entities/object/model/types.ts`
 - Добавить опциональное поле `localLights` в интерфейс GfxObject
 
-### ✅ Фаза 3: Рефакторинг ObjectSceneLighting
+### Фаза 3: Рефакторинг ObjectSceneLighting
+**Статус**: ✅ Выполнено
+**Отчет**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
 - Адаптировать компонент к новой структуре типов
 - Заменить hardcoded параметры на настраиваемые из состояния
 - Добавить поддержку единичного DirectionalLight источника
