@@ -36,7 +36,8 @@ import {
   IconArrowRightBar,
   IconRotate,
   IconResize,
-  IconCode
+  IconCode,
+  IconMessages
 } from '@tabler/icons-react'
 import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
 import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
@@ -256,6 +257,22 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const chatPanelWidth = scriptingPanelVisible ? 'min(42vw, 820px)' : 'clamp(280px, 28vw, 420px)'
   const objectPanelWidth = 'clamp(260px, 24vw, 380px)'
 
+  // Handlers to toggle panels from header
+  const toggleChatPanel = () => {
+    // Ensure left panel is opened and show chat (not scripting)
+    setScriptingPanelVisible(false)
+    setChatCollapsed(prev => !prev)
+  }
+
+  const toggleScriptingPanel = () => {
+    setChatCollapsed(false)
+    setScriptingPanelVisible(prev => !prev)
+  }
+
+  const toggleRightPanel = () => {
+    setObjectPanelCollapsed(prev => !prev)
+  }
+
   return (
     <>
       <MainLayout
@@ -281,18 +298,44 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               </ActionIcon>
             </Tooltip>
 
+            {/* Panel toggles aligned with ObjectEditor style */}
+            <Group gap="xs">
+              <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={chatCollapsed ? 'subtle' : 'filled'}
+                  color={chatCollapsed ? 'gray' : 'blue'}
+                  onClick={toggleChatPanel}
+                  aria-label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'}
+                >
+                  <IconMessages size={18} />
+                </ActionIcon>
+              </Tooltip>
 
-            <Tooltip label="Панель скриптинга">
-              <ActionIcon
-                variant="subtle"
-                size="sm"
-                c={"gray.4"}
-                onClick={() => setScriptingPanelVisible(true)}
-              >
-                <IconCode size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
+              <Tooltip label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={scriptingPanelVisible ? 'filled' : 'subtle'}
+                  color={scriptingPanelVisible ? 'blue' : 'gray'}
+                  onClick={toggleScriptingPanel}
+                  aria-label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'}
+                >
+                  <IconCode size={18} />
+                </ActionIcon>
+              </Tooltip>
 
+              <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={objectPanelCollapsed ? 'subtle' : 'filled'}
+                  color={objectPanelCollapsed ? 'gray' : 'blue'}
+                  onClick={toggleRightPanel}
+                  aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
+                >
+                  <IconFolder size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </>
         )}
       >
@@ -335,30 +378,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Paper>
         )}
 
-        {chatCollapsed && (
-          <Box
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: '100%'
-            }}
-          >
-            <Tooltip label="Развернуть чат">
-              <ActionIcon
-                variant="filled"
-                size="lg"
-                onClick={() => setChatCollapsed(false)}
-                style={{
-                  borderRadius: '0 8px 8px 0'
-                }}
-              >
-                <IconChevronRight size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Box>
-        )}
+        {/* No side handle for left panel; use header icons */}
 
         <Paper
           shadow="sm"
@@ -492,20 +512,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 />
               </Paper>
             )}
-            <Box style={{ display: 'flex', alignItems: 'center' }}>
-              <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} position="left" withArrow>
-                <ActionIcon
-                  size="md"
-                  variant={objectPanelCollapsed ? 'subtle' : 'filled'}
-                  color={objectPanelCollapsed ? 'gray' : 'blue'}
-                  onClick={() => setObjectPanelCollapsed(v => !v)}
-                  aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
-                >
-                  {/* Match ObjectEditor manager icon */}
-                  <IconFolder size={20} />
-                </ActionIcon>
-              </Tooltip>
-            </Box>
+            {/* No side handle for right panel; use header icons */}
           </>
         )}
       </Container>
@@ -589,7 +596,7 @@ const SaveSceneModal: React.FC<SaveSceneModalProps> = ({ opened, onClose, onSave
       return
     }
 
-    onSave(sceneName.trim(), sceneDescription.trim() || undefined)
+  onSave(sceneName.trim(), sceneDescription.trim() || undefined)
     setSceneName('')
     setSceneDescription('')
   }
