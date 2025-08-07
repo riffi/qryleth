@@ -100,6 +100,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
+  const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
 
   // Глобальное состояние панелей для ObjectEditor
   const globalPanelState = useGlobalPanelState()
@@ -253,6 +254,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     return JSON.parse(JSON.stringify(obj))
   }, [editingObject, objects])
 
+  // Responsive sizes
+  const chatPanelWidth = scriptingPanelVisible ? 'min(42vw, 820px)' : 'clamp(280px, 28vw, 420px)'
+  const objectPanelWidth = 'clamp(260px, 24vw, 380px)'
+
   return (
     <>
       <MainLayout
@@ -306,7 +311,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="sm" radius="md" style={{ width: scriptingPanelVisible ? 800 : 400, height: '100%' }}>
+          <Paper shadow="sm" radius="md" style={{ width: chatPanelWidth, height: '100%', minWidth: 260 }}>
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Group justify="space-between" p="sm" bg="gray.8">
@@ -368,10 +373,17 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               top: 8,
               left: 8,
               zIndex: 10,
-              padding: 6
+              padding: 6,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 70%, transparent)',
+              backdropFilter: 'blur(6px)',
+              borderRadius: 8,
+              border: '1px solid var(--mantine-color-dark-5)'
             }}
           >
-            <Group gap="xs">
+            <Group gap="xs" wrap="nowrap">
               <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
                 <ActionIcon
                   variant={gridVisible ? 'filled' : 'light'}
@@ -383,7 +395,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </ActionIcon>
               </Tooltip>
 
-              <Group gap="xs">
+              <Group gap="xs" wrap="nowrap">
                 <Tooltip label="Перемещение">
                   <ActionIcon
                     size="md"
@@ -469,16 +481,30 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         </Paper>
 
         {showObjectManager && (
-          <Paper
-            shadow="sm"
-            radius="md"
-            style={{ width: 350, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
-          >
-            <SceneObjectManager
-              onSaveSceneToLibrary={handleSaveSceneToLibrary}
-              onEditObject={handleEditObject}
-            />
-          </Paper>
+          <>
+            {!objectPanelCollapsed && (
+              <Paper
+                shadow="sm"
+                radius="md"
+                style={{ width: objectPanelWidth, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 240 }}
+              >
+                <SceneObjectManager
+                  onSaveSceneToLibrary={handleSaveSceneToLibrary}
+                  onEditObject={handleEditObject}
+                />
+              </Paper>
+            )}
+            <Box style={{ display: 'flex', alignItems: 'center' }}>
+              <Tooltip label={objectPanelCollapsed ? 'Показать менеджер объектов' : 'Свернуть менеджер объектов'}>
+                <ActionIcon
+                  variant="light"
+                  onClick={() => setObjectPanelCollapsed(v => !v)}
+                >
+                  {objectPanelCollapsed ? <IconChevronLeft size={18} /> : <IconChevronRight size={18} />}
+                </ActionIcon>
+              </Tooltip>
+            </Box>
+          </>
         )}
       </Container>
       </MainLayout>
