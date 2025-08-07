@@ -1,5 +1,6 @@
 ---
-epic: ../../epics/fsd-shared-layer-cleanup/epic.md
+id: 2
+epic: ../../../epics/001-fsd-shared-layer-cleanup/epic.md
 status: planned
 created: 2025-08-07
 tags: [architecture, fsd, refactoring, database]

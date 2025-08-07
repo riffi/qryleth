@@ -1,4 +1,5 @@
 ---
+id: 1
 status: planned
 created: 2025-08-07
 tags: [architecture, fsd, refactoring, shared-layer]
@@ -63,7 +64,7 @@ tags: [architecture, fsd, refactoring, shared-layer]
 - [x] Определить архитектурные принципы решения
 
 ### ⏳ Этап 2: Database и API рефакторинг
-- [ ] [Задача: FSD Repository Refactoring](../tasks/fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)
+- [ ] [Задача: FSD Repository Refactoring](tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)
 - [ ] Создать абстрактные репозитории в shared
 - [ ] Перенести доменные типы в entities
 
@@ -89,7 +90,7 @@ tags: [architecture, fsd, refactoring, shared-layer]
 
 ## Связанные задачи
 
-1. **[FSD Repository Refactoring](tasks/fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)** - рефакторинг database.ts и API типов
+1. **[FSD Repository Refactoring](tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)** - рефакторинг database.ts и API типов
 2. **Materials System FSD Cleanup** - планируется
 3. **R3F Components Generic Refactoring** - планируется  
 4. **Geometry Utils Abstraction** - планируется
