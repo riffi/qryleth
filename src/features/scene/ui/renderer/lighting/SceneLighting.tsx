@@ -1,33 +1,40 @@
 import React from 'react'
 import { useSceneLighting } from '../../../model/sceneStore.ts'
 
+/**
+ * Компонент, рендерящий источники света в сцене редактора.
+ * Поддерживает новую структуру LightingSettings с fallback на устаревшие поля,
+ * чтобы сохранить совместимость с текущим хранилищем.
+ */
 export const SceneLighting: React.FC = () => {
   const lighting = useSceneLighting()
 
+  // Параметры окружающего света с поддержкой новой и старой схемы настроек
+  const ambientColor = lighting.ambient?.color ?? lighting.ambientColor ?? '#87CEEB'
+  const ambientIntensity =
+    lighting.ambient?.intensity ?? lighting.ambientIntensity ?? 0.6
+
+  // Параметры единственного направленного источника света
+  const directional = lighting.directional
+  const directionalColor = directional?.color ?? lighting.directionalColor ?? '#FFD700'
+  const directionalIntensity =
+    directional?.intensity ?? lighting.directionalIntensity ?? 1
+  const directionalPosition = directional?.position ?? [10, 10, 10]
+  const castShadow = directional?.castShadow ?? true
+  const shadowMapSize = directional?.shadowProps?.mapSize ?? [2048, 2048]
+  const shadowCameraFar = directional?.shadowProps?.cameraFar ?? 100
+
   return (
     <>
-      {/* Ambient Light */}
-      <ambientLight
-        color={lighting.ambientColor || '#87CEEB'}
-        intensity={lighting.ambientIntensity || 0.6}
-      />
-
-      {/* Directional Light with shadows */}
+      <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <directionalLight
-        position={[10, 10, 10]}
-        color={lighting.directionalColor || '#FFD700'}
-        intensity={lighting.directionalIntensity || 1.0}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.1}
-        shadow-camera-far={100}
-        shadow-camera-left={-50}
-        shadow-camera-right={50}
-        shadow-camera-top={50}
-        shadow-camera-bottom={-50}
-        shadow-bias={-0.001}
-        shadow-normalBias={0.01}
+        position={directionalPosition}
+        color={directionalColor}
+        intensity={directionalIntensity}
+        castShadow={castShadow}
+        shadow-mapSize-width={shadowMapSize[0]}
+        shadow-mapSize-height={shadowMapSize[1]}
+        shadow-camera-far={shadowCameraFar}
       />
     </>
   )
