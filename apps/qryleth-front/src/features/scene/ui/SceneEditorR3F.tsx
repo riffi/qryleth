@@ -352,7 +352,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="sm" radius="md" style={{ width: chatPanelWidth, height: '100%', minWidth: 260 }}>
+          <Paper shadow="xs" radius="md" withBorder style={{ width: chatPanelWidth, height: '100%', minWidth: 260, display: 'flex' }}>
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Group justify="space-between" p="sm" bg="gray.8">
@@ -378,26 +378,26 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Paper>
         )}
 
-        {/* No side handle for left panel; use header icons */}
-
+        {/* Center */}
         <Paper
-          shadow="sm"
+          shadow="xs"
           radius="md"
+          withBorder
           style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
         >
           <Box
             style={{
               position: 'absolute',
-              top: 8,
-              left: 8,
+              top: 10,
+              left: 10,
               zIndex: 10,
               padding: 6,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 70%, transparent)',
+              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
               backdropFilter: 'blur(6px)',
-              borderRadius: 8,
+              borderRadius: 10,
               border: '1px solid var(--mantine-color-dark-5)'
             }}
           >
@@ -494,7 +494,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Box>
 
           <Box style={{ width: '100%', height: '100%' }}>
-            <Scene3D />
+            <Scene3D className="scene-canvas" onSceneReady={() => {}} />
           </Box>
         </Paper>
 
@@ -502,8 +502,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <>
             {!objectPanelCollapsed && (
               <Paper
-                shadow="sm"
+                shadow="xs"
                 radius="md"
+                withBorder
                 style={{ width: objectPanelWidth, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 240 }}
               >
                 <SceneObjectManager
@@ -523,11 +524,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         fullScreen
         styles={{
           body: {
-            height: 'calc(100vh - 120px)',
+            height: 'calc(100dvh - 120px)',
             padding: 0
           },
           content: {
-            height: '100vh'
+            height: '100dvh'
           },
           header: {
             padding: '1rem'
