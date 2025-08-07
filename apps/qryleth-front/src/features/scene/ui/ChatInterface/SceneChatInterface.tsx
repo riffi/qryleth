@@ -51,8 +51,11 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
 
   return (
     <Stack gap={0} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', minHeight: 0 }}>
-      {/* Header с контролами */}
-      <Paper p="md" withBorder>
+      {/* Header с контролами (внутри панели, без дополнительного Paper) */}
+      <Box p="sm" style={{
+        borderBottom: '1px solid var(--mantine-color-dark-5)',
+        background: 'var(--mantine-color-dark-7)'
+      }}>
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
             <Group flex={1} style={{ flexGrow: 1 }}>
@@ -90,7 +93,7 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
             )}
           </Group>
         </Group>
-      </Paper>
+      </Box>
 
       {/* Табы для переключения между чатом и отладкой */}
       <Tabs
