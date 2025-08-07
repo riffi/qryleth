@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react'
 import { AppShell, Title, Container, Stack } from '@mantine/core'
 import { Navigation } from './components/Navigation'
 import { Dashboard } from './components/Dashboard'
-import { TaskList } from './components/TaskList'
 import { EpicList } from './components/EpicList'
+import { TasksPage } from './components/TasksPage'
+import { TestPage } from './components/TestPage'
 import { 
   getAllTasks, 
   getAllEpics, 
@@ -56,13 +57,6 @@ function App() {
     }
   }
 
-  /**
-   * Обработчик клика по задаче
-   */
-  const handleTaskClick = (task: AgentTask) => {
-    console.log('Clicked task:', task)
-    // TODO: Реализовать переход к деталям задачи
-  }
 
   /**
    * Обработчик клика по эпику
@@ -89,12 +83,7 @@ function App() {
         )
       case 'tasks':
         return (
-          <TaskList
-            tasks={tasks}
-            loading={loading}
-            error={error}
-            onTaskClick={handleTaskClick}
-          />
+          <TasksPage />
         )
       case 'epics':
         return (
@@ -104,6 +93,10 @@ function App() {
             error={error}
             onEpicClick={handleEpicClick}
           />
+        )
+      case 'test':
+        return (
+          <TestPage />
         )
       default:
         return null

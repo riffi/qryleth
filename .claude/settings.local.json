@@ -20,7 +20,9 @@
       "Bash(timeout:*)",
       "Bash(curl:*)",
       "Bash(powershell:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(pkill:*)",
+      "Bash(npm start)"
     ],
     "deny": []
   }

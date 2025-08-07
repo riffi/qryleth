@@ -3,13 +3,15 @@
  */
 import { Card, Text, Badge, Group, Stack, Title, Loader, Alert } from '@mantine/core'
 import { IconAlertCircle, IconCalendar, IconHash, IconTag } from '@tabler/icons-react'
-import { AgentTask } from '../services/apiService'
+import { AgentTask, PaginationInfo } from '../services/apiService'
 
 interface TaskListProps {
   tasks: AgentTask[]
   loading: boolean
   error: string | null
   onTaskClick?: (task: AgentTask) => void
+  pagination?: PaginationInfo
+  showTitle?: boolean
 }
 
 /**
@@ -44,7 +46,14 @@ const getStatusLabel = (status: string) => {
   }
 }
 
-export function TaskList({ tasks, loading, error, onTaskClick }: TaskListProps) {
+export function TaskList({ 
+  tasks, 
+  loading, 
+  error, 
+  onTaskClick, 
+  pagination,
+  showTitle = true 
+}: TaskListProps) {
   if (loading) {
     return (
       <Stack align="center" mt="xl">
@@ -72,7 +81,12 @@ export function TaskList({ tasks, loading, error, onTaskClick }: TaskListProps) 
 
   return (
     <Stack gap="md">
-      <Title order={2}>Агентские задачи ({tasks.length})</Title>
+      {showTitle && (
+        <Title order={2}>
+          Агентские задачи 
+          {pagination ? `(${pagination.total})` : `(${tasks.length})`}
+        </Title>
+      )}
       
       {tasks.map((task) => (
         <Card

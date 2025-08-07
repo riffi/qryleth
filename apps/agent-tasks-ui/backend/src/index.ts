@@ -6,9 +6,9 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import tasksRouter from './routes/tasks'
-import epicsRouter from './routes/epics'
-import managerRouter from './routes/manager'
+import tasksRouter from './routes/tasks.js'
+import epicsRouter from './routes/epics.js'
+import managerRouter from './routes/manager.js'
 
 const app = express()
 const PORT = process.env.PORT || 3002

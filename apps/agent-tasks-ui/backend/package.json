@@ -2,6 +2,7 @@
   "name": "agent-tasks-ui-backend",
   "version": "1.0.0",
   "description": "Backend API для управления агентскими задачами",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node dist/index.js",

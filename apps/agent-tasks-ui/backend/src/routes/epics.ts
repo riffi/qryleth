@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import { getAllEpics, getEpicTasks } from '../services/fileSystemService'
+import { getAllEpics, getEpicTasks } from '../services/fileSystemService.js'
 
 const router = Router()
 

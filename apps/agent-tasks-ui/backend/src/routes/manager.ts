@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import { getManagerState } from '../services/fileSystemService'
+import { getManagerState } from '../services/fileSystemService.js'
 
 const router = Router()
 

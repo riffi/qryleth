@@ -2,7 +2,7 @@
  * Компонент навигации приложения
  */
 import { NavLink, Stack, rem } from '@mantine/core'
-import { IconChecklist, IconBulb, IconDashboard } from '@tabler/icons-react'
+import { IconChecklist, IconBulb, IconDashboard, IconTestPipe } from '@tabler/icons-react'
 
 interface NavigationProps {
   activeTab: string
@@ -28,6 +28,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       label: 'Эпики',
       icon: IconBulb,
       description: 'Список эпиков и связанных задач'
+    },
+    {
+      key: 'test',
+      label: 'Тест API',
+      icon: IconTestPipe,
+      description: 'Тестирование API endpoint'
     }
   ]
 

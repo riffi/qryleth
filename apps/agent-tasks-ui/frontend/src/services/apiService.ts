@@ -57,6 +57,33 @@ interface ApiResponse<T> {
   message?: string
 }
 
+export interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
+export interface TasksResponse {
+  data: AgentTask[]
+  pagination: PaginationInfo
+  filters: {
+    search: string | null
+    tags: string | null
+    status: string | null
+    epic: string | null
+  }
+}
+
+export interface TaskFilters {
+  search?: string
+  tags?: string[]
+  status?: string
+  epic?: string
+  page?: number
+  limit?: number
+}
+
 /**
  * Получить список всех задач
  */
@@ -66,6 +93,26 @@ export const getAllTasks = async (): Promise<AgentTask[]> => {
     throw new Error(response.data.error || 'Ошибка загрузки задач')
   }
   return response.data.data
+}
+
+/**
+ * Получить задачи с фильтрами и пагинацией
+ */
+export const getTasksWithFilters = async (filters: TaskFilters): Promise<TasksResponse> => {
+  const params = new URLSearchParams()
+
+  if (filters.search) params.append('search', filters.search)
+  if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','))
+  if (filters.status) params.append('status', filters.status)
+  if (filters.epic) params.append('epic', filters.epic)
+  if (filters.page) params.append('page', filters.page.toString())
+  if (filters.limit) params.append('limit', filters.limit.toString())
+
+  const response = await api.get<ApiResponse<TasksResponse>>(`/tasks?${params.toString()}`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Ошибка загрузки задач')
+  }
+  return response.data
 }
 
 /**

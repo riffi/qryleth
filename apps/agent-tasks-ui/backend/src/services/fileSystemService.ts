@@ -6,7 +6,7 @@
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import matter from 'gray-matter'
-import { AgentTask, Epic, ManagerState, AgentTaskPhase } from '../types'
+import { AgentTask, Epic, ManagerState, AgentTaskPhase } from '../types/index.js'
 
 /**
  * Базовый путь к папке agent-content от корня проекта
