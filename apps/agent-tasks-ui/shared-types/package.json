@@ -1,0 +1,16 @@
+{
+  "name": "@agent-tasks-ui/shared-types",
+  "version": "1.0.0",
+  "description": "Общие типы данных для Agent Tasks UI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "keywords": ["typescript", "types", "agent-tasks"],
+  "license": "ISC"
+}
