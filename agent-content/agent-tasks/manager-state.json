@@ -1,10 +1,11 @@
 {
-  "nextTaskId": 6,
+  "nextTaskId": 7,
   "version": "1.0.0",
-  "lastModified": "2025-08-07T15:30:00Z",
+  "lastModified": "2025-08-07T20:45:00Z",
   "metadata": {
-    "totalItems": 5,
+    "totalItems": 6,
     "completedTasks": 2,
-    "activeEpics": 1
+    "activeEpics": 1,
+    "activeTasks": 4
   }
 }

@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import LibraryPage from '../pages/LibraryPage'
 import ObjectEditorPage from '../pages/ObjectEditorPage'
 import SceneEditorPage from '../pages/SceneEditorPage'
+import InstancedMeshTestPage from '../pages/InstancedMeshTestPage'
 
 export default function Router() {
   return (
@@ -12,6 +13,7 @@ export default function Router() {
       <Route path="/scenes/:id/edit" element={<SceneEditorPage />} />
       <Route path="/objects/new" element={<ObjectEditorPage />} />
       <Route path="/objects/:id/edit" element={<ObjectEditorPage />} />
+      <Route path="/test/instanced-mesh" element={<InstancedMeshTestPage />} />
     </Routes>
   )
 }

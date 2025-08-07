@@ -42,9 +42,9 @@ export const useObjectInstanceCounts = () => {
 
   // Считаем один раз за рендер
   return useMemo(() => {
-    const counts: Record<number, number> = {}
+    const counts: Record<string, number> = {}
     for (const p of instances) {
-      counts[p.objectIndex] = (counts[p.objectIndex] || 0) + 1
+      counts[p.objectUuid] = (counts[p.objectUuid] || 0) + 1
     }
     return counts
   }, [instances])

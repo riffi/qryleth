@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { MemoizedSceneObject } from '@/features/scene'
-import { InstancedObjects } from '@/shared/r3f/optimization/InstancedObjects.tsx'
+import { InstancedObjects, useInstanceOptimization } from '@/shared/r3f/optimization/InstancedObjects.tsx'
 import {
   useSceneObjects,
   useSceneObjectInstances,
@@ -20,8 +20,16 @@ export const SceneObjects: React.FC = () => {
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
 
-  const { handleClick, handlePointerOver, handlePointerOut } = useSceneEvents()
+  const sceneEvents = useSceneEvents()
 
+  // Calculate instance counts for optimization
+  const instanceCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    objectInstances.forEach((inst) => {
+      counts[inst.objectUuid] = (counts[inst.objectUuid] || 0) + 1
+    })
+    return counts
+  }, [objectInstances])
 
   const isSelected = (objectUuid: string, instanceId?: string) => {
     if (!selectedObject) return false
@@ -48,12 +56,26 @@ export const SceneObjects: React.FC = () => {
         instances={objectInstances}
         layers={layers}
         minimumInstancesForOptimization={3}
+        onClick={sceneEvents.handleClick}
+        onHover={sceneEvents.handlePointerOver}
       />
 
       {/* Individual objects (not instanced) */}
       {objectInstances.map((instance, instanceIndex) => {
         const sceneObject = objects.find(obj => obj.uuid === instance.objectUuid)
         if (!sceneObject) return null
+
+        // Check if this object should use instancing
+        const shouldUseInstancing = useInstanceOptimization(
+          instance.objectUuid,
+          instanceCounts,
+          3
+        )
+
+        // Skip rendering if this object is handled by instanced mesh
+        if (shouldUseInstancing) {
+          return null
+        }
 
         // Check layer visibility
         const layerId = sceneObject.layerId || 'objects'
@@ -80,8 +102,8 @@ export const SceneObjects: React.FC = () => {
             instanceIndex={instanceIndex}
             isSelected={isSelected(instance.objectUuid, instanceId)}
             isHovered={isHovered(instance.objectUuid, instanceId)}
-            onClick={handleClick}
-            onHover={handlePointerOver}
+            onClick={sceneEvents.handleClick}
+            onHover={sceneEvents.handlePointerOver}
             visible={true}
           />
         )

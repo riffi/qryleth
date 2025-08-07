@@ -32,6 +32,8 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
       const objectUuid = clickedObject.userData.objectUuid
       const objectInstanceUuid = clickedObject.userData.objectInstanceUuid
 
+      // For instanced mesh, objectInstanceUuid might not be available
+      // In that case, we select the object type without specific instance
       selectObject(objectUuid, objectInstanceUuid)
     } else {
       clearSelection()
@@ -54,6 +56,8 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
       const objectInstanceUuid = hoveredObject.userData.objectInstanceUuid
       const instanceId = objectInstanceUuid
 
+      // For instanced mesh, objectInstanceUuid might not be available
+      // In that case, we hover the object type without specific instance
       setHoveredObject(objectUuid, instanceId)
 
       // Change cursor to pointer

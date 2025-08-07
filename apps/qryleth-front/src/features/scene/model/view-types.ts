@@ -12,10 +12,9 @@ import type { SelectedSceneObject, HoveredSceneObject, SceneClickEvent, SceneHov
 
 // Hook return types
 export interface UseSceneEventsReturn {
-  onSceneClick: (event: SceneClickEvent) => void
-  onSceneHover: (event: SceneHoverEvent | null) => void
-  onObjectTransform: (event: ObjectTransformEvent) => void
-  onPrimitiveTransform: (event: PrimitiveTransformEvent) => void
+  handleClick: (event: any) => void
+  handlePointerOver: (event: any) => void
+  handlePointerOut: (event: any) => void
 }
 
 
