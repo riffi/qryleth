@@ -136,12 +136,18 @@ export interface GfxObject {
 
 ## План выполнения (фазы)
 
-### ✅ Фаза 1: Обновление типов освещения
+### Фаза 1: Обновление типов освещения
+**Статус**: ✅ Выполнено
+**Отчет**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
+
 - Обновить `src/entities/lighting/model/types.ts` с новой структурой
 - Добавить новые интерфейсы для Point и Spot light
 - Сохранить обратную совместимость с существующими полями LightingSettings
 
-### ✅ Фаза 2: Добавление локального освещения в GfxObject  
+### Фаза 2: Добавление локального освещения в GfxObject
+**Статус**: ✅ Выполнено
+**Отчет**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
+
 - Обновить `src/entities/object/model/types.ts`
 - Добавить опциональное поле `localLights` в интерфейс GfxObject
 

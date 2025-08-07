@@ -1,4 +1,10 @@
-import type { GfxPrimitive, GfxMaterial, GfxPrimitiveGroup } from "@/entities";
+import type {
+  GfxPrimitive,
+  GfxMaterial,
+  GfxPrimitiveGroup,
+  PointLightSettings,
+  SpotLightSettings,
+} from "@/entities";
 import type { Vector3, BoundingBox } from "@/shared/types";
 
 export interface GfxObject {
@@ -13,6 +19,13 @@ export interface GfxObject {
   primitiveGroups?: Record<string, GfxPrimitiveGroup>;
   /** Привязка примитивов к группам: primitiveUuid -> groupUuid */
   primitiveGroupAssignments?: Record<string, string>;
+  /** Локальное освещение, перемещающееся вместе с объектом */
+  localLights?: {
+    /** Точечные источники света */
+    point: PointLightSettings[];
+    /** Прожекторные источники света */
+    spot: SpotLightSettings[];
+  };
 }
 
 export interface GfxObjectWithTransform extends GfxObject {
