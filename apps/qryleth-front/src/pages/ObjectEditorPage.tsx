@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { ObjectEditorR3F, PanelToggleButtons } from '@/features/object-editor'
-import { Title, Group, ActionIcon, Tooltip } from '@mantine/core'
+import { Title, Group, ActionIcon, Tooltip, Modal, Stack, TextInput, Button } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
-import { db, type ObjectRecord } from '@/shared/lib/database'
+import { db } from '@/shared/lib/database'
+import type { ObjectRecord } from '@/shared/api/types'
 import type { GfxObject } from '@/entities/object'
 import { useGlobalPanelState } from '@/features/object-editor/lib/hooks/useGlobalPanelState'
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
@@ -14,17 +15,34 @@ const ObjectEditorPage: React.FC = () => {
   const navigate = useNavigate()
   const [objectRecord, setObjectRecord] = useState<ObjectRecord | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const [saveModalOpened, setSaveModalOpened] = useState(false)
+  const [objectName, setObjectName] = useState('')
+  const [pendingObject, setPendingObject] = useState<GfxObject | null>(null)
   const globalPanelState = useGlobalPanelState()
 
   useEffect(() => {
-    if (id) {
-      db.getObject(id).then(record => {
-        if (record) setObjectRecord(record)
+    const loadObject = async () => {
+      try {
+        // Проверяем готовность базы данных
+        const isDbReady = await db.isReady()
+        if (!isDbReady) {
+          console.error('Database not ready')
+          setIsReady(true)
+          return
+        }
+        
+        if (id) {
+          const record = await db.getObject(id)
+          if (record) setObjectRecord(record)
+        }
         setIsReady(true)
-      })
-    } else {
-      setIsReady(true)
+      } catch (error) {
+        console.error('Error loading object:', error)
+        setIsReady(true)
+      }
     }
+    
+    loadObject()
   }, [id])
 
   /**
@@ -32,32 +50,116 @@ const ObjectEditorPage: React.FC = () => {
    * Используем UUID записи библиотеки, иначе объект не обновится.
    */
   const handleSave = async (object: GfxObject) => {
-    if (!objectRecord) return
     try {
-      await db.updateObject(objectRecord.uuid, {
-        objectData: object
-      })
-
+      // Проверяем готовность базы данных
+      const isDbReady = await db.isReady()
+      if (!isDbReady) {
+        throw new Error('База данных не готова к работе')
+      }
+      
+      if (objectRecord) {
+        // Обновляем существующий объект
+        await db.updateObject(objectRecord.uuid, {
+          objectData: object
+        })
+      } else {
+        // Создаем новый объект
+        const uuid = await db.saveObject(object.name, object)
+        setObjectRecord({
+          uuid,
+          name: object.name,
+          objectData: object,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+      }
+      
       navigate('/')
     } catch (error) {
       console.error('Error saving object:', error)
+      // Добавим уведомление об ошибке
+      alert(`Ошибка сохранения: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
 
+  /**
+   * Обработчик для сохранения нового объекта с введенным именем
+   */
+  const handleSaveNewObject = async () => {
+    if (!pendingObject) return
+    
+    const trimmedName = objectName.trim()
+    if (!trimmedName) return
+
+    const objectWithName = {
+      ...pendingObject,
+      name: trimmedName
+    }
+
+    try {
+      // Проверяем готовность базы данных
+      const isDbReady = await db.isReady()
+      if (!isDbReady) {
+        throw new Error('База данных не готова к работе')
+      }
+
+      // Создаем новый объект
+      const uuid = await db.saveObject(trimmedName, objectWithName)
+      setObjectRecord({
+        uuid,
+        name: trimmedName,
+        objectData: objectWithName,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      
+      setSaveModalOpened(false)
+      setObjectName('')
+      setPendingObject(null)
+      navigate('/')
+    } catch (error) {
+      console.error('Error saving new object:', error)
+      alert(`Ошибка сохранения: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    }
+  }
+
+  /**
+   * Закрывает модальное окно и сбрасывает состояние
+   */
+  const handleCloseModal = () => {
+    setSaveModalOpened(false)
+    setObjectName('')
+    setPendingObject(null)
+  }
 
   /**
    * Формирует объект из состояния редактора и сохраняет его.
    */
   const handleSaveClick = () => {
-    if (!objectRecord?.objectData) return
-    const updated = buildUpdatedObject(objectRecord.objectData)
-    handleSave(updated)
+    const updated = buildUpdatedObject(objectRecord?.objectData || {
+      uuid: '',
+      name: 'Новый объект',
+      primitives: [],
+      materials: [],
+      primitiveGroups: {},
+      primitiveGroupAssignments: {}
+    })
+
+    if (objectRecord) {
+      // Для существующего объекта сохраняем сразу
+      handleSave(updated)
+    } else {
+      // Для нового объекта показываем модальное окно для ввода имени
+      setPendingObject(updated)
+      setObjectName('Новый объект')
+      setSaveModalOpened(true)
+    }
   }
 
   const headerRightSection = (
     <>
       <Title order={4} mr="3rem">
-        {objectRecord?.objectData ? `Редактор объекта: ${objectRecord?.objectData.name}` : 'Новый объект'}
+        {objectRecord?.objectData ? `Редактор объекта: ${objectRecord.objectData.name}` : 'Новый объект'}
       </Title>
       <Group gap="xs">
         <Tooltip label="Сохранить" withArrow>
@@ -86,9 +188,37 @@ const ObjectEditorPage: React.FC = () => {
   return (
     <MainLayout rightSection={headerRightSection}>
       <ObjectEditorR3F
-        objectData={objectRecord?.objectData}
+        objectData={objectRecord?.objectData || {
+          uuid: '',
+          name: 'Новый объект',
+          primitives: [],
+          materials: [],
+          primitiveGroups: {},
+          primitiveGroupAssignments: {}
+        }}
         externalPanelState={globalPanelState}
       />
+      
+      {/* Модальное окно для ввода имени нового объекта */}
+      <Modal opened={saveModalOpened} onClose={handleCloseModal} title="Сохранить новый объект" size="sm">
+        <Stack gap="md">
+          <TextInput
+            label="Название объекта"
+            value={objectName}
+            onChange={(e) => setObjectName(e.currentTarget.value)}
+            placeholder="Введите название объекта"
+            autoFocus
+          />
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={handleCloseModal}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveNewObject}>
+              Сохранить
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </MainLayout>
   )
 }

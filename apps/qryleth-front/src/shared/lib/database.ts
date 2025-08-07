@@ -52,6 +52,19 @@ export class SceneLibraryDB extends Dexie {
     })
   }
 
+  /**
+   * Проверяет готовность базы данных
+   */
+  async isReady(): Promise<boolean> {
+    try {
+      await this.open()
+      return true
+    } catch (error) {
+      console.error('Database not ready:', error)
+      return false
+    }
+  }
+
   // Scene methods
   async saveScene(name: string, sceneData: SceneData, description?: string, thumbnail?: string): Promise<string> {
     const uuid = uuidv4()
@@ -146,6 +159,13 @@ export class SceneLibraryDB extends Dexie {
     }
 
     try {
+      // Проверяем, существует ли объект
+      const existingObject = await this.objects.where('uuid').equals(uuid).first()
+      if (!existingObject) {
+        throw new Error(`Object with UUID ${uuid} not found`)
+      }
+      
+      // Обновляем объект
       await this.objects.where('uuid').equals(uuid).modify({
         ...updates,
         updatedAt: new Date()
@@ -325,3 +345,10 @@ export class SceneLibraryDB extends Dexie {
 
 // Export singleton instance
 export const db = new SceneLibraryDB()
+
+// Инициализация базы данных при импорте
+db.open().then(() => {
+  console.log('Database initialized successfully')
+}).catch((error) => {
+  console.error('Failed to initialize database:', error)
+})

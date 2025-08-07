@@ -8,7 +8,8 @@ import type { GfxObject } from '@/entities/object'
  */
 export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   const state = useObjectStore.getState()
-  return {
+  
+  const updatedObject = {
     ...baseObject,
     primitives: state.primitives.map(p => ({ ...p })),
     boundingBox: state.boundingBox,
@@ -16,4 +17,6 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
     primitiveGroups: state.primitiveGroups,
     primitiveGroupAssignments: state.primitiveGroupAssignments,
   }
+  
+  return updatedObject
 }
