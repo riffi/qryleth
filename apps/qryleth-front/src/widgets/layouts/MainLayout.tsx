@@ -38,9 +38,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
 
   return (
     <AppShell
-      header={{ height: 50 }}
+      header={{ height: 56 }}
       navbar={{
-        width: 250,
+        width: 260,
         breakpoint: 'sm',
         collapsed: { mobile: !sidebarOpened, desktop: !sidebarOpened }
       }}
@@ -49,11 +49,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         main: {
           display: 'flex',
           flexDirection: 'column',
-          height: '100vh'
+          height: '100dvh'
         }
       }}
     >
-      <AppShell.Header>
+      <AppShell.Header
+        style={{
+          backdropFilter: 'blur(8px)',
+          background: 'color-mix(in srgb, var(--mantine-color-dark-7) 85%, transparent)',
+          borderBottom: '1px solid var(--mantine-color-dark-5)'
+        }}
+      >
         <Container size="xl" h="100%" fluid>
           <Group h="100%" justify="space-between" px="sm">
             <Group gap="md" style={{ alignItems: 'center' }}>
@@ -62,6 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
                 onClick={() => setSidebarOpened(!sidebarOpened)}
                 size="sm"
                 color="white"
+                aria-label={sidebarOpened ? 'Закрыть меню' : 'Открыть меню'}
               />
               <Box style={{
                 padding: '3px',
@@ -69,7 +76,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Image src="/logo.png" h={32} />
+                <Image src="/logo.png" h={32} alt="Qryleth" />
               </Box>
             </Group>
 
@@ -80,7 +87,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         </Container>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md" style={{backgroundColor: '#262b2c'}}>
+      <AppShell.Navbar p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderRight: '1px solid var(--mantine-color-dark-5)' }}>
         <Box style={{ flexGrow: 1 }}>
           <NavLink
             label="Библиотека"
