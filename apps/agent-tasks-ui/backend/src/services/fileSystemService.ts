@@ -134,9 +134,18 @@ export async function getAllTasks(): Promise<AgentTask[]> {
         const titleMatch = content.match(/^#\s+(.+)$/m)
         const title = titleMatch ? titleMatch[1].trim() : `Задача ${data.id || taskDir}`
 
+        // Извлечение ID эпика из пути файла epic.md
+        let epicId: number | null = null
+        if (data.epic && typeof data.epic === 'string') {
+          const epicPathMatch = data.epic.match(/epics\/(\d+)-/)
+          if (epicPathMatch) {
+            epicId = parseInt(epicPathMatch[1], 10)
+          }
+        }
+
         const task: AgentTask = {
           id: data.id || 0,
-          epic: data.epic || null,
+          epic: epicId,
           status: data.status || 'planned',
           created: data.created || new Date().toISOString().split('T')[0],
           tags: Array.isArray(data.tags) ? data.tags : [],
@@ -257,9 +266,18 @@ export async function getEpicTasks(epicId: number): Promise<AgentTask[]> {
               const titleMatch = content.match(/^#\s+(.+)$/m)
               const title = titleMatch ? titleMatch[1].trim() : `Задача ${taskData.id || taskDir}`
 
+              // Извлечение ID эпика из пути файла epic.md
+              let epicTaskId: number | null = null
+              if (taskData.epic && typeof taskData.epic === 'string') {
+                const epicPathMatch = taskData.epic.match(/epics\/(\d+)-/)
+                if (epicPathMatch) {
+                  epicTaskId = parseInt(epicPathMatch[1], 10)
+                }
+              }
+
               const task: AgentTask = {
                 id: taskData.id || 0,
-                epic: taskData.epic || null,
+                epic: epicTaskId,
                 status: taskData.status || 'planned',
                 created: taskData.created || new Date().toISOString().split('T')[0],
                 tags: Array.isArray(taskData.tags) ? taskData.tags : [],

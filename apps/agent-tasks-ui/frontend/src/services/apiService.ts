@@ -19,7 +19,7 @@ export interface AgentTaskPhase {
 
 export interface AgentTask {
   id: number
-  epic: string | null
+  epic: number | null
   status: 'planned' | 'in-progress' | 'done'
   created: string
   tags: string[]

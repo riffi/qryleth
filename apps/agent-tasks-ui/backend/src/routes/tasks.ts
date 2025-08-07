@@ -3,9 +3,11 @@
  */
 
 import { Router } from 'express'
-import { getAllTasks, getTaskById } from '../services/fileSystemService.js'
+import {getAllTasks, getEpicTasks, getTaskById} from '../services/fileSystemService.js'
+import pino from 'pino';
 
 const router = Router()
+const logger = pino({ level: 'info' });
 
 /**
  * GET /api/tasks
@@ -30,37 +32,42 @@ router.get('/', async (req, res) => {
       limit = 10
     } = req.query
 
-    let tasks = await getAllTasks()
-
-    // Поиск по названию и контенту
-    if (search && typeof search === 'string') {
-      const searchTerm = search.toLowerCase()
-      tasks = tasks.filter(task => 
-        task.title.toLowerCase().includes(searchTerm) ||
-        task.content.toLowerCase().includes(searchTerm)
-      )
-    }
-
-    // Фильтр по тегам
-    if (tags && typeof tags === 'string') {
-      const tagsList = tags.split(',').map(tag => tag.trim().toLowerCase())
-      tasks = tasks.filter(task => 
-        tagsList.some(tag => 
-          task.tags.some(taskTag => taskTag.toLowerCase().includes(tag))
-        )
-      )
-    }
-
-    // Фильтр по статусу
-    if (status && typeof status === 'string') {
-      tasks = tasks.filter(task => task.status === status)
-    }
-
+    let tasks = []
     // Фильтр по эпику
     if (epic) {
-      const epicFilter = epic === 'null' ? null : epic
-      tasks = tasks.filter(task => task.epic === epicFilter)
+      const epicFilter = epic === 'null' ? null : parseInt(epic as string, 10)
+       tasks = await getEpicTasks(epicFilter)
     }
+    else{
+      tasks = await getAllTasks()
+
+      logger.info("Всего задач: tasks.length");
+
+      // Поиск по названию и контенту
+      if (search && typeof search === 'string') {
+        const searchTerm = search.toLowerCase()
+        tasks = tasks.filter(task =>
+            task.title.toLowerCase().includes(searchTerm) ||
+            task.content.toLowerCase().includes(searchTerm)
+        )
+      }
+
+      // Фильтр по тегам
+      if (tags && typeof tags === 'string') {
+        const tagsList = tags.split(',').map(tag => tag.trim().toLowerCase())
+        tasks = tasks.filter(task =>
+            tagsList.some(tag =>
+                task.tags.some(taskTag => taskTag.toLowerCase().includes(tag))
+            )
+        )
+      }
+
+      // Фильтр по статусу
+      if (status && typeof status === 'string') {
+        tasks = tasks.filter(task => task.status === status)
+      }
+    }
+
 
     // Пагинация
     const pageNum = Math.max(1, parseInt(page as string) || 1)
@@ -102,23 +109,23 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const taskId = parseInt(req.params.id, 10)
-    
+
     if (isNaN(taskId)) {
       return res.status(400).json({
         success: false,
         error: 'Некорректный ID задачи'
       })
     }
-    
+
     const task = await getTaskById(taskId)
-    
+
     if (!task) {
       return res.status(404).json({
         success: false,
         error: 'Задача не найдена'
       })
     }
-    
+
     res.json({
       success: true,
       data: task

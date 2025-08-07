@@ -12,16 +12,17 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.21.1",
+    "@agent-tasks-ui/shared-types": "file:../shared-types",
     "cors": "^2.8.5",
-    "gray-matter": "^4.0.3",
+    "express": "^4.21.1",
     "fs-extra": "^11.3.1",
+    "gray-matter": "^4.0.3",
     "helmet": "^8.1.0",
-    "@agent-tasks-ui/shared-types": "file:../shared-types"
+    "pino": "^9.8.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
