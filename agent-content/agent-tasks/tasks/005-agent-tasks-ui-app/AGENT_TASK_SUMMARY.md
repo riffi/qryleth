@@ -8,7 +8,7 @@ owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 23
-  completed: 13
+  completed: 14
 ---
 
 # Agent Tasks UI Application - Интерфейс управления агентскими задачами
@@ -122,11 +122,12 @@ phases:
 - Обновлена основная сводка задачи
 **Отчёт**: [phases/phase_4.9_summary.md](phases/phase_4.9_summary.md)
 
-### ⏳ Фаза 4.10: Приведение задачи 013-performance-and-virtualization (эпик 007) к формату
-- Поле `epic:` заменить на числовой ID `7`
-- Добавить `updated:` и блок `phases: { total, completed }`
-- «Фазы» → «Список фаз» по шаблону
-- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/013-performance-and-virtualization/AGENT_TASK_SUMMARY.md`
+### ✅ Фаза 4.10: Приведение задачи 013-performance-and-virtualization (эпик 007) к формату
+- Поле `epic` заменено на числовой ID `7`
+- Добавлены поля `updated` и `phases` в YAML-шапку задачи
+- Раздел «Фазы» преобразован в «Список фаз» по шаблону
+- Обновлена основная сводка задачи
+**Отчёт**: [phases/phase_4.10_summary.md](phases/phase_4.10_summary.md)
 
 ### ⏳ Фаза 4.11: Приведение эпика 001-fsd-shared-layer-cleanup к формату
 - Добавить `updated:` в YAML шапку эпика
