@@ -1,8 +1,12 @@
 ---
+id: 4
 phase: 5
+title: "Фаза 5: Обновление хранилищ состояния"
 status: done
-completed: 2025-08-07
+created: 2025-08-07
+updated: 2025-08-08
 ---
+# Фаза 5: Обновление хранилищ состояния
 
 ## Итоги
 - Хранилища objectStore и sceneStore приведены к новой структуре LightingSettings

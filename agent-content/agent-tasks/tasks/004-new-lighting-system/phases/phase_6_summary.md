@@ -1,8 +1,12 @@
 ---
+id: 4
 phase: 6
+title: "Фаза 6: Адаптация UI панелей управления"
 status: done
-completed: 2025-08-07
+created: 2025-08-07
+updated: 2025-08-08
 ---
+# Фаза 6: Адаптация UI панелей управления
 
 ## Итоги
 - LightingControlPanel.tsx адаптирован к новой структуре LightingSettings

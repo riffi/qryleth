@@ -1,8 +1,12 @@
 ---
+id: 4
 phase: 4
+title: "Фаза 4: Рефакторинг SceneLighting"
 status: done
-completed: 2025-08-07
+created: 2025-08-07
+updated: 2025-08-08
 ---
+# Фаза 4: Рефакторинг SceneLighting
 
 ## Итоги
 - Компонент `SceneLighting` адаптирован к новой структуре типов `LightingSettings`

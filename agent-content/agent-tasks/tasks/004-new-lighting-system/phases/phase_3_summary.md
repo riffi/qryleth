@@ -1,8 +1,12 @@
 ---
+id: 4
 phase: 3
+title: "Фаза 3: Рефакторинг ObjectSceneLighting"
 status: done
-completed: 2025-08-07
+created: 2025-08-07
+updated: 2025-08-08
 ---
+# Фаза 3: Рефакторинг ObjectSceneLighting
 
 ## Итоги
 - Компонент `ObjectSceneLighting` адаптирован к новой структуре типов `LightingSettings`

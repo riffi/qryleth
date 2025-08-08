@@ -3,8 +3,12 @@ id: 4
 epic: null
 status: done
 created: 2025-08-07
+updated: 2025-08-08
 completed: 2025-08-07
 tags: [lighting, rendering, 3d, types, ui, refactor]
+phases:
+  total: 7
+  completed: 7
 ---
 
 # Агентская задача: Внедрение новой системы освещения
@@ -136,60 +140,47 @@ export interface GfxObject {
 }
 ```
 
-## План выполнения (фазы)
+## Список фаз
 
-### Фаза 1: Обновление типов освещения
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
-
+### ✅ Фаза 1: Обновление типов освещения
 - Обновить `src/entities/lighting/model/types.ts` с новой структурой
 - Добавить новые интерфейсы для Point и Spot light
 - Удалить устаревшие поля LightingSettings
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### Фаза 2: Добавление локального освещения в GfxObject
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
-
+### ✅ Фаза 2: Добавление локального освещения в GfxObject
 - Обновить `src/entities/object/model/types.ts`
 - Добавить опциональное поле `localLights` в интерфейс GfxObject
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### Фаза 3: Рефакторинг ObjectSceneLighting
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
-
+### ✅ Фаза 3: Рефакторинг ObjectSceneLighting
 - Адаптировать компонент к новой структуре типов
 - Заменить hardcoded параметры на настраиваемые из состояния
 - Добавить поддержку единичного DirectionalLight источника
 - Сохранить работоспособность с существующими настройками
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### Фаза 4: Рефакторинг SceneLighting
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
-
+### ✅ Фаза 4: Рефакторинг SceneLighting
 - Аналогично ObjectSceneLighting, адаптировать к новой структуре
 - Унифицировать подход к рендерингу света между компонентами
 - Подготовить основу для будущего рендеринга локального освещения объектов
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
-### Фаза 5: Обновление хранилищ состояния
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
+### ✅ Фаза 5: Обновление хранилищ состояния
 - Адаптировать objectStore и sceneStore к новым типам
 - Обновить хуки useObjectLighting и useSceneLighting
 - Полностью перейти на новую схему без поддержки старых данных
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### Фаза 6: Адаптация UI панелей управления
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
-
+### ✅ Фаза 6: Адаптация UI панелей управления
 - Обновить LightingControlPanel.tsx для новой структуры
 - Обновить LightingControls.tsx для новой структуры
 - Адаптировать существующий интерфейс, не создавая новые компоненты
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
-### Фаза 7: Документирование
-**Статус**: ✅ Выполнено
-**Отчет**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
-
+### ✅ Фаза 7: Документирование
 - Обновить информацию в docs согласно выполненной работе по агентской задаче
+**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
 
 ## Важные ограничения
 

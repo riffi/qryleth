@@ -8,7 +8,7 @@ owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 23
-  completed: 5
+  completed: 6
 ---
 
 # Agent Tasks UI Application - Интерфейс управления агентскими задачами
@@ -66,12 +66,12 @@ phases:
 - Файл: `agent-content/agent-tasks/tasks/003-gfx-primitive-groups/AGENT_TASK_SUMMARY.md`
 **Отчёт**: [phases/phase_4.1_summary.md](phases/phase_4.1_summary.md)
 
-### ⏳ Фаза 4.2: Приведение задачи 004-new-lighting-system к формату agent-tasks.md
-- Добавить `updated:` в YAML шапку; поле `completed:` заменить/дополнить согласно схеме (оставив как метаданные при необходимости)
-- Заполнить `phases.total` и `phases.completed`
-- Секция «Список фаз»: убедиться в корректных заголовках и ссылках на отчёты
-- Привести шапки фаз к шаблону
+### ✅ Фаза 4.2: Приведение задачи 004-new-lighting-system к формату agent-tasks.md
+- Добавлен `updated` и блок `phases` в YAML шапку задачи
+- Раздел «Список фаз» приведён к шаблону с корректными ссылками
+- Все файлы `phase_*_summary.md` получили стандартные YAML шапки
 - Файл: `agent-content/agent-tasks/tasks/004-new-lighting-system/AGENT_TASK_SUMMARY.md`
+**Отчёт**: [phases/phase_4.2_summary.md](phases/phase_4.2_summary.md)
 
 ### ⏳ Фаза 4.3: Приведение задачи 006-instanced-mesh-documentation к формату agent-tasks.md
 - Добавить `updated:` и блок `phases: { total, completed }` в YAML
