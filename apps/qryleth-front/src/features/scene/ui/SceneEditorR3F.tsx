@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
 import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
@@ -14,22 +14,16 @@ import {
   useRenderMode,
   useTransformMode,
   useGridVisible,
-  useSceneLayers
+  // useSceneLayers
 } from '../model/sceneStore'
 import { useSceneHistory } from '../lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
-import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import type { SceneStatus } from '@/features/scene/model/store-types'
-import { Link } from 'react-router-dom'
-import { generateUUID } from '@/shared/lib/uuid'
 import {
   IconArrowBack,
   IconArrowForward,
   IconFolder,
-  IconSettings,
-  IconInfoCircle,
-  IconEye,
   IconRun,
   IconPlaneTilt,
   IconGridDots,
@@ -39,8 +33,7 @@ import {
   IconCode,
   IconMessages
 } from '@tabler/icons-react'
-import type {GfxObject, GfxObjectWithTransform, GfxPrimitive} from "@/entities";
-import {placeInstance} from "../lib/placement/ObjectPlacementUtils.ts";
+import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 
 const getStatusColor = (status: SceneStatus) => {
@@ -70,8 +63,6 @@ const getStatusText = (status: SceneStatus) => {
 }
 
 interface SceneEditorR3FProps {
-  width?: number
-  height?: number
   showObjectManager?: boolean
   uuid?: string
   isNew?: boolean
@@ -82,8 +73,6 @@ interface SceneEditorR3FProps {
  * This replaces the traditional SceneEditor component for R3F workflows
  */
 export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
-  width = 1200,
-  height = 800,
   showObjectManager = true,
   uuid,
   isNew = false
@@ -101,6 +90,60 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
   const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
 
+  // Ресайз панелей: более современный UX с drag-handles
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [leftPanelWidthPx, setLeftPanelWidthPx] = useState<number>(360)
+  const [rightPanelWidthPx, setRightPanelWidthPx] = useState<number>(320)
+  const [resizingSide, setResizingSide] = useState<'left' | 'right' | null>(null)
+  const [containerBounds, setContainerBounds] = useState<{ left: number; right: number } | null>(null)
+
+  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+
+  // Обрабатываем движения мыши при ресайзе
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingSide || !containerBounds) return
+
+      const minLeft = 260
+      const maxLeft = scriptingPanelVisible ? Math.min(window.innerWidth * 0.5, 820) : Math.min(window.innerWidth * 0.35, 480)
+      const minRight = 240
+      const maxRight = Math.min(window.innerWidth * 0.4, 520)
+
+      if (resizingSide === 'left') {
+        const newWidth = clamp(e.clientX - containerBounds.left, minLeft, maxLeft)
+        setLeftPanelWidthPx(newWidth)
+      } else if (resizingSide === 'right') {
+        const newWidth = clamp(containerBounds.right - e.clientX, minRight, maxRight)
+        setRightPanelWidthPx(newWidth)
+      }
+    }
+
+    const handleMouseUp = () => setResizingSide(null)
+
+    if (resizingSide) {
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [resizingSide, containerBounds, scriptingPanelVisible])
+
+  const beginResize = (side: 'left' | 'right') => (e: React.MouseEvent) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    setContainerBounds({ left: rect.left, right: rect.right })
+    setResizingSide(side)
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   // Глобальное состояние панелей для ObjectEditor
   const globalPanelState = useGlobalPanelState()
 
@@ -111,7 +154,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const transformMode = useTransformMode()
   const setTransformMode = useSceneStore(state => state.setTransformMode)
   const gridVisible = useGridVisible()
-  const layers = useSceneLayers()
+  // const layers = useSceneLayers()
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const objects = useSceneStore(state => state.objects)
@@ -253,9 +296,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     return JSON.parse(JSON.stringify(obj))
   }, [editingObject, objects])
 
-  // Responsive sizes
-  const chatPanelWidth = scriptingPanelVisible ? 'min(42vw, 820px)' : 'clamp(280px, 28vw, 420px)'
-  const objectPanelWidth = 'clamp(260px, 24vw, 380px)'
+  // Ширины панелей: управляются в px для корректного ресайза
+  const chatPanelWidth = `${leftPanelWidthPx}px`
+  const objectPanelWidth = `${rightPanelWidthPx}px`
 
   // Handlers to toggle panels from header
   const toggleChatPanel = () => {
@@ -342,20 +385,37 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         <Container
           size="xl"
           fluid
+          ref={containerRef}
           style={{
             display: 'flex',
             flexDirection: 'row',
             width: '100%',
-            gap: 'var(--mantine-spacing-sm)',
+            gap: 6,
             height: '100%',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            position: 'relative',
+            transition: 'gap 120ms ease'
         }}
         >
         {!chatCollapsed && (
-          <Paper shadow="xs" radius="md" withBorder style={{ width: chatPanelWidth, height: '100%', minWidth: 260, display: 'flex' }}>
+          <Paper
+            shadow="sm"
+            radius="md"
+            withBorder
+            style={{
+              width: chatPanelWidth,
+              height: '100%',
+              minWidth: 260,
+              display: 'flex',
+              overflow: 'hidden',
+              transition: resizingSide ? undefined : 'width 160ms ease',
+              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+              backdropFilter: 'blur(8px)'
+            }}
+          >
             {scriptingPanelVisible ? (
               <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Group justify="space-between" p="sm" bg="gray.8">
+                <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
                   <Group>
                     <IconCode size={20} />
                     <Text fw={500}>Панель скриптинга</Text>
@@ -378,12 +438,36 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </Paper>
         )}
 
+        {/* Drag handle between left panel and center */}
+        {!chatCollapsed && (
+          <Box
+            onMouseDown={beginResize('left')}
+            style={{
+              width: 6,
+              cursor: 'col-resize',
+              alignSelf: 'stretch',
+              display: 'flex',
+              justifyContent: 'center',
+              opacity: 0.6
+            }}
+            aria-label="Изменить ширину левой панели"
+          >
+            <Box style={{ width: 2, height: '48%', marginTop: 'auto', marginBottom: 'auto', background: 'var(--mantine-color-dark-4)', borderRadius: 2 }} />
+          </Box>
+        )}
+
         {/* Center */}
         <Paper
-          shadow="xs"
+          shadow="sm"
           radius="md"
           withBorder
-          style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
+          style={{
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+            minHeight: 400,
+            background: 'linear-gradient(180deg, color-mix(in srgb, var(--mantine-color-dark-7) 65%, transparent), transparent)'
+          }}
         >
           <Box
             style={{
@@ -396,9 +480,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               alignItems: 'center',
               gap: 6,
               background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
-              backdropFilter: 'blur(6px)',
-              borderRadius: 10,
-              border: '1px solid var(--mantine-color-dark-5)'
+              backdropFilter: 'blur(8px)',
+              borderRadius: 12,
+              border: '1px solid var(--mantine-color-dark-5)',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.25)'
             }}
           >
             <Group gap="xs" wrap="nowrap">
@@ -454,6 +539,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   { value: 'wireframe', label: 'Wireframe' }
                 ]}
                 size="xs"
+                styles={{
+                  root: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(6px)' }
+                }}
               />
 
               <SegmentedControl
@@ -489,6 +577,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   }
                 ]}
                 size="xs"
+                styles={{ root: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(6px)' } }}
               />
             </Group>
           </Box>
@@ -500,12 +589,41 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
         {showObjectManager && (
           <>
+            {/* Drag handle between center and right panel */}
+            {!objectPanelCollapsed && (
+              <Box
+                onMouseDown={beginResize('right')}
+                style={{
+                  width: 6,
+                  cursor: 'col-resize',
+                  alignSelf: 'stretch',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  opacity: 0.6
+                }}
+                aria-label="Изменить ширину правой панели"
+              >
+                <Box style={{ width: 2, height: '48%', marginTop: 'auto', marginBottom: 'auto', background: 'var(--mantine-color-dark-4)', borderRadius: 2 }} />
+              </Box>
+            )}
+
             {!objectPanelCollapsed && (
               <Paper
-                shadow="xs"
+                shadow="sm"
                 radius="md"
                 withBorder
-                style={{ width: objectPanelWidth, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 240 }}
+                style={{
+                  width: objectPanelWidth,
+                  flexShrink: 0,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minWidth: 240,
+                  overflow: 'hidden',
+                  transition: resizingSide ? undefined : 'width 160ms ease',
+                  background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+                  backdropFilter: 'blur(8px)'
+                }}
               >
                 <SceneObjectManager
                   onSaveSceneToLibrary={handleSaveSceneToLibrary}
