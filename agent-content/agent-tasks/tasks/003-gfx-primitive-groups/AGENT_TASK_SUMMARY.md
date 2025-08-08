@@ -3,7 +3,11 @@ id: 3
 epic: null
 status: done
 created: 2025-08-07
+updated: 2025-08-08
 tags: [gfx, primitives, groups, ui, refactor]
+phases:
+  total: 11
+  completed: 11
 ---
 
 # Агентская задача: Группировка примитивов GfxObject
@@ -53,6 +57,52 @@ export interface GfxObject {
 4. **Обновление рендеринга** - учет группировки при рендеринге в обоих редакторах
 5. **Расширение PrimitiveManager** - UI для управления группами
 6. **UUID и имена групп** - каждая группа должна иметь uuid и name
+
+## Список фаз
+
+### ✅ Фаза 1: Расширение типов и моделей данных
+- Расширены интерфейсы примитивов и добавлен тип группы
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
+
+### ✅ Фаза 2: Обновление objectStore для поддержки групп
+- Добавлены структуры данных и действия для групп
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
+
+### ✅ Фаза 3: Расширение UI PrimitiveManager для групп
+- Реализован интерфейс управления иерархией групп
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
+### ✅ Фаза 4.1: Рекурсивное рендеринг групп
+- Добавлен компонент GroupRenderer и обновлён ObjectScenePrimitives
+**Отчёт**: [phases/phase_4.1_summary.md](phases/phase_4.1_summary.md)
+
+### ✅ Фаза 4.2: Система координат
+- Добавлены трансформации и утилиты для групп
+**Отчёт**: [phases/phase_4.2_summary.md](phases/phase_4.2_summary.md)
+
+### ✅ Фаза 4.3: Pivot Point и Gizmo Controls
+- Реализована поддержка pivot point и gizmo для групп
+**Отчёт**: [phases/phase_4.3_summary.md](phases/phase_4.3_summary.md)
+
+### ✅ Фаза 4.4: Обработка взаимодействий
+- Обработаны клики и drag-and-drop для групп
+**Отчёт**: [phases/phase_4.4_summary.md](phases/phase_4.4_summary.md)
+
+### ✅ Фаза 5: Обновление рендеринга в SceneEditor
+- Добавлен SceneGroupRenderer и поддержка иерархий
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
+
+### ✅ Фаза 6: Обновление objectEditorApi и tools
+- API и AI инструменты поддерживают группы
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
+
+### ✅ Фаза 7: Расширение tools для sceneEditor
+- Добавлены схемы и инструменты для групп в сцен-редакторе
+**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
+
+### ✅ Фаза 8: Обновление документации
+- Документация обновлена с примерами групп
+**Отчёт**: [phases/phase_8_summary.md](phases/phase_8_summary.md)
 
 ## Планируемая структура данных
 
@@ -310,84 +360,6 @@ export interface GfxObject {
 - `src/features/scene/ui/renderer/objects/SceneObjectRenderer.tsx`
 - `src/features/scene/ui/renderer/optimization/OptimizedComponents.tsx` (обновить мемоизацию)
 - Возможное переиспользование `src/features/object-editor/ui/renderer/objects/GroupRenderer.tsx`
-
-### Фаза 6: Обновление objectEditorApi и tools
-**Статус**: ✅ Выполнено
-**Отчет**: [phase_6_summary.md](phases/phase_6_summary.md)
-
-#### Обновление objectEditorApi
-**Описание**: Расширить API объект-редактора для поддержки операций с группами.
-
-**Детальные действия**:
-✅ Обеспечить правильную интеграцию с tools системой
-✅ Обновить существующие API методы с учетом групп:
-  ✅ выводить информацию о группах в getObjectData (добавлены primitiveGroups и primitiveGroupAssignments)
-  ✅ addPrimitives - обновить для опциональной возможности создания новых групп при добавлении примитивов и привязки добавляемых примитивов к создаваемым группам
-
-**Файлы для изменения**:
-✅ `src/features/object-editor/lib/objectEditorApi.ts`
-
-#### Расширение tools для objectEditor
-
-**Описание**: Обновить AI tools для управления учета групп примитивов в объект-редакторе.
-
-**Детальные действия**:
-✅ Обновить tool `getObjectDataTool` с учетом новой структуры (автоматически через обновленный API)
-✅ Обновить tool `addPrimitivesTool` для опциональной возможности создания новых групп при добавлении примитивов и привязки добавляемых примитивов к создаваемым группам
-
-**Файлы для изменения**:
-✅ `src/features/object-editor/lib/ai/tools/objectTools.ts` (без изменений - tool автоматически получил поддержку групп)
-✅ `src/features/object-editor/lib/ai/tools/primitiveTools.ts`
-
-
-### Фаза 7: Расширение tools для sceneEditor
- **Статус**: ✅ Выполнено
-**Отчет**: [phase_7_summary.md](phases/phase_7_summary.md)
-
-**Описание**: Добавить AI tools для работы с группами примитивов в сцен-редакторе.
-
-**Детальные действия**:
-✅ Обновить существующие object tools с поддержкой иерархических групп
-✅ Убедиться что создание объектов через AI правильно обрабатывает группы
-✅ Добавить возможность AI создавать объекты с предустановленными иерархическими группами
-
-**Критерии успешности**:
-✅ Схема `add_new_object` tool поддерживает поля `primitiveGroups` и `primitiveGroupAssignments`
-✅ AI может создавать объекты с иерархическими группами примитивов
-✅ Обновлена документация и примеры использования групп в sceneEditor
-✅ Сохранена обратная совместимость для объектов без групп
-✅ Проект успешно собирается с обновленными tools
-
-**Файлы для изменения**:
-✅ `src/features/scene/lib/ai/tools/objectTools.ts`
-
-
-
-
-### Фаза 8: Обновление документации
-**Статус**: ✅ Выполнено
-**Отчет**: [phase_8_summary.md](phases/phase_8_summary.md)
-
-**Описание**: Обновить проектную документацию с учетом новой функциональности группировки примитивов.
-
-**Детальные действия**:
-✅ Обновить API документацию с новыми типами GfxPrimitiveGroup
-✅ Добавить примеры использования иерархических групп примитивов
-✅ Документировать процесс импорта объектов как групп  
-✅ Обновить архитектурную документацию по object-editing
-✅ Обновить Scene API документацию с поддержкой AI tools для групп
-
-**Критерии успешности**:
-✅ API документация содержит полное описание GfxPrimitiveGroup и обновленного GfxObject
-✅ Документация object-editing отражает новый GroupControlPanel и древовидный PrimitiveManager
-✅ Scene API документация показывает поддержку групп в AI tools
-✅ Все примеры кода обновлены с обязательными UUID примитивов
-✅ Документированы утилиты для работы с группами
-
-**Файлы для изменения**:
-✅ `docs/api/types/README.md` - обновлены типы, добавлен раздел о GfxPrimitiveGroup
-✅ `docs/features/object-editing/README.md` - обновлены компоненты, архитектура, рабочие процессы  
-✅ `docs/api/scene-api.md` - добавлен раздел об AI Tools интеграции с группами
 
 ## Принципы реализации
 

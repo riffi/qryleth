@@ -1,4 +1,12 @@
-# Фаза 4.3: Pivot Point и Gizmo Controls - Отчет о выполнении
+---
+id: 3
+phase: 4.3
+title: "Фаза 4.3: Pivot Point и Gizmo Controls"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
+# Фаза 4.3: Pivot Point и Gizmo Controls
 
 ## Описание фазы
 Реализована поддержка pivot point и gizmo controls для групп примитивов в ObjectEditor.

@@ -1,3 +1,11 @@
+---
+id: 3
+phase: 7
+title: "Фаза 7: Расширение tools для sceneEditor"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
 # Фаза 7: Расширение tools для sceneEditor
 
 ## Выполненные работы

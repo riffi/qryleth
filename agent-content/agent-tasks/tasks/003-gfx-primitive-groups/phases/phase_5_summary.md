@@ -1,3 +1,11 @@
+---
+id: 3
+phase: 5
+title: "Фаза 5: Обновление рендеринга в SceneEditor"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
 # Фаза 5: Обновление рендеринга в SceneEditor
 
 **Статус**: ✅ Выполнено

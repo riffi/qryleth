@@ -1,4 +1,12 @@
-# Фаза 3: Расширение UI PrimitiveManager для групп — ВЫПОЛНЕНО
+---
+id: 3
+phase: 3
+title: "Фаза 3: Расширение UI PrimitiveManager для групп"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
+# Фаза 3: Расширение UI PrimitiveManager для групп
 
 ## Обзор выполненных работ
 

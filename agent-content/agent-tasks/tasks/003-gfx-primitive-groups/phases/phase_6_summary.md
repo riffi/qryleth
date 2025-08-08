@@ -1,3 +1,11 @@
+---
+id: 3
+phase: 6
+title: "Фаза 6: Обновление objectEditorApi и tools"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
 # Фаза 6: Обновление objectEditorApi и tools
 
 **Статус**: ✅ Выполнено
