@@ -3,12 +3,12 @@ id: 5
 epic: null
 status: planned
 created: 2025-08-07
-updated: 2025-08-08
+updated: 2025-08-09
 owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 23
-  completed: 6
+  completed: 7
 ---
 
 # Agent Tasks UI Application - Интерфейс управления агентскими задачами
@@ -73,13 +73,12 @@ phases:
 - Файл: `agent-content/agent-tasks/tasks/004-new-lighting-system/AGENT_TASK_SUMMARY.md`
 **Отчёт**: [phases/phase_4.2_summary.md](phases/phase_4.2_summary.md)
 
-### ⏳ Фаза 4.3: Приведение задачи 006-instanced-mesh-documentation к формату agent-tasks.md
-- Добавить `updated:` и блок `phases: { total, completed }` в YAML
-- Переименовать раздел «Планируемые фазы» в «Список фаз» и оформить по шаблону `⏳ Фаза N`
-- Если фазы 1–4 действительно выполнены — оформить статусы и добавить ссылки на отчёты при их наличии
-- Не создавать отчёты задним числом; синхронизировать только формат
+### ✅ Фаза 4.3: Приведение задачи 006-instanced-mesh-documentation к формату agent-tasks.md
+- Добавлены поля `updated` и блок `phases` в YAML шапку задачи
+- Раздел «Список фаз» оформлен по шаблону с корректными ссылками
+- Отчёты фаз 1–4 получили стандартные YAML шапки
 - Файл: `agent-content/agent-tasks/tasks/006-instanced-mesh-documentation/AGENT_TASK_SUMMARY.md`
-
+**Отчёт**: [phases/phase_4.3_summary.md](phases/phase_4.3_summary.md)
 ### ⏳ Фаза 4.4: Приведение задачи 002-fsd-repository-refactoring (эпик 001) к формату
 - Поле `epic:` заменить с относительного пути на числовой ID `1`
 - Добавить `updated:` и блок `phases: { total, completed }`
