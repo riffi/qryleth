@@ -1,3 +1,12 @@
+---
+id: 5
+phase: 2
+title: "Фаза 2: Backend API для чтения задач"
+status: done
+created: 2025-08-07
+updated: 2025-08-08
+---
+
 # Фаза 2: Backend API для чтения задач
 
 **Статус**: ✅ Выполнено  

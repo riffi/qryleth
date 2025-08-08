@@ -13,7 +13,7 @@ const api = axios.create({
 export interface AgentTaskPhase {
   phaseNumber: number
   title: string
-  status: 'pending' | 'in-progress' | 'completed'
+  status: 'planned' | 'in-progress' | 'done'
   summary?: string
 }
 

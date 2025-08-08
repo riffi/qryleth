@@ -3,7 +3,12 @@ id: 5
 epic: null
 status: planned
 created: 2025-08-07
+updated: 2025-08-08
+owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
+phases:
+  total: 11
+  completed: 4
 ---
 
 # Agent Tasks UI Application - Интерфейс управления агентскими задачами
@@ -33,23 +38,26 @@ tags: [frontend, backend, ui, management, react, typescript, express]
 - Настройка Vite проекта с React, TypeScript, Mantine
 - Настройка Express сервера 
 - Базовая файловая структура фронтенда и бэкенда
+**Отчет**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ✅ Фаза 2: Backend API для чтения задач - ВЫПОЛНЕНО
 - Создание Express роутов для получения списка задач и эпиков
 - Парсинг markdown файлов и извлечение YAML метаданных
 - API endpoints: GET /api/tasks, GET /api/epics, GET /api/tasks/:id, GET /api/epics/:id/tasks, GET /api/manager
+**Отчет**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ✅ Фаза 3: Frontend базовый интерфейс - ВЫПОЛНЕНО
 - Настройка Mantine UI компонентов
 - Создание компонентов для отображения списка задач
 - Базовая навигация и layout приложения  
 - Подключение к backend API
+**Отчет**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ✅ Фаза 4: Функционал поиска и фильтрации - ВЫПОЛНЕНО
 - Реализация поиска по названию, тегам, статусу
 - Фильтры для эпиков, статусов, дат
 - Пагинация результатов
-**Отчет**: [phase_4_summary.md](phases/phase_4_summary.md)
+**Отчет**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: Редактирование задач
 - Форма редактирования YAML метаданных задачи

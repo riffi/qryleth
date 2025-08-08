@@ -32,16 +32,10 @@ router.get('/', async (req, res) => {
       limit = 10
     } = req.query
 
-    let tasks = []
-    // Фильтр по эпику
-    if (epic) {
-      const epicFilter = epic === 'null' ? null : parseInt(epic as string, 10)
-       tasks = await getEpicTasks(epicFilter)
-    }
-    else{
-      tasks = await getAllTasks()
+    // Загружаем все задачи один раз, фильтруем в памяти (I/O дешевле чем многократное чтение)
+    let tasks = await getAllTasks()
 
-      logger.info("Всего задач: tasks.length");
+    logger.info(`Всего задач: ${tasks.length}`)
 
       // Поиск по названию и контенту
       if (search && typeof search === 'string') {
@@ -66,7 +60,18 @@ router.get('/', async (req, res) => {
       if (status && typeof status === 'string') {
         tasks = tasks.filter(task => task.status === status)
       }
-    }
+
+      // Фильтр по эпику
+      if (typeof epic === 'string') {
+        if (epic === 'null') {
+          tasks = tasks.filter(task => task.epic === null)
+        } else {
+          const epicId = parseInt(epic, 10)
+          if (!Number.isNaN(epicId)) {
+            tasks = tasks.filter(task => task.epic === epicId)
+          }
+        }
+      }
 
 
     // Пагинация

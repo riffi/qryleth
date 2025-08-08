@@ -5,7 +5,7 @@
 
 export interface AgentTask {
   id: number
-  epic: string | null
+  epic: number | null
   status: 'planned' | 'in-progress' | 'done'
   created: string
   tags: string[]
@@ -17,7 +17,7 @@ export interface AgentTask {
 export interface AgentTaskPhase {
   phaseNumber: number
   title: string
-  status: 'pending' | 'in-progress' | 'completed'
+  status: 'planned' | 'in-progress' | 'done'
   summary?: string
 }
 
@@ -39,5 +39,6 @@ export interface ManagerState {
     totalItems: number
     completedTasks: number
     activeEpics: number
+    activeTasks: number
   }
 }

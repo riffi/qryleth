@@ -61,7 +61,7 @@ async function getDirectories(dirPath: string): Promise<string[]> {
 }
 
 /**
- * Читает фазы задачи из папки phases
+  * Читает фазы задачи из папки phases
  */
 async function readTaskPhases(taskPath: string): Promise<AgentTaskPhase[]> {
   const phasesPath = path.join(taskPath, 'phases')
@@ -78,18 +78,20 @@ async function readTaskPhases(taskPath: string): Promise<AgentTaskPhase[]> {
           const filePath = path.join(phasesPath, fileName)
 
           try {
-            const { content } = await parseMarkdownFile(filePath)
+            const { data, content } = await parseMarkdownFile(filePath)
 
-            // Извлекаем название фазы из заголовка первого уровня
-            const titleMatch = content.match(/^#\s+(.+)$/m)
-            const title = titleMatch ? titleMatch[1].trim() : `Фаза ${phaseNumber}`
+            // Заголовок: либо из YAML, либо из первого H1
+            const titleFromH1Match = content.match(/^#\s+(.+)$/m)
+            const title = (data?.title as string) || (titleFromH1Match ? titleFromH1Match[1].trim() : `Фаза ${phaseNumber}`)
 
-            // Определяем статус из содержимого
-            let status: 'pending' | 'in-progress' | 'completed' = 'pending'
-            if (content.includes('✅ Выполнено') || content.includes('**Статус**: ✅')) {
-              status = 'completed'
-            } else if (content.includes('⏳ В процессе') || content.includes('**Статус**: ⏳')) {
-              status = 'in-progress'
+            // Статус строго из YAML; fallback — эвристика по контенту
+            let status: 'planned' | 'in-progress' | 'done' = (data?.status as any) || 'planned'
+            if (!data?.status) {
+              if (content.includes('✅ Выполнено') || content.includes('**Статус**: ✅') || content.match(/\b(ВЫПОЛНЕНО|done)\b/i)) {
+                status = 'done'
+              } else if (content.includes('⏳ В процессе') || content.includes('**Статус**: ⏳') || content.match(/\b(in-progress|в процессе)\b/i)) {
+                status = 'in-progress'
+              }
             }
 
             phases.push({
@@ -134,9 +136,11 @@ export async function getAllTasks(): Promise<AgentTask[]> {
         const titleMatch = content.match(/^#\s+(.+)$/m)
         const title = titleMatch ? titleMatch[1].trim() : `Задача ${data.id || taskDir}`
 
-        // Извлечение ID эпика из пути файла epic.md
+        // Эпик: поддерживаем либо относительный путь 'epic: ../epic.md', либо число
         let epicId: number | null = null
-        if (data.epic && typeof data.epic === 'string') {
+        if (typeof data.epic === 'number') {
+          epicId = data.epic
+        } else if (typeof data.epic === 'string') {
           const epicPathMatch = data.epic.match(/epics\/(\d+)-/)
           if (epicPathMatch) {
             epicId = parseInt(epicPathMatch[1], 10)
@@ -146,7 +150,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
         const task: AgentTask = {
           id: data.id || 0,
           epic: epicId,
-          status: data.status || 'planned',
+          status: (data.status as any) || 'planned',
           created: data.created || new Date().toISOString().split('T')[0],
           tags: Array.isArray(data.tags) ? data.tags : [],
           title,
@@ -161,6 +165,64 @@ export async function getAllTasks(): Promise<AgentTask[]> {
     }
   } catch (error) {
     throw new Error(`Ошибка чтения папки задач: ${error}`)
+  }
+
+  // Дополнительно: собираем задачи, находящиеся в эпиках: agent-tasks/epics/*/tasks
+  const epicsPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'epics')
+  try {
+    const epicDirs = await getDirectories(epicsPath)
+    for (const epicDir of epicDirs) {
+      const epicPath = path.join(epicsPath, epicDir)
+      const epicFilePath = path.join(epicPath, 'epic.md')
+      try {
+        const { data: epicData } = await parseMarkdownFile(epicFilePath)
+        const epicIdFromFile = typeof epicData.id === 'number' ? epicData.id : null
+
+        const epicTasksPath = path.join(epicPath, 'tasks')
+        const epicTaskDirs = await getDirectories(epicTasksPath)
+        for (const taskDir of epicTaskDirs) {
+          const taskPath = path.join(epicTasksPath, taskDir)
+          const summaryPath = path.join(taskPath, 'AGENT_TASK_SUMMARY.md')
+          try {
+            const { data: taskData, content } = await parseMarkdownFile(summaryPath)
+            const phases = await readTaskPhases(taskPath)
+
+            const titleMatch = content.match(/^#\s+(.+)$/m)
+            const title = titleMatch ? titleMatch[1].trim() : `Задача ${taskData.id || taskDir}`
+
+            // Определяем ID эпика: приоритет YAML-числу, затем ID эпика из файла, затем парс пути
+            let epicId: number | null = null
+            if (typeof taskData.epic === 'number') {
+              epicId = taskData.epic
+            } else if (epicIdFromFile !== null) {
+              epicId = epicIdFromFile
+            } else if (typeof taskData.epic === 'string') {
+              const epicPathMatch = taskData.epic.match(/epics\/(\d+)-/)
+              if (epicPathMatch) {
+                epicId = parseInt(epicPathMatch[1], 10)
+              }
+            }
+
+            tasks.push({
+              id: taskData.id || 0,
+              epic: epicId,
+              status: (taskData.status as any) || 'planned',
+              created: taskData.created || new Date().toISOString().split('T')[0],
+              tags: Array.isArray(taskData.tags) ? taskData.tags : [],
+              title,
+              content,
+              phases
+            })
+          } catch (error) {
+            console.warn(`Не удалось прочитать задачу эпика ${taskDir}: ${error}`)
+          }
+        }
+      } catch (error) {
+        console.warn(`Не удалось прочитать эпик ${epicDir}: ${error}`)
+      }
+    }
+  } catch (error) {
+    console.warn(`Ошибка чтения папки эпиков: ${error}`)
   }
 
   return tasks.sort((a, b) => a.id - b.id)
