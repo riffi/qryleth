@@ -7,7 +7,7 @@ updated: 2025-08-08
 owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
-  total: 11
+  total: 23
   completed: 4
 ---
 
@@ -58,6 +58,83 @@ phases:
 - Фильтры для эпиков, статусов, дат
 - Пагинация результатов
 **Отчет**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
+
+### ⏳ Фаза 4.1: Приведение задачи 003-gfx-primitive-groups к формату agent-tasks.md
+- Добавить `updated:` в YAML шапку
+- Заполнить `phases.total` и `phases.completed`
+- Секция «Список фаз»: привести к рекомендуемому формату заголовков `⏳/✅ Фаза N` и ссылок на отчёты
+- Проверить ссылки на `phases/phase_*_summary.md` и соответствие их шапок шаблону
+- Не создавать отчёты задним числом; только выравнивание формата
+- Файл: `agent-content/agent-tasks/tasks/003-gfx-primitive-groups/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.2: Приведение задачи 004-new-lighting-system к формату agent-tasks.md
+- Добавить `updated:` в YAML шапку; поле `completed:` заменить/дополнить согласно схеме (оставив как метаданные при необходимости)
+- Заполнить `phases.total` и `phases.completed`
+- Секция «Список фаз»: убедиться в корректных заголовках и ссылках на отчёты
+- Привести шапки фаз к шаблону
+- Файл: `agent-content/agent-tasks/tasks/004-new-lighting-system/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.3: Приведение задачи 006-instanced-mesh-documentation к формату agent-tasks.md
+- Добавить `updated:` и блок `phases: { total, completed }` в YAML
+- Переименовать раздел «Планируемые фазы» в «Список фаз» и оформить по шаблону `⏳ Фаза N`
+- Если фазы 1–4 действительно выполнены — оформить статусы и добавить ссылки на отчёты при их наличии
+- Не создавать отчёты задним числом; синхронизировать только формат
+- Файл: `agent-content/agent-tasks/tasks/006-instanced-mesh-documentation/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.4: Приведение задачи 002-fsd-repository-refactoring (эпик 001) к формату
+- Поле `epic:` заменить с относительного пути на числовой ID `1`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- Секция «Список фаз» — оформить по шаблону, уточнить статусы
+- Проверить соответствие ссылок на отчёты (если создавались)
+- Файл: `agent-content/agent-tasks/epics/001-fsd-shared-layer-cleanup/tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.5: Приведение задачи 008-layout-persistence-and-handles (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- Преобразовать раздел «Фазы» в «Список фаз» с заголовками `⏳ Фаза N`
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/008-layout-persistence-and-handles/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.6: Приведение задачи 009-hud-actions-and-hotkeys (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- «Фазы» → «Список фаз» по шаблону
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/009-hud-actions-and-hotkeys/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.7: Приведение задачи 010-object-manager-search-and-toggles (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- «Фазы» → «Список фаз» по шаблону
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/010-object-manager-search-and-toggles/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.8: Приведение задачи 011-context-menu-and-snaps (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- «Фазы» → «Список фаз» по шаблону
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/011-context-menu-and-snaps/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.9: Приведение задачи 012-command-palette-and-help (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- «Фазы» → «Список фаз» по шаблону
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/012-command-palette-and-help/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.10: Приведение задачи 013-performance-and-virtualization (эпик 007) к формату
+- Поле `epic:` заменить на числовой ID `7`
+- Добавить `updated:` и блок `phases: { total, completed }`
+- «Фазы» → «Список фаз» по шаблону
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/013-performance-and-virtualization/AGENT_TASK_SUMMARY.md`
+
+### ⏳ Фаза 4.11: Приведение эпика 001-fsd-shared-layer-cleanup к формату
+- Добавить `updated:` в YAML шапку эпика
+- Проверить структуру разделов и KPI; скорректировать согласно `agent-tasks.md`
+- Убедиться, что все дочерние задачи ссылаются на эпик через `epic: 1`
+- Файл: `agent-content/agent-tasks/epics/001-fsd-shared-layer-cleanup/epic.md`
+
+### ⏳ Фаза 4.12: Приведение эпика 007-scene-editor-modern-ux к формату
+- Добавить `updated:` в YAML шапку эпика
+- Проверить структуру (KPI, вехи), привести к единому шаблону
+- Убедиться, что дочерние задачи используют `epic: 7`
+- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/epic.md`
 
 ### ⏳ Фаза 5: Редактирование задач
 - Форма редактирования YAML метаданных задачи
