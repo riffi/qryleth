@@ -8,7 +8,7 @@ owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 23
-  completed: 9
+  completed: 10
 ---
 
 # Agent Tasks UI Application - Интерфейс управления агентскими задачами
@@ -94,11 +94,12 @@ phases:
 - Обновлена основная сводка задачи
 **Отчёт**: [phases/phase_4.5_summary.md](phases/phase_4.5_summary.md)
 
-### ⏳ Фаза 4.6: Приведение задачи 009-hud-actions-and-hotkeys (эпик 007) к формату
-- Поле `epic:` заменить на числовой ID `7`
-- Добавить `updated:` и блок `phases: { total, completed }`
-- «Фазы» → «Список фаз» по шаблону
-- Файл: `agent-content/agent-tasks/epics/007-scene-editor-modern-ux/tasks/009-hud-actions-and-hotkeys/AGENT_TASK_SUMMARY.md`
+### ✅ Фаза 4.6: Приведение задачи 009-hud-actions-and-hotkeys (эпик 007) к формату
+- Поле `epic` заменено на числовой ID `7`
+- Добавлены поля `updated` и `phases` в YAML-шапку задачи
+- Раздел «Фазы» преобразован в «Список фаз» по шаблону
+- Обновлена основная сводка задачи
+**Отчёт**: [phases/phase_4.6_summary.md](phases/phase_4.6_summary.md)
 
 ### ⏳ Фаза 4.7: Приведение задачи 010-object-manager-search-and-toggles (эпик 007) к формату
 - Поле `epic:` заменить на числовой ID `7`
