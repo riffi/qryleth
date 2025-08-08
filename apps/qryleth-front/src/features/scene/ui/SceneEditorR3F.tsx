@@ -663,8 +663,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             </Text>
             <Group gap="xs">
               <Tooltip label="Сохранить" withArrow>
-                <ActionIcon color="green" variant="filled" onClick={handleEditorSaveClick}>
-                  <IconDeviceFloppy size={16} />
+                <ActionIcon color="gray" variant="subtle" onClick={handleEditorSaveClick}>
+                  <IconDeviceFloppy size={24} />
                 </ActionIcon>
               </Tooltip>
               <PanelToggleButtons

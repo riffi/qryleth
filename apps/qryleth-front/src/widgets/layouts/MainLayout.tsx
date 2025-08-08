@@ -38,7 +38,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
 
   return (
     <AppShell
-      header={{ height: 56 }}
+      header={{ height: 49 }}
       navbar={{
         width: 260,
         breakpoint: 'sm',
@@ -65,6 +65,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
             <Group gap="md" style={{ alignItems: 'center' }}>
               <Burger
                 opened={sidebarOpened}
+                lineSize={1}
                 onClick={() => setSidebarOpened(!sidebarOpened)}
                 size="sm"
                 color="white"

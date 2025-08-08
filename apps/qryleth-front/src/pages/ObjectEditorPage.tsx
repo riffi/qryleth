@@ -163,8 +163,8 @@ const ObjectEditorPage: React.FC = () => {
       </Title>
       <Group gap="xs">
         <Tooltip label="Сохранить" withArrow>
-          <ActionIcon color="green" variant="filled" onClick={handleSaveClick}>
-            <IconDeviceFloppy size={16} />
+          <ActionIcon variant="subtle"  color="white"onClick={handleSaveClick}>
+            <IconDeviceFloppy size={24} />  
           </ActionIcon>
         </Tooltip>
         <PanelToggleButtons
