@@ -1,6 +1,7 @@
 ---
 id: 3
 epic: null
+title: Группировка примитивов GfxObject
 status: done
 created: 2025-08-07
 updated: 2025-08-08

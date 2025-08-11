@@ -1,6 +1,7 @@
 ---
 id: 10
 epic: 7
+title: Менеджер объектов — поиск, фильтры, тумблеры
 status: planned
 created: 2025-08-08
 updated: 2025-08-08

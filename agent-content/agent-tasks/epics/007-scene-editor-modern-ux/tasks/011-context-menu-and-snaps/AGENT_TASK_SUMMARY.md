@@ -1,6 +1,7 @@
 ---
 id: 11
 epic: 7
+title: Контекстное меню и снапы
 status: planned
 created: 2025-08-08
 updated: 2025-08-08

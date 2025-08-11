@@ -1,6 +1,7 @@
 ---
 id: 5
 epic: null
+title: Agent Tasks UI Application - Интерфейс управления агентскими задачами
 status: planned
 created: 2025-08-07
 updated: 2025-08-08

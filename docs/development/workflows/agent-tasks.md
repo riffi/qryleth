@@ -62,6 +62,7 @@ agent-content/
 ---
 id: <number>              # обязателен. Берём из manager-state.json
 epic: <number|null>       # ID эпика (число) или null. Альтернатива (устар.): относительный путь '../epic.md'
+title: <string>           # Название задачи
 status: planned           # одно из: planned | in-progress | done
 created: YYYY-MM-DD       # дата создания
 updated: YYYY-MM-DD       # дата последнего обновления (обязателен при любом изменении)

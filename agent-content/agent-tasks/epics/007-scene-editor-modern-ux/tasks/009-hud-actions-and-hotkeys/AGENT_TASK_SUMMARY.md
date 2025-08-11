@@ -1,6 +1,7 @@
 ---
 id: 9
 epic: 7
+title: HUD‑действия и хоткеи
 status: planned
 created: 2025-08-08
 updated: 2025-08-08

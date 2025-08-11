@@ -1,6 +1,7 @@
 ---
 id: 12
 epic: 7
+title: Командная палитра и оверлей помощи
 status: planned
 created: 2025-08-08
 updated: 2025-08-08

@@ -1,6 +1,7 @@
 ---
 id: 8
 epic: 7
+title: Персистентная раскладка и UX хэндлов
 status: planned
 created: 2025-08-08
 updated: 2025-08-08

@@ -1,6 +1,7 @@
 ---
 id: 2
 epic: 1
+title: FSD Repository Refactoring
 status: planned
 created: 2025-08-07
 updated: 2025-08-08
