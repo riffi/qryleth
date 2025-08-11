@@ -300,11 +300,12 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // Selection
-    selectObject: (objectUuid: string, instanceUuid?: string) => {
+    selectObject: (objectUuid: string, instanceUuid?: string, isInstanced?: boolean) => {
 
       const selectedObject: SelectedSceneObject = {
         objectUuid,
         instanceUuid,
+        isInstanced
       }
       set({ selectedObject })
     },

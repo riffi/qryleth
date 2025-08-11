@@ -70,7 +70,7 @@ export interface SceneStoreActions {
   moveObjectToLayer: (objectUuid: string, layerId: string) => void
 
   // Selection
-  selectObject: (objectUuid: string, instanceId?: string) => void
+  selectObject: (objectUuid: string, instanceId?: string, isInstanced?: boolean) => void
   clearSelection: () => void
   setHoveredObject: (objectUuid: string, instanceId?: string) => void
   clearHover: () => void

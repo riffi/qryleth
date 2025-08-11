@@ -31,10 +31,11 @@ export const useSceneEvents = (): UseSceneEventsReturn => {
     if (clickedObject?.userData.generated) {
       const objectUuid = clickedObject.userData.objectUuid
       const objectInstanceUuid = clickedObject.userData.objectInstanceUuid
+      const isInstanced = clickedObject.userData.isInstanced
 
       // For instanced mesh, objectInstanceUuid might not be available
       // In that case, we select the object type without specific instance
-      selectObject(objectUuid, objectInstanceUuid)
+      selectObject(objectUuid, objectInstanceUuid, isInstanced)
     } else {
       clearSelection()
     }

@@ -16,6 +16,7 @@ export type TransformMode = 'translate' | 'rotate' | 'scale'
 export interface SelectedSceneObject {
   objectUuid: string
   instanceUuid?: string
+  isInstanced?: boolean
 }
 
 export interface HoveredSceneObject {

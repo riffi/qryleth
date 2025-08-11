@@ -3,6 +3,7 @@ import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
+import { InstancedObjectTransform } from '@/shared/r3f/optimization/InstancedObjectTransform'
 
 
 export const ObjectTransformGizmo: React.FC = () => {
@@ -12,7 +13,6 @@ export const ObjectTransformGizmo: React.FC = () => {
   const transformMode = useSceneStore(state => state.transformMode)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
   const { selectedMeshes } = useMeshSelection()
-
 
   const handleObjectChange = () => {
     if (!transformControlsRef.current?.object || !selectionMetadata) return
@@ -32,7 +32,14 @@ export const ObjectTransformGizmo: React.FC = () => {
         }
       })
     }
+  }
 
+  const handleInstancedObjectTransform = (instanceUuid: string, transform: {
+    position: [number, number, number]
+    rotation: [number, number, number]
+    scale: [number, number, number]
+  }) => {
+    updateObjectInstance(instanceUuid, { transform })
   }
 
   const handleDraggingChanged = (event: any) => {
@@ -48,18 +55,35 @@ export const ObjectTransformGizmo: React.FC = () => {
   }
 
   useEffect(() => {
-    const controls = transformControlsRef.current
-    if (!controls) return
+    const transformControls = transformControlsRef.current
+    if (!transformControls) return
 
-    controls.addEventListener('dragging-changed', handleDraggingChanged)
+    transformControls.addEventListener('dragging-changed', handleDraggingChanged)
 
     return () => {
-      controls.removeEventListener('dragging-changed', handleDraggingChanged)
+      transformControls.removeEventListener('dragging-changed', handleDraggingChanged)
     }
   }, [selectionMetadata])
 
   // Don't render if no object is selected
-  if (selectedMeshes.length === 0 || !selectionMetadata) {
+  if (!selectionMetadata) {
+    return null
+  }
+
+  // Если выбран инстансированный объект, используем специальный компонент
+  if (selectionMetadata.isInstanced && selectionMetadata.instanceUuid && selectionMetadata.objectUuid) {
+    return (
+      <InstancedObjectTransform
+        selectedObjectUuid={selectionMetadata.objectUuid}
+        selectedInstanceUuid={selectionMetadata.instanceUuid}
+        transformMode={transformMode}
+        onTransformChange={handleInstancedObjectTransform}
+      />
+    )
+  }
+
+  // Для обычных объектов используем стандартный TransformControls
+  if (selectedMeshes.length === 0) {
     return null
   }
 

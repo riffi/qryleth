@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useCallback } from 'react'
 import { Instances, Instance } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -293,49 +293,6 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
           materials={sceneObject.materials}
         />
       ))}
-      
-      {/* Invisible mesh for handling events on the entire object */}
-      <mesh
-        visible={false}
-        onClick={(event) => {
-          if (onClick) {
-            const syntheticEvent = {
-              ...event,
-              object: event.object,
-              userData: {
-                generated: true,
-                objectUuid: objectUuid,
-                isInstanced: true,
-                layerId: sceneObject.layerId || 'objects'
-              }
-            }
-            onClick(syntheticEvent)
-          }
-        }}
-        onPointerOver={(event) => {
-          if (onHover) {
-            const syntheticEvent = {
-              ...event,
-              object: event.object,
-              userData: {
-                generated: true,
-                objectUuid: objectUuid,
-                isInstanced: true,
-                layerId: sceneObject.layerId || 'objects'
-              }
-            }
-            onHover(syntheticEvent)
-          }
-        }}
-        userData={{
-          generated: true,
-          objectUuid: objectUuid,
-          isInstanced: true
-        }}
-      >
-        <boxGeometry args={[1000, 1000, 1000]} />
-        <meshBasicMaterial transparent opacity={0} />
-      </mesh>
     </group>
   )
 }
@@ -364,11 +321,58 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
 }) => {
   const ref = useRef<THREE.InstancedMesh>(null)
 
+  const handleInstanceClick = useCallback((event: any) => {
+    if (!onClick || !ref.current) return
+    
+    // Get the instanceId from the event
+    const instanceId = event.instanceId
+    if (instanceId !== undefined && instanceId < instances.length) {
+      const instance = instances[instanceId]
+      const syntheticEvent = {
+        ...event,
+        object: event.object,
+        userData: {
+          generated: true,
+          objectUuid: objectUuid,
+          objectInstanceUuid: instance.uuid,
+          isInstanced: true,
+          instanceId: instanceId,
+          layerId: sceneObject.layerId || 'objects'
+        }
+      }
+      onClick(syntheticEvent)
+    }
+  }, [onClick, objectUuid, instances, sceneObject])
+
+  const handleInstanceHover = useCallback((event: any) => {
+    if (!onHover || !ref.current) return
+    
+    const instanceId = event.instanceId
+    if (instanceId !== undefined && instanceId < instances.length) {
+      const instance = instances[instanceId]
+      const syntheticEvent = {
+        ...event,
+        object: event.object,
+        userData: {
+          generated: true,
+          objectUuid: objectUuid,
+          objectInstanceUuid: instance.uuid,
+          isInstanced: true,
+          instanceId: instanceId,
+          layerId: sceneObject.layerId || 'objects'
+        }
+      }
+      onHover(syntheticEvent)
+    }
+  }, [onHover, objectUuid, instances, sceneObject])
+
   return (
     <Instances
       limit={1000} // Maximum instances
       range={instances.length}
       ref={ref}
+      onClick={handleInstanceClick}
+      onPointerOver={handleInstanceHover}
     >
       <PrimitiveGeometry primitive={primitive} />
       <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} />
@@ -387,6 +391,14 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
             rotation={finalTransform.rotation}
             scale={finalTransform.scale}
             visible={true}
+            userData={{
+              generated: true,
+              objectUuid: objectUuid,
+              objectInstanceUuid: instance.uuid,
+              isInstanced: true,
+              instanceId: index,
+              layerId: sceneObject.layerId || 'objects'
+            }}
           />
         )
       })}
