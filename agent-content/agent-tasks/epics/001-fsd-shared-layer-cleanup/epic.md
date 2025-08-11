@@ -1,17 +1,18 @@
 ---
 id: 1
+title: "Устранение FSD нарушений в слое shared"
 status: planned
 created: 2025-08-07
+updated: 2025-08-07
 tags: [architecture, fsd, refactoring, shared-layer]
 ---
 
-# Epic: Устранение FSD нарушений в слое shared
+# Устранение FSD нарушений в слое shared
 
-## Цель эпика
-
+## Цель
 Полностью очистить слой `shared` от зависимостей верхних слоев (`entities`, `features`, `widgets`, `pages`, `app`) согласно принципам Feature-Sliced Design.
 
-## Проблема
+## Контекст
 
 Слой `shared` содержит множественные нарушения FSD архитектуры - импорты из слоя `entities`, что создает:
 - Циклические зависимости
@@ -19,20 +20,13 @@ tags: [architecture, fsd, refactoring, shared-layer]
 - Невозможность переиспользования shared компонентов
 - Архитектурную путаницу
 
-## KPI эпика
+### Обнаруженные нарушения
 
-- ✅ 0 импортов из `entities` в слое `shared`
-- ✅ 0 предупреждений линтера по FSD правилам
-- ✅ Все компоненты shared работают независимо от бизнес-логики
-- ✅ Сохранена обратная совместимость API
-
-## Обнаруженные нарушения
-
-### 1. API слой (2 нарушения)
+#### 1. API слой (2 нарушения)
 - **shared/api/types.ts:10** - `import type { GfxObject } from '@/entities/object'`
 - **shared/api/types.ts:11** - `import type { SceneData } from '@/entities/scene/types'`
 
-### 2. Библиотечный слой (8 нарушений)
+#### 2. Библиотечный слой (8 нарушений)
 - **shared/lib/database.ts:4** - `import type {SceneData} from "@/entities/scene/types.ts"`
 - **shared/lib/database.ts:5** - `import type {GfxObject} from "@/entities/object"`
 - **shared/lib/geometry/boundingBoxUtils.ts:2** - `import type { GfxPrimitive, GfxObject } from '@/entities'`
@@ -42,11 +36,11 @@ tags: [architecture, fsd, refactoring, shared-layer]
 - **shared/lib/langchain/chatService.ts:11** - `import type {GfxObjectWithTransform} from '@/entities'`
 - **shared/types/index.ts:17-21** - реэкспорт типов из `@/entities/material`
 
-### 3. React Three Fiber компоненты (12 нарушений)
+#### 3. React Three Fiber компоненты (12 нарушений)
 - **shared/r3f/optimization/InstancedObjects.tsx:4** - импорты сценарных типов
 - **shared/r3f/primitives/Box3D.tsx:2** - `import type { GfxPrimitive } from '@/entities/primitive'`
 - **shared/r3f/primitives/Cone3D.tsx:2** - аналогично
-- **shared/r3f/primitives/Cylinder3D.tsx:2** - аналогично  
+- **shared/r3f/primitives/Cylinder3D.tsx:2** - аналогично
 - **shared/r3f/primitives/Plane3D.tsx:2** - аналогично
 - **shared/r3f/primitives/Primitive3D.tsx:2** - аналогично
 - **shared/r3f/primitives/PrimitiveRenderer.tsx:15-16** - множественные импорты
@@ -56,49 +50,55 @@ tags: [architecture, fsd, refactoring, shared-layer]
 
 **Итого: 22 файла с нарушениями FSD**
 
-## Высокоуровневые вехи
+## Основные вехи
+- [x] Веха 1: Анализ и планирование (завершено)
+- [ ] Веха 2: Database и API рефакторинг
+- [ ] Веха 3: Materials system рефакторинг  
+- [ ] Веха 4: R3F компоненты рефакторинг
+- [ ] Веха 5: Геометрия и вспомогательные утилиты
+- [ ] Веха 6: Валидация и финализация
 
-### ✅ Этап 1: Анализ и планирование
-- [x] Провести аудит нарушений FSD в shared слое
-- [x] Создать план рефакторинга по приоритетам
-- [x] Определить архитектурные принципы решения
+## Задачи эпика
 
-### ⏳ Этап 2: Database и API рефакторинг
-- [ ] [Задача: FSD Repository Refactoring](tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)
-- [ ] Создать абстрактные репозитории в shared
-- [ ] Перенести доменные типы в entities
+### ✅ Задача 1: Анализ архитектурных нарушений
+**Статус:** done  
+**Ссылка:** -  
+**Описание:** Провести аудит всех FSD нарушений в слое shared и создать детальный план рефакторинга
 
-### ⏳ Этап 3: Materials system рефакторинг  
-- [ ] Задача: Вынести материальную систему в entities
-- [ ] Создать generic интерфейсы в shared
-- [ ] Обновить MaterialRegistry и резолверы
+### ⏳ Задача 2: FSD Repository Refactoring  
+**Статус:** planned  
+**Ссылка:** [tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md](tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)  
+**Описание:** Рефакторинг database.ts и API типов для устранения зависимостей от entities
 
-### ⏳ Этап 4: R3F компоненты рефакторинг
-- [ ] Задача: Сделать R3F примитивы generic
-- [ ] Либо перенести в entities, либо абстрагировать
-- [ ] Обновить InstancedObjects компонент
+### ⏳ Задача 3: Materials System FSD Cleanup
+**Статус:** planned  
+**Ссылка:** -  
+**Описание:** Вынести материальную систему в entities, создать generic интерфейсы в shared
 
-### ⏳ Этап 5: Геометрия и вспомогательные утилиты
-- [ ] Задача: Рефакторинг geometry utilities  
-- [ ] Убрать зависимости от GfxPrimitive/GfxObject
-- [ ] Создать абстрактные геометрические интерфейсы
+### ⏳ Задача 4: R3F Components Generic Refactoring
+**Статус:** planned  
+**Ссылка:** -  
+**Описание:** Сделать R3F примитивы generic или перенести в entities
 
-### ⏳ Этап 6: Валидация и финализация
-- [ ] Задача: Финальная проверка FSD compliance
-- [ ] Обновить документацию архитектуры
-- [ ] Провести комплексное тестирование
+### ⏳ Задача 5: Geometry Utils Abstraction
+**Статус:** planned  
+**Ссылка:** -  
+**Описание:** Убрать зависимости от GfxPrimitive/GfxObject, создать абстрактные геометрические интерфейсы
 
-## Связанные задачи
+### ⏳ Задача 6: FSD Compliance Validation
+**Статус:** planned  
+**Ссылка:** -  
+**Описание:** Финальная проверка соответствия FSD, обновление документации и тестирование
 
-1. **[FSD Repository Refactoring](tasks/002-fsd-repository-refactoring/AGENT_TASK_SUMMARY.md)** - рефакторинг database.ts и API типов
-2. **Materials System FSD Cleanup** - планируется
-3. **R3F Components Generic Refactoring** - планируется  
-4. **Geometry Utils Abstraction** - планируется
-5. **FSD Compliance Validation** - планируется
+## Критерии завершения
+- [ ] 0 импортов из `entities` в слое `shared`
+- [ ] 0 предупреждений линтера по FSD правилам
+- [ ] Все компоненты shared работают независимо от бизнес-логики
+- [ ] Сохранена обратная совместимость API
+- [ ] Обновлена документация архитектуры
+- [ ] Проведено комплексное тестирование
 
-## Архитектурные принципы
-
-1. **Инверсия зависимостей** - shared определяет интерфейсы, entities их реализуют
-2. **Generic абстракции** - shared содержит только универсальные компоненты
-3. **Чистота слоев** - строгое соблюдение FSD dependency rules
-4. **Обратная совместимость** - сохранить существующие API где возможно
+## Статус выполнения
+**Текущий статус:** planned  
+**Прогресс:** 1/6 задач завершено  
+**Последнее обновление:** 2025-08-07
