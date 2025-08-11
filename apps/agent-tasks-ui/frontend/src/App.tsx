@@ -7,8 +7,7 @@ import { Navigation } from './components/Navigation'
 import { Dashboard } from './components/Dashboard'
 import { EpicList } from './components/EpicList'
 import { TasksPage } from './components/TasksPage'
-import { TestPage } from './components/TestPage'
-import { 
+import {
   getAllTasks, 
   getAllEpics, 
   getManagerState,
@@ -93,10 +92,6 @@ function App() {
             error={error}
             onEpicClick={handleEpicClick}
           />
-        )
-      case 'test':
-        return (
-          <TestPage />
         )
       default:
         return null

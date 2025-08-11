@@ -154,17 +154,6 @@ updated: 2025-08-08
 - Замена старого TaskList на новый TasksPage в роутинге
 - Сохранение совместимости с остальными вкладками
 
-### 8. Frontend Отладка: Тестовая страница
-
-**Файлы**: 
-- `apps/agent-tasks-ui/frontend/src/components/TestPage.tsx` - создан
-- `apps/agent-tasks-ui/frontend/src/components/Navigation.tsx:5, 31-36` - добавлена вкладка "Тест API"
-
-✅ **Отладочные возможности**:
-- Прямое тестирование `getTasksWithFilters` API
-- Отображение JSON ответа для анализа структуры данных
-- Отображение ошибок для диагностики проблем
-- Удобная кнопка для повторного тестирования
 
 ## Соответствие критериям успешности
 
@@ -265,7 +254,6 @@ curl "http://localhost:3002/api/tasks?status=done&tags=gfx,ui"
 - `apps/agent-tasks-ui/frontend/src/components/TaskFilters.tsx`
 - `apps/agent-tasks-ui/frontend/src/components/TaskPagination.tsx`  
 - `apps/agent-tasks-ui/frontend/src/components/TasksPage.tsx`
-- `apps/agent-tasks-ui/frontend/src/components/TestPage.tsx`
 
 ### Измененные файлы:
 - `apps/agent-tasks-ui/backend/package.json` (добавлен "type": "module")
