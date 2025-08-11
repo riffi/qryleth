@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import {getAllTasks, getEpicTasks, getTaskById} from '../services/fileSystemService.js'
+import {getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases} from '../services/fileSystemService.js'
 import pino from 'pino';
 
 const router = Router()
@@ -109,7 +109,8 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/tasks/:id
- * Получить конкретную задачу по ID
+ * Получить конкретную задачу по ID с базовой информацией о фазах
+ * Для получения детальной информации о фазах используйте /api/tasks/:id/detailed
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -140,6 +141,44 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Ошибка при получении задачи',
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
+    })
+  }
+})
+
+/**
+ * GET /api/tasks/:id/detailed
+ * Получить конкретную задачу по ID с детальной информацией о фазах (включая полные отчёты фаз)
+ */
+router.get('/:id/detailed', async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id, 10)
+
+    if (isNaN(taskId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Некорректный ID задачи'
+      })
+    }
+
+    const task = await getTaskByIdWithDetailedPhases(taskId)
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        error: 'Задача не найдена'
+      })
+    }
+
+    res.json({
+      success: true,
+      data: task
+    })
+  } catch (error) {
+    console.error(`Ошибка получения детальной задачи ${req.params.id}:`, error)
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при получении детальной задачи',
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     })
   }

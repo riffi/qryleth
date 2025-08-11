@@ -61,9 +61,52 @@ async function getDirectories(dirPath: string): Promise<string[]> {
 }
 
 /**
-  * Читает фазы задачи из папки phases
+ * Читает информацию о фазах задачи из раздела "Список фаз" в AGENT_TASK_SUMMARY.md
+ * Это более эффективно для списочного отображения задач, чем чтение всех файлов отчётов фаз
  */
-async function readTaskPhases(taskPath: string): Promise<AgentTaskPhase[]> {
+async function parseTaskPhasesFromSummary(summaryContent: string): Promise<AgentTaskPhase[]> {
+  const phases: AgentTaskPhase[] = []
+  
+  // Ищем раздел "Список фаз"
+  const phasesListMatch = summaryContent.match(/##\s+Список фаз\s*\n([\s\S]*?)(?:\n##\s|\n---\s*$|$)/i)
+  if (!phasesListMatch) {
+    return phases
+  }
+
+  const phasesSection = phasesListMatch[1]
+  
+  // Парсим каждую фазу по паттерну: ### (⏳|✅) Фаза N: Заголовок
+  const phaseMatches = phasesSection.matchAll(/###\s+(⏳|✅)\s*Фаза\s+(\d+(?:\.\d+)?)\s*:\s*([^\n]+)/gi)
+  
+  for (const match of phaseMatches) {
+    const statusIcon = match[1]
+    const phaseNumber = parseFloat(match[2])
+    const title = match[3].trim()
+    
+    // Определяем статус по иконке
+    let status: 'planned' | 'in-progress' | 'done' = 'planned'
+    if (statusIcon === '✅') {
+      status = 'done'
+    } else if (statusIcon === '⏳') {
+      // Для более точного определения между planned и in-progress можно добавить доп. логику
+      status = 'planned'
+    }
+    
+    phases.push({
+      phaseNumber,
+      title: `Фаза ${phaseNumber}: ${title}`,
+      status,
+      summary: '' // Для списочного отображения детальная информация не нужна
+    })
+  }
+
+  return phases.sort((a, b) => a.phaseNumber - b.phaseNumber)
+}
+
+/**
+ * Читает детальную информацию о фазах задачи из файлов отчётов (используется для детального просмотра задачи)
+ */
+async function readDetailedTaskPhases(taskPath: string): Promise<AgentTaskPhase[]> {
   const phasesPath = path.join(taskPath, 'phases')
 
   try {
@@ -130,7 +173,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
 
       try {
         const { data, content } = await parseMarkdownFile(summaryPath)
-        const phases = await readTaskPhases(taskPath)
+        const phases = await parseTaskPhasesFromSummary(content)
 
         // Извлекаем заголовок
         const title = data.title ?  `Задача ${data.id}. ${data.title.trim()}` : `Задача ${data.id || taskDir}`
@@ -184,7 +227,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
           const summaryPath = path.join(taskPath, 'AGENT_TASK_SUMMARY.md')
           try {
             const { data: taskData, content } = await parseMarkdownFile(summaryPath)
-            const phases = await readTaskPhases(taskPath)
+            const phases = await parseTaskPhasesFromSummary(content)
 
             const title = taskData.title ?  `Задача ${taskData.id}. ${taskData.title.trim()}` : `Задача ${taskData.id || taskDir}`
 
@@ -227,11 +270,78 @@ export async function getAllTasks(): Promise<AgentTask[]> {
 }
 
 /**
- * Читает конкретную задачу по ID
+ * Читает конкретную задачу по ID (с базовой информацией о фазах для списков)
  */
 export async function getTaskById(id: number): Promise<AgentTask | null> {
   const tasks = await getAllTasks()
   return tasks.find(task => task.id === id) || null
+}
+
+/**
+ * Читает конкретную задачу по ID с детальной информацией о фазах (для детального просмотра)
+ */
+export async function getTaskByIdWithDetailedPhases(id: number): Promise<AgentTask | null> {
+  const tasks = await getAllTasks()
+  const task = tasks.find(task => task.id === id)
+  
+  if (!task) {
+    return null
+  }
+  
+  // Находим путь к задаче и читаем детальные фазы
+  const tasksPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'tasks')
+  const epicsPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'epics')
+  
+  let taskPath: string | null = null
+  
+  // Ищем в обычных задачах
+  const taskDirs = await getDirectories(tasksPath)
+  for (const taskDir of taskDirs) {
+    const summaryPath = path.join(tasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+    try {
+      const { data } = await parseMarkdownFile(summaryPath)
+      if (data.id === id) {
+        taskPath = path.join(tasksPath, taskDir)
+        break
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  // Если не найдена в обычных задачах, ищем в эпиках
+  if (!taskPath) {
+    const epicDirs = await getDirectories(epicsPath)
+    for (const epicDir of epicDirs) {
+      const epicTasksPath = path.join(epicsPath, epicDir, 'tasks')
+      const epicTaskDirs = await getDirectories(epicTasksPath)
+      for (const taskDir of epicTaskDirs) {
+        const summaryPath = path.join(epicTasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+        try {
+          const { data } = await parseMarkdownFile(summaryPath)
+          if (data.id === id) {
+            taskPath = path.join(epicTasksPath, taskDir)
+            break
+          }
+        } catch (error) {
+          continue
+        }
+      }
+      if (taskPath) break
+    }
+  }
+  
+  if (!taskPath) {
+    return task // Возвращаем базовую задачу, если не можем найти файлы
+  }
+  
+  // Читаем детальные фазы
+  const detailedPhases = await readDetailedTaskPhases(taskPath)
+  
+  return {
+    ...task,
+    phases: detailedPhases
+  }
 }
 
 /**
@@ -321,7 +431,7 @@ export async function getEpicTasks(epicId: number): Promise<AgentTask[]> {
 
             try {
               const { data: taskData, content } = await parseMarkdownFile(summaryPath)
-              const phases = await readTaskPhases(taskPath)
+              const phases = await parseTaskPhasesFromSummary(content)
 
               const titleMatch = content.match(/^#\s+(.+)$/m)
               const title = titleMatch ? titleMatch[1].trim() : `Задача ${taskData.id || taskDir}`
