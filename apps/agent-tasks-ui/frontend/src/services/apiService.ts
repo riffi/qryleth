@@ -80,6 +80,7 @@ export interface TaskFilters {
   tags?: string[]
   status?: string
   epic?: string
+  showCompleted?: boolean
   page?: number
   limit?: number
 }
@@ -103,7 +104,15 @@ export const getTasksWithFilters = async (filters: TaskFilters): Promise<TasksRe
 
   if (filters.search) params.append('search', filters.search)
   if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','))
-  if (filters.status) params.append('status', filters.status)
+  
+  // Логика статуса: если не выбран статус и не показываем выполненные, то только активные
+  if (filters.status) {
+    params.append('status', filters.status)
+  } else if (!filters.showCompleted) {
+    // По умолчанию показываем только активные задачи
+    params.append('status', 'planned,in-progress')
+  }
+  
   if (filters.epic) params.append('epic', filters.epic)
   if (filters.page) params.append('page', filters.page.toString())
   if (filters.limit) params.append('limit', filters.limit.toString())

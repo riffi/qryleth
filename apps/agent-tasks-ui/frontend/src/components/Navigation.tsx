@@ -28,13 +28,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       label: 'Эпики',
       icon: IconBulb,
       description: 'Список эпиков и связанных задач'
-    },
-    {
-      key: 'test',
-      label: 'Тест API',
-      icon: IconTestPipe,
-      description: 'Тестирование API endpoint'
     }
+
   ]
 
   return (

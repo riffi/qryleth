@@ -56,9 +56,10 @@ router.get('/', async (req, res) => {
         )
       }
 
-      // Фильтр по статусу
+      // Фильтр по статусу (поддерживаем множественные статусы через запятую)
       if (status && typeof status === 'string') {
-        tasks = tasks.filter(task => task.status === status)
+        const statusList = status.split(',').map(s => s.trim())
+        tasks = tasks.filter(task => statusList.includes(task.status))
       }
 
       // Фильтр по эпику

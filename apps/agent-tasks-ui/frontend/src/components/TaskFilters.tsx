@@ -11,7 +11,8 @@ import {
   Stack,
   Collapse,
   ActionIcon,
-  Text
+  Text,
+  Checkbox
 } from '@mantine/core'
 import { 
   IconSearch, 
@@ -31,6 +32,7 @@ interface TaskFiltersProps {
     tags?: string[]
     status?: string
     epic?: string
+    showCompleted?: boolean
   }
   
   /**
@@ -55,9 +57,17 @@ interface TaskFiltersProps {
 }
 
 /**
- * Доступные статусы задач
+ * Доступные статусы задач (без выполненных)
  */
-const statusOptions = [
+const activeStatusOptions = [
+  { value: 'planned', label: 'Запланировано' },
+  { value: 'in-progress', label: 'В работе' }
+]
+
+/**
+ * Все доступные статусы задач
+ */
+const allStatusOptions = [
   { value: 'planned', label: 'Запланировано' },
   { value: 'in-progress', label: 'В работе' },
   { value: 'done', label: 'Выполнено' }
@@ -90,11 +100,17 @@ export function TaskFilters({
   }
   
   /**
+   * Получить доступные опции статусов в зависимости от чекбокса
+   */
+  const statusOptions = filters.showCompleted ? allStatusOptions : activeStatusOptions
+
+  /**
    * Проверить есть ли активные фильтры
    */
-  const hasActiveFilters = Object.values(filters).some(value => 
-    Array.isArray(value) ? value.length > 0 : Boolean(value)
-  )
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === 'showCompleted') return false // не считаем чекбокс активным фильтром
+    return Array.isArray(value) ? value.length > 0 : Boolean(value)
+  })
   
   return (
     <Paper shadow="xs" p="md" withBorder>
@@ -176,6 +192,14 @@ export function TaskFilters({
                 disabled={loading}
               />
             )}
+            
+            {/* Чекбокс показывать выполненные */}
+            <Checkbox
+              label="Показывать выполненные задачи"
+              checked={filters.showCompleted || false}
+              onChange={(event) => updateFilter('showCompleted', event.currentTarget.checked)}
+              disabled={loading}
+            />
             
             {/* Информация о количестве активных фильтров */}
             {hasActiveFilters && (

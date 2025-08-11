@@ -23,7 +23,8 @@ export function TasksPage() {
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<TaskFilters>({
     page: 1,
-    limit: 10
+    limit: 10,
+    showCompleted: false // по умолчанию не показываем выполненные
   })
 
   // Дебаунс для поиска
