@@ -132,9 +132,8 @@ export async function getAllTasks(): Promise<AgentTask[]> {
         const { data, content } = await parseMarkdownFile(summaryPath)
         const phases = await readTaskPhases(taskPath)
 
-        // Извлекаем заголовок из контента
-        const titleMatch = content.match(/^#\s+(.+)$/m)
-        const title = titleMatch ? titleMatch[1].trim() : `Задача ${data.id || taskDir}`
+        // Извлекаем заголовок
+        const title = data.title ?  `Задача ${data.id}. ${data.title.trim()}` : `Задача ${data.id || taskDir}`
 
         // Эпик: поддерживаем либо относительный путь 'epic: ../epic.md', либо число
         let epicId: number | null = null
@@ -187,8 +186,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
             const { data: taskData, content } = await parseMarkdownFile(summaryPath)
             const phases = await readTaskPhases(taskPath)
 
-            const titleMatch = content.match(/^#\s+(.+)$/m)
-            const title = titleMatch ? titleMatch[1].trim() : `Задача ${taskData.id || taskDir}`
+            const title = taskData.title ?  `Задача ${taskData.id}. ${taskData.title.trim()}` : `Задача ${taskData.id || taskDir}`
 
             // Определяем ID эпика: приоритет YAML-числу, затем ID эпика из файла, затем парс пути
             let epicId: number | null = null
