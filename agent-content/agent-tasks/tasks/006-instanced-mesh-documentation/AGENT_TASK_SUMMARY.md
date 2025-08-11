@@ -1,14 +1,14 @@
 ---
 id: 6
 epic: null
-status: in-progress
+status: done
 created: 2025-08-07
 updated: 2025-08-11
 title: "Instanced Mesh Optimization Documentation"
 tags: ["documentation", "performance", "three.js", "react-three-fiber"]
 phases:
-  total: 8
-  completed: 5
+  total: 6
+  completed: 6
 ---
 
 # Instanced Mesh Optimization Documentation
@@ -63,12 +63,12 @@ phases:
 **Отчёт**: [phases/phase_4.1_summary.md](phases/phase_4.1_summary.md)
 
 
-### ⏳ Фаза 5: Обновление  документации
-- [ ] Обновить `docs/features/scene-management/` с информацией об оптимизации
-- [ ] Добавить раздел в `docs/architecture/` о производительности
-- [ ] Обновить `docs/getting-started/` с примерами использования
-- [ ] Создать `TASK_COMPLETION_REPORT.md`
-- [ ] Обновить `README.md` проекта
+### ✅ Фаза 5: Обновление документации
+- [x] Обновить `docs/features/scene-management/` с информацией об оптимизации
+- [x] Добавить раздел в `docs/architecture/` о производительности
+- [x] Обновить `docs/getting-started/` с примерами использования
+- [x] Создать `TASK_COMPLETION_REPORT.md`
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 ## Технические детали
 
