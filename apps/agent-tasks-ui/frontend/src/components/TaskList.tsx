@@ -140,7 +140,7 @@ export function TaskList({
               <Group gap="xs">
                 <Text size="sm" c="dimmed">Фазы:</Text>
                 <Text size="sm">
-                  {task.phases.filter(p => p.status === 'completed').length} / {task.phases.length} выполнено
+                  {task.phases.filter(p => p.status === 'done').length} / {task.phases.length} выполнено
                 </Text>
                 <Group gap={4}>
                   {task.phases.slice(0, 5).map((phase) => (

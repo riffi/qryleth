@@ -41,7 +41,7 @@ export function Dashboard({ managerState, tasks, epics, loading, error }: Dashbo
 
   const totalPhases = tasks.reduce((sum, task) => sum + task.phases.length, 0)
   const completedPhases = tasks.reduce((sum, task) => 
-    sum + task.phases.filter(phase => phase.status === 'completed').length, 0
+    sum + task.phases.filter(phase => phase.status === 'done').length, 0
   )
 
   const taskCompletionRate = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0
