@@ -142,21 +142,6 @@ export function TaskList({
                 <Text size="sm">
                   {task.phases.filter(p => p.status === 'done').length} / {task.phases.length} выполнено
                 </Text>
-                <Group gap={4}>
-                  {task.phases.slice(0, 5).map((phase) => (
-                    <Badge
-                      key={phase.phaseNumber}
-                      size="xs"
-                      color={getStatusColor(phase.status)}
-                      variant="dot"
-                    >
-                      {phase.phaseNumber}
-                    </Badge>
-                  ))}
-                  {task.phases.length > 5 && (
-                    <Text size="xs" c="dimmed">+{task.phases.length - 5}</Text>
-                  )}
-                </Group>
               </Group>
             )}
 
