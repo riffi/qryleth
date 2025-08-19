@@ -499,13 +499,14 @@ phases:
                       // Подсветка синтаксиса в блоках кода, включая TypeScript/TSX
                       rehypePlugins={[rehypeHighlight]}
                       components={{
-                        h1: ({ children }) => <Title order={1} mb="md" c="dimmed">{children}</Title>,
-                        h2: ({ children }) => <Title order={2} mb="md" c="dimmed">{children}</Title>,
-                        h3: ({ children }) => <Title order={3} mb="md" c="dimmed">{children}</Title>,
-                        h4: ({ children }) => <Title order={4} mb="md" c="dimmed">{children}</Title>,
-                        h5: ({ children }) => <Title order={5} mb="md" c="dimmed">{children}</Title>,
-                        h6: ({ children }) => <Title order={6} mb="md" c="dimmed">{children}</Title>,
-                        p: ({ children }) => <Text mb="md" c="dimmed">{children}</Text>,
+                        h1: ({ children }) => <Title order={1} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        h2: ({ children }) => <Title order={2} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        h3: ({ children }) => <Title order={3} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        h4: ({ children }) => <Title order={4} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        h5: ({ children }) => <Title order={5} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        h6: ({ children }) => <Title order={6} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
+                        // Текст в Markdown: делаем серый чуть более ярким для лучшей читаемости
+                        p: ({ children }) => <Text mb="md" c="var(--mantine-color-gray-7)">{children}</Text>,
                         pre: ({ children }) => (
                           <Box
                             component="pre"
@@ -540,7 +541,7 @@ phases:
                             <Box
                               component="code"
                               style={{
-                                background: 'var(--mantine-color-gray-2)',
+                                background: 'var(--mantine-color-gray-6)',
                                 padding: '2px 4px',
                                 borderRadius: '3px',
                                 fontFamily: 'monospace',
@@ -553,7 +554,8 @@ phases:
                         },
                         ul: ({ children }) => <Box component="ul" mb="md" pl="md">{children}</Box>,
                         ol: ({ children }) => <Box component="ol" mb="md" pl="md">{children}</Box>,
-                        li: ({ children }) => <Text component="li" mb="xs" c="dimmed">{children}</Text>,
+                        // Элементы списка также делаем немного ярче серым
+                        li: ({ children }) => <Text component="li" mb="xs" c="var(--mantine-color-gray-7)">{children}</Text>,
                         blockquote: ({ children }) => (
                           <Box
                             style={{
