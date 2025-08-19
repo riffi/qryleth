@@ -14,7 +14,6 @@ import {
   Text,
   Button,
   TextInput,
-  Textarea,
   MultiSelect,
   LoadingOverlay,
   Alert,
@@ -34,7 +33,7 @@ import {
 } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import { AgentTask, getTaskById } from '../services/apiService'
+import { AgentTask, getTaskById, updateTask } from '../services/apiService'
 
 interface TaskDetailPageProps {
   taskId: number
@@ -182,22 +181,15 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
       setSaving(true)
       setError(null)
 
-      // TODO: Реализовать API для сохранения изменений
-      console.log('Saving task changes:', {
-        id: task.id,
-        ...form.values
-      })
-
-      // Имитация задержки API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Обновляем локальное состояние
-      setTask({
-        ...task,
+      // Сохраняем изменения через API
+      const updatedTask = await updateTask(task.id, {
         title: form.values.title,
         tags: form.values.tags,
-        content: form.values.content
+        content: getContentWithoutYaml(form.values.content)
       })
+
+      // Обновляем локальное состояние данными с сервера
+      setTask(updatedTask)
 
       setEditMode(false)
 

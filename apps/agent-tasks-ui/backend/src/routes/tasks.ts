@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import {getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases} from '../services/fileSystemService.js'
+import {getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases, updateTaskById} from '../services/fileSystemService.js'
 import pino from 'pino';
 
 const router = Router()
@@ -180,6 +180,89 @@ router.get('/:id/detailed', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Ошибка при получении детальной задачи',
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
+    })
+  }
+})
+
+/**
+ * PUT /api/tasks/:id
+ * Обновить задачу по ID
+ * Тело запроса должно содержать:
+ * - title: новое название задачи
+ * - tags: массив тегов  
+ * - content: обновленное markdown содержимое (без YAML шапки)
+ */
+router.put('/:id', async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id, 10)
+
+    if (isNaN(taskId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Некорректный ID задачи'
+      })
+    }
+
+    const { title, tags, content } = req.body
+
+    // Валидация входных данных
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Название задачи должно быть строкой от 3 символов'
+      })
+    }
+
+    if (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Теги должны быть массивом строк'
+      })
+    }
+
+    if (!content || typeof content !== 'string' || content.trim().length < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Содержимое задачи должно быть строкой от 10 символов'
+      })
+    }
+
+    // Проверяем что задача существует
+    const existingTask = await getTaskById(taskId)
+    if (!existingTask) {
+      return res.status(404).json({
+        success: false,
+        error: 'Задача не найдена'
+      })
+    }
+
+    // Обновляем задачу
+    const updatedTask = await updateTaskById(taskId, {
+      title: title.trim(),
+      tags: tags.map((tag: string) => tag.trim()),
+      content: content.trim()
+    })
+
+    if (!updatedTask) {
+      return res.status(500).json({
+        success: false,
+        error: 'Не удалось обновить задачу'
+      })
+    }
+
+    logger.info(`Задача ${taskId} успешно обновлена`)
+
+    res.json({
+      success: true,
+      data: updatedTask,
+      message: 'Задача успешно обновлена'
+    })
+  } catch (error) {
+    console.error(`Ошибка обновления задачи ${req.params.id}:`, error)
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при обновлении задачи',
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     })
   }

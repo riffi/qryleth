@@ -58,6 +58,21 @@ interface ApiResponse<T> {
   message?: string
 }
 
+// Специальный тип для ответа /api/tasks с пагинацией
+interface TasksApiResponse {
+  success: boolean
+  data: AgentTask[]
+  pagination: PaginationInfo
+  filters: {
+    search: string | null
+    tags: string | null
+    status: string | null
+    epic: string | null
+  }
+  error?: string
+  message?: string
+}
+
 export interface PaginationInfo {
   page: number
   limit: number
@@ -118,11 +133,15 @@ export const getTasksWithFilters = async (filters: TaskFilters): Promise<TasksRe
   if (filters.page) params.append('page', filters.page.toString())
   if (filters.limit) params.append('limit', filters.limit.toString())
 
-  const response = await api.get<ApiResponse<TasksResponse>>(`/tasks?${params.toString()}`)
-  if (!response.data.success || !response.data.data) {
+  const response = await api.get<TasksApiResponse>(`/tasks?${params.toString()}`)
+  if (!response.data.success) {
     throw new Error(response.data.error || 'Ошибка загрузки задач')
   }
-  return response.data
+  return {
+    data: response.data.data,
+    pagination: response.data.pagination,
+    filters: response.data.filters
+  }
 }
 
 /**
@@ -176,6 +195,20 @@ export const getEpicTasks = async (epicId: number): Promise<AgentTask[]> => {
   const response = await api.get<ApiResponse<AgentTask[]>>(`/epics/${epicId}/tasks`)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error || 'Ошибка загрузки задач эпика')
+  }
+  return response.data.data
+}
+
+/**
+ * Обновить задачу по ID
+ */
+export const updateTask = async (
+  id: number,
+  updates: { title: string; tags: string[]; content: string }
+): Promise<AgentTask> => {
+  const response = await api.put<ApiResponse<AgentTask>>(`/tasks/${id}`, updates)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Ошибка обновления задачи')
   }
   return response.data.data
 }

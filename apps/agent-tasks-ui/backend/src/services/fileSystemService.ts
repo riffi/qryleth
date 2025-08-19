@@ -476,3 +476,135 @@ export async function getEpicTasks(epicId: number): Promise<AgentTask[]> {
 
   return []
 }
+
+/**
+ * Обновляет задачу по ID, сохраняя изменения в исходный markdown файл
+ * @param id ID задачи для обновления
+ * @param updates Объект с обновлениями (title, tags, content)
+ * @returns Обновленную задачу или null если задача не найдена
+ */
+export async function updateTaskById(
+  id: number, 
+  updates: { title: string; tags: string[]; content: string }
+): Promise<AgentTask | null> {
+  try {
+    // Сначала находим задачу и её файл
+    const tasks = await getAllTasks()
+    const task = tasks.find(t => t.id === id)
+    
+    if (!task) {
+      return null
+    }
+
+    // Определяем путь к файлу задачи
+    let taskFilePath: string | null = null
+    
+    // Ищем в обычных задачах
+    const tasksPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'tasks')
+    const taskDirs = await getDirectories(tasksPath)
+    
+    for (const taskDir of taskDirs) {
+      const summaryPath = path.join(tasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+      try {
+        const { data } = await parseMarkdownFile(summaryPath)
+        if (data.id === id) {
+          taskFilePath = summaryPath
+          break
+        }
+      } catch (error) {
+        continue
+      }
+    }
+    
+    // Если не найдена в обычных задачах, ищем в эпиках
+    if (!taskFilePath) {
+      const epicsPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'epics')
+      const epicDirs = await getDirectories(epicsPath)
+      
+      for (const epicDir of epicDirs) {
+        const epicTasksPath = path.join(epicsPath, epicDir, 'tasks')
+        const epicTaskDirs = await getDirectories(epicTasksPath)
+        
+        for (const taskDir of epicTaskDirs) {
+          const summaryPath = path.join(epicTasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+          try {
+            const { data } = await parseMarkdownFile(summaryPath)
+            if (data.id === id) {
+              taskFilePath = summaryPath
+              break
+            }
+          } catch (error) {
+            continue
+          }
+        }
+        if (taskFilePath) break
+      }
+    }
+    
+    if (!taskFilePath) {
+      throw new Error(`Не удалось найти файл задачи с ID ${id}`)
+    }
+
+    // Читаем существующий файл
+    const { data: existingData, content: existingContent } = await parseMarkdownFile(taskFilePath)
+    
+    // Извлекаем чистый заголовок из обновлений (убираем префикс "Задача N.")
+    const titleMatch = updates.title.match(/^Задача \d+\.\s*(.+)$/)
+    const cleanTitle = titleMatch ? titleMatch[1].trim() : updates.title.trim()
+    
+    // Формируем обновленные YAML метаданные
+    const updatedData = {
+      ...existingData,
+      title: cleanTitle,
+      tags: updates.tags,
+      updated: new Date().toISOString().split('T')[0] // Обновляем дату изменения
+    }
+    
+    // Создаем новый контент файла с обновленными YAML метаданными
+    const yamlString = Object.entries(updatedData)
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            return `${key}: []`
+          }
+          // Правильное форматирование массивов в YAML
+          return `${key}: [${value.map(item => typeof item === 'string' ? item : `${item}`).join(', ')}]`
+        }
+        if (typeof value === 'string') {
+          // Экранируем строки с специальными символами
+          if (value.includes(':') || value.includes('"') || value.includes('[') || value.includes(']') || value.includes('#')) {
+            return `${key}: "${value.replace(/"/g, '\\"')}"`
+          }
+        }
+        if (value === null) {
+          return `${key}: null`
+        }
+        if (typeof value === 'object') {
+          // Для объектов phases используем правильное YAML форматирование
+          if (key === 'phases' && value && typeof value === 'object') {
+            const phaseObj = value as { total?: number; completed?: number }
+            return `${key}:\n  total: ${phaseObj.total || 0}\n  completed: ${phaseObj.completed || 0}`
+          }
+        }
+        return `${key}: ${value}`
+      })
+      .join('\n')
+    
+    const fullContent = `---\n${yamlString}\n---\n\n${updates.content}`
+    
+    // Сохраняем обновленный файл с правильной кодировкой
+    await fs.writeFile(taskFilePath, fullContent, { encoding: 'utf8' })
+    
+    // Возвращаем обновленную задачу
+    return {
+      ...task,
+      title: `Задача ${id}. ${cleanTitle}`,
+      tags: updates.tags,
+      content: updates.content
+    }
+    
+  } catch (error) {
+    console.error(`Ошибка обновления задачи ${id}:`, error)
+    throw error
+  }
+}
