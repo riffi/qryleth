@@ -11,6 +11,7 @@ interface DashboardProps {
   epics: Epic[]
   loading: boolean
   error: string | null
+  onTaskClick?: (task: AgentTask) => void
 }
 
 export function Dashboard({ managerState, tasks, epics, loading, error }: DashboardProps) {

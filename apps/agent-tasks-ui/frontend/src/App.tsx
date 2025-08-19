@@ -7,6 +7,7 @@ import { Navigation } from './components/Navigation'
 import { Dashboard } from './components/Dashboard'
 import { EpicList } from './components/EpicList'
 import { TasksPage } from './components/TasksPage'
+import { TaskDetailPage } from './pages/TaskDetailPage'
 import {
   getAllTasks, 
   getAllEpics, 
@@ -19,6 +20,7 @@ import {
 function App() {
   // Состояние приложения
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
   const [tasks, setTasks] = useState<AgentTask[]>([])
   const [epics, setEpics] = useState<Epic[]>([])
   const [managerState, setManagerState] = useState<ManagerState | null>(null)
@@ -66,6 +68,22 @@ function App() {
   }
 
   /**
+   * Обработчик клика по задаче
+   */
+  const handleTaskClick = (task: AgentTask) => {
+    setSelectedTaskId(task.id)
+    setActiveTab('task-detail')
+  }
+
+  /**
+   * Обработчик возврата к списку задач
+   */
+  const handleBackToTasks = () => {
+    setSelectedTaskId(null)
+    setActiveTab('tasks')
+  }
+
+  /**
    * Рендер содержимого в зависимости от активной вкладки
    */
   const renderContent = () => {
@@ -78,11 +96,14 @@ function App() {
             epics={epics}
             loading={loading}
             error={error}
+            onTaskClick={handleTaskClick}
           />
         )
       case 'tasks':
         return (
-          <TasksPage />
+          <TasksPage 
+            onTaskClick={handleTaskClick}
+          />
         )
       case 'epics':
         return (
@@ -93,6 +114,13 @@ function App() {
             onEpicClick={handleEpicClick}
           />
         )
+      case 'task-detail':
+        return selectedTaskId ? (
+          <TaskDetailPage
+            taskId={selectedTaskId}
+            onBack={handleBackToTasks}
+          />
+        ) : null
       default:
         return null
     }

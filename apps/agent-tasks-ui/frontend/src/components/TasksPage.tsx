@@ -10,13 +10,18 @@ import {
   getAllEpics,
   Epic,
   TaskFilters,
-  TasksResponse
+  TasksResponse,
+  AgentTask
 } from '../services/apiService'
 import { TaskList } from './TaskList'
 import { TaskFilters as TaskFiltersComponent } from './TaskFilters'
 import { TaskPagination } from './TaskPagination'
 
-export function TasksPage() {
+interface TasksPageProps {
+  onTaskClick?: (task: AgentTask) => void
+}
+
+export function TasksPage({ onTaskClick }: TasksPageProps) {
   const [tasksData, setTasksData] = useState<TasksResponse | null>(null)
   const [epics, setEpics] = useState<Epic[]>([])
   const [loading, setLoading] = useState(true)
@@ -171,6 +176,7 @@ export function TasksPage() {
           error={error}
           pagination={tasksData?.pagination}
           showTitle={false}
+          onTaskClick={onTaskClick}
         />
       )}
 

@@ -2,7 +2,7 @@
  * Компонент навигации приложения
  */
 import { NavLink, Stack, rem } from '@mantine/core'
-import { IconChecklist, IconBulb, IconDashboard, IconTestPipe } from '@tabler/icons-react'
+import { IconChecklist, IconBulb, IconDashboard } from '@tabler/icons-react'
 
 interface NavigationProps {
   activeTab: string
