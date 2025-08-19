@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Stack, Group, Loader, Alert, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useDebouncedValue } from '@mantine/hooks'
+import { useNavigate } from 'react-router-dom'
 import {
   getTasksWithFilters,
   getAllEpics,
@@ -18,10 +19,12 @@ import { TaskFilters as TaskFiltersComponent } from './TaskFilters'
 import { TaskPagination } from './TaskPagination'
 
 interface TasksPageProps {
+  /** Колбэк клика по задаче. Если не передан — навигация через роутер. */
   onTaskClick?: (task: AgentTask) => void
 }
 
 export function TasksPage({ onTaskClick }: TasksPageProps) {
+  const navigate = useNavigate()
   const [tasksData, setTasksData] = useState<TasksResponse | null>(null)
   const [epics, setEpics] = useState<Epic[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,7 +179,7 @@ export function TasksPage({ onTaskClick }: TasksPageProps) {
           error={error}
           pagination={tasksData?.pagination}
           showTitle={false}
-          onTaskClick={onTaskClick}
+          onTaskClick={onTaskClick ?? ((task) => navigate(`/tasks/${task.id}`))}
         />
       )}
 

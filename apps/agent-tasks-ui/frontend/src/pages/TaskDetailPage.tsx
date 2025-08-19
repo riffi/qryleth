@@ -38,11 +38,11 @@ import {
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { AgentTask, getTaskById, updateTask } from '../services/apiService'
-
-interface TaskDetailPageProps {
-  taskId: number
-  onBack: () => void
-}
+import { useNavigate, useParams } from 'react-router-dom'
+/**
+ * Компонент детальной страницы задачи, использующий параметр маршрута `:id`.
+ * Переход назад осуществляется через роутер.
+ */
 
 interface TaskFormData {
   title: string
@@ -82,7 +82,10 @@ const getStatusLabel = (status: string) => {
   }
 }
 
-export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
+export function TaskDetailPage() {
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const taskId = Number(id)
   /**
    * Возвращает текущую дату в формате YYYY-MM-DD
    */
@@ -278,6 +281,11 @@ phases:
 
   // Загрузка данных при монтировании
   useEffect(() => {
+    if (!Number.isFinite(taskId)) {
+      setError('Некорректный идентификатор задачи')
+      setLoading(false)
+      return
+    }
     loadTask()
   }, [taskId])
 
@@ -294,7 +302,7 @@ phases:
     return (
       <Container size="xl">
         <Stack gap="md">
-          <Button leftSection={<IconArrowLeft />} variant="light" onClick={onBack}>
+          <Button leftSection={<IconArrowLeft />} variant="light" onClick={() => navigate('/tasks')}>
             Назад к списку
           </Button>
           <Alert icon={<IconAlertCircle size={16} />} title="Ошибка" color="red">
@@ -310,7 +318,7 @@ phases:
       <Stack gap="md">
         {/* Хлебные крошки и действия */}
         <Group justify="space-between">
-          <Button leftSection={<IconArrowLeft />} variant="light" onClick={onBack}>
+          <Button leftSection={<IconArrowLeft />} variant="light" onClick={() => navigate('/tasks')}>
             Назад к списку
           </Button>
 

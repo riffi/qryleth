@@ -8,8 +8,8 @@ updated: 2025-08-19
 owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
-  total: 23
-  completed: 16
+  total: 24
+  completed: 17
 ---
 
 # Интерфейс управления агентскими задачами
@@ -151,6 +151,14 @@ phases:
 - Валидация формата и структуры данных
 - Интеграция с frontend формой редактирования и Monaco Editor
 **Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
+
+### ✅ Фаза 6.5: Маршрутизация, страницы эпиков и 404 — ВЫПОЛНЕНО
+- Внедрён React Router, URL меняется при переходах
+- Маршруты: `/`, `/tasks`, `/tasks/:id`, `/epics`, `/epics/:id`, `*` (404)
+- Навигация через ссылки, активный пункт меню подсвечивается
+- Добавлена страница эпика: Markdown контент + «Задачи» во вкладках
+- Исправлена ширина контейнера страницы эпика (как у задачи)
+**Отчёт**: [phases/phase_6.5_summary.md](phases/phase_6.5_summary.md)
 
 ### ⏳ Фаза 7: Создание новых задач
 - Форма создания новой задачи
