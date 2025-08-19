@@ -79,6 +79,11 @@ const getStatusLabel = (status: string) => {
 }
 
 export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
+  /**
+   * Возвращает текущую дату в формате YYYY-MM-DD
+   */
+  const getCurrentDateString = (): string => new Date().toISOString().split('T')[0]
+
   // Состояние компонента
   const [task, setTask] = useState<AgentTask | null>(null)
   const [loading, setLoading] = useState(true)
@@ -257,7 +262,7 @@ epic: ${task.epic}
 title: ${form.values.title}
 status: ${task.status}
 created: ${task.created}
-updated: ${new Date().toISOString().split('T')[0]}
+updated: ${getCurrentDateString()}
 tags: [${form.values.tags.map(tag => `"${tag}"`).join(', ')}]
 phases:
   total: ${task.phases.length}

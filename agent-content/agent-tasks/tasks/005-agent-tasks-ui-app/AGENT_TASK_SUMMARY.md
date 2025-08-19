@@ -1,9 +1,9 @@
 ---
 id: 5
 epic: null
-title: Agent Tasks UI Application - Интерфейс управления агентскими задачами
+title: Интерфейс управления агентскими задачами
 status: planned
-created: Thu Aug 07 2025 03:00:00 GMT+0300 (GMT+03:00)
+created: 2025-08-19
 updated: 2025-08-19
 owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
@@ -12,7 +12,7 @@ phases:
   completed: 15
 ---
 
-# Agent Tasks UI Application - Интерфейс управления агентскими задачами1
+# Интерфейс управления агентскими задачами
 
 ## Цели
 

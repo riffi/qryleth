@@ -9,6 +9,13 @@ import matter from 'gray-matter'
 import { AgentTask, Epic, ManagerState, AgentTaskPhase } from '../types/index.js'
 
 /**
+ * Возвращает текущую дату в формате YYYY-MM-DD
+ */
+function getCurrentDateString(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+/**
  * Базовый путь к папке agent-content от корня проекта
  */
 const AGENT_CONTENT_PATH = path.resolve(process.cwd(), '../../../agent-content')
@@ -192,7 +199,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
           id: data.id || 0,
           epic: epicId,
           status: (data.status as any) || 'planned',
-          created: data.created || new Date().toISOString().split('T')[0],
+          created: data.created || getCurrentDateString(),
           tags: Array.isArray(data.tags) ? data.tags : [],
           title,
           content,
@@ -248,7 +255,7 @@ export async function getAllTasks(): Promise<AgentTask[]> {
               id: taskData.id || 0,
               epic: epicId,
               status: (taskData.status as any) || 'planned',
-              created: taskData.created || new Date().toISOString().split('T')[0],
+              created: taskData.created || getCurrentDateString(),
               tags: Array.isArray(taskData.tags) ? taskData.tags : [],
               title,
               content,
@@ -386,7 +393,7 @@ export async function getAllEpics(): Promise<Epic[]> {
         const epic: Epic = {
           id: data.id || 0,
           status: data.status || 'planned',
-          created: data.created || new Date().toISOString().split('T')[0],
+          created: data.created || getCurrentDateString(),
           tags: Array.isArray(data.tags) ? data.tags : [],
           title,
           content,
@@ -450,7 +457,7 @@ export async function getEpicTasks(epicId: number): Promise<AgentTask[]> {
                 id: taskData.id || 0,
                 epic: epicTaskId,
                 status: taskData.status || 'planned',
-                created: taskData.created || new Date().toISOString().split('T')[0],
+                created: taskData.created || getCurrentDateString(),
                 tags: Array.isArray(taskData.tags) ? taskData.tags : [],
                 title,
                 content,
@@ -557,7 +564,10 @@ export async function updateTaskById(
       ...existingData,
       title: cleanTitle,
       tags: updates.tags,
-      updated: new Date().toISOString().split('T')[0] // Обновляем дату изменения
+      created: typeof existingData.created === 'string' && existingData.created.match(/^\d{4}-\d{2}-\d{2}$/) 
+        ? existingData.created 
+        : getCurrentDateString(), // Приводим к правильному формату
+      updated: getCurrentDateString() // Обновляем дату изменения
     }
     
     // Создаем новый контент файла с обновленными YAML метаданными
