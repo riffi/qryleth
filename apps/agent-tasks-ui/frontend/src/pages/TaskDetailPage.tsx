@@ -397,7 +397,7 @@ phases:
                 <Group gap={4}>
                   {task.tags.length > 0 ? (
                     task.tags.map((tag) => (
-                      <Badge key={tag} size="sm" variant="outline">
+                      <Badge key={tag} size="xs" variant="outline">
                         {tag}
                       </Badge>
                     ))
