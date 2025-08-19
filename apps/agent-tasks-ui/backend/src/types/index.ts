@@ -18,6 +18,7 @@ export interface AgentTask {
   title: string
   content: string
   phases: AgentTaskPhase[]
+  folderName?: string
 }
 
 export interface Epic {

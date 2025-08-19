@@ -368,6 +368,12 @@ phases:
                 </Text>
               </Group>
 
+              {task.folderName && (
+                <Text size="sm" c="dimmed">
+                  Папка: {task.folderName}
+                </Text>
+              )}
+
               {task.epic && (
                 <Text size="sm" c="dimmed">
                   Эпик: {task.epic}

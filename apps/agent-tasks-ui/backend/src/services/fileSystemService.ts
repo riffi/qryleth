@@ -196,7 +196,8 @@ export async function getAllTasks(): Promise<AgentTask[]> {
           tags: Array.isArray(data.tags) ? data.tags : [],
           title,
           content,
-          phases
+          phases,
+          folderName: taskDir
         }
 
         tasks.push(task)
@@ -251,7 +252,8 @@ export async function getAllTasks(): Promise<AgentTask[]> {
               tags: Array.isArray(taskData.tags) ? taskData.tags : [],
               title,
               content,
-              phases
+              phases,
+              folderName: taskDir
             })
           } catch (error) {
             console.warn(`Не удалось прочитать задачу эпика ${taskDir}: ${error}`)
@@ -452,7 +454,8 @@ export async function getEpicTasks(epicId: number): Promise<AgentTask[]> {
                 tags: Array.isArray(taskData.tags) ? taskData.tags : [],
                 title,
                 content,
-                phases
+                phases,
+                folderName: taskDir
               }
 
               epicTasks.push(task)
