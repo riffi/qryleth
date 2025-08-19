@@ -4,21 +4,27 @@ epic: null
 title: Внедрение новой системы освещения
 status: done
 created: 2025-08-07
-updated: 2025-08-08
-completed: 2025-08-07
+updated: 2025-08-19
 tags: [lighting, rendering, 3d, types, ui, refactor]
 phases:
   total: 7
   completed: 7
 ---
 
-# Агентская задача: Внедрение новой системы освещения
+# Внедрение новой системы освещения
 
 ## Обязательная информация
 !Правила работы с агентскими задачами: [agent-tasks.md](../../../../docs/development/workflows/agent-tasks.md)
 **ВАЖНО**: При выполнении каждой из фаз необходимо обязательно сверяться с требованиями и принципами из указанного файла.
 
-## Контекст задачи
+## Цели
+1. **Обновить типы освещения** - реализовать новую структуру типов с поддержкой всех видов света
+2. **Мигрировать компоненты рендеринга** - адаптировать ObjectSceneLighting и SceneLighting к новой структуре
+3. **Добавить локальное освещение в GfxObject** - поддержка Point и Spot lights на уровне объектов
+4. **Обновить UI панели управления** - адаптировать существующие панели к новой структуре
+5. **Убрать жесткое кодирование** - сделать все параметры света настраиваемыми
+
+## Контекст
 
 В настоящее время система освещения использует упрощенную структуру типов и жестко закодированные настройки света в компонентах рендеринга. Это ограничивает возможности настройки освещения и не поддерживает различные типы источников света (Point, Spot), которые необходимы для создания более реалистичных сцен.
 
@@ -48,21 +54,55 @@ export interface LightingSettings {
 4. **Отсутствие локального освещения объектов**: GfxObject не поддерживает собственные источники света
 5. **Дублирование кода**: Два почти одинаковых компонента освещения для сцены и объекта
 
-## Цели задачи
+## Список фаз
 
-1. **Обновить типы освещения** - реализовать новую структуру типов с поддержкой всех видов света
-2. **Мигрировать компоненты рендеринга** - адаптировать ObjectSceneLighting и SceneLighting к новой структуре
-3. **Добавить локальное освещение в GfxObject** - поддержка Point и Spot lights на уровне объектов
-4. **Обновить UI панели управления** - адаптировать существующие панели к новой структуре
-5. **Убрать жесткое кодирование** - сделать все параметры света настраиваемыми
+### ✅ Фаза 1: Обновление типов освещения
+- Обновить `src/entities/lighting/model/types.ts` с новой структурой
+- Добавить новые интерфейсы для Point и Spot light
+- Удалить устаревшие поля LightingSettings
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
+
+### ✅ Фаза 2: Добавление локального освещения в GfxObject
+- Обновить `src/entities/object/model/types.ts`
+- Добавить опциональное поле `localLights` в интерфейс GfxObject
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
+
+### ✅ Фаза 3: Рефакторинг ObjectSceneLighting
+- Адаптировать компонент к новой структуре типов
+- Заменить hardcoded параметры на настраиваемые из состояния
+- Добавить поддержку единичного DirectionalLight источника
+- Сохранить работоспособность с существующими настройками
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
+### ✅ Фаза 4: Рефакторинг SceneLighting
+- Аналогично ObjectSceneLighting, адаптировать к новой структуре
+- Унифицировать подход к рендерингу света между компонентами
+- Подготовить основу для будущего рендеринга локального освещения объектов
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
+
+### ✅ Фаза 5: Обновление хранилищ состояния
+- Адаптировать objectStore и sceneStore к новым типам
+- Обновить хуки useObjectLighting и useSceneLighting
+- Полностью перейти на новую схему без поддержки старых данных
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
+
+### ✅ Фаза 6: Адаптация UI панелей управления
+- Обновить LightingControlPanel.tsx для новой структуры
+- Обновить LightingControls.tsx для новой структуры
+- Адаптировать существующий интерфейс, не создавая новые компоненты
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
+
+### ✅ Фаза 7: Документирование
+- Обновить информацию в docs согласно выполненной работе по агентской задаче
+**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
 
 ## Анализ существующих компонентов
 
 ### Компоненты рендеринга
 - **ObjectSceneLighting.tsx**: Использует хук `useObjectLighting()`, рендерит hardcoded свет
-- **SceneLighting.tsx**: Использует хук `useSceneLighting()`, рендерит hardcoded свет  
+- **SceneLighting.tsx**: Использует хук `useSceneLighting()`, рендерит hardcoded свет
 
-### UI панели управления  
+### UI панели управления
 - **LightingControlPanel.tsx**: Панель в объект-редакторе
 - **LightingControls.tsx**: Панель в сцен-редакторе
 
@@ -132,7 +172,7 @@ export interface LightingSettings {
 ```typescript
 export interface GfxObject {
   // ... существующие поля
-  
+
   /** Локальное освещение, перемещается вместе с объектом */
   localLights?: {
     point: PointLightSettings[];
@@ -140,48 +180,6 @@ export interface GfxObject {
   };
 }
 ```
-
-## Список фаз
-
-### ✅ Фаза 1: Обновление типов освещения
-- Обновить `src/entities/lighting/model/types.ts` с новой структурой
-- Добавить новые интерфейсы для Point и Spot light
-- Удалить устаревшие поля LightingSettings
-**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
-
-### ✅ Фаза 2: Добавление локального освещения в GfxObject
-- Обновить `src/entities/object/model/types.ts`
-- Добавить опциональное поле `localLights` в интерфейс GfxObject
-**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
-
-### ✅ Фаза 3: Рефакторинг ObjectSceneLighting
-- Адаптировать компонент к новой структуре типов
-- Заменить hardcoded параметры на настраиваемые из состояния
-- Добавить поддержку единичного DirectionalLight источника
-- Сохранить работоспособность с существующими настройками
-**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
-
-### ✅ Фаза 4: Рефакторинг SceneLighting
-- Аналогично ObjectSceneLighting, адаптировать к новой структуре
-- Унифицировать подход к рендерингу света между компонентами
-- Подготовить основу для будущего рендеринга локального освещения объектов
-**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
-
-### ✅ Фаза 5: Обновление хранилищ состояния
-- Адаптировать objectStore и sceneStore к новым типам
-- Обновить хуки useObjectLighting и useSceneLighting
-- Полностью перейти на новую схему без поддержки старых данных
-**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
-
-### ✅ Фаза 6: Адаптация UI панелей управления
-- Обновить LightingControlPanel.tsx для новой структуры
-- Обновить LightingControls.tsx для новой структуры
-- Адаптировать существующий интерфейс, не создавая новые компоненты
-**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
-
-### ✅ Фаза 7: Документирование
-- Обновить информацию в docs согласно выполненной работе по агентской задаче
-**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
 
 ## Важные ограничения
 
@@ -193,7 +191,7 @@ export interface GfxObject {
 ## Критерии приемки
 
 - [ ] Новая структура типов полностью реализована
-- [ ] GfxObject поддерживает localLights (на будущее)  
+- [ ] GfxObject поддерживает localLights (на будущее)
 - [ ] ObjectSceneLighting и SceneLighting работают с новой структурой
 - [ ] UI панели адаптированы к новым типам
 - [ ] Убрано жесткое кодирование параметров света
@@ -215,5 +213,6 @@ export interface GfxObject {
 - `src/features/scene/model/sceneStore.ts`
 
 ### UI панели
-- `src/features/object-editor/ui/LightingControlPanel/LightingControlPanel.tsx` 
+- `src/features/object-editor/ui/LightingControlPanel/LightingControlPanel.tsx`
 - `src/features/scene/ui/objectManager/LightingControls.tsx`
+
