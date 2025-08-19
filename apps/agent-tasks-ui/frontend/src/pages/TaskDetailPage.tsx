@@ -3,6 +3,10 @@
  */
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+// Добавляем плагин подсветки синтаксиса для Markdown
+import rehypeHighlight from 'rehype-highlight'
+// Подключаем тему подсветки (темная)
+import 'highlight.js/styles/atom-one-dark.css'
 import Editor from '@monaco-editor/react'
 import {
   Container,
@@ -492,6 +496,8 @@ phases:
                     }}
                   >
                     <ReactMarkdown
+                      // Подсветка синтаксиса в блоках кода, включая TypeScript/TSX
+                      rehypePlugins={[rehypeHighlight]}
                       components={{
                         h1: ({ children }) => <Title order={1} mb="md" c="dimmed">{children}</Title>,
                         h2: ({ children }) => <Title order={2} mb="md" c="dimmed">{children}</Title>,
@@ -517,13 +523,20 @@ phases:
                             {children}
                           </Box>
                         ),
-                        code: ({ children, className }) => {
-                          const isBlock = className?.includes('language-')
-                          return isBlock ? (
-                            <Box component="code" style={{ fontFamily: 'monospace' }}>
-                              {children}
-                            </Box>
-                          ) : (
+                        // Рендер кода: используем признак inline, чтобы
+                        // корректно отличать встроенный код от блочного.
+                        // Блочный код оформляется контейнером <pre>, поэтому
+                        // здесь не задаем ему фон; для inline-кода применяем
+                        // «чип» со светло-серым фоном.
+                        code: ({ children, inline }: any) => {
+                          if (!inline) {
+                            return (
+                              <Box component="code" style={{ fontFamily: 'monospace' }}>
+                                {children}
+                              </Box>
+                            )
+                          }
+                          return (
                             <Box
                               component="code"
                               style={{
