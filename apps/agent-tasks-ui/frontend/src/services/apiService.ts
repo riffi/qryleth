@@ -136,6 +136,17 @@ export const getTaskById = async (id: number): Promise<AgentTask> => {
 }
 
 /**
+ * Получить задачу по ID с детальной информацией о фазах
+ */
+export const getTaskByIdDetailed = async (id: number): Promise<AgentTask> => {
+  const response = await api.get<ApiResponse<AgentTask>>(`/tasks/${id}/detailed`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Ошибка загрузки детальной задачи')
+  }
+  return response.data.data
+}
+
+/**
  * Получить список всех эпиков
  */
 export const getAllEpics = async (): Promise<Epic[]> => {

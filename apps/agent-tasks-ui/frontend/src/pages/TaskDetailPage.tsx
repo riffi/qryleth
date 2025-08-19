@@ -464,13 +464,13 @@ phases:
                   >
                     <ReactMarkdown
                       components={{
-                        h1: ({ children }) => <Title order={1} mb="md">{children}</Title>,
-                        h2: ({ children }) => <Title order={2} mb="md">{children}</Title>,
-                        h3: ({ children }) => <Title order={3} mb="md">{children}</Title>,
-                        h4: ({ children }) => <Title order={4} mb="md">{children}</Title>,
-                        h5: ({ children }) => <Title order={5} mb="md">{children}</Title>,
-                        h6: ({ children }) => <Title order={6} mb="md">{children}</Title>,
-                        p: ({ children }) => <Text mb="md">{children}</Text>,
+                        h1: ({ children }) => <Title order={1} mb="md" c="dimmed">{children}</Title>,
+                        h2: ({ children }) => <Title order={2} mb="md" c="dimmed">{children}</Title>,
+                        h3: ({ children }) => <Title order={3} mb="md" c="dimmed">{children}</Title>,
+                        h4: ({ children }) => <Title order={4} mb="md" c="dimmed">{children}</Title>,
+                        h5: ({ children }) => <Title order={5} mb="md" c="dimmed">{children}</Title>,
+                        h6: ({ children }) => <Title order={6} mb="md" c="dimmed">{children}</Title>,
+                        p: ({ children }) => <Text mb="md" c="dimmed">{children}</Text>,
                         pre: ({ children }) => (
                           <Box
                             component="pre"
@@ -511,7 +511,7 @@ phases:
                         },
                         ul: ({ children }) => <Box component="ul" mb="md" pl="md">{children}</Box>,
                         ol: ({ children }) => <Box component="ol" mb="md" pl="md">{children}</Box>,
-                        li: ({ children }) => <Text component="li" mb="xs">{children}</Text>,
+                        li: ({ children }) => <Text component="li" mb="xs" c="dimmed">{children}</Text>,
                         blockquote: ({ children }) => (
                           <Box
                             style={{

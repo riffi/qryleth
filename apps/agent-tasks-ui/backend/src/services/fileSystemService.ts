@@ -68,27 +68,26 @@ async function parseTaskPhasesFromSummary(summaryContent: string): Promise<Agent
   const phases: AgentTaskPhase[] = []
   
   // Ищем раздел "Список фаз"
-  const phasesListMatch = summaryContent.match(/##\s+Список фаз\s*\n([\s\S]*?)(?:\n##\s|\n---\s*$|$)/i)
+  const phasesListMatch = summaryContent.match(/##\s+Список фаз\s*\n([\s\S]*?)(?:\n##\s+Технические требования|\n##\s+[А-Яа-яA-Za-z]|\n---\s*$|$)/i)
   if (!phasesListMatch) {
     return phases
   }
 
   const phasesSection = phasesListMatch[1]
   
-  // Парсим каждую фазу по паттерну: ### (⏳|✅) Фаза N: Заголовок
-  const phaseMatches = phasesSection.matchAll(/###\s+(⏳|✅)\s*Фаза\s+(\d+(?:\.\d+)?)\s*:\s*([^\n]+)/gi)
+  // Парсим каждую фазу по паттерну: ### (⏳|✅) Фаза N: Заголовок или ## ✅ Фаза N: Заголовок
+  const phaseMatches = [...phasesSection.matchAll(/(#{2,3})\s+(⏳|✅)\s*Фаза\s+(\d+(?:\.\d+)?)\s*:\s*([^\n\r-]+)/gi)]
   
   for (const match of phaseMatches) {
-    const statusIcon = match[1]
-    const phaseNumber = parseFloat(match[2])
-    const title = match[3].trim()
+    const statusIcon = match[2]
+    const phaseNumber = parseFloat(match[3])
+    const title = match[4].trim()
     
     // Определяем статус по иконке
     let status: 'planned' | 'in-progress' | 'done' = 'planned'
     if (statusIcon === '✅') {
       status = 'done'
     } else if (statusIcon === '⏳') {
-      // Для более точного определения между planned и in-progress можно добавить доп. логику
       status = 'planned'
     }
     
@@ -96,7 +95,7 @@ async function parseTaskPhasesFromSummary(summaryContent: string): Promise<Agent
       phaseNumber,
       title: `Фаза ${phaseNumber}: ${title}`,
       status,
-      summary: '' // Для списочного отображения детальная информация не нужна
+      summary: ''
     })
   }
 
