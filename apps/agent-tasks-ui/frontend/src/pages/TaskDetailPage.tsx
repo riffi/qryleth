@@ -2,13 +2,14 @@
  * Страница детального просмотра и редактирования агентской задачи
  */
 import { useState, useEffect } from 'react'
-import { 
-  Container, 
-  Stack, 
-  Title, 
-  Paper, 
-  Group, 
-  Badge, 
+import ReactMarkdown from 'react-markdown'
+import {
+  Container,
+  Stack,
+  Title,
+  Paper,
+  Group,
+  Badge,
   Text,
   Button,
   TextInput,
@@ -20,11 +21,11 @@ import {
   Box,
   ActionIcon
 } from '@mantine/core'
-import { 
-  IconEdit, 
-  IconDeviceFloppy, 
-  IconX, 
-  IconAlertCircle, 
+import {
+  IconEdit,
+  IconDeviceFloppy,
+  IconX,
+  IconAlertCircle,
   IconArrowLeft,
   IconCalendar,
   IconHash,
@@ -84,7 +85,7 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('content')
 
   // Форма редактирования
   const form = useForm<TaskFormData>({
@@ -136,10 +137,10 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
     try {
       setLoading(true)
       setError(null)
-      
+
       const taskData = await getTaskById(taskId)
       setTask(taskData)
-      
+
       // Инициализация формы
       form.setValues({
         title: taskData.title,
@@ -164,7 +165,7 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
    */
   const handleSave = async () => {
     const validation = form.validate()
-    
+
     if (validation.hasErrors) {
       notifications.show({
         title: 'Ошибка валидации',
@@ -179,16 +180,16 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
     try {
       setSaving(true)
       setError(null)
-      
+
       // TODO: Реализовать API для сохранения изменений
       console.log('Saving task changes:', {
         id: task.id,
         ...form.values
       })
-      
+
       // Имитация задержки API
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
+
       // Обновляем локальное состояние
       setTask({
         ...task,
@@ -196,9 +197,9 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
         tags: form.values.tags,
         content: form.values.content
       })
-      
+
       setEditMode(false)
-      
+
       notifications.show({
         title: 'Задача сохранена',
         message: 'Изменения успешно сохранены',
@@ -237,7 +238,7 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
   const getContentWithoutYaml = (content: string): string => {
     const lines = content.split('\n')
     let startIndex = 0
-    
+
     // Пропускаем YAML шапку если она есть
     if (lines[0] === '---') {
       for (let i = 1; i < lines.length; i++) {
@@ -247,7 +248,7 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
         }
       }
     }
-    
+
     return lines.slice(startIndex).join('\n').trim()
   }
 
@@ -256,7 +257,7 @@ export function TaskDetailPage({ taskId, onBack }: TaskDetailPageProps) {
    */
   const createFullContent = (contentWithoutYaml: string): string => {
     if (!task) return contentWithoutYaml
-    
+
     const yamlHeader = `---
 id: ${task.id}
 epic: ${task.epic}
@@ -269,7 +270,7 @@ phases:
   total: ${task.phases.length}
   completed: ${task.phases.filter(p => p.status === 'done').length}
 ---`
-    
+
     return `${yamlHeader}\n\n${contentWithoutYaml}`
   }
 
@@ -310,12 +311,12 @@ phases:
           <Button leftSection={<IconArrowLeft />} variant="light" onClick={onBack}>
             Назад к списку
           </Button>
-          
+
           <Group>
             {editMode ? (
               <>
-                <Button 
-                  leftSection={<IconDeviceFloppy />} 
+                <Button
+                  leftSection={<IconDeviceFloppy />}
                   color="green"
                   loading={saving}
                   onClick={handleSave}
@@ -327,8 +328,8 @@ phases:
                 </ActionIcon>
               </>
             ) : (
-              <Button 
-                leftSection={<IconEdit />} 
+              <Button
+                leftSection={<IconEdit />}
                 variant="light"
                 onClick={() => setEditMode(true)}
               >
@@ -349,7 +350,7 @@ phases:
                 size="lg"
               />
             ) : (
-              <Title order={1}>{task.title}</Title>
+              <Title order={2}>{task.title}</Title>
             )}
 
             {/* Метаинформация */}
@@ -358,21 +359,21 @@ phases:
                 <IconHash size={16} color="var(--mantine-color-gray-6)" />
                 <Text size="sm" c="dimmed">ID: {task.id}</Text>
               </Group>
-              
+
               <Group gap="xs">
                 <IconCalendar size={16} color="var(--mantine-color-gray-6)" />
                 <Text size="sm" c="dimmed">
                   Создано: {new Date(task.created).toLocaleDateString('ru-RU')}
                 </Text>
               </Group>
-              
+
               {task.epic && (
                 <Text size="sm" c="dimmed">
                   Эпик: {task.epic}
                 </Text>
               )}
-              
-              <Badge color={getStatusColor(task.status)} variant="light" size="lg">
+
+              <Badge color={getStatusColor(task.status)} variant="light" size="sm">
                 {getStatusLabel(task.status)}
               </Badge>
             </Group>
@@ -410,8 +411,8 @@ phases:
                 <Text size="sm">
                   {task.phases.filter(p => p.status === 'done').length} / {task.phases.length} выполнено
                 </Text>
-                <Badge 
-                  variant="light" 
+                <Badge
+                  variant="light"
                   color={task.phases.every(p => p.status === 'done') ? 'green' : 'blue'}
                 >
                   {Math.round((task.phases.filter(p => p.status === 'done').length / task.phases.length) * 100)}%
@@ -422,23 +423,11 @@ phases:
         </Paper>
 
         {/* Табы с содержимым */}
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'overview')}>
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'content')}>
           <Tabs.List>
-            <Tabs.Tab value="overview">Обзор</Tabs.Tab>
             <Tabs.Tab value="content">Содержимое</Tabs.Tab>
             <Tabs.Tab value="phases">Фазы ({task.phases.length})</Tabs.Tab>
           </Tabs.List>
-
-          <Tabs.Panel value="overview" pt="md">
-            <Paper withBorder p="lg">
-              <Stack gap="md">
-                <Title order={3}>Описание задачи</Title>
-                <Text>
-                  {task.content.split('\n').slice(0, 10).join('\n')}...
-                </Text>
-              </Stack>
-            </Paper>
-          </Tabs.Panel>
 
           <Tabs.Panel value="content" pt="md">
             <Paper withBorder p="lg">
@@ -451,7 +440,7 @@ phases:
                     </Text>
                   )}
                 </Group>
-                
+
                 {editMode ? (
                   <Textarea
                     label="Markdown содержимое (без YAML шапки)"
@@ -465,19 +454,82 @@ phases:
                     }}
                   />
                 ) : (
-                  <Box>
-                    <pre style={{ 
-                      whiteSpace: 'pre-wrap', 
-                      fontFamily: 'monospace',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
+                  <Box
+                    style={{
                       background: 'var(--mantine-color-gray-0)',
                       padding: '16px',
                       borderRadius: '8px',
                       border: '1px solid var(--mantine-color-gray-3)'
-                    }}>
+                    }}
+                  >
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ children }) => <Title order={1} mb="md">{children}</Title>,
+                        h2: ({ children }) => <Title order={2} mb="md">{children}</Title>,
+                        h3: ({ children }) => <Title order={3} mb="md">{children}</Title>,
+                        h4: ({ children }) => <Title order={4} mb="md">{children}</Title>,
+                        h5: ({ children }) => <Title order={5} mb="md">{children}</Title>,
+                        h6: ({ children }) => <Title order={6} mb="md">{children}</Title>,
+                        p: ({ children }) => <Text mb="md">{children}</Text>,
+                        pre: ({ children }) => (
+                          <Box
+                            component="pre"
+                            style={{
+                              background: 'var(--mantine-color-dark-8)',
+                              color: 'var(--mantine-color-gray-0)',
+                              padding: '12px',
+                              borderRadius: '4px',
+                              overflow: 'auto',
+                              fontFamily: 'monospace',
+                              fontSize: '14px'
+                            }}
+                            mb="md"
+                          >
+                            {children}
+                          </Box>
+                        ),
+                        code: ({ children, className }) => {
+                          const isBlock = className?.includes('language-')
+                          return isBlock ? (
+                            <Box component="code" style={{ fontFamily: 'monospace' }}>
+                              {children}
+                            </Box>
+                          ) : (
+                            <Box
+                              component="code"
+                              style={{
+                                background: 'var(--mantine-color-gray-2)',
+                                padding: '2px 4px',
+                                borderRadius: '3px',
+                                fontFamily: 'monospace',
+                                fontSize: '0.9em'
+                              }}
+                            >
+                              {children}
+                            </Box>
+                          )
+                        },
+                        ul: ({ children }) => <Box component="ul" mb="md" pl="md">{children}</Box>,
+                        ol: ({ children }) => <Box component="ol" mb="md" pl="md">{children}</Box>,
+                        li: ({ children }) => <Text component="li" mb="xs">{children}</Text>,
+                        blockquote: ({ children }) => (
+                          <Box
+                            style={{
+                              borderLeft: '4px solid var(--mantine-color-blue-5)',
+                              paddingLeft: '16px',
+                              fontStyle: 'italic',
+                              background: 'var(--mantine-color-blue-0)',
+                              padding: '8px 16px',
+                              margin: '16px 0'
+                            }}
+                          >
+                            {children}
+                          </Box>
+                        )
+                      }}
+                    >
                       {getContentWithoutYaml(task.content)}
-                    </pre>
+                    </ReactMarkdown>
                   </Box>
                 )}
               </Stack>

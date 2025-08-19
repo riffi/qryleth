@@ -10,16 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "@agent-tasks-ui/shared-types": "file:../shared-types",
     "@mantine/core": "^8.2.4",
-    "@mantine/hooks": "^8.2.4",
     "@mantine/form": "^8.2.4",
+    "@mantine/hooks": "^8.2.4",
     "@mantine/notifications": "^8.2.4",
     "@tabler/icons-react": "^3.34.1",
-    "react-router-dom": "^7.7.1",
     "axios": "^1.11.0",
-    "@agent-tasks-ui/shared-types": "file:../shared-types"
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.7.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.1",
