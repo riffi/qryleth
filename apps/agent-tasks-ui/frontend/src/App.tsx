@@ -13,6 +13,7 @@ import { Dashboard } from './components/Dashboard'
 import { EpicList } from './components/EpicList'
 import { TasksPage } from './components/TasksPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
+import { NewTaskPage } from './pages/NewTaskPage'
 import { EpicDetailPage } from './pages/EpicDetailPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -126,6 +127,7 @@ function App() {
                 }
               />
               <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/tasks/new" element={<NewTaskPage />} />
               <Route path="/epics" element={
                 <EpicList
                   epics={epics}

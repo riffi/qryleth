@@ -49,6 +49,7 @@ app.listen(PORT, () => {
   console.log(`   GET /api/tasks - получить все задачи`)
   console.log(`   GET /api/tasks/:id - получить задачу по ID`)
   console.log(`   GET /api/tasks/:id/detailed - получить задачу с детальными фазами`)
+  console.log(`   POST /api/tasks - создать новую задачу`)
   console.log(`   PUT /api/tasks/:id - обновить задачу по ID`)
   console.log(`   GET /api/epics - получить все эпики`)
   console.log(`   GET /api/epics/:id - получить эпик по ID`)

@@ -38,6 +38,44 @@ export async function getManagerState(): Promise<ManagerState> {
 }
 
 /**
+ * Транслитерация кириллических символов в латиницу для формирования slug
+ * Используется при создании имени папки задачи.
+ */
+function translitToLatin(input: string): string {
+  const map: Record<string, string> = {
+    а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y',
+    к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+    х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ь: '', ы: 'y', ъ: '', э: 'e', ю: 'yu', я: 'ya'
+  }
+  return input
+    .split('')
+    .map((ch) => {
+      const lower = ch.toLowerCase()
+      const repl = map[lower]
+      if (!repl) return ch
+      return ch === lower ? repl : repl.toUpperCase()
+    })
+    .join('')
+}
+
+/**
+ * Формирует безопасный slug из произвольной строки (заголовка).
+ * - Транслитерирует кириллицу в латиницу
+ * - Заменяет все небуквенно-цифровые символы на дефисы
+ * - Сжимает последовательности дефисов и обрезает по длине
+ */
+function toSlug(title: string, maxLen = 40): string {
+  const translit = translitToLatin(title)
+  const basic = translit
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+  return basic.slice(0, maxLen)
+}
+
+/**
  * Читает и парсит markdown файл с YAML front matter
  */
 async function parseMarkdownFile(filePath: string): Promise<{ data: any; content: string }> {
@@ -617,4 +655,151 @@ export async function updateTaskById(
     console.error(`Ошибка обновления задачи ${id}:`, error)
     throw error
   }
+}
+
+/**
+ * Создаёт новую задачу в файловой системе на основе входных данных.
+ * - Выдаёт новый ID из manager-state.json
+ * - Создаёт папку задачи и файл AGENT_TASK_SUMMARY.md с корректной YAML-шапкой
+ * - Обновляет manager-state.json (nextTaskId, lastModified, metadata)
+ */
+export async function createTask(input: {
+  title: string
+  tags?: string[]
+  content?: string
+  epic?: number | null
+}): Promise<AgentTask> {
+  // Валидация на уровне сервиса (дополнительно к роуту)
+  if (!input.title || input.title.trim().length < 3) {
+    throw new Error('Название задачи должно содержать минимум 3 символа')
+  }
+
+  const titleClean = input.title.trim()
+  const tags = Array.isArray(input.tags) ? input.tags : []
+  const epic = input.epic ?? null
+
+  // Читаем состояние менеджера
+  const manager = await getManagerState()
+  const newId = manager.nextTaskId
+  const today = getCurrentDateString()
+
+  // Формируем путь для новой задачи
+  const folderSlug = toSlug(titleClean) || `task-${newId}`
+  const folderName = `${String(newId).padStart(3, '0')}-${folderSlug}`
+
+  let taskDir: string
+  if (epic === null) {
+    // Обычная задача в корне tasks
+    taskDir = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'tasks', folderName)
+  } else {
+    // Ищем папку эпика по ID, чтобы создать задачу внутри него
+    const epicsPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'epics')
+    const epicDirs = await getDirectories(epicsPath)
+    let epicTasksPath: string | null = null
+    for (const epicDir of epicDirs) {
+      const epicFilePath = path.join(epicsPath, epicDir, 'epic.md')
+      try {
+        const { data } = await parseMarkdownFile(epicFilePath)
+        if (data.id === epic) {
+          epicTasksPath = path.join(epicsPath, epicDir, 'tasks')
+          break
+        }
+      } catch {
+        // пропускаем невалидные эпики
+      }
+    }
+    if (!epicTasksPath) {
+      throw new Error(`Эпик с ID ${epic} не найден`)
+    }
+    taskDir = path.join(epicTasksPath, folderName)
+  }
+
+  // Создаём структуру папок
+  await fs.mkdir(taskDir, { recursive: true })
+  await fs.mkdir(path.join(taskDir, 'phases'), { recursive: true })
+
+  // Формируем YAML шапку
+  const yamlObject: any = {
+    id: newId,
+    epic: epic,
+    title: titleClean,
+    status: 'planned',
+    created: today,
+    updated: today,
+    owner: 'team-ui',
+    tags: tags,
+    phases: { total: 0, completed: 0 }
+  }
+
+  const yamlString = Object.entries(yamlObject)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `${key}: [${value.map(v => typeof v === 'string' ? v : `${v}`).join(', ')}]`
+      }
+      if (typeof value === 'string') {
+        if (/[":\[\]#]/.test(value)) return `${key}: "${value.replace(/\"/g, '\\"')}"`
+      }
+      if (value === null) return `${key}: null`
+      if (typeof value === 'object') {
+        if (key === 'phases') {
+          const p = value as { total?: number; completed?: number }
+          return `${key}:\n  total: ${p.total || 0}\n  completed: ${p.completed || 0}`
+        }
+      }
+      return `${key}: ${value}`
+    })
+    .join('\n')
+
+  // Готовим контент. Если входного нет — создаём шаблон с базовой структурой
+  const bodyContent = (input.content && input.content.trim().length > 0)
+    ? input.content.trim()
+    : `# ${titleClean}
+
+## Обязательная информация
+!Правила работы с агентскими задачами: [agent-tasks.md](../../../../docs/development/workflows/agent-tasks.md)
+
+## Цели
+- Описать цели новой задачи
+
+## Контекст
+Краткий контекст задачи.
+
+## Список фаз
+
+### ⏳ Фаза 1: Инициация
+- Сформировать детали задачи и критерии готовности`
+
+  const fullContent = `---\n${yamlString}\n---\n\n${bodyContent}`
+
+  // Пишем файл AGENT_TASK_SUMMARY.md
+  const summaryPath = path.join(taskDir, 'AGENT_TASK_SUMMARY.md')
+  await fs.writeFile(summaryPath, fullContent, { encoding: 'utf8' })
+
+  // Обновляем manager-state.json
+  const updatedManager: ManagerState = {
+    ...manager,
+    nextTaskId: newId + 1,
+    lastModified: new Date().toISOString(),
+    metadata: {
+      ...manager.metadata,
+      totalItems: (manager.metadata?.totalItems ?? 0) + 1,
+      activeTasks: (manager.metadata?.activeTasks ?? 0) + 1
+    }
+  }
+  await fs.writeFile(MANAGER_STATE_PATH, JSON.stringify(updatedManager, null, 2), { encoding: 'utf8' })
+
+  // Возвращаем DTO задачи
+  const task: AgentTask = {
+    id: newId,
+    epic,
+    status: 'planned',
+    created: today,
+    tags,
+    title: `Задача ${newId}. ${titleClean}`,
+    content: bodyContent,
+    phases: [],
+    folderName
+  }
+
+  return task
 }

@@ -47,6 +47,7 @@ export interface ManagerState {
     totalItems: number
     completedTasks: number
     activeEpics: number
+    activeTasks?: number
   }
 }
 
@@ -209,6 +210,22 @@ export const updateTask = async (
   const response = await api.put<ApiResponse<AgentTask>>(`/tasks/${id}`, updates)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error || 'Ошибка обновления задачи')
+  }
+  return response.data.data
+}
+
+/**
+ * Создать новую задачу
+ */
+export const createTask = async (payload: {
+  title: string
+  tags?: string[]
+  content?: string
+  epic?: number | null
+}): Promise<AgentTask> => {
+  const response = await api.post<ApiResponse<AgentTask>>('/tasks', payload)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Ошибка создания задачи')
   }
   return response.data.data
 }

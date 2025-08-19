@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import {getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases, updateTaskById} from '../services/fileSystemService.js'
+import {createTask, getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases, updateTaskById} from '../services/fileSystemService.js'
 import pino from 'pino';
 
 const router = Router()
@@ -180,6 +180,67 @@ router.get('/:id/detailed', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Ошибка при получении детальной задачи',
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
+    })
+  }
+})
+
+/**
+ * POST /api/tasks
+ * Создать новую задачу
+ * Тело запроса должно содержать:
+ * - title: название задачи (строка от 3 символов)
+ * - tags?: массив тегов (массив строк, опционально)
+ * - content?: markdown содержимое без YAML шапки (опционально; если не передано — будет сгенерирован шаблон)
+ * - epic?: номер эпика (число) или null, если задача вне эпика
+ */
+router.post('/', async (req, res) => {
+  try {
+    const { title, tags = [], content = '', epic = null } = req.body
+
+    // Валидация входных данных
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Название задачи должно быть строкой от 3 символов'
+      })
+    }
+
+    if (!Array.isArray(tags) || tags.some((t) => typeof t !== 'string')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Теги должны быть массивом строк'
+      })
+    }
+
+    let epicId: number | null = null
+    if (epic !== null && epic !== undefined) {
+      if (typeof epic === 'number') {
+        epicId = epic
+      } else if (typeof epic === 'string' && epic.trim().length > 0) {
+        const parsed = parseInt(epic, 10)
+        if (!Number.isNaN(parsed)) epicId = parsed
+      }
+    }
+
+    // Создаём задачу в файловой системе
+    const newTask = await createTask({
+      title: title.trim(),
+      tags: tags.map((t: string) => t.trim()).filter(Boolean),
+      content: typeof content === 'string' ? content : '',
+      epic: epicId
+    })
+
+    res.status(201).json({
+      success: true,
+      data: newTask,
+      message: 'Задача успешно создана'
+    })
+  } catch (error) {
+    console.error('Ошибка создания задачи:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при создании задачи',
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     })
   }

@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 24
-  completed: 17
+  completed: 18
 ---
 
 # Интерфейс управления агентскими задачами
@@ -160,11 +160,12 @@ phases:
 - Исправлена ширина контейнера страницы эпика (как у задачи)
 **Отчёт**: [phases/phase_6.5_summary.md](phases/phase_6.5_summary.md)
 
-### ⏳ Фаза 7: Создание новых задач
-- Форма создания новой задачи
+### ✅ Фаза 7: Создание новых задач — ВЫПОЛНЕНО
+- Форма создания новой задачи (`/tasks/new`)
 - Автоматическая генерация ID из manager-state.json
-- POST /api/tasks endpoint
+- Endpoint `POST /api/tasks`
 - Создание файловой структуры для новой задачи
+**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
 
 ### ⏳ Фаза 8: Работа с фазами задач
 - Отображение списка фаз для каждой задачи  

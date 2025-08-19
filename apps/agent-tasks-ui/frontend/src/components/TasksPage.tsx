@@ -2,7 +2,7 @@
  * Страница задач с фильтрами и поиском
  */
 import { useState, useEffect, useMemo } from 'react'
-import { Stack, Group, Loader, Alert, Text } from '@mantine/core'
+import { Stack, Group, Loader, Alert, Text, Button } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useNavigate } from 'react-router-dom'
@@ -144,6 +144,13 @@ export function TasksPage({ onTaskClick }: TasksPageProps) {
         availableEpics={availableEpics}
         loading={loading}
       />
+
+      {/* Действия */}
+      <Group justify="flex-end">
+        <Button onClick={() => navigate('/tasks/new')} variant="light">
+          Создать задачу
+        </Button>
+      </Group>
 
       {/* Информация о результатах */}
       {tasksData && tasksData.pagination && !loading && (
