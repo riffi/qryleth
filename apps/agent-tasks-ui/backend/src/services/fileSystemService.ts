@@ -803,3 +803,92 @@ export async function createTask(input: {
 
   return task
 }
+
+/**
+ * Получает отчет конкретной фазы задачи по ID задачи и номеру фазы
+ */
+export async function getPhaseReport(taskId: number, phaseId: string): Promise<{
+  phaseNumber: string;
+  title: string;
+  content: string;
+  status: string;
+} | null> {
+  try {
+    // Находим задачу и её путь
+    let taskPath: string | null = null
+    
+    // Ищем в обычных задачах
+    const tasksPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'tasks')
+    const taskDirs = await getDirectories(tasksPath)
+    
+    for (const taskDir of taskDirs) {
+      const summaryPath = path.join(tasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+      try {
+        const { data } = await parseMarkdownFile(summaryPath)
+        if (data.id === taskId) {
+          taskPath = path.join(tasksPath, taskDir)
+          break
+        }
+      } catch (error) {
+        continue
+      }
+    }
+    
+    // Если не найдена в обычных задачах, ищем в эпиках
+    if (!taskPath) {
+      const epicsPath = path.join(AGENT_CONTENT_PATH, 'agent-tasks', 'epics')
+      const epicDirs = await getDirectories(epicsPath)
+      
+      for (const epicDir of epicDirs) {
+        const epicTasksPath = path.join(epicsPath, epicDir, 'tasks')
+        const epicTaskDirs = await getDirectories(epicTasksPath)
+        
+        for (const taskDir of epicTaskDirs) {
+          const summaryPath = path.join(epicTasksPath, taskDir, 'AGENT_TASK_SUMMARY.md')
+          try {
+            const { data } = await parseMarkdownFile(summaryPath)
+            if (data.id === taskId) {
+              taskPath = path.join(epicTasksPath, taskDir)
+              break
+            }
+          } catch (error) {
+            continue
+          }
+        }
+        if (taskPath) break
+      }
+    }
+    
+    if (!taskPath) {
+      return null
+    }
+    
+    // Ищем файл отчета фазы
+    const phasesPath = path.join(taskPath, 'phases')
+    const phaseFileName = `phase_${phaseId}_summary.md`
+    const phaseFilePath = path.join(phasesPath, phaseFileName)
+    
+    try {
+      const { data, content } = await parseMarkdownFile(phaseFilePath)
+      
+      // Заголовок: либо из YAML, либо из первого H1
+      const titleFromH1Match = content.match(/^#\s+(.+)$/m)
+      const title = (data?.title as string) || (titleFromH1Match ? titleFromH1Match[1].trim() : `Фаза ${phaseId}`)
+      
+      // Статус из YAML или по умолчанию
+      const status = (data?.status as string) || 'planned'
+      
+      return {
+        phaseNumber: phaseId,
+        title,
+        content,
+        status
+      }
+    } catch (error) {
+      return null
+    }
+  } catch (error) {
+    console.error(`Ошибка получения отчета фазы ${phaseId} задачи ${taskId}:`, error)
+    return null
+  }
+}

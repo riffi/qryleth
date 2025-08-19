@@ -242,6 +242,24 @@ export const getManagerState = async (): Promise<ManagerState> => {
 }
 
 /**
+ * Получить отчет фазы
+ */
+export interface PhaseReport {
+  phaseNumber: string;
+  title: string;
+  content: string;
+  status: string;
+}
+
+export const getPhaseReport = async (taskId: number, phaseId: string): Promise<PhaseReport> => {
+  const response = await api.get<ApiResponse<PhaseReport>>(`/tasks/${taskId}/phases/${phaseId}`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error || 'Ошибка загрузки отчета фазы')
+  }
+  return response.data.data
+}
+
+/**
  * Проверка работоспособности API
  */
 export const healthCheck = async (): Promise<boolean> => {

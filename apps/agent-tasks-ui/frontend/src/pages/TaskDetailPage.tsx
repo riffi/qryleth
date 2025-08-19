@@ -2,9 +2,6 @@
  * Страница детального просмотра и редактирования агентской задачи
  */
 import { useState, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
-// Добавляем плагин подсветки синтаксиса для Markdown
-import rehypeHighlight from 'rehype-highlight'
 // Подключаем тему подсветки (темная)
 import 'highlight.js/styles/atom-one-dark.css'
 import Editor from '@monaco-editor/react'
@@ -33,12 +30,15 @@ import {
   IconArrowLeft,
   IconCalendar,
   IconHash,
-  IconTag
+  IconTag,
+  IconEye
 } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { AgentTask, getTaskById, updateTask } from '../services/apiService'
 import { useNavigate, useParams } from 'react-router-dom'
+import { PhaseReportModal } from '../components/PhaseReportModal'
+import { EditableMarkdown } from '../components/EditableMarkdown'
 /**
  * Компонент детальной страницы задачи, использующий параметр маршрута `:id`.
  * Переход назад осуществляется через роутер.
@@ -98,6 +98,15 @@ export function TaskDetailPage() {
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('content')
+  const [phaseReportModal, setPhaseReportModal] = useState<{
+    opened: boolean;
+    phaseId: string;
+    phaseTitle: string;
+  }>({
+    opened: false,
+    phaseId: '',
+    phaseTitle: ''
+  })
 
   // Форма редактирования
   const form = useForm<TaskFormData>({
@@ -277,6 +286,93 @@ phases:
 ---`
 
     return `${yamlHeader}\n\n${contentWithoutYaml}`
+  }
+
+  /**
+   * Открыть модальное окно с отчетом фазы
+   */
+  const handleOpenPhaseReport = (phaseNumber: number, title: string) => {
+    setPhaseReportModal({
+      opened: true,
+      phaseId: phaseNumber.toString(),
+      phaseTitle: title
+    })
+  }
+
+  /**
+   * Закрыть модальное окно отчета фазы
+   */
+  const handleClosePhaseReport = () => {
+    setPhaseReportModal({
+      opened: false,
+      phaseId: '',
+      phaseTitle: ''
+    })
+  }
+
+  /**
+   * Обработчик редактирования фазы
+   */
+  const handlePhaseEdit = async (phaseNumber: number, newPhaseText: string) => {
+    if (!task) return
+
+    try {
+      // Заменяем текст фазы в содержимом задачи
+      const lines = getContentWithoutYaml(task.content).split('\n')
+      const phasePatterns = [
+        new RegExp(`^###\\s+[⏳✅]\\s*Фаза\\s+${phaseNumber}(?:\\.\\d+)?\\s*:`, 'i'),
+        new RegExp(`^##\\s+[⏳✅]\\s*Фаза\\s+${phaseNumber}(?:\\.\\d+)?\\s*:`, 'i')
+      ]
+      
+      let startIndex = -1
+      let endIndex = lines.length
+      
+      // Находим начало фазы
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (phasePatterns.some(pattern => pattern.test(line))) {
+          startIndex = i
+          break
+        }
+      }
+      
+      if (startIndex === -1) {
+        throw new Error('Фаза не найдена в содержимом задачи')
+      }
+      
+      // Находим конец фазы (следующий заголовок фазы или секции)
+      for (let i = startIndex + 1; i < lines.length; i++) {
+        const line = lines[i]
+        if (line.match(/^##[#]?\s+[⏳✅]?\s*Фаза\s+\d+/i) || 
+            line.match(/^##\s+[А-Яа-яA-Za-z]/)) {
+          endIndex = i
+          break
+        }
+      }
+      
+      // Заменяем содержимое фазы
+      const newLines = [
+        ...lines.slice(0, startIndex),
+        ...newPhaseText.split('\n'),
+        ...lines.slice(endIndex)
+      ]
+      
+      const updatedContent = newLines.join('\n')
+      
+      // Сохраняем обновленную задачу
+      const updatedTask = await updateTask(task.id, {
+        title: form.values.title,
+        tags: form.values.tags,
+        content: updatedContent
+      })
+
+      // Обновляем локальное состояние
+      setTask(updatedTask)
+      form.setFieldValue('content', createFullContent(updatedContent))
+
+    } catch (error) {
+      throw new Error(`Ошибка обновления фазы: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    }
   }
 
   // Загрузка данных при монтировании
@@ -503,85 +599,9 @@ phases:
                       border: '1px solid var(--mantine-color-gray-3)'
                     }}
                   >
-                    <ReactMarkdown
-                      // Подсветка синтаксиса в блоках кода, включая TypeScript/TSX
-                      rehypePlugins={[rehypeHighlight]}
-                      components={{
-                        h1: ({ children }) => <Title order={1} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        h2: ({ children }) => <Title order={2} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        h3: ({ children }) => <Title order={3} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        h4: ({ children }) => <Title order={4} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        h5: ({ children }) => <Title order={5} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        h6: ({ children }) => <Title order={6} mb="md" c="var(--mantine-color-gray-6)">{children}</Title>,
-                        // Текст в Markdown: делаем серый чуть более ярким для лучшей читаемости
-                        p: ({ children }) => <Text mb="md" c="var(--mantine-color-gray-7)">{children}</Text>,
-                        pre: ({ children }) => (
-                          <Box
-                            component="pre"
-                            style={{
-                              background: 'var(--mantine-color-dark-8)',
-                              color: 'var(--mantine-color-gray-0)',
-                              padding: '12px',
-                              borderRadius: '4px',
-                              overflow: 'auto',
-                              fontFamily: 'monospace',
-                              fontSize: '14px'
-                            }}
-                            mb="md"
-                          >
-                            {children}
-                          </Box>
-                        ),
-                        // Рендер кода: используем признак inline, чтобы
-                        // корректно отличать встроенный код от блочного.
-                        // Блочный код оформляется контейнером <pre>, поэтому
-                        // здесь не задаем ему фон; для inline-кода применяем
-                        // «чип» со светло-серым фоном.
-                        code: ({ children, inline }: any) => {
-                          if (!inline) {
-                            return (
-                              <Box component="code" style={{ fontFamily: 'monospace' }}>
-                                {children}
-                              </Box>
-                            )
-                          }
-                          return (
-                            <Box
-                              component="code"
-                              style={{
-                                background: 'var(--mantine-color-gray-6)',
-                                padding: '2px 4px',
-                                borderRadius: '3px',
-                                fontFamily: 'monospace',
-                                fontSize: '0.9em'
-                              }}
-                            >
-                              {children}
-                            </Box>
-                          )
-                        },
-                        ul: ({ children }) => <Box component="ul" mb="md" pl="md">{children}</Box>,
-                        ol: ({ children }) => <Box component="ol" mb="md" pl="md">{children}</Box>,
-                        // Элементы списка также делаем немного ярче серым
-                        li: ({ children }) => <Text component="li" mb="xs" c="var(--mantine-color-gray-7)">{children}</Text>,
-                        blockquote: ({ children }) => (
-                          <Box
-                            style={{
-                              borderLeft: '4px solid var(--mantine-color-blue-5)',
-                              paddingLeft: '16px',
-                              fontStyle: 'italic',
-                              background: 'var(--mantine-color-blue-0)',
-                              padding: '8px 16px',
-                              margin: '16px 0'
-                            }}
-                          >
-                            {children}
-                          </Box>
-                        )
-                      }}
-                    >
+                    <EditableMarkdown onPhaseEdit={handlePhaseEdit}>
                       {getContentWithoutYaml(task.content)}
-                    </ReactMarkdown>
+                    </EditableMarkdown>
                   </Box>
                 )}
               </Stack>
@@ -603,9 +623,20 @@ phases:
                           <Text fw={500}>Фаза {phase.phaseNumber}</Text>
                           <Text>{phase.title}</Text>
                         </Group>
-                        <Badge color={getStatusColor(phase.status)} variant="light">
-                          {getStatusLabel(phase.status)}
-                        </Badge>
+                        <Group gap="xs">
+                          <ActionIcon
+                            variant="light"
+                            color="blue"
+                            size="sm"
+                            onClick={() => handleOpenPhaseReport(phase.phaseNumber, phase.title)}
+                            title="Посмотреть отчет"
+                          >
+                            <IconEye size={14} />
+                          </ActionIcon>
+                          <Badge color={getStatusColor(phase.status)} variant="light">
+                            {getStatusLabel(phase.status)}
+                          </Badge>
+                        </Group>
                       </Group>
                     ))}
                   </Stack>
@@ -616,6 +647,17 @@ phases:
             </Paper>
           </Tabs.Panel>
         </Tabs>
+
+        {/* Модальное окно отчета фазы */}
+        {task && (
+          <PhaseReportModal
+            opened={phaseReportModal.opened}
+            onClose={handleClosePhaseReport}
+            taskId={task.id}
+            phaseId={phaseReportModal.phaseId}
+            phaseTitle={phaseReportModal.phaseTitle}
+          />
+        )}
       </Stack>
     </Container>
   )

@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express'
-import {createTask, getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases, updateTaskById} from '../services/fileSystemService.js'
+import {createTask, getAllTasks, getEpicTasks, getTaskById, getTaskByIdWithDetailedPhases, updateTaskById, getPhaseReport} from '../services/fileSystemService.js'
 import pino from 'pino';
 
 const router = Router()
@@ -241,6 +241,46 @@ router.post('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Ошибка при создании задачи',
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
+    })
+  }
+})
+
+/**
+ * GET /api/tasks/:id/phases/:phaseId
+ * Получить отчет конкретной фазы по номеру фазы
+ */
+router.get('/:id/phases/:phaseId', async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id, 10)
+    const phaseId = req.params.phaseId
+
+    if (isNaN(taskId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Некорректный ID задачи'
+      })
+    }
+
+    // Получаем отчет фазы
+    const phaseReport = await getPhaseReport(taskId, phaseId)
+
+    if (!phaseReport) {
+      return res.status(404).json({
+        success: false,
+        error: 'Отчет фазы не найден'
+      })
+    }
+
+    res.json({
+      success: true,
+      data: phaseReport
+    })
+  } catch (error) {
+    console.error(`Ошибка получения отчета фазы ${req.params.phaseId} задачи ${req.params.id}:`, error)
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при получении отчета фазы',
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     })
   }
