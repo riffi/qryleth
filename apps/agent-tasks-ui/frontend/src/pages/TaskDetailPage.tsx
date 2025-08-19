@@ -305,7 +305,7 @@ phases:
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" style={{ width: '100%', maxWidth: 'none' }}>
       <Stack gap="md">
         {/* Хлебные крошки и действия */}
         <Group justify="space-between">
