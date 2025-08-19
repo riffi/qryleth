@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import Editor from '@monaco-editor/react'
 import {
   Container,
   Stack,
@@ -442,17 +443,50 @@ phases:
                 </Group>
 
                 {editMode ? (
-                  <Textarea
-                    label="Markdown содержимое (без YAML шапки)"
-                    placeholder="Введите содержимое задачи в формате Markdown..."
-                    minRows={20}
-                    value={getContentWithoutYaml(form.values.content)}
-                    onChange={(event) => {
-                      const contentWithoutYaml = event.currentTarget.value
-                      const fullContent = createFullContent(contentWithoutYaml)
-                      form.setFieldValue('content', fullContent)
-                    }}
-                  />
+                  <Stack gap="xs">
+                    <Text size="sm" fw={500}>Markdown содержимое (без YAML шапки)</Text>
+                    <Box
+                      style={{
+                        border: '1px solid var(--mantine-color-gray-3)',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        width: '100%'
+                      }}
+                    >
+                      <Editor
+                        width="100%"
+                        height="500px"
+                        language="markdown"
+                        theme="vs"
+                        value={getContentWithoutYaml(form.values.content)}
+                        onChange={(value) => {
+                          const contentWithoutYaml = value || ''
+                          const fullContent = createFullContent(contentWithoutYaml)
+                          form.setFieldValue('content', fullContent)
+                        }}
+                        options={{
+                          minimap: { enabled: false },
+                          lineNumbers: 'on',
+                          wordWrap: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          fontSize: 14,
+                          fontFamily: 'Monaco, "Cascadia Code", "Fira Code", Consolas, monospace',
+                          tabSize: 2,
+                          insertSpaces: true,
+                          renderWhitespace: 'boundary',
+                          folding: true,
+                          bracketPairColorization: { enabled: true },
+                          padding: { top: 10, bottom: 10 }
+                        }}
+                      />
+                    </Box>
+                    {form.errors.content && (
+                      <Text size="sm" c="red">
+                        {form.errors.content}
+                      </Text>
+                    )}
+                  </Stack>
                 ) : (
                   <Box
                     style={{
