@@ -433,14 +433,6 @@ phases:
           <Tabs.Panel value="content" pt="md">
             <Paper withBorder p="lg">
               <Stack gap="md">
-                <Group justify="space-between">
-                  <Title order={3}>Содержимое задачи</Title>
-                  {!editMode && (
-                    <Text size="sm" c="dimmed">
-                      YAML метаданные скрыты в режиме просмотра
-                    </Text>
-                  )}
-                </Group>
 
                 {editMode ? (
                   <Stack gap="xs">
