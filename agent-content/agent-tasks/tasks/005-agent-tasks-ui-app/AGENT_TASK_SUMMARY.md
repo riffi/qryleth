@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, backend, ui, management, react, typescript, express]
 phases:
   total: 23
-  completed: 15
+  completed: 16
 ---
 
 # Интерфейс управления агентскими задачами
@@ -145,10 +145,12 @@ phases:
 - Навигация между страницами и валидация форм
 **Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: Сохранение изменений в файлы
+### ✅ Фаза 6: Сохранение изменений в файлы - ВЫПОЛНЕНО
 - Backend API для обновления задач: PUT /api/tasks/:id
-- Сохранение изменений обратно в markdown файлы
-- Валидация формата и структуры
+- Сохранение изменений обратно в markdown файлы с корректной YAML шапкой
+- Валидация формата и структуры данных
+- Интеграция с frontend формой редактирования и Monaco Editor
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 ### ⏳ Фаза 7: Создание новых задач
 - Форма создания новой задачи
