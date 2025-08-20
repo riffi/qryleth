@@ -202,16 +202,30 @@ const handleMouseLeave = () => {
 
 ### Layer Management / Управление слоями
 
-#### `createLayer(name: string, visible: boolean = true): void`
-Creates a new scene layer.
+Слои сцены используют перечисление типов `GfxLayerType`. Базовая структура слоя описана в разделе Types → Layers.
 
-Создает новый слой сцены.
+Импорт:
+```ts
+import { GfxLayerType } from '@/entities/layer'
+```
+
+#### `createLayer(layer: Omit<SceneLayer, 'id'>): void`
+Создаёт новый слой сцены. Идентификатор генерируется автоматически.
 
 ```typescript
 const { createLayer } = useSceneStore()
 
-const handleCreateLayer = () => {
-  createLayer('Background Objects', true)
+const handleCreateLandscape = () => {
+  createLayer({
+    name: 'landscape',
+    type: GfxLayerType.Landscape,
+    visible: true,
+    position: 1,
+    width: 100,
+    height: 100,
+    shape: 'perlin',
+    color: '#4a7c59'
+  })
 }
 ```
 
@@ -240,6 +254,18 @@ const handleMoveToLayer = (objectUuid: string, layerId: string) => {
   moveObjectToLayer(objectUuid, layerId)
 }
 ```
+
+#### `updateLayer(layerId: string, updates: Partial<SceneLayer>): void`
+Обновляет свойства слоя. Для ландшафтных/водных слоёв можно менять `width`, `height`, `shape`, `color`.
+
+```ts
+const { updateLayer } = useSceneStore()
+
+updateLayer(layerId, { color: '#88aa66' })
+```
+
+#### `deleteLayer(layerId: string): void`
+Удаляет слой (кроме базового `objects`). Объекты с удаляемого слоя перемещаются на `objects`.
 
 ### View Controls / Элементы управления видом
 

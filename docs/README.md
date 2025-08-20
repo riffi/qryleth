@@ -41,8 +41,8 @@
 
 ### Типы
 - **[Type System Overview](api/types/README.md)** - Полное руководство по системе типов
-- **[Domain Entities](api/types/entities.md)** - Основные доменные типы
 - **[Shared Types](api/types/shared-types.md)** - Общие утилиты
+- **[Layers](api/types/layers.md)** - Слои сцены и перечисление GfxLayerType
 
 ### Управление состоянием
 - **[Stores Overview](api/stores/README.md)** - Документация Zustand хранилищ
