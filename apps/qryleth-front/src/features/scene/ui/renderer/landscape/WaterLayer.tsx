@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import type { SceneLayer } from '@/entities/scene/types.ts'
+import { GfxLayerType } from '@/entities/layer'
 
 /**
  * Отрисовывает слой воды на сцене.
@@ -107,7 +108,7 @@ export const WaterLayer: React.FC<WaterLayerProps> = ({ layer }) => {
       userData={{
         generated: true,
         layerId: layer.id,
-        layerType: 'water'
+        layerType: GfxLayerType.Water
       }}
     />
   )

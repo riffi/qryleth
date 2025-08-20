@@ -3,6 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSceneStore } from '../../../model/sceneStore.ts'
+import { GfxLayerType } from '@/entities/layer'
 
 export const WalkControls: React.FC = () => {
   const { camera, gl, scene } = useThree()
@@ -104,14 +105,14 @@ export const WalkControls: React.FC = () => {
     // Adjust camera height based on perlin landscape
     const layers = useSceneStore.getState().layers
     const perlinLayerIds = layers
-      .filter(l => l.type === 'landscape' && l.shape === 'perlin')
+      .filter(l => l.type === GfxLayerType.Landscape && l.shape === 'perlin')
       .map(l => l.id)
 
     if (perlinLayerIds.length > 0) {
       const meshes: THREE.Object3D[] = []
       scene.traverse(obj => {
         if (
-          obj.userData?.layerType === 'landscape' &&
+          obj.userData?.layerType === GfxLayerType.Landscape &&
           perlinLayerIds.includes(obj.userData.layerId)
         ) {
           meshes.push(obj)

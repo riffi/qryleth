@@ -47,6 +47,7 @@ import type {
 import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import type {SceneLayer} from "@/entities";
+import { GfxLayerType } from '@/entities/layer'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -151,13 +152,13 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         let layerName = layerFormData.name.trim()
 
         // Названия по умолчанию для специальных типов слоёв
-        if (layerFormData.type === 'landscape') {
+        if (layerFormData.type === GfxLayerType.Landscape) {
             layerName = 'landscape'
-        } else if (layerFormData.type === 'water') {
+        } else if (layerFormData.type === GfxLayerType.Water) {
             layerName = 'вода'
         }
 
-        if (layerFormData.type === 'object' && !layerName) return
+        if (layerFormData.type === GfxLayerType.Object && !layerName) return
 
         const layerData = {
             name: layerName,
@@ -165,7 +166,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             visible: true,
             position: layers.length,
             color: layerFormData.color,
-            ...((layerFormData.type === 'landscape' || layerFormData.type === 'water') && {
+            ...((layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) && {
                 width: layerFormData.width,
                 height: layerFormData.height,
                 shape: layerFormData.shape
@@ -175,7 +176,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         storeCreateLayer(layerData)
 
         // Если создаётся ландшафтный слой с формой Perlin, корректируем объекты
-        if (layerFormData.type === 'landscape' && layerFormData.shape === 'perlin') {
+        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === 'perlin') {
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]
@@ -219,9 +220,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         if (!layerFormData.name.trim() || !layerFormData.id) return
         const updates: Partial<SceneLayer> = {
             name: layerFormData.name.trim(),
-            width: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.width : undefined,
-            height: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.height : undefined,
-            shape: (layerFormData.type === 'landscape' || layerFormData.type === 'water') ? layerFormData.shape : undefined,
+            width: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.width : undefined,
+            height: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.height : undefined,
+            shape: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.shape : undefined,
             color: layerFormData.color
         }
         storeUpdateLayer(layerFormData.id, updates)
@@ -237,7 +238,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setLayerFormData({
             id: layer.id,
             name: layer.name,
-            type: layer.type || 'object',
+            type: layer.type || GfxLayerType.Object,
             width: layer.width || 10,
             height: layer.height || 10,
             shape: layer.shape || 'plane',

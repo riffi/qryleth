@@ -23,6 +23,7 @@ import type { LightingSettings } from '@/entities/lighting'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
+import { GfxLayerType } from '@/entities/layer'
 
 const initialLighting: LightingSettings = {
   ambient: {
@@ -44,7 +45,7 @@ const initialLayers: SceneLayer[] = [
   {
     id: 'objects',
     name: 'Объекты',
-    type: 'object',
+    type: GfxLayerType.Object,
     visible: true,
     position: 0
   }

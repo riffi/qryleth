@@ -16,6 +16,7 @@ import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from '@/features/scene'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
+import { GfxLayerType } from '@/entities/layer'
 
 
 interface LayerItemProps {
@@ -67,10 +68,10 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
    * - Для слоёв типа `water` отображается иконка волн (условная вода).
    */
   const getLayerIcon = (): React.ReactNode => {
-    if (layer.type === 'landscape') {
+    if (layer.type === GfxLayerType.Landscape) {
       return <IconMountain size={14} color={'var(--mantine-color-green-5)'} />
     }
-    if (layer.type === 'water') {
+    if (layer.type === GfxLayerType.Water) {
       return <IconRipple size={14} color={'var(--mantine-color-blue-5)'} />
     }
     return <IconLayersLinked size={14} color="var(--mantine-color-blue-4)" />
@@ -81,7 +82,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
    * Для таких слоёв (landscape/water) скрываем шеврон сворачивания/разворачивания
    * и не показываем счётчик объектов, так как он всегда равен нулю.
    */
-  const isStructuralLayer = layer.type === 'landscape' || layer.type === 'water'
+  const isStructuralLayer = layer.type === GfxLayerType.Landscape || layer.type === GfxLayerType.Water
   return (
       <div>
         <Box
@@ -171,7 +172,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                   >
                     Переименовать
                   </Menu.Item>
-                  {layer.type === 'landscape' && (
+                  {layer.type === GfxLayerType.Landscape && (
                       <Menu.Item onClick={() => openEditLayerModal(layer)}>
                         Изменить размер
                       </Menu.Item>

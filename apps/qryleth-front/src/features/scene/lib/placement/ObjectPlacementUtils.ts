@@ -1,6 +1,7 @@
 import type {Vector3} from '@/shared/types/vector3'
 import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
+import { GfxLayerType } from '@/entities/layer'
 import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 /**
@@ -140,7 +141,7 @@ const queryHeightAtCoordinate = (
     worldX: number,
     worldZ: number
 ): number => {
-  if (layer.type !== 'landscape' || layer.shape !== 'perlin' || !layer.noiseData) {
+  if (layer.type !== GfxLayerType.Landscape || layer.shape !== 'perlin' || !layer.noiseData) {
     return 0; // Default height for non-perlin landscapes
   }
 
@@ -196,7 +197,7 @@ const calculateSurfaceNormal = (
     worldX: number,
     worldZ: number
 ): Vector3 => {
-  if (layer.type !== 'landscape' || layer.shape !== 'perlin' || !layer.noiseData) {
+  if (layer.type !== GfxLayerType.Landscape || layer.shape !== 'perlin' || !layer.noiseData) {
     return [0, 1, 0]; // Default upward normal
   }
 
@@ -470,7 +471,7 @@ export const adjustAllInstancesForPerlinTerrain = (
   objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
 ): SceneObjectInstance[] => {
   if (!perlinLayer ||
-      perlinLayer.type !== 'landscape' ||
+      perlinLayer.type !== GfxLayerType.Landscape ||
       perlinLayer.shape !== 'perlin' ||
       !perlinLayer.noiseData) {
     return instances

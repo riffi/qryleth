@@ -3,6 +3,7 @@ import { Instances, Instance } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
+import { GfxLayerType } from '@/entities/layer'
 
 // Component for rendering primitives in Instances
 const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
@@ -591,7 +592,7 @@ export const TestInstancedMesh: React.FC = () => {
     {
       id: 'objects',
       name: 'Объекты',
-      type: 'object',
+      type: GfxLayerType.Object,
       visible: true,
       position: 0
     }

@@ -15,6 +15,7 @@ import { IconLayersLinked, IconSettings } from '@tabler/icons-react'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
+import { GfxLayerType } from '@/entities/layer'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
@@ -94,24 +95,25 @@ export const SceneLayerModals: React.FC = () => {
                         <Select
                             label="Тип слоя"
                             data={[
-                                { value: 'object', label: 'Object Layer' },
-                                { value: 'landscape', label: 'Landscape' },
-                                { value: 'water', label: 'Вода' }
+                                { value: GfxLayerType.Object, label: 'Object Layer' },
+                                { value: GfxLayerType.Landscape, label: 'Landscape' },
+                                { value: GfxLayerType.Water, label: 'Вода' }
                             ]}
                             value={layerFormData.type}
                             onChange={(v) => {
-                                const newType = v as 'object' | 'landscape' | 'water'
+                                if (!v) return
+                                const newType = v as GfxLayerType
                                 setLayerFormData({ ...layerFormData, type: newType })
-                                if (newType === 'landscape') {
+                                if (newType === GfxLayerType.Landscape) {
                                     setLayerFormData(prev => ({ ...prev, name: 'landscape' }))
-                                } else if (newType === 'water') {
+                                } else if (newType === GfxLayerType.Water) {
                                     setLayerFormData(prev => ({ ...prev, name: 'вода' }))
                                 }
                             }}
                         />
                     )}
 
-                    {(layerFormData.type === 'object' || layerModalMode === 'edit') && (
+                    {(layerFormData.type === GfxLayerType.Object || layerModalMode === 'edit') && (
                         <TextInput
                             label="Название слоя"
                             placeholder="Введите название слоя"
@@ -126,7 +128,7 @@ export const SceneLayerModals: React.FC = () => {
                         />
                     )}
 
-                    {layerFormData.type === 'landscape' && (
+                    {layerFormData.type === GfxLayerType.Landscape && (
                         <>
                             <Select
                                 label="Форма поверхности"
@@ -182,7 +184,7 @@ export const SceneLayerModals: React.FC = () => {
                             </>
                         </>
                     )}
-                    {layerFormData.type === 'water' && (
+                    {layerFormData.type === GfxLayerType.Water && (
                         <Group gap="sm">
                             <NumberInput
                                 label="Ширина, м"
@@ -210,7 +212,7 @@ export const SceneLayerModals: React.FC = () => {
                         </Button>
                         <Button
                             onClick={layerModalMode === 'create' ? handleCreateLayer : handleUpdateLayer}
-                            disabled={layerFormData.type === 'object' && !layerFormData.name.trim()}
+                            disabled={layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()}
                         >
                             {layerModalMode === 'create' ? 'Создать' : 'Сохранить'}
                         </Button>

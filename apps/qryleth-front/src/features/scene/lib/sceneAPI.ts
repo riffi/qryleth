@@ -19,6 +19,7 @@ import {
 import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
+import { GfxLayerType } from '@/entities/layer'
 
 /**
  * Simplified scene object info for agent tools
@@ -373,7 +374,7 @@ export class SceneAPI {
     options?: { rotation?: Vector3; scale?: Vector3; visible?: boolean; alignToTerrain?: boolean }
   ): AddInstancesResult {
     const state = useSceneStore.getState()
-    const landscapeLayer = state.layers.find(layer => layer.type === 'landscape')
+    const landscapeLayer = state.layers.find(layer => layer.type === GfxLayerType.Landscape)
 
     // Get the object to access its bounding box
     const baseObject = state.objects.find(obj => obj.uuid === objectUuid)
@@ -534,9 +535,9 @@ export class SceneAPI {
 
       // Найти подходящий landscape слой (логика из addInstanceToScene)
       const perlinLandscape = layers.find(layer =>
-        layer.type === 'landscape' && layer.shape === 'perlin'
+        layer.type === GfxLayerType.Landscape && layer.shape === 'perlin'
       )
-      const anyLandscape = layers.find(layer => layer.type === 'landscape')
+      const anyLandscape = layers.find(layer => layer.type === GfxLayerType.Landscape)
       const landscapeLayer = perlinLandscape || anyLandscape || null
 
       // Создать экземпляр объекта
@@ -653,7 +654,7 @@ export class SceneAPI {
       // Find the perlin layer
       const perlinLayer = layers.find(layer =>
         layer.id === perlinLayerId &&
-        layer.type === 'landscape' &&
+        layer.type === GfxLayerType.Landscape &&
         layer.shape === 'perlin'
       )
 

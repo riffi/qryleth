@@ -4,6 +4,7 @@ import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import { createPerlinGeometry } from '@/features/scene/lib/geometry/perlinGeometry.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { GfxLayerType } from '@/entities/layer'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
@@ -65,7 +66,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
       userData={{
         generated: true,
         layerId: layer.id,
-        layerType: 'landscape'
+        layerType: GfxLayerType.Landscape
       }}
     >
       <meshLambertMaterial

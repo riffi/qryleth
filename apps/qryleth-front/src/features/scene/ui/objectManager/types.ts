@@ -4,6 +4,7 @@
  */
 
 import type { SceneLayer } from '@/entities/scene/types'
+import { GfxLayerType } from '@/entities/layer'
 import type React from 'react'
 
 /**
@@ -18,6 +19,11 @@ export type SceneLayerModalMode = 'create' | 'edit'
  * так как при создании оно ещё не известно.
  */
 export type SceneLayerFormData = Omit<SceneLayer, 'id'> & { id?: string }
+
+/**
+ * Примечание: поле `type` в SceneLayerFormData теперь имеет тип перечисления GfxLayerType,
+ * что исключает использование произвольных строк и предотвращает опечатки.
+ */
 
 /**
  * Внешние пропсы SceneObjectManager.
