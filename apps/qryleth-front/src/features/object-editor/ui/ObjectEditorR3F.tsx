@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Box, Group, ActionIcon, Tooltip, SegmentedControl } from '@mantine/core'
+import { Box, Group } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import { ObjectEditorLayout } from './ObjectEditorLayout'
 import { ObjectChatInterface } from './ChatInterface'
@@ -9,7 +9,7 @@ import {
   useObjectGridVisible,
 } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
-import { IconArrowRightBar, IconRotate, IconResize, IconGridDots } from '@tabler/icons-react'
+import { TransformModeButtons, GridToggleButton, RenderModeSegment } from '@/shared/ui'
 import type { GfxObject } from '@/entities/object'
 
 interface ObjectEditorR3FProps {
@@ -79,59 +79,9 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
         }}
       >
         <Group gap="xs">
-          <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
-            <ActionIcon
-              variant={gridVisible ? 'filled' : 'light'}
-              c={gridVisible ? 'white' : 'gray'}
-              onClick={toggleGridVisibility}
-              size="md"
-            >
-              <IconGridDots size={18} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Group gap="xs">
-            <Tooltip label="Перемещение">
-              <ActionIcon
-                size="md"
-                variant={transformMode === 'translate' ? 'filled' : 'light'}
-                color="blue"
-                onClick={() => setTransformMode('translate')}
-              >
-                <IconArrowRightBar size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Поворот">
-              <ActionIcon
-                size="md"
-                variant={transformMode === 'rotate' ? 'filled' : 'light'}
-                color="green"
-                onClick={() => setTransformMode('rotate')}
-              >
-                <IconRotate size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Масштаб">
-              <ActionIcon
-                size="md"
-                variant={transformMode === 'scale' ? 'filled' : 'light'}
-                color="orange"
-                onClick={() => setTransformMode('scale')}
-              >
-                <IconResize size={16} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-
-          <SegmentedControl
-            value={renderMode}
-            onChange={(v) => setRenderMode(v as 'solid' | 'wireframe')}
-            data={[
-              { value: 'solid', label: 'Solid' },
-              { value: 'wireframe', label: 'Wireframe' }
-            ]}
-            size="xs"
-          />
+          <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
+          <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
+          <RenderModeSegment value={renderMode} onChange={setRenderMode} />
         </Group>
       </Box>
 

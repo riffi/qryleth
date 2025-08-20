@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, SegmentedControl, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
+import { Box, Paper, Container, Badge, ActionIcon, Tooltip, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
 import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
@@ -7,7 +7,7 @@ import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 import { ObjectEditorR3F, useObjectEditorToolRegistration, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
-import { IconCheck, IconPlanet, IconX, IconDeviceFloppy } from '@tabler/icons-react'
+import { IconCheck, IconX, IconDeviceFloppy } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -24,17 +24,12 @@ import {
   IconArrowBack,
   IconArrowForward,
   IconFolder,
-  IconRun,
-  IconPlaneTilt,
-  IconGridDots,
-  IconArrowRightBar,
-  IconRotate,
-  IconResize,
   IconCode,
   IconMessages
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
+import { GridToggleButton, TransformModeButtons, RenderModeSegment, ViewModeSegment, DragHandleVertical } from '@/shared/ui'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -440,20 +435,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
         {/* Drag handle between left panel and center */}
         {!chatCollapsed && (
-          <Box
-            onMouseDown={beginResize('left')}
-            style={{
-              width: 6,
-              cursor: 'col-resize',
-              alignSelf: 'stretch',
-              display: 'flex',
-              justifyContent: 'center',
-              opacity: 0.6
-            }}
-            aria-label="Изменить ширину левой панели"
-          >
-            <Box style={{ width: 2, height: '48%', marginTop: 'auto', marginBottom: 'auto', background: 'var(--mantine-color-dark-4)', borderRadius: 2 }} />
-          </Box>
+          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" />
         )}
 
         {/* Center */}
@@ -487,98 +469,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             }}
           >
             <Group gap="xs" wrap="nowrap">
-              <Tooltip label={gridVisible ? 'Скрыть сетку' : 'Показать сетку'}>
-                <ActionIcon
-                  variant={gridVisible ? 'filled' : 'light'}
-                  c={gridVisible ? 'white' : 'gray'}
-                  onClick={toggleGridVisibility}
-                  size="md"
-                >
-                  <IconGridDots size={18} />
-                </ActionIcon>
-              </Tooltip>
-
-              <Group gap="xs" wrap="nowrap">
-                <Tooltip label="Перемещение">
-                  <ActionIcon
-                    size="md"
-                    variant={transformMode === 'translate' ? 'filled' : 'light'}
-                    color="blue"
-                    onClick={() => setTransformMode('translate')}
-                  >
-                    <IconArrowRightBar size={16} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Поворот">
-                  <ActionIcon
-                    size="md"
-                    variant={transformMode === 'rotate' ? 'filled' : 'light'}
-                    color="green"
-                    onClick={() => setTransformMode('rotate')}
-                  >
-                    <IconRotate size={16} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Масштаб">
-                  <ActionIcon
-                    size="md"
-                    variant={transformMode === 'scale' ? 'filled' : 'light'}
-                    color="orange"
-                    onClick={() => setTransformMode('scale')}
-                  >
-                    <IconResize size={16} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-
-              <SegmentedControl
-                value={renderMode}
-                onChange={(value) => setRenderMode(value as 'solid' | 'wireframe')}
-                data={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'wireframe', label: 'Wireframe' }
-                ]}
-                size="xs"
-                styles={{
-                  root: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(6px)' }
-                }}
-              />
-
-              <SegmentedControl
-                value={viewMode}
-                onChange={(value) => setViewMode(value as 'orbit' | 'walk' | 'fly')}
-                data={[
-                  {
-                    value: 'orbit',
-                    label: (
-                      <Group gap={4} wrap="nowrap">
-                        <IconPlanet size={14} />
-                        <span>Orbit</span>
-                      </Group>
-                    )
-                  },
-                  {
-                    value: 'walk',
-                    label: (
-                      <Group gap={4} wrap="nowrap">
-                        <IconRun size={14} />
-                        <span>Walk</span>
-                      </Group>
-                    )
-                  },
-                  {
-                    value: 'fly',
-                    label: (
-                      <Group gap={4} wrap="nowrap">
-                        <IconPlaneTilt size={14} />
-                        <span>Fly</span>
-                      </Group>
-                    )
-                  }
-                ]}
-                size="xs"
-                styles={{ root: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(6px)' } }}
-              />
+              <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
+              <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
+              <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
+              <ViewModeSegment value={viewMode} onChange={setViewMode} frosted />
             </Group>
           </Box>
 
@@ -591,20 +485,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <>
             {/* Drag handle between center and right panel */}
             {!objectPanelCollapsed && (
-              <Box
-                onMouseDown={beginResize('right')}
-                style={{
-                  width: 6,
-                  cursor: 'col-resize',
-                  alignSelf: 'stretch',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  opacity: 0.6
-                }}
-                aria-label="Изменить ширину правой панели"
-              >
-                <Box style={{ width: 2, height: '48%', marginTop: 'auto', marginBottom: 'auto', background: 'var(--mantine-color-dark-4)', borderRadius: 2 }} />
-              </Box>
+              <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" />
             )}
 
             {!objectPanelCollapsed && (
