@@ -435,7 +435,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
         {/* Drag handle between left panel and center */}
         {!chatCollapsed && (
-          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" />
+          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" active={resizingSide === 'left'} />
         )}
 
         {/* Center */}
@@ -485,7 +485,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <>
             {/* Drag handle between center and right panel */}
             {!objectPanelCollapsed && (
-              <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" />
+              <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" active={resizingSide === 'right'} />
             )}
 
             {!objectPanelCollapsed && (

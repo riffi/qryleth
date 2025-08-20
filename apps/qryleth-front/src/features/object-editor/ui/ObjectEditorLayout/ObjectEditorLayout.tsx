@@ -214,7 +214,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
         {/* Ручка между левой панелью и центром */}
         {panelState.leftPanel && (
-          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" />
+          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" active={resizingSide === 'left'} />
         )}
 
         <Paper
@@ -227,7 +227,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
         {/* Ручка между центром и правой панелью */}
         {panelState.rightPanel === 'manager' && (
-          <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" />
+          <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" active={resizingSide === 'right'} />
         )}
 
         {renderRightPanel()}
