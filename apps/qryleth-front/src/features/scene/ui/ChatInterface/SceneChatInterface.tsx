@@ -95,7 +95,7 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
       {/* Табы для переключения между чатом и отладкой */}
       <Tabs
         defaultValue="chat"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '0' }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '0', padding: '8px' }}
       >
         <Tabs.List>
           <Tabs.Tab value="chat">

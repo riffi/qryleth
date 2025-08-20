@@ -429,7 +429,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             display: 'flex',
             flexDirection: 'row',
             width: '100%',
-            gap: 6,
+            gap: 0,
             height: '100%',
             overflow: 'hidden',
             position: 'relative',

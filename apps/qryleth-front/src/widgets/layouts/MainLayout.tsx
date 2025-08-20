@@ -44,7 +44,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         breakpoint: 'sm',
         collapsed: { mobile: !sidebarOpened, desktop: !sidebarOpened }
       }}
-      padding="sm"
+      padding="0"
       styles={{
         main: {
           display: 'flex',
@@ -61,7 +61,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         }}
       >
         <Container size="xl" h="100%" fluid>
-          <Group h="100%" justify="space-between" px="sm">
+          <Group h="100%" justify="space-between" >
             <Group gap="md" style={{ alignItems: 'center' }}>
               <Burger
                 opened={sidebarOpened}

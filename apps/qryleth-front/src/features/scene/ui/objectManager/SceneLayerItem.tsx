@@ -98,9 +98,9 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
               cursor: 'pointer',
               transition: 'all 0.1s ease'
             }}
-            onDragOver={(e) => dragOver(e, layer.id)}
-            onDragLeave={dragLeave}
-            onDrop={(e) => drop(e, layer.id)}
+            onDragOver={isStructuralLayer ? undefined : (e) => dragOver(e, layer.id)}
+            onDragLeave={isStructuralLayer ? undefined : dragLeave}
+            onDrop={isStructuralLayer ? undefined : (e) => drop(e, layer.id)}
         >
           <Group justify="space-between" align="center" gap="xs">
             <Group gap="xs" style={{flex: 1}}>
@@ -157,12 +157,14 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                   </ActionIcon>
                 </Menu.Target>
                 <Menu.Dropdown>
-                  <Menu.Item
-                      leftSection={<IconPlus size={14}/>}
-                      onClick={() => addObjectFromLibrary(layer.id)}
-                  >
-                    Добавить объект из библиотеки
-                  </Menu.Item>
+                  {!isStructuralLayer && (
+                    <Menu.Item
+                        leftSection={<IconPlus size={14}/>}
+                        onClick={() => addObjectFromLibrary(layer.id)}
+                    >
+                      Добавить объект из библиотеки
+                    </Menu.Item>
+                  )}
                   <Menu.Item
                       leftSection={<IconEdit size={14}/>}
                       onClick={() => openEditLayerModal(layer)}
