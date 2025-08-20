@@ -94,15 +94,24 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-  // Обрабатываем движения мыши при ресайзе
+  /**
+   * Обрабатывает изменение размеров при перетаскивании разделителей панелей.
+   * Здесь же задаются минимальные/максимальные ширины панелей. Пороговые значения
+   * подобраны так, чтобы на ноутбуках (более узкие экраны) оставлять больше места
+   * области рендеринга по центру.
+   */
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizingSide || !containerBounds) return
 
-      const minLeft = 260
-      const maxLeft = scriptingPanelVisible ? Math.min(window.innerWidth * 0.5, 820) : Math.min(window.innerWidth * 0.35, 480)
-      const minRight = 240
-      const maxRight = Math.min(window.innerWidth * 0.4, 520)
+      // Чуть уменьшаем минимальные ширины панелей, чтобы на ноутбуках
+      // центр (рендеринг) был крупнее. Ранее было 260/240.
+      const minLeft = 220
+      const maxLeft = scriptingPanelVisible
+        ? Math.min(window.innerWidth * 0.48, 820)
+        : Math.min(window.innerWidth * 0.32, 480)
+      const minRight = 200
+      const maxRight = Math.min(window.innerWidth * 0.36, 520)
 
       if (resizingSide === 'left') {
         const newWidth = clamp(e.clientX - containerBounds.left, minLeft, maxLeft)
@@ -129,6 +138,41 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       document.body.style.userSelect = ''
     }
   }, [resizingSide, containerBounds, scriptingPanelVisible])
+
+  /**
+   * Инициализирует стартовые ширины и состояние панелей в зависимости от
+   * текущей ширины окна. Цель — на ноутбуках автоматически дать больше
+   * пространства центральной области рендеринга.
+   *
+   * Правила (подобраны эмпирически):
+   * - <= 1280px: левая панель свёрнута, правая панель уже (≈240px)
+   * - <= 1440px: обе панели уже (левая ≈300px, правая ≈260px)
+   * - > 1440px: дефолтные ширины (360px и 320px)
+   */
+  useEffect(() => {
+    try {
+      const width = window.innerWidth
+
+      if (width <= 1280) {
+        // Узкие ноутбуки: свернуть слева по умолчанию, справа сделать уже
+        setChatCollapsed(true)
+        setLeftPanelWidthPx(280)
+        setRightPanelWidthPx(240)
+      } else if (width <= 1440) {
+        // Типичные ноутбуки/ультрабуки: обе панели компактнее
+        setLeftPanelWidthPx(300)
+        setRightPanelWidthPx(260)
+      } else {
+        // Десктопы/широкие экраны: оставить значения по умолчанию
+        setLeftPanelWidthPx(360)
+        setRightPanelWidthPx(320)
+      }
+    } catch (e) {
+      // В не-браузерных окружениях безопасно игнорируем
+    }
+    // Один раз на маунт: стартовая адаптация
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const beginResize = (side: 'left' | 'right') => (e: React.MouseEvent) => {
     if (!containerRef.current) return
