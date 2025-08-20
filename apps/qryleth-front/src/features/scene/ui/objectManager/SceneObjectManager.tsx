@@ -560,7 +560,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         style={{ flex: 1 }}
                         onClick={() => setContextMenuOpened(false)}
                     >
-                        <Stack gap="xs">
+                        <Stack >
                             {layers && layers.length > 0 ? (
                                 layers.map((layer) => {
                                     const layerObjects = getObjectsByLayer(layer.id)

@@ -8,7 +8,9 @@ import {
   IconTrash,
   IconChevronDown,
   IconChevronRight,
-  IconPlus
+  IconPlus,
+  IconMountain,
+  IconRipple
 } from '@tabler/icons-react'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from '@/features/scene'
@@ -57,6 +59,29 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
     exportObject,
     copyObject
   } = useSceneObjectManager()
+
+  /**
+   * Возвращает JSX-иконку для отображения рядом с названием слоя в зависимости от его типа.
+   * - Для обычных «объектных» слоёв используется стандартная иконка слоёв.
+   * - Для слоёв типа `landscape` отображается иконка гор (условный рельеф).
+   * - Для слоёв типа `water` отображается иконка волн (условная вода).
+   */
+  const getLayerIcon = (): React.ReactNode => {
+    if (layer.type === 'landscape') {
+      return <IconMountain size={14} color={'var(--mantine-color-green-5)'} />
+    }
+    if (layer.type === 'water') {
+      return <IconRipple size={14} color={'var(--mantine-color-blue-5)'} />
+    }
+    return <IconLayersLinked size={14} color="var(--mantine-color-blue-4)" />
+  }
+
+  /**
+   * Признак «структурного» слоя, внутри которого не бывает объектов.
+   * Для таких слоёв (landscape/water) скрываем шеврон сворачивания/разворачивания
+   * и не показываем счётчик объектов, так как он всегда равен нулю.
+   */
+  const isStructuralLayer = layer.type === 'landscape' || layer.type === 'water'
   return (
       <div>
         <Box
@@ -79,25 +104,29 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
         >
           <Group justify="space-between" align="center" gap="xs">
             <Group gap="xs" style={{flex: 1}}>
-              <ActionIcon
-                  size="xs"
-                  variant="transparent"
-                  onClick={() => toggleLayerExpanded(layer.id)}
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    minWidth: '16px'
-                  }}
-              >
-                {isExpanded ? <IconChevronDown size={12}/> : <IconChevronRight size={12}/>}
-              </ActionIcon>
-              <IconLayersLinked size={14} color="var(--mantine-color-blue-4)"/>
+              {!isStructuralLayer && (
+                <ActionIcon
+                    size="xs"
+                    variant="transparent"
+                    onClick={() => toggleLayerExpanded(layer.id)}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      minWidth: '16px'
+                    }}
+                >
+                  {isExpanded ? <IconChevronDown size={12}/> : <IconChevronRight size={12}/>}
+                </ActionIcon>
+              )}
+              {getLayerIcon()}
               <Text size="xs" fw={500} style={{userSelect: 'none'}}>
                 {layer.name}
               </Text>
-              <Text size="xs" c="dimmed" style={{fontSize: '10px'}}>
-                ({layerObjects.length})
-              </Text>
+              {!isStructuralLayer && (
+                <Text size="xs" c="dimmed" style={{fontSize: '10px'}}>
+                  ({layerObjects.length})
+                </Text>
+              )}
             </Group>
             <Group gap="xs">
               <ActionIcon
@@ -160,25 +189,27 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
           </Group>
         </Box>
 
-        <Collapse in={isExpanded}>
-          <Stack gap="0px" pl="lg">
-            {layerObjects.length === 0 ? (
-                <Text size="xs" c="dimmed" ta="center" py="sm">
-                  Пустой слой
-                </Text>
-            ) : (
-                layerObjects.map((obj) => (
-                    <SceneObjectItem
-                        key={`${obj.name}-${obj.objectUuid}`}
-                        obj={obj}
-                        isExpanded={expandedItems.has(obj.objectUuid)}
-                        isSelected={selectedObject?.objectUuid === obj.objectUuid}
-                        selectedObject={selectedObject}
-                    />
-                ))
-            )}
-          </Stack>
-        </Collapse>
+        {!isStructuralLayer && (
+          <Collapse in={isExpanded}>
+            <Stack gap="0px" pl="lg">
+              {layerObjects.length === 0 ? (
+                  <Text size="xs" c="dimmed" ta="center" py="sm">
+                    Пустой слой
+                  </Text>
+              ) : (
+                  layerObjects.map((obj) => (
+                      <SceneObjectItem
+                          key={`${obj.name}-${obj.objectUuid}`}
+                          obj={obj}
+                          isExpanded={expandedItems.has(obj.objectUuid)}
+                          isSelected={selectedObject?.objectUuid === obj.objectUuid}
+                          selectedObject={selectedObject}
+                      />
+                  ))
+              )}
+            </Stack>
+          </Collapse>
+        )}
       </div>
   )
 }
