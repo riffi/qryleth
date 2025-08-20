@@ -389,14 +389,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             height: '100%',
             overflow: 'hidden',
             position: 'relative',
-            transition: 'gap 120ms ease'
+            transition: 'gap 120ms ease',
+            paddingInline: 0
         }}
         >
         {!chatCollapsed && (
           <Paper
             shadow="sm"
             radius="md"
-            withBorder
             style={{
               width: chatPanelWidth,
               height: '100%',
@@ -441,8 +441,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         {/* Center */}
         <Paper
           shadow="sm"
-          radius="md"
-          withBorder
+          radius={0}
           style={{
             flex: 1,
             position: 'relative',
@@ -460,12 +459,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               padding: 6,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 0,
               background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
               backdropFilter: 'blur(8px)',
-              borderRadius: 12,
-              border: '1px solid var(--mantine-color-dark-5)',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.25)'
+              boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+              borderRadius: "10px"
             }}
           >
             <Group gap="xs" wrap="nowrap">
@@ -492,7 +490,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               <Paper
                 shadow="sm"
                 radius="md"
-                withBorder
                 style={{
                   width: objectPanelWidth,
                   flexShrink: 0,

@@ -14,15 +14,15 @@ interface Props {
 
 export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
   const [inputValue, setInputValue] = useState('')
-  
+
   // Используем scene-специфичный хук чата
-  const { 
-    messages, 
-    isLoading, 
-    sendMessage, 
-    connection, 
-    updateModel, 
-    debugChatService 
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    connection,
+    updateModel,
+    debugChatService
   } = useSceneChat({
     onObjectAdded: (object: GfxObjectWithTransform, toolName: string) => {
       console.log(`Scene object added via ${toolName}:`, object)
@@ -52,7 +52,7 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
   return (
     <Stack gap={0} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', minHeight: 0 }}>
       {/* Header с контролами */}
-      <Paper p="md" withBorder>
+      <Paper p="md">
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
             <Group flex={1} style={{ flexGrow: 1 }}>
@@ -115,7 +115,7 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
             scrollAreaRef={scrollAreaRef}
             style={{ flex: 1, minHeight: 0 }}
           />
-          
+
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
