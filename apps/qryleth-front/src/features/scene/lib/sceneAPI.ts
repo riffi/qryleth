@@ -644,31 +644,33 @@ export class SceneAPI {
   }
 
   /**
-   * Adjust all object instances for perlin noise terrain when a perlin layer is added
+   * Adjust all object instances for terrain when a terrain layer is added
+   * Supports both new terrain architecture and legacy noiseData
    */
-  static adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string } {
+  static adjustInstancesForPerlinTerrain(terrainLayerId: string): { success: boolean; adjustedCount?: number; error?: string } {
     try {
       const state = useSceneStore.getState()
       const { objectInstances, layers, setObjectInstances } = state
 
-      // Find the perlin layer
-      const perlinLayer = layers.find(layer =>
-        layer.id === perlinLayerId &&
+      // Find the terrain layer (supports both new and legacy formats)
+      const terrainLayer = layers.find(layer =>
+        layer.id === terrainLayerId &&
         layer.type === GfxLayerType.Landscape &&
-        layer.shape === GfxLayerShape.Perlin
+        layer.shape === GfxLayerShape.Perlin &&
+        (layer.terrain || layer.noiseData) // Поддерживаем как новую архитектуру, так и legacy
       )
 
-      if (!perlinLayer) {
+      if (!terrainLayer) {
         return {
           success: false,
-          error: `Perlin layer with ID ${perlinLayerId} not found`
+          error: `Terrain layer with ID ${terrainLayerId} not found or has no terrain data`
         }
       }
 
-      // Adjust all instances, passing objects for bounding box access
+      // Adjust all instances using the updated function that supports all terrain types
       const adjustedInstances = adjustAllInstancesForPerlinTerrain(
         objectInstances,
-        perlinLayer,
+        terrainLayer,
         state.objects.map(obj => ({
           uuid: obj.uuid,
           boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj)
@@ -692,7 +694,7 @@ export class SceneAPI {
     } catch (error) {
       return {
         success: false,
-        error: `Failed to adjust instances for perlin terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Failed to adjust instances for terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
   }

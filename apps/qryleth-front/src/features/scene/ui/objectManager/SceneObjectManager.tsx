@@ -182,11 +182,13 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             const createdLayer = createdLayers[createdLayers.length - 1]
 
             if (createdLayer) {
-                // Retry adjustment until noiseData is available
+                // Retry adjustment until terrain data is available (supports both terrain config and legacy noiseData)
                 const attemptAdjustment = (attempt = 1, maxAttempts = 10) => {
                     const currentLayer = useSceneStore.getState().layers.find(l => l.id === createdLayer.id)
 
-                    if (currentLayer?.noiseData) {
+                    // Проверяем наличие terrain данных (новая архитектура) или noiseData (legacy)
+                    const hasTerrainData = currentLayer?.terrain || currentLayer?.noiseData
+                    if (hasTerrainData) {
                         const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
                         if (result.success && result.adjustedCount && result.adjustedCount > 0) {
                             notifications.show({
@@ -199,7 +201,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         // Wait longer between attempts
                         setTimeout(() => attemptAdjustment(attempt + 1, maxAttempts), 200 * attempt)
                     } else {
-                        console.warn('Failed to adjust objects: noiseData not available after', maxAttempts, 'attempts')
+                        console.warn('Failed to adjust objects: terrain data not available after', maxAttempts, 'attempts')
                     }
                 }
 
