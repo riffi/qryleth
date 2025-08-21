@@ -110,4 +110,13 @@ export interface GfxHeightSampler {
    * @returns нормализованный вектор нормали [nx, ny, nz]
    */
   getNormal(x: number, z: number): [number, number, number];
+
+  /**
+   * Зарегистрировать колбэк, который будет вызван после асинхронной загрузки данных heightmap.
+   *
+   * Используется UI-слоями для повторной генерации геометрии после того, как PNG
+   * будет прочитан из Dexie и преобразован в ImageData. Для источников отличных от
+   * heightmap метод может быть не реализован.
+   */
+  onHeightmapLoaded?(callback: () => void): void;
 }

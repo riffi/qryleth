@@ -2,14 +2,14 @@
 id: 17
 epic: null
 title: "Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig"
-status: in-progress
+status: completed
 created: 2025-08-21
 updated: 2025-08-21
 owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 5
+  completed: 6
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -208,9 +208,11 @@ export interface GfxLayer {
 
 **Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: UI для управления heightmaps и обновление документации
+### ✅ Фаза 6: UI для управления heightmaps и обновление документации
 - Добавить в `SceneLayerModals.tsx` интерфейс загрузки PNG файлов
 - Создать превью загруженных heightmaps с настройками min/max высот
 - Добавить валидацию файлов и обработку ошибок при загрузке
 - Обновить типы и интерфейсы в соответствии с новой архитектурой
 - Обновить основную проектную документацию: описать новую архитектуру террейна, GfxHeightSampler API, примеры использования GfxTerrainOps
+
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)

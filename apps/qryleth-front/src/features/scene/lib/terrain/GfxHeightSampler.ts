@@ -4,6 +4,19 @@ import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 import { loadTerrainAssetImageData } from './HeightmapUtils';
 
 /**
+ * Глобальный кэш ImageData для heightmap по assetId.
+ * Нужен, чтобы повторные инстансы сэмплера (после ререндера React) не ждали повторную
+ * асинхронную загрузку и могли немедленно применять корректные высоты.
+ */
+const HEIGHTMAP_IMAGE_CACHE: Map<string, ImageData> = new Map();
+/**
+ * Глобальный кэш активных промисов загрузки по assetId.
+ * Позволяет нескольким инстансам сэмплера дожидаться одной и той же загрузки,
+ * не создавая дубликаты запросов к Dexie.
+ */
+const HEIGHTMAP_LOAD_PROMISES: Map<string, Promise<ImageData>> = new Map();
+
+/**
  * Реализация интерфейса GfxHeightSampler для получения высот из различных источников террейна.
  * Поддерживает Perlin noise, PNG heightmaps и legacy-данные с системой модификаций через TerrainOps.
  */
@@ -24,13 +37,26 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   // Данные heightmap (кэшируются при первом обращении)
   private heightmapImageData?: ImageData;
   private heightmapLoadPromise?: Promise<ImageData>;
+  private onHeightmapLoadedCallback?: () => void;
 
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
    * @param config - конфигурация террейна с источником данных и параметрами
+   *
+   * Примечание: если источник — heightmap и соответствующий ImageData уже
+   * находится в глобальном кэше, он будет подставлен сразу, чтобы первая
+   * генерация геометрии использовала реальные высоты без ожидания.
    */
   constructor(config: GfxTerrainConfig) {
     this.config = config;
+    // Если источник — heightmap и в кэше уже есть ImageData, используем его сразу
+    if (this.config.source.kind === 'heightmap') {
+      const assetId = this.config.source.params.assetId;
+      const cached = HEIGHTMAP_IMAGE_CACHE.get(assetId);
+      if (cached) {
+        this.heightmapImageData = cached;
+      }
+    }
     this.sourceHeight = this.createSourceFunction();
     this.buildSpatialIndex();
   }
@@ -117,6 +143,13 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   }
 
   /**
+   * Установить callback который будет вызван когда heightmap данные загрузятся
+   */
+  onHeightmapLoaded(callback: () => void): void {
+    this.onHeightmapLoadedCallback = callback;
+  }
+
+  /**
    * Создать функцию получения высот из базового источника данных
    * @returns функция для получения высоты по координатам из источника
    */
@@ -131,6 +164,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         return this.createLegacySource(source);
       
       case 'heightmap':
+        console.log('🗻 Creating HeightmapSource with params:', source.params);
         return this.createHeightmapSource(source.params);
       
       default:
@@ -221,12 +255,23 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns функция для получения высоты из heightmap с нормализацией и UV wrapping
    */
   private createHeightmapSource(params: GfxHeightmapParams) {
+    console.log('🗻 createHeightmapSource called with params:', params);
     return (x: number, z: number): number => {
-      // Если ImageData еще не загружена, возвращаем 0 пока она загружается асинхронно
+      // Если ImageData не загружена для текущего инстанса — пробуем взять из глобального кэша
       if (!this.heightmapImageData) {
-        this.loadHeightmapImageDataIfNeeded(params.assetId);
-        return 0;
+        const cached = HEIGHTMAP_IMAGE_CACHE.get(params.assetId);
+        if (cached) {
+          // Немедленно используем кэшированные пиксели
+          this.heightmapImageData = cached;
+        } else {
+          // Запускаем (или присоединяемся к) асинхронную загрузку и возвращаем 0 до завершения
+          console.log('🗻 heightmapImageData not loaded yet, loading assetId:', params.assetId);
+          this.loadHeightmapImageDataIfNeeded(params.assetId);
+          return 0;
+        }
       }
+      
+      console.log('🗻 Sampling heightmap at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
 
       // Преобразуем мировые координаты в UV координаты [0, 1]
       const halfWidth = this.config.worldWidth / 2;
@@ -267,24 +312,51 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param assetId - идентификатор terrain asset
    */
   private loadHeightmapImageDataIfNeeded(assetId: string): void {
-    if (this.heightmapImageData || this.heightmapLoadPromise) {
-      return; // уже загружена или загружается
+    // Уже загружено в инстансе — ничего делать не нужно
+    if (this.heightmapImageData) return;
+
+    // Если уже есть активный промис загрузки для этого assetId — используем его
+    const ongoing = HEIGHTMAP_LOAD_PROMISES.get(assetId);
+    if (ongoing) {
+      // Присоединяемся к завершению для установки данных в текущем инстансе
+      this.heightmapLoadPromise = ongoing.then(imageData => {
+        this.heightmapImageData = imageData;
+        this.heightCache.clear();
+        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        return imageData;
+      });
+      return;
     }
 
-    // Запускаем асинхронную загрузку
-    this.heightmapLoadPromise = loadTerrainAssetImageData(assetId)
+    // Иначе инициируем новую загрузку и положим её в общий кэш промисов
+    const promise = loadTerrainAssetImageData(assetId)
       .then(imageData => {
+        console.log('🗻 Heightmap ImageData loaded successfully:', imageData.width, 'x', imageData.height);
+        // Сохраняем в глобальный кэш для всех будущих инстансов
+        HEIGHTMAP_IMAGE_CACHE.set(assetId, imageData);
+        // Привязываем к текущему инстансу
         this.heightmapImageData = imageData;
         // Очищаем кэш высот, чтобы пересчитать с новыми данными heightmap
         this.heightCache.clear();
+        // Уведомляем о том, что данные загружены
+        if (this.onHeightmapLoadedCallback) {
+          console.log('🗻 Calling onHeightmapLoaded callback');
+          this.onHeightmapLoadedCallback();
+        }
         return imageData;
       })
       .catch(error => {
         console.error('Ошибка загрузки heightmap:', error);
-        // В случае ошибки сбрасываем промис для возможности повторной попытки
-        this.heightmapLoadPromise = undefined;
         throw error;
+      })
+      .finally(() => {
+        // Убираем промис из общего реестра после завершения (успешного или с ошибкой)
+        HEIGHTMAP_LOAD_PROMISES.delete(assetId);
+        this.heightmapLoadPromise = undefined;
       });
+
+    HEIGHTMAP_LOAD_PROMISES.set(assetId, promise);
+    this.heightmapLoadPromise = promise;
   }
 
   /**

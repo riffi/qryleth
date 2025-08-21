@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import * as THREE from 'three'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
@@ -43,12 +43,34 @@ const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null =
 export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const updateLayer = useSceneStore(state => state.updateLayer)
 
+  // Состояние для принудительного обновления геометрии после загрузки heightmap
+  const [heightmapLoaded, setHeightmapLoaded] = useState(false)
+
   const geometry = useMemo(() => {
     if (layer.shape === GfxLayerShape.Perlin) {
       // Новая архитектура: используем GfxHeightSampler если есть terrain конфигурация
       if (layer.terrain) {
+        console.log('🗻 LandscapeLayer: Using terrain config for layer', layer.id, layer.terrain)
         const sampler = createGfxHeightSampler(layer.terrain)
-        return buildGfxTerrainGeometry(layer.terrain, sampler)
+        
+        // Для heightmap источников: подписываемся на событие загрузки данных
+        if (layer.terrain.source.kind === 'heightmap') {
+          // Используем типизированный метод интерфейса (опциональный)
+          sampler.onHeightmapLoaded?.(() => {
+            console.log('🗻 Heightmap data loaded, triggering geometry rebuild')
+            // Локально триггерим пересоздание меша/геометрии
+            setHeightmapLoaded(prev => !prev)
+            // И дополнительно обновляем слой в сторе теми же данными, чтобы
+            // гарантированно разрушить мемоизацию по ссылке terrain и пересобрать потомков
+            if (layer.terrain) {
+              updateLayer(layer.id, { terrain: { ...layer.terrain } })
+            }
+          })
+        }
+        
+        const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
+        console.log('🗻 LandscapeLayer: Generated geometry with vertices:', geometry.attributes.position.count)
+        return geometry
       }
       
       // Legacy режим: создаем terrain конфигурацию из noiseData
@@ -85,7 +107,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     } else {
       return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
     }
-  }, [layer.width, layer.height, layer.shape, layer.noiseData, layer.terrain, layer.id, updateLayer])
+  }, [layer.width, layer.height, layer.shape, layer.noiseData, layer.terrain, layer.id, updateLayer, heightmapLoaded])
 
   const materialColor = useMemo(() => {
     if (layer.color) {
@@ -108,6 +130,8 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
   return (
     <mesh
+      // Ключ зависит от heightmapLoaded чтобы гарантированно пересоздать Mesh после загрузки
+      key={`${layer.id}-${heightmapLoaded ? 'hm1' : 'hm0'}`}
       geometry={geometry}
       visible={layer.visible}
       rotation={rotation}
