@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-editor, play-mode, ui, camera, hotkeys]
 phases:
   total: 6
-  completed: 2
+  completed: 3
 ---
 
 # Play‑режим для SceneEditor (в той же странице)
@@ -76,7 +76,7 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 **Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Хоткеи Play/Esc и переключение камер 1–3 (через enum)
+### ✅ Фаза 3: Хоткеи Play/Esc и переключение камер 1–3 (через enum)
 - Добавить хук `usePlayModeHotkeys` (или расширить `useKeyboardShortcuts`) c учётом `uiMode`:
   - Глобально: `P` — toggle play; `Esc` — выход из play.
   - В `play`: разрешить только `Esc`, `P`, `1/2/3` → `setViewMode(ViewModeEnum.Orbit/Walk/Fly)`. Отключить хоткеи редактора в play.
@@ -85,6 +85,8 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 Критерии:
 - В play работают 1/2/3 и P/Esc; в edit — прежние хоткеи, камеры переключаются только через UI.
+
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: Принудительный Orbit в edit и сохранение позы камеры (через enum)
 - Ввести синхронизацию позы камеры: при входе/выходе из play сохранять/восстанавливать `cameraPose`.

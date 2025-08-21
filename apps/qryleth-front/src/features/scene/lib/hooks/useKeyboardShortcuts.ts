@@ -1,8 +1,20 @@
 import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '@/features/scene'
+import { UiMode, ViewModeEnum } from '@/shared/types/ui'
 import * as THREE from 'three'
 
+/**
+ * Хук глобальных горячих клавиш сцены.
+ *
+ * Поведение:
+ * - Всегда: клавиша 'P' переключает Play-режим (Edit ↔ Play).
+ * - В Play: разрешены только Esc (выход из Play) и '1'/'2'/'3' для смены камеры (Orbit/Walk/Fly);
+ *   все прочие хоткеи редактора отключены.
+ * - В Edit: доступны хоткеи редактора (undo/redo, смена режима трансформаций, перемещение/масштаб).
+ * - Игнорирует ввод в текстовых полях/CodeMirror и во время drag-resize (эвристика по курсору).
+ * - При выходе из Play освобождает pointer lock (если активен Walk/Fly).
+ */
 export const useKeyboardShortcuts = () => {
   const { camera } = useThree()
   const selectedObject = useSceneStore(state => state.selectedObject)
@@ -14,6 +26,9 @@ export const useKeyboardShortcuts = () => {
   const redo = useSceneStore(state => state.redo)
   const canUndo = useSceneStore(state => state.canUndo)
   const canRedo = useSceneStore(state => state.canRedo)
+  const uiMode = useSceneStore(state => state.uiMode)
+  const togglePlay = useSceneStore(state => state.togglePlay)
+  const setViewMode = useSceneStore(state => state.setViewMode)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -32,6 +47,36 @@ export const useKeyboardShortcuts = () => {
         target.closest('.cm-content')
       )) {
         return
+      }
+
+      // Ignore toggles during layout drag-resize (simple heuristic)
+      try {
+        if (document?.body?.style?.cursor && document.body.style.cursor.includes('col-resize')) {
+          return
+        }
+      } catch {}
+
+      // Global Play toggle (works in любом uiMode)
+      if (!event.ctrlKey && !event.metaKey) {
+        const key = event.key.toLowerCase()
+        if (key === 'p') {
+          event.preventDefault()
+          const wasPlay = uiMode === UiMode.Play
+          togglePlay()
+          // При выходе из Play освобождаем pointer lock
+          if (wasPlay && typeof document !== 'undefined' && document.exitPointerLock) {
+            try { document.exitPointerLock() } catch {}
+          }
+          return
+        }
+        if (key === 'escape' && uiMode === UiMode.Play) {
+          event.preventDefault()
+          togglePlay()
+          if (typeof document !== 'undefined' && document.exitPointerLock) {
+            try { document.exitPointerLock() } catch {}
+          }
+          return
+        }
       }
 
       // Handle Ctrl/Cmd combinations first
@@ -55,7 +100,27 @@ export const useKeyboardShortcuts = () => {
         }
       }
 
-      // Transform mode shortcuts
+      // Если активен режим Play — разрешены только 1/2/3 для камер, остальное игнорируем
+      if (uiMode === UiMode.Play) {
+        switch (event.key) {
+          case '1':
+            event.preventDefault()
+            setViewMode(ViewModeEnum.Orbit)
+            return
+          case '2':
+            event.preventDefault()
+            setViewMode(ViewModeEnum.Walk)
+            return
+          case '3':
+            event.preventDefault()
+            setViewMode(ViewModeEnum.Fly)
+            return
+          default:
+            return // все остальные хоткеи отключены в play
+        }
+      }
+
+      // Transform mode shortcuts (Edit mode)
       switch (event.key.toLowerCase()) {
         case 'g':
           event.preventDefault()
@@ -235,6 +300,9 @@ export const useKeyboardShortcuts = () => {
     redo,
     canUndo,
     canRedo,
-    camera
+    camera,
+    uiMode,
+    togglePlay,
+    setViewMode
   ])
 }
