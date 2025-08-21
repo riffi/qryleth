@@ -409,13 +409,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             {!isPlay && (
               <Tooltip label="Войти в режим просмотра (Play)" withArrow>
                 <ActionIcon
-                  size="sm"
+                  size="md"
                   variant={'filled'}
                   color={'blue'}
                   onClick={handleTogglePlay}
                   aria-label={'Запустить Play'}
                 >
-                  <IconPlayerPlay size={18} />
+                  <IconPlayerPlay size={20} />
                 </ActionIcon>
               </Tooltip>
             )}
@@ -443,37 +443,37 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             <Group gap="xs">
               <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} withArrow>
                 <ActionIcon
-                  size="sm"
+                  size="md"
                   variant={chatCollapsed ? 'subtle' : 'filled'}
                   color={chatCollapsed ? 'gray' : 'blue'}
                   onClick={toggleChatPanel}
                   aria-label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'}
                 >
-                  <IconMessages size={18} />
+                  <IconMessages size={20} />
                 </ActionIcon>
               </Tooltip>
 
               <Tooltip label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'} withArrow>
                 <ActionIcon
-                  size="sm"
+                  size="md"
                   variant={scriptingPanelVisible ? 'filled' : 'subtle'}
                   color={scriptingPanelVisible ? 'blue' : 'gray'}
                   onClick={toggleScriptingPanel}
                   aria-label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'}
                 >
-                  <IconCode size={18} />
+                  <IconCode size={20} />
                 </ActionIcon>
               </Tooltip>
 
               <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} withArrow>
                 <ActionIcon
-                  size="sm"
+                  size="md"
                   variant={objectPanelCollapsed ? 'subtle' : 'filled'}
                   color={objectPanelCollapsed ? 'gray' : 'blue'}
                   onClick={toggleRightPanel}
                   aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
                 >
-                  <IconFolder size={18} />
+                  <IconFolder size={20} />
                 </ActionIcon>
               </Tooltip>
             </Group>
