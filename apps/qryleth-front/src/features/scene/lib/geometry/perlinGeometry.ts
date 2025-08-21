@@ -1,15 +1,28 @@
 import * as THREE from 'three'
-import { generatePerlinNoise } from 'perlin-noise'
+import { generatePerlinNoise } from '@/shared/lib/noise/perlin'
 
 export interface PerlinGeometryResult {
   geometry: THREE.BufferGeometry
   noiseData: number[]
 }
 
+/**
+ * Создает плоскостную геометрию с высотами на основе Перлин-шума.
+ *
+ * Параметры:
+ * - width, height: размеры плоскости.
+ * - existingNoiseData: заранее сгенерированный массив шума; если передан — используется он.
+ * - seed: значение для детерминированной генерации. При одинаковом seed
+ *   будет получена идентичная геометрия (при прочих равных параметрах).
+ *
+ * Возвращает:
+ * - объект с геометрией и использованными данными шума.
+ */
 export const createPerlinGeometry = (
   width: number,
   height: number,
-  existingNoiseData?: number[]
+  existingNoiseData?: number[],
+  seed?: number | string
 ): PerlinGeometryResult => {
 
   const segments = width > 200 ? 200 : width
@@ -22,7 +35,8 @@ export const createPerlinGeometry = (
   const noiseData = existingNoiseData ?? generatePerlinNoise(segments + 1, segments + 1, {
     octaveCount: 4,
     amplitude: 0.1,
-    persistence: 0.5
+    persistence: 0.5,
+    seed
   })
 
 

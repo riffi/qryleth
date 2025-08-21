@@ -23,7 +23,8 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
       const result = createPerlinGeometry(
         layer.width || 1,
         layer.height || 1,
-        layer.noiseData
+        layer.noiseData,
+        1234
       )
 
       // Save noiseData to store if it wasn't already saved
