@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-editor, play-mode, ui, camera, hotkeys]
 phases:
   total: 7
-  completed: 5
+  completed: 6
 ---
 
 # Play‑режим для SceneEditor (в той же странице)
@@ -116,12 +116,14 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 **Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: RenderProfile флаг и прокидка в рендер (enum)
+### ✅ Фаза 6: RenderProfile флаг и прокидка в рендер (enum)
 - Хранить `renderProfile` в сторе и переключать: `edit` в `uiMode='edit'`, `view` в `uiMode='play'`.
 - Прокинуть профиль в `Scene3D`/`SceneContent` (пока без реальных отличий настроек; подготовка на будущее, важен флаг).
 
 Критерии:
 - `renderProfile` корректно переключается вместе с `uiMode` (видимых отличий может не быть).
+
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 ### ⏳ Фаза 7: Документация и DoD + безопасная миграция типов на enum
 - Обновить документацию:

@@ -4,6 +4,7 @@ import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent.tsx'
 import { useSceneUISync, useSceneRealTimeSync } from '@/features/scene/lib/hooks/useSceneUISync'
+import { useSceneStore } from '../../model/sceneStore.ts'
 
 interface Scene3DProps {
   className: string,
@@ -14,6 +15,9 @@ export const Scene3D: React.FC<Scene3DProps> = ({
   className,
   onSceneReady
 }) => {
+  // Получаем текущий профиль рендера для передачи в SceneContent
+  const renderProfile = useSceneStore(state => state.renderProfile)
+  
   // Инициализируем синхронизацию UI и сцены
   useSceneUISync()
   useSceneRealTimeSync()
@@ -67,7 +71,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
         }}
       >
         <Suspense fallback={null}>
-          <SceneContent />
+          <SceneContent renderProfile={renderProfile} />
         </Suspense>
       </Canvas>
 
