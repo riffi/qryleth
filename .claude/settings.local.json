@@ -22,7 +22,8 @@
       "Bash(powershell:*)",
       "Bash(node:*)",
       "Bash(pkill:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(dir \"C:\\work\\my\\qryleth\\src\\entities\" /b)"
     ],
     "deny": []
   }

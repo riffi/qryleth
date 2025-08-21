@@ -15,6 +15,25 @@ export interface ScriptRecord {
   updatedAt: Date
 }
 
+export interface TerrainAssetRecord {
+  id?: number
+  /** Уникальный идентификатор asset'а для ссылки из GfxHeightmapParams */
+  assetId: string
+  /** Имя файла для отображения в UI */
+  fileName: string
+  /** Размеры изображения в пикселях */
+  width: number
+  height: number
+  /** Размер файла в байтах */
+  fileSize: number
+  /** Двоичные данные PNG файла */
+  blob: Blob
+  /** Дата создания записи */
+  createdAt: Date
+  /** Дата последнего обновления */
+  updatedAt: Date
+}
+
 
 // Database class
 export class SceneLibraryDB extends Dexie {
@@ -22,6 +41,7 @@ export class SceneLibraryDB extends Dexie {
   objects!: Table<ObjectRecord>
   connections!: Table<ConnectionRecord>
   scripts!: Table<ScriptRecord>
+  terrainAssets!: Table<TerrainAssetRecord>
 
   constructor() {
     super('SceneLibraryDB')
@@ -49,6 +69,14 @@ export class SceneLibraryDB extends Dexie {
       objects: '++id, uuid, name, createdAt, updatedAt',
       connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
       scripts: '++id, uuid, name, createdAt, updatedAt'
+    })
+
+    this.version(5).stores({
+      scenes: '++id, uuid, name, createdAt, updatedAt',
+      objects: '++id, uuid, name, createdAt, updatedAt',
+      connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
+      scripts: '++id, uuid, name, createdAt, updatedAt',
+      terrainAssets: '++id, assetId, fileName, createdAt, updatedAt'
     })
   }
 
@@ -340,6 +368,63 @@ export class SceneLibraryDB extends Dexie {
 
   async deleteScript(uuid: string): Promise<void> {
     await this.scripts.where('uuid').equals(uuid).delete()
+  }
+
+  // Terrain Assets methods
+  
+  /**
+   * Сохраняет PNG heightmap в базу данных
+   */
+  async saveTerrainAsset(
+    assetId: string, 
+    fileName: string, 
+    blob: Blob, 
+    width: number, 
+    height: number
+  ): Promise<void> {
+    const now = new Date()
+    
+    await this.terrainAssets.put({
+      assetId,
+      fileName,
+      width,
+      height,
+      fileSize: blob.size,
+      blob,
+      createdAt: now,
+      updatedAt: now
+    })
+  }
+
+  /**
+   * Получает terrain asset по assetId
+   */
+  async getTerrainAsset(assetId: string): Promise<TerrainAssetRecord | undefined> {
+    return this.terrainAssets.where('assetId').equals(assetId).first()
+  }
+
+  /**
+   * Получает все terrain assets
+   */
+  async getAllTerrainAssets(): Promise<TerrainAssetRecord[]> {
+    return this.terrainAssets.orderBy('updatedAt').reverse().toArray()
+  }
+
+  /**
+   * Удаляет terrain asset по assetId
+   */
+  async deleteTerrainAsset(assetId: string): Promise<void> {
+    await this.terrainAssets.where('assetId').equals(assetId).delete()
+  }
+
+  /**
+   * Обновляет название terrain asset
+   */
+  async updateTerrainAssetName(assetId: string, fileName: string): Promise<void> {
+    await this.terrainAssets.where('assetId').equals(assetId).modify({
+      fileName,
+      updatedAt: new Date()
+    })
   }
 }
 

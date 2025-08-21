@@ -2,14 +2,14 @@
 id: 17
 epic: null
 title: "Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig"
-status: planned
+status: in-progress
 created: 2025-08-21
 updated: 2025-08-21
 owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 0
+  completed: 1
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -158,13 +158,15 @@ export interface GfxLayer {
 
 ## Список фаз
 
-### ⏳ Фаза 1: Создание типов и интерфейсов GfxTerrainConfig
+### ✅ Фаза 1: Создание типов и интерфейсов GfxTerrainConfig
 - Создать новые доменные типы согласно постановке: `GfxPerlinParams`, `GfxHeightmapParams`, `GfxTerrainSource`, `GfxTerrainOp`, `GfxTerrainConfig`
 - Определить интерфейс `GfxHeightSampler` с методами `getHeight()` и `getNormal()`
 - Создать файл `src/entities/terrain/model/types.ts` для доменных типов террейна
 - Создать файл `src/entities/terrain/index.ts` для экспорта типов
 - Обновить `src/entities/layer/model/types.ts` - добавить `terrain?: GfxTerrainConfig` в `GfxLayer`, пометить `noiseData` как deprecated
 - Настроить Dexie схему для хранения PNG blobs в таблице `terrainAssets`
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Реализация GfxHeightSampler и базовых источников
 - Создать `src/features/scene/lib/terrain/GfxHeightSampler.ts` с реализацией интерфейса
