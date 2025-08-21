@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '@/features/scene'
 import { UiMode, ViewModeEnum } from '@/shared/types/ui'
@@ -17,6 +17,7 @@ import * as THREE from 'three'
  */
 export const useKeyboardShortcuts = () => {
   const { camera } = useThree()
+  const ignoreNextPointerUnlock = useRef(false)
   const selectedObject = useSceneStore(state => state.selectedObject)
   const objectInstances = useSceneStore(state => state.objectInstances)
   const updateObjectInstance = useSceneStore(state => state.updateObjectInstance)
@@ -65,7 +66,7 @@ export const useKeyboardShortcuts = () => {
           togglePlay()
           // При выходе из Play освобождаем pointer lock
           if (wasPlay && typeof document !== 'undefined' && document.exitPointerLock) {
-            try { document.exitPointerLock() } catch {}
+            try { ignoreNextPointerUnlock.current = true; document.exitPointerLock() } catch {}
           }
           return
         }
@@ -73,7 +74,7 @@ export const useKeyboardShortcuts = () => {
           event.preventDefault()
           togglePlay()
           if (typeof document !== 'undefined' && document.exitPointerLock) {
-            try { document.exitPointerLock() } catch {}
+            try { ignoreNextPointerUnlock.current = true; document.exitPointerLock() } catch {}
           }
           return
         }
@@ -286,9 +287,27 @@ export const useKeyboardShortcuts = () => {
     }
 
     document.addEventListener('keydown', handleKeyDown)
+    const handlePointerLockChange = () => {
+      try {
+        const locked = !!document.pointerLockElement
+        if (!locked) {
+          if (ignoreNextPointerUnlock.current) {
+            ignoreNextPointerUnlock.current = false
+            return
+          }
+          const state = useSceneStore.getState()
+          if (state.uiMode === UiMode.Play && (state.viewMode === 'walk' || state.viewMode === 'fly')) {
+            try { state.setViewMode('orbit') } catch {}
+            state.togglePlay()
+          }
+        }
+      } catch {}
+    }
+    document.addEventListener('pointerlockchange', handlePointerLockChange)
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('pointerlockchange', handlePointerLockChange)
     }
   }, [
     selectedObject,

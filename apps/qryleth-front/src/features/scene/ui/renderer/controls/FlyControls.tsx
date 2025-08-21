@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
+import { useSceneStore } from '../../../model/sceneStore.ts'
+import { UiMode } from '@/shared/types/ui'
 
 export const FlyControls: React.FC = () => {
   const { camera, gl } = useThree()
@@ -61,8 +63,20 @@ export const FlyControls: React.FC = () => {
     document.addEventListener('keyup', handleKeyUp)
     gl.domElement.addEventListener('click', handleClick)
 
-    // Set initial camera position for fly mode
-    camera.position.set(0, 5, 10)
+    // Установить стартовую позу камеры из сохранённой (если есть), иначе дефолт
+    try {
+      const pose = useSceneStore.getState().restoreCameraPose?.()
+      if (pose?.position) {
+        camera.position.set(pose.position[0], pose.position[1], pose.position[2])
+      } else {
+        camera.position.set(0, 5, 10)
+      }
+      if (pose?.rotation) {
+        camera.rotation.set(pose.rotation[0], pose.rotation[1], pose.rotation[2])
+      }
+    } catch {
+      camera.position.set(0, 5, 10)
+    }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
@@ -105,6 +119,15 @@ export const FlyControls: React.FC = () => {
       ref={controlsRef}
       camera={camera}
       domElement={gl.domElement}
+      onUnlock={() => {
+        try {
+          const state = useSceneStore.getState()
+          if (state.uiMode === UiMode.Play) {
+            try { state.setViewMode('orbit') } catch {}
+            state.togglePlay()
+          }
+        } catch {}
+      }}
     />
   )
 }

@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-editor, play-mode, ui, camera, hotkeys]
 phases:
   total: 6
-  completed: 3
+  completed: 4
 ---
 
 # Play‑режим для SceneEditor (в той же странице)
@@ -88,13 +88,15 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 **Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Принудительный Orbit в edit и сохранение позы камеры (через enum)
+### ✅ Фаза 4: Принудительный Orbit в edit и сохранение позы камеры (через enum)
 - Ввести синхронизацию позы камеры: при входе/выходе из play сохранять/восстанавливать `cameraPose`.
 - В режиме `UiMode.Edit` принудительно использовать Orbit: при входе в edit, если `viewMode !== ViewModeEnum.Orbit`, переключить на Orbit и восстановить `target`.
 - При переключении камер в play сохранять текущую позу предыдущего режима.
 
 Критерии:
 - Поза камеры (позиция/цель) сохраняется между режимами/переключениями, edit всегда Orbit.
+
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: RenderProfile флаг и прокидка в рендер (enum)
 - Хранить `renderProfile` в сторе и переключать: `edit` в `uiMode='edit'`, `view` в `uiMode='play'`.

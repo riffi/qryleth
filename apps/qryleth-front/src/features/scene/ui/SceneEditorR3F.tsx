@@ -367,6 +367,12 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
    * На данном этапе просто вызывает togglePlay(); переходы без мерцаний.
    */
   const handleTogglePlay = () => {
+    // Если выходим из Play, сначала снимаем pointer lock и принудительно переключаем камеру на Orbit,
+    // чтобы избежать мгновенного повторного захвата мыши обработчиками Walk/Fly.
+    if (uiMode === UiMode.Play) {
+      try { document?.exitPointerLock?.() } catch {}
+      try { setViewMode('orbit') } catch {}
+    }
     togglePlay()
   }
 

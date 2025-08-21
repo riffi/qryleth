@@ -7,6 +7,7 @@ import {
   useSceneObjects,
   useSceneObjectInstances
 } from '../../../model/sceneStore.ts'
+import { useSceneStore } from '../../../model/sceneStore.ts'
 import {
   calculateObjectBoundingBox,
   transformBoundingBox,
@@ -14,6 +15,7 @@ import {
 } from '@/shared/lib/geometry/boundingBoxUtils'
 import { WalkControls } from './WalkControls.tsx'
 import { FlyControls } from './FlyControls.tsx'
+import { UiMode } from '@/shared/types/ui'
 
 /**
  * Компонент переключает режимы управления камерой.
@@ -27,7 +29,11 @@ export const CameraControls: React.FC = () => {
   const objects = useSceneObjects()
   const instances = useSceneObjectInstances()
   const controlsRef = useRef<any>(null)
-  const { scene } = useThree()
+  const { scene, camera } = useThree()
+  const uiMode = useSceneStore(s => s.uiMode)
+  const setViewMode = useSceneStore(s => s.setViewMode)
+  const saveCameraPose = useSceneStore(s => s.saveCameraPose)
+  const restoreCameraPose = useSceneStore(s => s.restoreCameraPose)
 
   /**
    * При смене выделения обновляет цель OrbitControls
@@ -53,6 +59,58 @@ export const CameraControls: React.FC = () => {
     controlsRef.current.target.set(center[0], center[1], center[2])
     controlsRef.current.update()
   }, [selected, viewMode, objects, instances, scene])
+
+  /**
+   * При входе в режим редактирования принудительно используем Orbit.
+   */
+  useEffect(() => {
+    if (uiMode === UiMode.Edit && viewMode !== 'orbit') {
+      setViewMode('orbit')
+    }
+  }, [uiMode, viewMode, setViewMode])
+
+  /**
+   * Сохраняем позу камеры при смене режима управления.
+   * Восстанавливаем позу при входе в новый режим, если сохранена.
+   */
+  useEffect(() => {
+    // Восстановление: при входе в Orbit возвращаем позицию и target (если сохранены)
+    if (viewMode === 'orbit' && controlsRef.current) {
+      const pose = restoreCameraPose()
+      if (pose) {
+        try {
+          if (pose.position) {
+            camera.position.set(pose.position[0], pose.position[1], pose.position[2])
+          }
+          if (pose.target) {
+            controlsRef.current.target.set(pose.target[0], pose.target[1], pose.target[2])
+            controlsRef.current.update()
+          }
+        } catch {}
+      }
+    }
+
+    // Сохранение: перед сменой режима (cleanup) сохраняем текущую позу
+    return () => {
+      try {
+        if (viewMode === 'orbit') {
+          const target = controlsRef.current?.target
+          const pose = {
+            position: [camera.position.x, camera.position.y, camera.position.z] as [number, number, number],
+            target: target ? [target.x, target.y, target.z] as [number, number, number] : ([0, 0, 0] as [number, number, number])
+          }
+          saveCameraPose(pose)
+        } else if (viewMode === 'walk' || viewMode === 'fly') {
+          const e = camera.rotation
+          const pose = {
+            position: [camera.position.x, camera.position.y, camera.position.z] as [number, number, number],
+            rotation: [e.x, e.y, e.z] as [number, number, number]
+          }
+          saveCameraPose(pose)
+        }
+      } catch {}
+    }
+  }, [viewMode, camera, saveCameraPose, restoreCameraPose])
 
   switch (viewMode) {
     case 'orbit':
