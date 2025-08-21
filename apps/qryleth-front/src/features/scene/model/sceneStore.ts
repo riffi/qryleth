@@ -6,6 +6,7 @@ import type {
   SceneStoreState,
   SceneMetaData
 } from '@/features/scene/model/store-types'
+import { UiMode, RenderProfile, type CameraPose } from '@/shared/types/ui'
 import type {
   ViewMode,
   RenderMode,
@@ -64,12 +65,15 @@ const initialState: SceneStoreState = {
   lighting: initialLighting,
 
   // UI state
+  uiMode: UiMode.Edit,
+  renderProfile: RenderProfile.Edit,
   viewMode: 'orbit',
   renderMode: 'solid',
   transformMode: 'translate',
   selectedObject: null,
   hoveredObject: null,
   gridVisible: true,
+  cameraPose: undefined,
 
   // Scene metadata
   sceneMetaData: initialSceneMetaData,
@@ -336,6 +340,34 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     // View controls
+    /**
+     * Устанавливает глобальный режим UI страницы редактора.
+     * Допустимые значения: UiMode.Edit | UiMode.Play.
+     * Не пересоздаёт сцену; влияет на отображение панелей/хедера на уровне UI.
+     */
+    setUiMode: (uiMode: UiMode) => {
+      set({ uiMode })
+    },
+
+    /**
+     * Переключает play-режим между Edit и Play.
+     * Дополнительно синхронизирует renderProfile:
+     * - UiMode.Edit  → RenderProfile.Edit
+     * - UiMode.Play  → RenderProfile.View
+     */
+    togglePlay: () => {
+      const nextUi = get().uiMode === UiMode.Edit ? UiMode.Play : UiMode.Edit
+      const nextProfile = nextUi === UiMode.Play ? RenderProfile.View : RenderProfile.Edit
+      set({ uiMode: nextUi, renderProfile: nextProfile })
+    },
+
+    /**
+     * Устанавливает профиль рендера. На данном этапе это флаг без смены настроек.
+     */
+    setRenderProfile: (renderProfile: RenderProfile) => {
+      set({ renderProfile })
+    },
+
     setViewMode: (viewMode: ViewMode) => {
       set({ viewMode })
     },
@@ -350,6 +382,22 @@ export const useSceneStore = create<SceneStore>()(
 
     toggleGridVisibility: () => {
       set(state => ({ gridVisible: !state.gridVisible }))
+    },
+
+    /**
+     * Сохраняет текущую позу камеры (позиция, цель/ориентация) для последующего восстановления.
+     * Используется при переключении UiMode и смене типа камеры.
+     */
+    saveCameraPose: (pose: CameraPose) => {
+      set({ cameraPose: pose })
+    },
+
+    /**
+     * Возвращает сохранённую позу камеры (если есть) и не очищает её.
+     * Очищение оставляем вызывающей стороне по необходимости.
+     */
+    restoreCameraPose: () => {
+      return get().cameraPose
     },
 
     // Scene management

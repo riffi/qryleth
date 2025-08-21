@@ -1,16 +1,56 @@
 /**
  * UI типы общего назначения
  *
- * Типы для UI состояний, которые используются в разных features:
- * - ViewMode, RenderMode - режимы отображения
- * - Selection типы - состояние выделения
- * - Transform типы - режимы трансформации
+ * Типы и перечисления для UI состояний, используемые в разных features.
+ * В новых API рекомендуется использовать enum-перечисления ниже, а
+ * строковые тип-алиасы оставлены для обратной совместимости на период миграции.
  */
 
 // View modes for camera controls
+// Новые enum-перечисления (рекомендуемые для использования)
+export enum ViewModeEnum {
+  Orbit = 'orbit',
+  Walk = 'walk',
+  Fly = 'fly',
+}
+
+export enum RenderModeEnum {
+  Solid = 'solid',
+  Wireframe = 'wireframe',
+}
+
+export enum TransformModeEnum {
+  Translate = 'translate',
+  Rotate = 'rotate',
+  Scale = 'scale',
+}
+
+export enum UiMode {
+  Edit = 'edit',
+  Play = 'play',
+}
+
+export enum RenderProfile {
+  Edit = 'edit',
+  View = 'view',
+}
+
+// Тип-алиасы для совместимости (будут заменены enum'ами в последующих фазах)
 export type ViewMode = 'orbit' | 'walk' | 'fly'
 export type RenderMode = 'solid' | 'wireframe'
 export type TransformMode = 'translate' | 'rotate' | 'scale'
+
+/**
+ * Поза камеры для сохранения/восстановления между режимами и переключениями камер.
+ * position — абсолютное положение камеры.
+ * target — цель (для Orbit) в мировых координатах.
+ * rotation — эйлерова ориентация камеры (используется для Walk/Fly).
+ */
+export interface CameraPose {
+  position: [number, number, number]
+  target?: [number, number, number]
+  rotation?: [number, number, number]
+}
 
 // Selection state interfaces for Scene Editor
 export interface SelectedSceneObject {

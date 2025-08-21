@@ -7,7 +7,16 @@
  * - SceneStore - комбинированный тип
  */
 
-import type { ViewMode, RenderMode, TransformMode, SelectedSceneObject, HoveredSceneObject } from '@/shared/types/ui'
+import type {
+  ViewMode,
+  RenderMode,
+  TransformMode,
+  SelectedSceneObject,
+  HoveredSceneObject,
+  UiMode,
+  RenderProfile,
+  CameraPose
+} from '@/shared/types/ui'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import type { LightingSettings } from '@/entities/lighting/model/types'
 
@@ -30,10 +39,16 @@ export interface SceneStoreState {
   hoveredObject: HoveredSceneObject | null
   sceneMetaData: SceneMetaData
   lighting: LightingSettings
+  /** Глобальный режим UI страницы редактора: редактирование или просмотр (play). */
+  uiMode: UiMode
+  /** Профиль рендера: edit/view. Пока используется как флаг без смены настроек. */
+  renderProfile: RenderProfile
   viewMode: ViewMode
   renderMode: RenderMode
   transformMode: TransformMode
   gridVisible: boolean
+  /** Текущая сохранённая поза камеры для восстановления при переходах. */
+  cameraPose?: CameraPose
   history: any[] // TODO: Define proper history type
   historyIndex: number
 }
@@ -80,10 +95,34 @@ export interface SceneStoreActions {
   markSceneAsModified: () => void
   setLighting: (lighting: LightingSettings) => void
   updateLighting: (updates: Partial<LightingSettings>) => void
+  /**
+   * Установить глобальный режим UI страницы редактора.
+   * Используется для переключения между режимами 'редактирование' и 'play'.
+   */
+  setUiMode: (mode: UiMode) => void
+  /**
+   * Переключить play-режим (Edit ↔ Play) без пересоздания сцены.
+   * Меняет только флаги uiMode/renderProfile; ответственность за UI — на уровне компонентов.
+   */
+  togglePlay: () => void
+  /**
+   * Установить профиль рендера (edit/view). На текущем этапе используется как флаг.
+   */
+  setRenderProfile: (profile: RenderProfile) => void
   setViewMode: (mode: ViewMode) => void
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
   toggleGridVisibility: () => void
+  /**
+   * Сохранить текущую позу камеры для последующего восстановления.
+   * Поза включает позицию и опционально цель (для Orbit) и ориентацию (для Walk/Fly).
+   */
+  saveCameraPose: (pose: CameraPose) => void
+  /**
+   * Восстановить ранее сохранённую позу камеры.
+   * Возвращает сохранённую позу, если она была сохранена; иначе undefined.
+   */
+  restoreCameraPose: () => CameraPose | undefined
 
   // Visibility
   toggleObjectVisibility: (objectUuid: string) => void
