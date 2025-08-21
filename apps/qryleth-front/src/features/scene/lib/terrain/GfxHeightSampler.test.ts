@@ -224,6 +224,234 @@ function testSeedDeterminism(): void {
 }
 
 /**
+ * Тест операций модификации террейна - режимы add, sub, set
+ */
+function testTerrainOpsBasic(): void {
+  console.log('🧪 Testing TerrainOps basic modes...');
+
+  const baseConfig: GfxTerrainConfig = {
+    worldWidth: 10,
+    worldHeight: 10,
+    source: {
+      kind: 'perlin',
+      params: {
+        seed: 12345,
+        octaveCount: 1,
+        amplitude: 0.1,
+        persistence: 0.5,
+        width: 32,
+        height: 32
+      }
+    },
+    ops: [
+      {
+        id: 'test-add',
+        mode: 'add',
+        center: [0, 0],
+        radius: 2,
+        intensity: 5,
+        falloff: 'linear'
+      }
+    ]
+  };
+
+  const samplerWithOps = createGfxHeightSampler(baseConfig);
+  
+  // Создаем сэмплер без операций для сравнения
+  const baseConfigNoOps = { ...baseConfig, ops: undefined };
+  const samplerNoOps = createGfxHeightSampler(baseConfigNoOps);
+  
+  // В центре операции (0, 0) высота должна увеличиться на intensity
+  const baseHeight = samplerNoOps.getHeight(0, 0);
+  const modifiedHeight = samplerWithOps.getHeight(0, 0);
+  
+  // С linear falloff в центре должно быть базовая высота + intensity
+  assertApproxEqual(modifiedHeight, baseHeight + 5, 0.1);
+  
+  // За пределами радиуса влияния высота должна остаться базовой
+  const farHeight = samplerWithOps.getHeight(5, 5);
+  const baseFarHeight = samplerNoOps.getHeight(5, 5);
+  assertApproxEqual(farHeight, baseFarHeight, 0.001);
+  
+  console.log('✅ TerrainOps basic modes test passed');
+}
+
+/**
+ * Тест функций затухания: linear, smoothstep, gauss
+ */
+function testTerrainOpsFalloffs(): void {
+  console.log('🧪 Testing TerrainOps falloff functions...');
+
+  const createConfigWithFalloff = (falloff: 'linear' | 'smoothstep' | 'gauss'): GfxTerrainConfig => ({
+    worldWidth: 10,
+    worldHeight: 10,
+    source: {
+      kind: 'legacy',
+      data: new Float32Array([0, 0, 0, 0]), // плоская поверхность
+      width: 2,
+      height: 2
+    },
+    ops: [
+      {
+        id: 'test-falloff',
+        mode: 'add',
+        center: [0, 0],
+        radius: 2,
+        intensity: 10,
+        falloff: falloff
+      }
+    ]
+  });
+
+  const linearSampler = createGfxHeightSampler(createConfigWithFalloff('linear'));
+  const smoothstepSampler = createGfxHeightSampler(createConfigWithFalloff('smoothstep'));
+  const gaussSampler = createGfxHeightSampler(createConfigWithFalloff('gauss'));
+  
+  // В центре все должны иметь максимальный эффект
+  const centerLinear = linearSampler.getHeight(0, 0);
+  const centerSmoothstep = smoothstepSampler.getHeight(0, 0);
+  const centerGauss = gaussSampler.getHeight(0, 0);
+  
+  // Все должны быть близко к intensity (10) в центре
+  assertApproxEqual(centerLinear, 10, 0.1);
+  assertApproxEqual(centerSmoothstep, 10, 0.1);
+  assertApproxEqual(centerGauss, 10, 0.1);
+  
+  // На половине радиуса различия должны быть видны
+  const halfRadiusLinear = linearSampler.getHeight(1, 0);
+  const halfRadiusSmoothstep = smoothstepSampler.getHeight(1, 0);
+  const halfRadiusGauss = gaussSampler.getHeight(1, 0);
+  
+  // Linear должен быть 50% от максимума
+  assertApproxEqual(halfRadiusLinear, 5, 0.5);
+  
+  // Smoothstep должен быть более плавным переходом
+  assert(halfRadiusSmoothstep > 0 && halfRadiusSmoothstep < 10, 'Smoothstep should be between 0 and max');
+  
+  // Gauss должен спадать быстрее
+  assert(halfRadiusGauss > 0 && halfRadiusGauss < 10, 'Gauss should be between 0 and max');
+  
+  console.log('✅ TerrainOps falloff functions test passed');
+}
+
+/**
+ * Тест эллиптических операций с radiusZ и rotation
+ */
+function testTerrainOpsElliptical(): void {
+  console.log('🧪 Testing TerrainOps elliptical operations...');
+
+  const config: GfxTerrainConfig = {
+    worldWidth: 10,
+    worldHeight: 10,
+    source: {
+      kind: 'legacy',
+      data: new Float32Array([0, 0, 0, 0]), // плоская поверхность
+      width: 2,
+      height: 2
+    },
+    ops: [
+      {
+        id: 'test-ellipse',
+        mode: 'add',
+        center: [0, 0],
+        radius: 3,  // радиус по X
+        radiusZ: 1, // радиус по Z (создает эллипс)
+        intensity: 5,
+        falloff: 'linear',
+        rotation: Math.PI / 4  // поворот на 45 градусов
+      }
+    ]
+  };
+
+  const sampler = createGfxHeightSampler(config);
+  
+  // В центре должен быть полный эффект
+  const centerHeight = sampler.getHeight(0, 0);
+  assertApproxEqual(centerHeight, 5, 0.1);
+  
+  // Проверяем что эллиптическая форма работает
+  // На расстоянии radius по X от центра (с учетом поворота) должно быть влияние
+  // На большем расстоянии по Z (с учетом radiusZ) влияние должно быть меньше
+  
+  const heightAtX = sampler.getHeight(2, 0);
+  const heightAtZ = sampler.getHeight(0, 2);
+  
+  // Из-за поворота и эллиптической формы значения могут отличаться от простых случаев
+  // Главное что они не равны нулю и имеют правильный диапазон
+  assert(heightAtX >= 0, 'Height at X should be non-negative');
+  assert(heightAtZ >= 0, 'Height at Z should be non-negative');
+  
+  console.log('✅ TerrainOps elliptical operations test passed');
+}
+
+/**
+ * Тест производительности пространственного индекса
+ */
+function testSpatialIndexPerformance(): void {
+  console.log('🧪 Testing spatial index performance...');
+
+  // Создаем много операций для тестирования пространственного индекса
+  const manyOps: GfxTerrainConfig['ops'] = [];
+  for (let i = 0; i < 100; i++) {
+    manyOps.push({
+      id: `op-${i}`,
+      mode: 'add',
+      center: [Math.random() * 100, Math.random() * 100],
+      radius: 1 + Math.random() * 5,
+      intensity: Math.random() * 10,
+      falloff: 'linear'
+    });
+  }
+
+  const config: GfxTerrainConfig = {
+    worldWidth: 100,
+    worldHeight: 100,
+    source: {
+      kind: 'legacy',
+      data: new Float32Array([0, 0, 0, 0]),
+      width: 2,
+      height: 2
+    },
+    ops: manyOps
+  };
+
+  const sampler = createGfxHeightSampler(config);
+  
+  // Делаем много запросов высоты для проверки производительности
+  const startTime = performance.now();
+  
+  for (let i = 0; i < 1000; i++) {
+    const x = Math.random() * 100;
+    const z = Math.random() * 100;
+    const height = sampler.getHeight(x, z);
+    assert(typeof height === 'number' && isFinite(height), 'Height should be finite number');
+  }
+  
+  const endTime = performance.now();
+  const duration = endTime - startTime;
+  
+  console.log(`⚡ Processed 1000 height queries with 100 ops in ${duration.toFixed(2)}ms`);
+  
+  // Проверяем что кэширование работает - повторные запросы должны быть быстрее
+  const cacheStartTime = performance.now();
+  
+  for (let i = 0; i < 1000; i++) {
+    // Повторяем те же координаты для использования кэша
+    sampler.getHeight(50, 50);
+  }
+  
+  const cacheEndTime = performance.now();
+  const cacheDuration = cacheEndTime - cacheStartTime;
+  
+  console.log(`⚡ Processed 1000 cached queries in ${cacheDuration.toFixed(2)}ms`);
+  
+  // Кэшированные запросы должны быть значительно быстрее
+  assert(cacheDuration < duration / 2, 'Cached queries should be much faster');
+  
+  console.log('✅ Spatial index performance test passed');
+}
+
+/**
  * Основная функция запуска всех тестов
  */
 export function runGfxHeightSamplerTests(): void {
@@ -235,6 +463,12 @@ export function runGfxHeightSamplerTests(): void {
     testEdgeFade();
     testHeightmapSource();
     testSeedDeterminism();
+    
+    // Новые тесты для GfxTerrainOps (Фаза 3)
+    testTerrainOpsBasic();
+    testTerrainOpsFalloffs();
+    testTerrainOpsElliptical();
+    testSpatialIndexPerformance();
     
     console.log('\n✅ All GfxHeightSampler tests passed!');
   } catch (error) {

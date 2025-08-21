@@ -1,4 +1,4 @@
-import type { GfxTerrainConfig, GfxHeightSampler } from '@/entities/terrain';
+import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 
 /**
@@ -9,6 +9,15 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private config: GfxTerrainConfig;
   private sourceHeight: (x: number, z: number) => number;
   private sampleStep = 0.01; // шаг для вычисления нормалей через центральные разности
+  
+  // Оптимизация: пространственный индекс для быстрого поиска релевантных операций
+  private spatialIndex?: Map<string, GfxTerrainOp[]>;
+  private spatialCellSize = 10; // размер ячейки пространственного индекса в мировых координатах
+  
+  // Кэширование результатов
+  private heightCache = new Map<string, number>();
+  private cacheEnabled = true;
+  private maxCacheSize = 10000; // максимальный размер кэша
 
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
@@ -17,6 +26,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   constructor(config: GfxTerrainConfig) {
     this.config = config;
     this.sourceHeight = this.createSourceFunction();
+    this.buildSpatialIndex();
   }
 
   /**
@@ -26,19 +36,32 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns высота Y в мировых единицах
    */
   getHeight(x: number, z: number): number {
+    // Проверяем кэш (с округлением координат для стабильности)
+    if (this.cacheEnabled) {
+      const cacheKey = this.getCacheKey(x, z);
+      const cachedHeight = this.heightCache.get(cacheKey);
+      if (cachedHeight !== undefined) {
+        return cachedHeight;
+      }
+    }
+
     // 1. Базовая высота из источника
     let height = this.sourceHeight(x, z);
 
-    // 2. Применяем операции модификации террейна (пока заглушка для фазы 2)
+    // 2. Применяем операции модификации террейна
     if (this.config.ops && this.config.ops.length > 0) {
-      // TODO: реализовать в фазе 3
-      // height = this.applyTerrainOps(height, x, z);
+      height = this.applyTerrainOpsOptimized(height, x, z);
     }
 
     // 3. Применяем edgeFade для плавного спада к краям
     if (this.config.edgeFade && this.config.edgeFade > 0) {
       const fadeMultiplier = this.calculateEdgeFade(x, z);
       height *= fadeMultiplier;
+    }
+
+    // Сохраняем в кэш
+    if (this.cacheEnabled) {
+      this.setCachedHeight(x, z, height);
     }
 
     return height;
@@ -220,6 +243,248 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     const fadeFactor = Math.max(0, Math.min(1, edgeDistance / fadeDistance));
     
     return fadeFactor;
+  }
+
+  /**
+   * Построить пространственный индекс для быстрого поиска операций террейна
+   * Разбивает все операции по ячейкам сетки для оптимизированного поиска
+   */
+  private buildSpatialIndex(): void {
+    if (!this.config.ops || this.config.ops.length === 0) {
+      return;
+    }
+
+    this.spatialIndex = new Map();
+
+    for (const op of this.config.ops) {
+      // Определяем область влияния операции
+      const maxRadius = Math.max(op.radius, op.radiusZ || op.radius);
+      const minX = op.center[0] - maxRadius;
+      const maxX = op.center[0] + maxRadius;
+      const minZ = op.center[1] - maxRadius;
+      const maxZ = op.center[1] + maxRadius;
+
+      // Добавляем операцию во все затрагиваемые ячейки индекса
+      const startCellX = Math.floor(minX / this.spatialCellSize);
+      const endCellX = Math.floor(maxX / this.spatialCellSize);
+      const startCellZ = Math.floor(minZ / this.spatialCellSize);
+      const endCellZ = Math.floor(maxZ / this.spatialCellSize);
+
+      for (let cellX = startCellX; cellX <= endCellX; cellX++) {
+        for (let cellZ = startCellZ; cellZ <= endCellZ; cellZ++) {
+          const cellKey = `${cellX},${cellZ}`;
+          if (!this.spatialIndex.has(cellKey)) {
+            this.spatialIndex.set(cellKey, []);
+          }
+          this.spatialIndex.get(cellKey)!.push(op);
+        }
+      }
+    }
+  }
+
+  /**
+   * Получить ключ для кэширования координат (с округлением)
+   * @param x - координата X
+   * @param z - координата Z
+   * @returns ключ для кэша
+   */
+  private getCacheKey(x: number, z: number): string {
+    // Округляем координаты для стабильного кэширования
+    const roundedX = Math.round(x * 100) / 100;
+    const roundedZ = Math.round(z * 100) / 100;
+    return `${roundedX},${roundedZ}`;
+  }
+
+  /**
+   * Сохранить высоту в кэш с ограничением размера
+   * @param x - координата X
+   * @param z - координата Z  
+   * @param height - вычисленная высота
+   */
+  private setCachedHeight(x: number, z: number, height: number): void {
+    // Ограничиваем размер кэша
+    if (this.heightCache.size >= this.maxCacheSize) {
+      // Удаляем случайный элемент (простая стратегия)
+      const firstKey = this.heightCache.keys().next().value;
+      if (firstKey) {
+        this.heightCache.delete(firstKey);
+      }
+    }
+
+    const cacheKey = this.getCacheKey(x, z);
+    this.heightCache.set(cacheKey, height);
+  }
+
+  /**
+   * Получить релевантные операции для точки с использованием пространственного индекса
+   * @param x - координата X в мировых координатах
+   * @param z - координата Z в мировых координатах
+   * @returns массив потенциально релевантных операций
+   */
+  private getRelevantOps(x: number, z: number): GfxTerrainOp[] {
+    if (!this.spatialIndex) {
+      return this.config.ops || [];
+    }
+
+    const cellX = Math.floor(x / this.spatialCellSize);
+    const cellZ = Math.floor(z / this.spatialCellSize);
+    const cellKey = `${cellX},${cellZ}`;
+
+    return this.spatialIndex.get(cellKey) || [];
+  }
+
+  /**
+   * Оптимизированное применение операций террейна с использованием пространственного индекса
+   * @param baseHeight - базовая высота из источника
+   * @param x - координата X в мировых координатах
+   * @param z - координата Z в мировых координатах
+   * @returns модифицированная высота после применения всех операций
+   */
+  private applyTerrainOpsOptimized(baseHeight: number, x: number, z: number): number {
+    let height = baseHeight;
+    const relevantOps = this.getRelevantOps(x, z);
+
+    for (const op of relevantOps) {
+      const contribution = this.calculateOpContribution(op, x, z);
+      
+      // Пропускаем операции с нулевым вкладом (оптимизация)
+      if (contribution === 0) {
+        continue;
+      }
+      
+      switch (op.mode) {
+        case 'add':
+          height += contribution;
+          break;
+        case 'sub':
+          height -= contribution;
+          break;
+        case 'set':
+          height = baseHeight + contribution;
+          break;
+      }
+    }
+
+    return height;
+  }
+
+  /**
+   * Применить массив операций модификации террейна к базовой высоте
+   * @param baseHeight - базовая высота из источника
+   * @param x - координата X в мировых координатах
+   * @param z - координата Z в мировых координатах
+   * @returns модифицированная высота после применения всех операций
+   * @deprecated Используйте applyTerrainOpsOptimized для лучшей производительности
+   */
+  private applyTerrainOps(baseHeight: number, x: number, z: number): number {
+    let height = baseHeight;
+
+    for (const op of this.config.ops!) {
+      const contribution = this.calculateOpContribution(op, x, z);
+      
+      switch (op.mode) {
+        case 'add':
+          height += contribution;
+          break;
+        case 'sub':
+          height -= contribution;
+          break;
+        case 'set':
+          height = baseHeight + contribution;
+          break;
+      }
+    }
+
+    return height;
+  }
+
+  /**
+   * Вычислить вклад одной операции модификации террейна в точке
+   * @param op - операция модификации террейна
+   * @param x - координата X в мировых координатах
+   * @param z - координата Z в мировых координатах
+   * @returns значение вклада операции (может быть 0 если точка вне радиуса влияния)
+   */
+  private calculateOpContribution(op: GfxTerrainOp, x: number, z: number): number {
+    // 1. Вычисляем расстояние от центра операции с учетом эллипса и поворота
+    const distance = this.calculateOpDistance(op, x, z);
+    
+    // 2. Если расстояние больше 1, точка вне зоны влияния
+    if (distance >= 1) {
+      return 0;
+    }
+    
+    // 3. Применяем функцию затухания
+    const falloffValue = this.applyFalloffFunction(distance, op.falloff || 'smoothstep');
+    
+    // 4. Масштабируем на интенсивность операции
+    return op.intensity * falloffValue;
+  }
+
+  /**
+   * Вычислить нормализованное расстояние от центра операции с учетом эллипса и поворота
+   * @param op - операция модификации террейна
+   * @param x - координата X в мировых координатах  
+   * @param z - координата Z в мировых координатах
+   * @returns нормализованное расстояние (0 в центре, 1+ за пределами влияния)
+   */
+  private calculateOpDistance(op: GfxTerrainOp, x: number, z: number): number {
+    // Относительные координаты от центра операции
+    let dx = x - op.center[0];
+    let dz = z - op.center[1];
+
+    // Если есть поворот, применяем его
+    if (op.rotation && op.rotation !== 0) {
+      const cos = Math.cos(-op.rotation);
+      const sin = Math.sin(-op.rotation);
+      const rotatedDx = dx * cos - dz * sin;
+      const rotatedDz = dx * sin + dz * cos;
+      dx = rotatedDx;
+      dz = rotatedDz;
+    }
+
+    // Радиусы для эллипса (если radiusZ не указан, используем сферу)
+    const rx = op.radius;
+    const rz = op.radiusZ || op.radius;
+
+    // Нормализуем координаты относительно радиусов эллипса
+    const normalizedDx = dx / rx;
+    const normalizedDz = dz / rz;
+
+    // Эллиптическое расстояние
+    return Math.sqrt(normalizedDx * normalizedDx + normalizedDz * normalizedDz);
+  }
+
+  /**
+   * Применить функцию затухания к нормализованному расстоянию
+   * @param t - нормализованное расстояние от центра операции (0..1+)
+   * @param falloff - тип функции затухания
+   * @returns значение затухания (1 в центре, 0+ на краях и за пределами)
+   */
+  private applyFalloffFunction(t: number, falloff: 'smoothstep' | 'gauss' | 'linear'): number {
+    // Ограничиваем t в диапазоне [0, 1]
+    if (t >= 1) return 0;
+    
+    const normalizedT = Math.max(0, Math.min(1, 1 - t));
+
+    switch (falloff) {
+      case 'linear':
+        return normalizedT;
+      
+      case 'smoothstep':
+        // Классическая smoothstep функция для плавного перехода
+        return normalizedT * normalizedT * (3 - 2 * normalizedT);
+      
+      case 'gauss':
+        // Гауссово затухание с экспоненциальным спадом
+        // Используем формулу exp(-3 * t^2) для резкого спада к краям
+        const gaussT = 1 - normalizedT; // инвертируем для правильного направления
+        return Math.exp(-3 * gaussT * gaussT);
+      
+      default:
+        console.warn(`Unknown falloff type: ${falloff}, using smoothstep`);
+        return normalizedT * normalizedT * (3 - 2 * normalizedT);
+    }
   }
 }
 

@@ -9,7 +9,7 @@ owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 2
+  completed: 3
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -178,13 +178,15 @@ export interface GfxLayer {
 
 **Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Интеграция GfxTerrainOps системы
+### ✅ Фаза 3: Интеграция GfxTerrainOps системы
 - Реализовать применение массива `GfxTerrainOp[]` в GfxHeightSampler
 - Поддержать все режимы: `add`, `sub`, `set`
 - Реализовать различные функции затухания: `smoothstep`, `gauss`, `linear`
 - Добавить поддержку эллиптических операций с `radiusZ` и `rotation`
 - Оптимизировать производительность: пространственный индекс для GfxTerrainOps, кэширование результатов
 - Протестировать комбинации различных операций
+
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: Поддержка PNG heightmaps и Dexie интеграция
 - Реализовать загрузку PNG в Dexie через `terrainAssets` таблицу
