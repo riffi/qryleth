@@ -12,6 +12,19 @@ export enum GfxLayerType {
   Water = 'water',
 }
 
+/**
+ * Перечисление форм ландшафтных слоёв.
+ * Используется вместо строковых литералов ('plane' | 'perlin')
+ * для повышения типобезопасности и единообразия по всему проекту.
+ * Значения перечисления строковые, что сохраняет совместимость с сериализацией и UI-компонентами.
+ */
+export enum GfxLayerShape {
+  /** Плоская поверхность (плоскость) */
+  Plane = 'plane',
+  /** Рельеф, построенный на основе шума Перлина */
+  Perlin = 'perlin',
+}
+
 export interface GfxLayer {
   id: string;
   name: string;
@@ -19,7 +32,8 @@ export interface GfxLayer {
   type?: GfxLayerType;
   width?: number;
   height?: number;
-  shape?: 'plane' | 'perlin';
+  /** Форма поверхности слоя, заданная перечислением GfxLayerShape */
+  shape?: GfxLayerShape;
   noiseData?: number[];
   color?: string;
 }

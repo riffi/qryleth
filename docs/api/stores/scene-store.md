@@ -206,7 +206,7 @@ const handleMouseLeave = () => {
 
 Импорт:
 ```ts
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 ```
 
 #### `createLayer(layer: Omit<SceneLayer, 'id'>): void`
@@ -221,10 +221,10 @@ const handleCreateLandscape = () => {
     type: GfxLayerType.Landscape,
     visible: true,
     position: 1,
-    width: 100,
-    height: 100,
-    shape: 'perlin',
-    color: '#4a7c59'
+  width: 100,
+  height: 100,
+  shape: GfxLayerShape.Perlin,
+  color: '#4a7c59'
   })
 }
 ```

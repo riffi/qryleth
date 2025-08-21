@@ -15,7 +15,7 @@ import { IconLayersLinked, IconSettings } from '@tabler/icons-react'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
@@ -133,11 +133,11 @@ export const SceneLayerModals: React.FC = () => {
                             <Select
                                 label="Форма поверхности"
                                 data={[
-                                    { value: 'plane', label: 'Плоская поверхность' },
-                                    { value: 'perlin', label: 'Perlin Noise (холмистая)' }
+                                    { value: GfxLayerShape.Plane, label: 'Плоская поверхность' },
+                                    { value: GfxLayerShape.Perlin, label: 'Perlin Noise (холмистая)' }
                                 ]}
                                 value={layerFormData.shape}
-                                onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as 'plane' | 'perlin' })}
+                                onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as GfxLayerShape })}
                             />
                             <ColorInput
                                 label="Цвет поверхности"

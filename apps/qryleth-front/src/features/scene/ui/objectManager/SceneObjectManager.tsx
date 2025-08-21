@@ -47,7 +47,7 @@ import type {
 import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import type {SceneLayer} from "@/entities";
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -176,7 +176,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         storeCreateLayer(layerData)
 
         // Если создаётся ландшафтный слой с формой Perlin, корректируем объекты
-        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === 'perlin') {
+        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === GfxLayerShape.Perlin) {
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]
@@ -241,7 +241,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             type: layer.type || GfxLayerType.Object,
             width: layer.width || 10,
             height: layer.height || 10,
-            shape: layer.shape || 'plane',
+            shape: layer.shape || GfxLayerShape.Plane,
             color: layer.color || DEFAULT_LANDSCAPE_COLOR,
             visible: layer.visible,
             position: layer.position

@@ -22,6 +22,23 @@ GfxLayerType.Water      // 'water'     — слой воды
 
 ---
 
+## Перечисление `GfxLayerShape`
+
+Перечисление форм ландшафтных слоёв. Заменяет строковые литералы `'plane' | 'perlin'`.
+
+```ts
+// Импорт
+import { GfxLayerShape } from '@/entities/layer'
+
+// Значения перечисления
+GfxLayerShape.Plane   // 'plane'  — плоская поверхность
+GfxLayerShape.Perlin  // 'perlin' — рельеф на основе шума Перлина
+```
+
+Примечание: значения также строковые для совместимости с UI и сериализацией.
+
+---
+
 ## Базовый тип `GfxLayer`
 
 ```ts
@@ -34,7 +51,8 @@ interface GfxLayer {
   // Параметры размеров/формы (актуальны для ландшафта и воды)
   width?: number
   height?: number
-  shape?: 'plane' | 'perlin'
+  /** Форма поверхности — перечисление GfxLayerShape */
+  shape?: GfxLayerShape
 
   // Данные перлин-шума для ландшафта (shape = 'perlin')
   noiseData?: number[]
@@ -66,7 +84,7 @@ interface SceneLayer extends GfxLayer {
 Создание слоя ландшафта:
 ```ts
 import type { SceneLayer } from '@/entities/scene/types'
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 const layerData: Omit<SceneLayer, 'id'> = {
   name: 'landscape',
@@ -75,7 +93,7 @@ const layerData: Omit<SceneLayer, 'id'> = {
   position: 1,
   width: 100,
   height: 100,
-  shape: 'perlin',
+  shape: GfxLayerShape.Perlin,
   color: '#4a7c59'
 }
 ```
@@ -110,4 +128,3 @@ const landscapeLayers = layers.filter(l => l.type === GfxLayerType.Landscape)
 - `@/features/scene/ui/objectManager/*` — создание/редактирование слоёв и выбор типа в UI
 - `@/features/scene/ui/renderer/*` — фильтрация и отрисовка слоёв
 - `@/features/scene/lib/*` — размещение объектов с учётом ландшафта, SceneAPI
-

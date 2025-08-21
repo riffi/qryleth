@@ -4,7 +4,7 @@ import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import { createPerlinGeometry } from '@/features/scene/lib/geometry/perlinGeometry.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
@@ -19,7 +19,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const updateLayer = useSceneStore(state => state.updateLayer)
 
   const geometry = useMemo(() => {
-    if (layer.shape === 'perlin') {
+    if (layer.shape === GfxLayerShape.Perlin) {
       const result = createPerlinGeometry(
         layer.width || 1,
         layer.height || 1,
@@ -41,7 +41,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     if (layer.color) {
       return new THREE.Color(layer.color)
     }
-    if (layer.shape === 'perlin') {
+    if (layer.shape === GfxLayerShape.Perlin) {
       return new THREE.Color('#4a7c59')
     } else {
       return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
@@ -49,7 +49,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   }, [layer.shape, layer.color])
 
   const rotation = useMemo(() => {
-    if (layer.shape === 'perlin') {
+    if (layer.shape === GfxLayerShape.Perlin) {
       return [0, 0, 0] // Perlin landscapes are already horizontal
     } else {
       return [-Math.PI / 2, 0, 0] // Rotate plane to be horizontal

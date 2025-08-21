@@ -1,6 +1,6 @@
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import type { SceneLayer } from '@/entities/scene/types'
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 /**
  * Режим работы модального окна слоя сцены.
@@ -19,7 +19,7 @@ export const createEmptySceneLayer = (): SceneLayer => ({
     type: GfxLayerType.Object,
     width: 10,
     height: 10,
-    shape: 'plane',
+    shape: GfxLayerShape.Plane,
     color: DEFAULT_LANDSCAPE_COLOR,
     visible: true,
     position: 0
