@@ -9,7 +9,7 @@ owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 1
+  completed: 2
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -168,13 +168,15 @@ export interface GfxLayer {
 
 **Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Реализация GfxHeightSampler и базовых источников
+### ✅ Фаза 2: Реализация GfxHeightSampler и базовых источников
 - Создать `src/features/scene/lib/terrain/GfxHeightSampler.ts` с реализацией интерфейса
 - Реализовать `createGfxHeightSampler(cfg: GfxTerrainConfig): GfxHeightSampler`
 - Поддержать источники: `perlin` (с seed-friendly генерацией), `legacy` (для миграции), заготовка для `heightmap`
 - Реализовать обработку edgeFade для плавного спада к краям
 - Добавить методы вычисления нормалей через центральные разности
 - Покрыть тестами основные сценарии использования
+
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: Интеграция GfxTerrainOps системы
 - Реализовать применение массива `GfxTerrainOp[]` в GfxHeightSampler
