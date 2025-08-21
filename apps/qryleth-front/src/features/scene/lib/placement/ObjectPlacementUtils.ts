@@ -2,13 +2,53 @@ import type {Vector3} from '@/shared/types/vector3'
 import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
+import type { GfxTerrainConfig } from '@/entities/terrain'
+import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
 import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 /**
- * Calculate segments count for perlin terrain - same logic as in perlinGeometry.ts
+ * Создать terrain конфигурацию из legacy данных слоя для обратной совместимости
+ * @param layer - слой сцены с legacy данными
+ * @returns конфигурация террейна для GfxHeightSampler или null если не применимо
  */
-const calculateSegments = (width: number): number => {
-  return width > 200 ? 200 : width
+const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null => {
+  if (layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Perlin && layer.noiseData) {
+    return {
+      worldWidth: layer.width || 1,
+      worldHeight: layer.height || 1,
+      edgeFade: 0.15,
+      source: {
+        kind: 'legacy',
+        data: new Float32Array(layer.noiseData),
+        width: layer.width && layer.width > 200 ? 200 : layer.width || 1,
+        height: layer.height && layer.height > 200 ? 200 : layer.height || 1
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Получить GfxHeightSampler для работы с высотами террейна слоя
+ * @param layer - слой сцены, который может содержать terrain данные
+ * @returns сэмплер высот или null если слой не подходящий
+ */
+const getHeightSamplerForLayer = (layer: SceneLayer) => {
+  if (layer.type !== GfxLayerType.Landscape) {
+    return null
+  }
+  
+  // Приоритет: новая архитектура (terrain) > legacy (noiseData)
+  if (layer.terrain) {
+    return createGfxHeightSampler(layer.terrain)
+  }
+  
+  const legacyConfig = createLegacyTerrainConfig(layer)
+  if (legacyConfig) {
+    return createGfxHeightSampler(legacyConfig)
+  }
+  
+  return null
 }
 
 export type PlacementStrategy = 'Random' | 'RandomNoCollision' | 'Center' | 'Origin' | 'Custom'
@@ -136,113 +176,46 @@ export const getCustomPlacement = (position: Vector3): PlacementResult => {
   })
 }
 
+/**
+ * Получить высоту в заданной точке мировых координат для данного слоя.
+ * Использует унифицированный GfxHeightSampler для всех типов источников террейна.
+ * @param layer - слой сцены (должен быть landscape типа)
+ * @param worldX - координата X в мировой системе координат
+ * @param worldZ - координата Z в мировой системе координат
+ * @returns высота Y в мировых единицах (0 для не-terrain слоев)
+ */
 const queryHeightAtCoordinate = (
     layer: SceneLayer,
     worldX: number,
     worldZ: number
 ): number => {
-  if (layer.type !== GfxLayerType.Landscape || layer.shape !== GfxLayerShape.Perlin || !layer.noiseData) {
-    return 0; // Default height for non-perlin landscapes
+  const sampler = getHeightSamplerForLayer(layer)
+  if (!sampler) {
+    return 0 // Default height for non-terrain layers
   }
-
-  const width = layer.width || 1;
-  const height = layer.height || 1;
-  // Use the same segments calculation as in perlinGeometry.ts
-  const segments = calculateSegments(width);
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
-
-  // Convert world coordinates to noise array indices
-  const noiseX = Math.floor(((worldX + width / 2) / width) * segments);
-  const noiseZ = Math.floor(((worldZ + height / 2) / height) * segments);
-
-  // Clamp to valid bounds
-  const clampedX = Math.max(0, Math.min(segments, noiseX));
-  const clampedZ = Math.max(0, Math.min(segments, noiseZ));
-
-  // Get noise value
-  const noiseIndex = clampedZ * (segments + 1) + clampedX;
-  const noiseValue = layer.noiseData[noiseIndex] || 0;
-
-  // Apply the same fade-out logic as in perlinGeometry.ts
-  // Calculate distance from edges (0 at edge, 1 at center)
-  const distFromLeftEdge = (worldX + halfWidth) / width;
-  const distFromRightEdge = (halfWidth - worldX) / width;
-  const distFromTopEdge = (worldZ + halfHeight) / height;
-  const distFromBottomEdge = (halfHeight - worldZ) / height;
-
-  // Find minimum distance to any edge
-  const edgeDistance = Math.min(distFromLeftEdge, distFromRightEdge, distFromTopEdge, distFromBottomEdge);
-
-  // Create fade-out factor (0 at edges, 1 towards center)
-  const fadeOutDistance = 0.15; // 15% of the terrain from edges will fade to 0
-  const fadeFactor = Math.max(0, Math.min(1, edgeDistance / fadeOutDistance));
-
-  // Apply noise with fade-out effect
-  let heightValue = noiseValue * 4 * fadeFactor;
-
-  // Ensure edges are at 0 or below
-  if (fadeFactor === 0) {
-    heightValue = Math.min(0, heightValue);
-  }
-
-  return heightValue;
+  
+  return sampler.getHeight(worldX, worldZ)
 };
 
 /**
- * Calculate surface normal at given coordinates for perlin terrain
+ * Вычислить поверхностную нормаль в заданной точке мировых координат для данного слоя.
+ * Использует унифицированный GfxHeightSampler для всех типов источников террейна.
+ * @param layer - слой сцены (должен быть landscape типа)
+ * @param worldX - координата X в мировой системе координат
+ * @param worldZ - координата Z в мировой системе координат
+ * @returns вектор нормали [x, y, z] ([0, 1, 0] для не-terrain слоев)
  */
 const calculateSurfaceNormal = (
     layer: SceneLayer,
     worldX: number,
     worldZ: number
 ): Vector3 => {
-  if (layer.type !== GfxLayerType.Landscape || layer.shape !== GfxLayerShape.Perlin || !layer.noiseData) {
-    return [0, 1, 0]; // Default upward normal
+  const sampler = getHeightSamplerForLayer(layer)
+  if (!sampler) {
+    return [0, 1, 0] // Default upward normal for non-terrain layers
   }
-
-  const width = layer.width || 1;
-  const height = layer.height || 1;
-  // Use the same segments calculation as in perlinGeometry.ts
-  const segments = calculateSegments(width);
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
-
-  // Sample neighboring heights to calculate gradient
-  // Use a larger sample distance for more stable gradient calculation
-  const sampleDistance = 0.5; // Increased from 0.1 for better gradient estimation
-
-  const heightCenter = queryHeightAtCoordinate(layer, worldX, worldZ);
-  const heightLeft = queryHeightAtCoordinate(layer, worldX - sampleDistance, worldZ);
-  const heightRight = queryHeightAtCoordinate(layer, worldX + sampleDistance, worldZ);
-  const heightBack = queryHeightAtCoordinate(layer, worldX, worldZ - sampleDistance);
-  const heightFront = queryHeightAtCoordinate(layer, worldX, worldZ + sampleDistance);
-
-  // Calculate gradients (slopes)
-  const gradientX = (heightRight - heightLeft) / (2 * sampleDistance);
-  const gradientZ = (heightFront - heightBack) / (2 * sampleDistance);
-
-  // Calculate normal vector using cross product method
-  // Create two tangent vectors on the surface
-  const tangentX: Vector3 = [2 * sampleDistance, heightRight - heightLeft, 0];
-  const tangentZ: Vector3 = [0, heightFront - heightBack, 2 * sampleDistance];
-
-  // Calculate normal as cross product of tangent vectors
-  const normal: Vector3 = [
-    tangentX[1] * tangentZ[2] - tangentX[2] * tangentZ[1],  // X component
-    tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],  // Y component
-    tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]   // Z component
-  ];
-
-  // Normalize the vector
-  const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-  if (length > 0) {
-    normal[0] /= length;
-    normal[1] /= length;
-    normal[2] /= length;
-  }
-
-  return normal;
+  
+  return sampler.getNormal(worldX, worldZ)
 };
 
 /**
@@ -462,23 +435,25 @@ export const placeInstance = (
 }
 
 /**
- * Adjusts all object instances in the scene to match perlin noise terrain
- * Now requires objects array to access bounding boxes for proper placement
+ * Подогнать все экземпляры объектов к высоте террейна.
+ * Поддерживает все типы террейнов через унифицированный GfxHeightSampler.
+ * @param instances - массив экземпляров объектов для корректировки
+ * @param terrainLayer - слой террейна (может быть любого типа terrain)
+ * @param objects - массив объектов с bounding box для правильного позиционирования
+ * @returns скорректированный массив экземпляров объектов
  */
 export const adjustAllInstancesForPerlinTerrain = (
   instances: SceneObjectInstance[],
-  perlinLayer: SceneLayer,
+  terrainLayer: SceneLayer,
   objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
 ): SceneObjectInstance[] => {
-  if (!perlinLayer ||
-      perlinLayer.type !== GfxLayerType.Landscape ||
-      perlinLayer.shape !== GfxLayerShape.Perlin ||
-      !perlinLayer.noiseData) {
-    return instances
+  const sampler = getHeightSamplerForLayer(terrainLayer)
+  if (!sampler) {
+    return instances // No valid terrain layer, return unchanged
   }
 
-  const layerWidth = perlinLayer.width || 1
-  const layerHeight = perlinLayer.height || 1
+  const layerWidth = terrainLayer.width || 1
+  const layerHeight = terrainLayer.height || 1
   const halfWidth = layerWidth / 2
   const halfHeight = layerHeight / 2
 
@@ -494,8 +469,8 @@ export const adjustAllInstancesForPerlinTerrain = (
       return instance // Outside terrain bounds, don't adjust
     }
 
-    // Calculate new Y position based on terrain height
-    let terrainY = queryHeightAtCoordinate(perlinLayer, originalX, originalZ)
+    // Calculate new Y position based on terrain height using unified sampler
+    let terrainY = sampler.getHeight(originalX, originalZ)
 
     // Adjust Y position based on object's bounding box if available
     if (objects) {

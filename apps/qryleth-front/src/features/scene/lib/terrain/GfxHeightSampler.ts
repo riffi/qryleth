@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 import { loadTerrainAssetImageData } from './HeightmapUtils';
@@ -617,4 +618,47 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
  */
 export function createGfxHeightSampler(config: GfxTerrainConfig): GfxHeightSampler {
   return new GfxHeightSamplerImpl(config);
+}
+
+/**
+ * Создать THREE.js геометрию для террейна на основе GfxHeightSampler
+ * @param cfg - конфигурация террейна
+ * @param sampler - сэмплер высот для получения данных о рельефе
+ * @returns THREE.BufferGeometry с вершинами, соответствующими террейну
+ */
+export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeightSampler): THREE.BufferGeometry {
+  // Определяем количество сегментов на основе размеров террейна
+  const segments = decideSegments(cfg.worldWidth, cfg.worldHeight);
+  
+  // Создаем плоскую геометрию
+  const geom = new THREE.PlaneGeometry(cfg.worldWidth, cfg.worldHeight, segments, segments);
+  geom.rotateX(-Math.PI / 2); // поворачиваем горизонтально
+  
+  const positionArray = geom.attributes.position.array as Float32Array;
+  
+  // Применяем высоты из sampler к каждой вершине
+  for (let i = 0; i < positionArray.length; i += 3) {
+    const x = positionArray[i];
+    const z = positionArray[i + 2];
+    positionArray[i + 1] = sampler.getHeight(x, z);
+  }
+  
+  // Обновляем атрибуты геометрии
+  geom.attributes.position.needsUpdate = true;
+  geom.computeVertexNormals();
+  geom.computeBoundingBox();
+  
+  return geom;
+}
+
+/**
+ * Определить оптимальное количество сегментов для геометрии террейна
+ * Логика аналогична createPerlinGeometry для совместимости
+ * @param worldWidth - ширина террейна в мировых координатах
+ * @param worldHeight - высота террейна в мировых координатах
+ * @returns количество сегментов (10-200)
+ */
+function decideSegments(worldWidth: number, worldHeight: number): number {
+  const maxDimension = Math.max(worldWidth, worldHeight);
+  return maxDimension > 200 ? 200 : Math.max(10, Math.floor(maxDimension));
 }

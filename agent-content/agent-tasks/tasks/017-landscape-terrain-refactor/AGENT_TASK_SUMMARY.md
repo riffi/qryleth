@@ -9,7 +9,7 @@ owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 4
+  completed: 5
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -198,13 +198,15 @@ export interface GfxLayer {
 
 **Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
-### ⏳ Фаза 5: Обновление компонентов рендеринга и размещения объектов
+### ✅ Фаза 5: Обновление компонентов рендеринга и размещения объектов
 - Заменить логику в `LandscapeLayer.tsx`: убрать `createPerlinGeometry`, использовать `GfxHeightSampler` + `buildGfxTerrainGeometry`
 - Обновить `ObjectPlacementUtils.ts`: заменить `queryHeightAtCoordinate` и `calculateSurfaceNormal` вызовами GfxHeightSampler
 - Создать новую функцию `buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeightSampler)` 
 - Убрать сохранение `noiseData` в стор, заменить на `terrain: GfxTerrainConfig`
 - Обеспечить совместимость: legacy слои должны продолжать работать через `kind: 'legacy'`
 - Протестировать генерацию геометрии и размещение объектов на всех типах источников
+
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 ### ⏳ Фаза 6: UI для управления heightmaps и обновление документации
 - Добавить в `SceneLayerModals.tsx` интерфейс загрузки PNG файлов
