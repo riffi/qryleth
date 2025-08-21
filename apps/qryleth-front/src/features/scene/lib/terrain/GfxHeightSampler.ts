@@ -1,4 +1,4 @@
-import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp } from '@/entities/terrain';
+import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 
 /**
@@ -140,10 +140,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param params - параметры генерации Perlin noise
    * @returns функция для получения высоты из Perlin noise
    */
-  private createPerlinSource(params: GfxTerrainConfig['source']['params']) {
-    if (params.kind !== 'perlin') {
-      throw new Error('Invalid params for perlin source');
-    }
+  private createPerlinSource(params: GfxPerlinParams) {
 
     // Генерируем данные шума один раз при создании
     const noiseData = generatePerlinNoise(params.width + 1, params.height + 1, {
