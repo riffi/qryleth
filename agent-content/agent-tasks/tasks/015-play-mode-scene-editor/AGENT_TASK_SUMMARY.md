@@ -2,14 +2,14 @@
 id: 15
 epic: null
 title: "Play-режим на странице редактора сцены (SceneEditorR3F)"
-status: planned
+status: in-progress
 created: 2025-08-21
 updated: 2025-08-21
 owner: team-ui
 tags: [scene-editor, play-mode, ui, camera, hotkeys]
 phases:
   total: 6
-  completed: 0
+  completed: 2
 ---
 
 # Play‑режим для SceneEditor (в той же странице)
@@ -43,7 +43,7 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Enum-перечисления и базовое состояние (uiMode/renderProfile/cameraPose)
+### ✅ Фаза 1: Enum-перечисления и базовое состояние (uiMode/renderProfile/cameraPose)
 - Добавить enum-типизацию в `shared/types/ui` и экспортировать:
   - `export enum UiMode { Edit = 'edit', Play = 'play' }`
   - `export enum RenderProfile { Edit = 'edit', View = 'view' }`
@@ -63,7 +63,9 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 Критерии:
 - Сборка зелёная, стор компилируется, поведение edit‑режима прежнее.
 
-### ⏳ Фаза 2: UI переключение (Play ▶ / Exit ⏹) и скрытие
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
+
+### ✅ Фаза 2: UI переключение (Play ▶ / Exit ⏹) и скрытие
 - Добавить в `MainLayout` управляемые пропсы для скрытия `header` и `navbar` (например, `headerVisible`, `navbarVisible`), по умолчанию true. Документировать в JSDoc на русском.
 - В `SceneEditorR3F` добавить кнопку `Play ▶` в `rightSection` хедера при `uiMode='edit'` → вызывает `togglePlay()`.
 - При `uiMode='play'`: скрыть хедер/навигацию (через новые пропсы лейаута), скрыть боковые панели, рендерить только канву + overlay с кнопкой `Exit ⏹` (фикс. в углу), по клику → `togglePlay()`.
@@ -71,6 +73,8 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 Критерии:
 - Нажатие Play скрывает UI, остаётся канва и кнопка Exit; обратное переключение — без мерцаний.
+
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: Хоткеи Play/Esc и переключение камер 1–3 (через enum)
 - Добавить хук `usePlayModeHotkeys` (или расширить `useKeyboardShortcuts`) c учётом `uiMode`:

@@ -19,13 +19,16 @@ import {
 import { useSceneHistory } from '../lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
+import { UiMode } from '@/shared/types/ui'
 import type { SceneStatus } from '@/features/scene/model/store-types'
 import {
   IconArrowBack,
   IconArrowForward,
   IconFolder,
   IconCode,
-  IconMessages
+  IconMessages,
+  IconPlayerPlay,
+  IconPlayerStop
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
@@ -355,11 +358,40 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     setObjectPanelCollapsed(prev => !prev)
   }
 
+  // Текущее состояние UI-режима (редактирование / play)
+  const uiMode = useSceneStore(state => state.uiMode)
+  const togglePlay = useSceneStore(state => state.togglePlay)
+
+  /**
+   * Обработчик переключения play-режима из UI (кнопки Play/Exit).
+   * На данном этапе просто вызывает togglePlay(); переходы без мерцаний.
+   */
+  const handleTogglePlay = () => {
+    togglePlay()
+  }
+
+  const isPlay = uiMode === UiMode.Play
+
   return (
     <>
       <MainLayout
+        headerVisible={!isPlay}
+        navbarVisible={!isPlay}
         rightSection={(
           <>
+            {!isPlay && (
+              <Tooltip label="Войти в режим просмотра (Play)" withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant={'filled'}
+                  color={'blue'}
+                  onClick={handleTogglePlay}
+                  aria-label={'Запустить Play'}
+                >
+                  <IconPlayerPlay size={18} />
+                </ActionIcon>
+              </Tooltip>
+            )}
             <Badge
               color={getStatusColor(sceneMetaData.status as SceneStatus)}
               variant="light"
@@ -437,7 +469,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             paddingInline: 0
         }}
         >
-        {!chatCollapsed && (
+        {!isPlay && !chatCollapsed && (
           <Paper
             shadow="sm"
             radius="md"
@@ -447,7 +479,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               minWidth: 260,
               display: 'flex',
               overflow: 'hidden',
-              transition: resizingSide ? undefined : 'width 160ms ease',
+              transition: resizingSide ? undefined : 'width 160ms ease, opacity 200ms ease',
+              opacity: isPlay ? 0 : 1,
               background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
               backdropFilter: 'blur(8px)'
             }}
@@ -478,7 +511,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         )}
 
         {/* Drag handle between left panel and center */}
-        {!chatCollapsed && (
+        {!isPlay && !chatCollapsed && (
           <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" active={resizingSide === 'left'} />
         )}
 
@@ -494,36 +527,63 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             background: 'linear-gradient(180deg, color-mix(in srgb, var(--mantine-color-dark-7) 65%, transparent), transparent)'
           }}
         >
-          <Box
-            style={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              zIndex: 10,
-              padding: 6,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0,
-              background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-              borderRadius: "10px"
-            }}
-          >
-            <Group gap="xs" wrap="nowrap">
-              <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
-              <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
-              <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
-              <ViewModeSegment value={viewMode} onChange={setViewMode} frosted />
-            </Group>
-          </Box>
+          {!isPlay && (
+            <Box
+              style={{
+                position: 'absolute',
+                top: 10,
+                left: 10,
+                zIndex: 10,
+                padding: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0,
+                background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+                borderRadius: "10px",
+                transition: 'opacity 200ms ease'
+              }}
+            >
+              <Group gap="xs" wrap="nowrap">
+                <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
+                <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
+                <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
+                <ViewModeSegment value={viewMode} onChange={setViewMode} frosted />
+              </Group>
+            </Box>
+          )}
 
           <Box style={{ width: '100%', height: '100%' }}>
             <Scene3D className="scene-canvas" onSceneReady={() => {}} />
+            {isPlay && (
+              <Box
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  zIndex: 20,
+                  display: 'flex',
+                  gap: 8,
+                  padding: 6,
+                  background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: '10px',
+                  boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+                  transition: 'opacity 200ms ease'
+                }}
+              >
+                <Tooltip label="Выйти из Play" withArrow>
+                  <ActionIcon size="md" variant="filled" color="red" onClick={handleTogglePlay} aria-label="Выйти из Play">
+                    <IconPlayerStop size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              </Box>
+            )}
           </Box>
         </Paper>
 
-        {showObjectManager && (
+        {showObjectManager && !isPlay && (
           <>
             {/* Drag handle between center and right panel */}
             {!objectPanelCollapsed && (
@@ -542,7 +602,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   flexDirection: 'column',
                   minWidth: 240,
                   overflow: 'hidden',
-                  transition: resizingSide ? undefined : 'width 160ms ease',
+                  transition: resizingSide ? undefined : 'width 160ms ease, opacity 200ms ease',
+                  opacity: isPlay ? 0 : 1,
                   background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
                   backdropFilter: 'blur(8px)'
                 }}

@@ -8,9 +8,19 @@ import { OpenAISettingsModal } from '@/widgets/OpenAISettingsModal'
 interface MainLayoutProps {
   children: React.ReactNode
   rightSection?: React.ReactNode
+  /**
+   * Управляет видимостью хедера приложения.
+   * При false — шапка не рендерится и место под неё не резервируется.
+   */
+  headerVisible?: boolean
+  /**
+   * Управляет видимостью левой навигации (navbar).
+   * При false — сайдбар не рендерится и место под него не резервируется.
+   */
+  navbarVisible?: boolean
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection, headerVisible = true, navbarVisible = true }) => {
   const navigate = useNavigate()
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [sidebarOpened, setSidebarOpened] = useState(false)
@@ -38,12 +48,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
 
   return (
     <AppShell
-      header={{ height: 49 }}
-      navbar={{
+      header={headerVisible ? { height: 49 } : undefined}
+      navbar={navbarVisible ? {
         width: 260,
         breakpoint: 'sm',
         collapsed: { mobile: !sidebarOpened, desktop: !sidebarOpened }
-      }}
+      } : undefined}
       padding="0"
       styles={{
         main: {
@@ -53,65 +63,70 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection }
         }
       }}
     >
-      <AppShell.Header
-        style={{
-          backdropFilter: 'blur(8px)',
-          background: 'color-mix(in srgb, var(--mantine-color-dark-7) 85%, transparent)',
-          borderBottom: '1px solid var(--mantine-color-dark-5)'
-        }}
-      >
-        <Container size="xl" h="100%" fluid>
-          <Group h="100%" justify="space-between" >
-            <Group gap="md" style={{ alignItems: 'center' }}>
-              <Burger
-                opened={sidebarOpened}
-                lineSize={1}
-                onClick={() => setSidebarOpened(!sidebarOpened)}
-                size="sm"
-                color="white"
-                aria-label={sidebarOpened ? 'Закрыть меню' : 'Открыть меню'}
-              />
-              <Box style={{
-                padding: '3px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Image src="/logo.png" h={32} alt="Qryleth" />
-              </Box>
-            </Group>
+      {headerVisible && (
+        <AppShell.Header
+          style={{
+            backdropFilter: 'blur(8px)',
+            background: 'color-mix(in srgb, var(--mantine-color-dark-7) 85%, transparent)',
+            borderBottom: '1px solid var(--mantine-color-dark-5)',
+            transition: 'opacity 200ms ease'
+          }}
+        >
+          <Container size="xl" h="100%" fluid>
+            <Group h="100%" justify="space-between" >
+              <Group gap="md" style={{ alignItems: 'center' }}>
+                <Burger
+                  opened={sidebarOpened}
+                  lineSize={1}
+                  onClick={() => setSidebarOpened(!sidebarOpened)}
+                  size="sm"
+                  color="white"
+                  aria-label={sidebarOpened ? 'Закрыть меню' : 'Открыть меню'}
+                />
+                <Box style={{
+                  padding: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Image src="/logo.png" h={32} alt="Qryleth" />
+                </Box>
+              </Group>
 
-            <Group gap="sm" style={{ minWidth: '120px', justifyContent: 'flex-end' }}>
-              {rightSection}
+              <Group gap="sm" style={{ minWidth: '120px', justifyContent: 'flex-end' }}>
+                {rightSection}
+              </Group>
             </Group>
-          </Group>
-        </Container>
-      </AppShell.Header>
+          </Container>
+        </AppShell.Header>
+      )}
 
-      <AppShell.Navbar p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderRight: '1px solid var(--mantine-color-dark-5)' }}>
-        <Box style={{ flexGrow: 1 }}>
-          <NavLink
-            label="Библиотека"
-            leftSection={<IconLibrary size={20} />}
-            onClick={() => handleNavigation('/')}
-            style={{
-              borderRadius: '8px',
-              marginBottom: '8px',
-              transition: 'all 0.2s ease',
-            }}
-          />
-          <NavLink
-            label="Настройки LLM"
-            leftSection={<IconSettings size={20} />}
-            onClick={handleSettingsOpen}
-            style={{
-              borderRadius: '8px',
-              marginBottom: '8px',
-              transition: 'all 0.2s ease',
-            }}
-          />
-        </Box>
-      </AppShell.Navbar>
+      {navbarVisible && (
+        <AppShell.Navbar p="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderRight: '1px solid var(--mantine-color-dark-5)', transition: 'opacity 200ms ease' }}>
+          <Box style={{ flexGrow: 1 }}>
+            <NavLink
+              label="Библиотека"
+              leftSection={<IconLibrary size={20} />}
+              onClick={() => handleNavigation('/')}
+              style={{
+                borderRadius: '8px',
+                marginBottom: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            />
+            <NavLink
+              label="Настройки LLM"
+              leftSection={<IconSettings size={20} />}
+              onClick={handleSettingsOpen}
+              style={{
+                borderRadius: '8px',
+                marginBottom: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            />
+          </Box>
+        </AppShell.Navbar>
+      )}
 
       <AppShell.Main>{children}</AppShell.Main>
       <OpenAISettingsModal opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
