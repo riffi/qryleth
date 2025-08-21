@@ -2,14 +2,14 @@
 id: 15
 epic: null
 title: "Play-режим на странице редактора сцены (SceneEditorR3F)"
-status: in-progress
+status: done
 created: 2025-08-21
 updated: 2025-08-21
 owner: team-ui
 tags: [scene-editor, play-mode, ui, camera, hotkeys]
 phases:
   total: 7
-  completed: 6
+  completed: 7
 ---
 
 # Play‑режим для SceneEditor (в той же странице)
@@ -125,16 +125,17 @@ TO‑BE (по play_mode.md) с учётом текущего кода:
 
 **Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
-### ⏳ Фаза 7: Документация и DoD + безопасная миграция типов на enum
-- Обновить документацию:
-  - `docs/features/scene-management/keyboard-shortcuts.md` — добавить новые хоткеи (`P`, `Esc`, `1–3`).
-  - `docs/api/components/scene-editor.md` — отразить поведение Play/Exit и новые пропсы `MainLayout`.
-  - `docs/architecture/design-principles.md` — упомянуть `renderProfile` как абстракцию.
-- Запланировать и описать отдельную малую миграцию потребителей на enum-ы (если не уложилось в текущие фазы), с пошаговой заменой `type ViewMode = ...` → `ViewModeEnum` и т.д. с ограничением ≤ 15 файлов на фазу.
-- Сверить реализацию с `play_mode.md` и отметить соответствие критериям приёмки.
+### ✅ Фаза 7: Обновление документации (Play‑режим, хоткеи, store)
+- Обновить документацию хоткеев сцены: добавить Play/Esc и 1/2/3 для камер; уточнить поведение в Play.
+- Обновить API Scene Store: описать `uiMode`, `renderProfile`, `cameraPose` и методы `setUiMode`, `togglePlay`, `setRenderProfile`, `saveCameraPose`, `restoreCameraPose`.
+- Дополнить документацию компонентов редактора: поведение `SceneEditorR3F` в Play‑режиме и оверлей.
 
 Критерии:
-- Все критические пути описаны, документация обновлена и согласована с реализацией.
+- Разделы docs обновлены и согласованы с реализацией в коде.
+
+**Отчёт**: [phases/phase_7_summary.md](phases/phase_7_summary.md)
+
+
 
 ## Критерии приёмки (DoD)
 - [ ] В `edit` доступны панели/хедер/гизмос/хоткеи редактора; камера — Orbit.

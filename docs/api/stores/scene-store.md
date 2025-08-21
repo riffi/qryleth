@@ -47,6 +47,14 @@ interface SceneStoreState {
 }
 ```
 
+#### Дополнения (Play‑режим)
+В рамках Play‑режима введены дополнительные поля состояния:
+
+- `uiMode: UiMode` — глобальный режим UI страницы (`'edit' | 'play'`).
+- `renderProfile: RenderProfile` — профиль рендера (`'edit' | 'view'`), пока служит флагом для будущих настроек.
+- `cameraPose?: CameraPose` — сохранённая поза камеры для восстановления между переключениями.
+
+
 ### History Management / Управление историей
 
 ```typescript
@@ -269,6 +277,32 @@ updateLayer(layerId, { color: '#88aa66' })
 
 ### View Controls / Элементы управления видом
 
+#### `setUiMode(mode: UiMode): void`
+Устанавливает глобальный режим UI страницы редактора (Edit/Play). Не пересоздаёт сцену и влияет только на видимость UI‑элементов.
+
+```typescript
+const { setUiMode } = useSceneStore()
+setUiMode('play')
+```
+
+#### `togglePlay(): void`
+Переключает Play‑режим (Edit ↔ Play). Дополнительно синхронизирует `renderProfile`:
+- `UiMode.Edit` → `RenderProfile.Edit`
+- `UiMode.Play` → `RenderProfile.View`
+
+```typescript
+const { togglePlay } = useSceneStore()
+togglePlay()
+```
+
+#### `setRenderProfile(profile: RenderProfile): void`
+Устанавливает профиль рендера (edit/view). На текущем этапе используется как флаг для будущих настроек пост‑эффектов/теней/LOD.
+
+```typescript
+const { setRenderProfile } = useSceneStore()
+setRenderProfile('view')
+```
+
 #### `setViewMode(mode: ViewMode): void`
 Changes the camera control mode.
 
@@ -386,6 +420,26 @@ const { saveToHistory } = useSceneStore()
 // Save state before major operation
 saveToHistory()
 performMajorSceneChange()
+```
+
+---
+
+### Camera Pose / Поза камеры
+
+#### `saveCameraPose(pose: CameraPose): void`
+Сохраняет текущую позу камеры (позиция, цель/ориентация) для последующего восстановления при переходах Edit/Play и переключении камер.
+
+```typescript
+const { saveCameraPose } = useSceneStore()
+saveCameraPose({ position: [0, 2, 5], target: [0, 0, 0] })
+```
+
+#### `restoreCameraPose(): CameraPose | undefined`
+Возвращает ранее сохранённую позу камеры (если есть). Очистку значения при необходимости выполняет вызывающий код.
+
+```typescript
+const { restoreCameraPose } = useSceneStore()
+const pose = restoreCameraPose()
 ```
 
 ---
