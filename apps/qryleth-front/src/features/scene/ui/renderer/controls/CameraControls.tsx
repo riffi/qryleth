@@ -25,6 +25,8 @@ import { UiMode } from '@/shared/types/ui'
 
 export const CameraControls: React.FC = () => {
   const viewMode = useViewMode()
+  // Храним предыдущее значение режима камеры для корректной обработки переходов
+  const prevViewModeRef = useRef<typeof viewMode>(viewMode)
   const selected = useSelectedObject()
   const objects = useSceneObjects()
   const instances = useSceneObjectInstances()
@@ -68,6 +70,25 @@ export const CameraControls: React.FC = () => {
       setViewMode('orbit')
     }
   }, [uiMode, viewMode, setViewMode])
+
+  /**
+   * Освобождает pointer lock при переходе из Walk/Fly в Orbit в режиме Play.
+   * Благодаря этому при переключении камеры курсор становится доступен
+   * сразу, без необходимости дополнительно нажимать Esc.
+   */
+  useEffect(() => {
+    try {
+      const was = prevViewModeRef.current
+      if (uiMode === UiMode.Play && viewMode === 'orbit' && (was === 'walk' || was === 'fly')) {
+        // Если до этого использовались Walk/Fly (pointer lock), отпускаем курсор
+        if (typeof document !== 'undefined' && typeof (document as any).exitPointerLock === 'function') {
+          ;(document as any).exitPointerLock()
+        }
+      }
+    } finally {
+      prevViewModeRef.current = viewMode
+    }
+  }, [uiMode, viewMode])
 
   /**
    * Сохраняем позу камеры при смене режима управления.

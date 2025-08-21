@@ -122,10 +122,15 @@ export const FlyControls: React.FC = () => {
       onUnlock={() => {
         try {
           const state = useSceneStore.getState()
-          if (state.uiMode === UiMode.Play) {
-            try { state.setViewMode('orbit') } catch {}
-            state.togglePlay()
+          if (state.uiMode !== UiMode.Play) return
+
+          // Если уже переключились на Orbit (через 1/панель) — остаёмся в Play.
+          // Если всё ещё Walk/Fly и разблокировали курсор (Esc) — переключаемся на Orbit и выходим из Play.
+          if (state.viewMode === 'orbit') {
+            return
           }
+          try { state.setViewMode('orbit') } catch {}
+          state.togglePlay()
         } catch {}
       }}
     />

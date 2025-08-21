@@ -159,10 +159,16 @@ export const WalkControls: React.FC = () => {
       onUnlock={() => {
         try {
           const state = useSceneStore.getState()
-          if (state.uiMode === UiMode.Play) {
-            try { state.setViewMode('orbit') } catch {}
-            state.togglePlay()
+          if (state.uiMode !== UiMode.Play) return
+
+          // Если к моменту разблокировки уже выбран Orbit (переключились через 1/панель),
+          // то это не «выход по Esc», а переход между режимами — остаёмся в Play.
+          // Иначе считаем, что пользователь нажал Esc: переключаемся на Orbit и выходим из Play.
+          if (state.viewMode === 'orbit') {
+            return
           }
+          try { state.setViewMode('orbit') } catch {}
+          state.togglePlay()
         } catch {}
       }}
     />

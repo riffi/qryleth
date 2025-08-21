@@ -378,6 +378,27 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const isPlay = uiMode === UiMode.Play
 
+  /**
+   * Панель управления камерами для Play-режима.
+   * Компонент рендерится поверх канвы только при UiMode.Play и позволяет
+   * переключать режим камеры (Orbit/Walk/Fly) кнопками. Дополнительно
+   * отображает постоянную текстовую подсказку о горячих клавишах 1/2/3,
+   * чтобы пользователь всегда видел, как быстро переключать режимы без мыши.
+   *
+   * Синхронизация с хоткеями обеспечивается через общее состояние стора:
+   * нажатия 1/2/3 меняют viewMode, что мгновенно отражается в активной
+   * кнопке панельки; нажатие кнопок меняет viewMode и тем самым активирует
+   * соответствующую камеру.
+   */
+  const PlayCameraPanel: React.FC = () => (
+    <Group gap={8} wrap="nowrap" align="center">
+      <ViewModeSegment value={viewMode} onChange={setViewMode} frosted size="xs" />
+      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', userSelect: 'none' }}>
+        Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly
+      </Text>
+    </Group>
+  )
+
   return (
     <>
       <MainLayout
@@ -555,7 +576,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
                 <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
                 <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
-                <ViewModeSegment value={viewMode} onChange={setViewMode} frosted />
               </Group>
             </Box>
           )}
@@ -570,7 +590,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   right: 10,
                   zIndex: 20,
                   display: 'flex',
-                  gap: 8,
+                  gap: 12,
                   padding: 6,
                   background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
                   backdropFilter: 'blur(8px)',
@@ -579,6 +599,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   transition: 'opacity 200ms ease'
                 }}
               >
+                {/* Панель переключения камер доступна только в Play */}
+                <PlayCameraPanel />
                 <Tooltip label="Выйти из Play" withArrow>
                   <ActionIcon size="md" variant="filled" color="red" onClick={handleTogglePlay} aria-label="Выйти из Play">
                     <IconPlayerStop size={18} />
