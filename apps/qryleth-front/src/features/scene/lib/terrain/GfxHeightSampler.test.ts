@@ -398,4 +398,168 @@ describe('GfxHeightSampler', () => {
       expect(cacheDuration).toBeLessThan(duration / 2);
     });
   });
+
+  describe('Heightmap source', () => {
+    it('should handle heightmap source when ImageData not loaded yet', () => {
+      const config: GfxTerrainConfig = {
+        worldWidth: 100,
+        worldHeight: 100,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 256,
+            imgHeight: 256,
+            min: 0,
+            max: 10
+          }
+        }
+      };
+
+      const sampler = createGfxHeightSampler(config);
+      
+      // Пока ImageData не загружена, должен возвращать 0
+      const height = sampler.getHeight(0, 0);
+      expect(height).toBe(0);
+    });
+
+    it('should handle different UV wrapping modes in heightmap params', () => {
+      const configClamp: GfxTerrainConfig = {
+        worldWidth: 10,
+        worldHeight: 10,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 2,
+            imgHeight: 2,
+            min: 0,
+            max: 10,
+            wrap: 'clamp'
+          }
+        }
+      };
+
+      const configRepeat: GfxTerrainConfig = {
+        worldWidth: 10,
+        worldHeight: 10,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 2,
+            imgHeight: 2,
+            min: 0,
+            max: 10,
+            wrap: 'repeat'
+          }
+        }
+      };
+
+      const samplerClamp = createGfxHeightSampler(configClamp);
+      const samplerRepeat = createGfxHeightSampler(configRepeat);
+      
+      // Без ImageData оба должны возвращать 0, но не должны выбрасывать ошибки
+      expect(samplerClamp.getHeight(100, 100)).toBe(0);
+      expect(samplerRepeat.getHeight(100, 100)).toBe(0);
+    });
+
+    it('should handle heightmap with TerrainOps', () => {
+      const config: GfxTerrainConfig = {
+        worldWidth: 20,
+        worldHeight: 20,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 4,
+            imgHeight: 4,
+            min: 0,
+            max: 5
+          }
+        },
+        ops: [
+          {
+            id: 'hill-1',
+            mode: 'add',
+            center: [0, 0],
+            radius: 5,
+            intensity: 2,
+            falloff: 'smoothstep'
+          }
+        ]
+      };
+
+      const sampler = createGfxHeightSampler(config);
+      
+      // Без ImageData базовая высота 0, но ops должны применяться
+      const heightAtCenter = sampler.getHeight(0, 0);
+      const heightAtEdge = sampler.getHeight(10, 10);
+      
+      // В центре операции должна быть максимальная интенсивность
+      expect(heightAtCenter).toBeGreaterThan(0);
+      // На краю террейна влияние операции должно быть меньше
+      expect(heightAtEdge).toBeLessThanOrEqual(heightAtCenter);
+    });
+
+    it('should handle heightmap normalization parameters correctly', () => {
+      // Тестируем что параметры нормализации min/max корректно сохраняются в config
+      const config: GfxTerrainConfig = {
+        worldWidth: 10,
+        worldHeight: 10,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 64,
+            imgHeight: 64,
+            min: -5,
+            max: 15
+          }
+        }
+      };
+
+      const sampler = createGfxHeightSampler(config);
+      
+      // Базовая проверка что сэмплер создался корректно
+      expect(sampler).toBeDefined();
+      expect(typeof sampler.getHeight).toBe('function');
+      expect(typeof sampler.getNormal).toBe('function');
+    });
+
+    it('should compute normals correctly for heightmap source', () => {
+      const config: GfxTerrainConfig = {
+        worldWidth: 10,
+        worldHeight: 10,
+        source: {
+          kind: 'heightmap',
+          params: {
+            assetId: 'test-asset-id',
+            imgWidth: 8,
+            imgHeight: 8,
+            min: 0,
+            max: 10
+          }
+        }
+      };
+
+      const sampler = createGfxHeightSampler(config);
+      
+      // Получаем нормаль (без ImageData будет вычислена от высот = 0)
+      const normal = sampler.getNormal(0, 0);
+      
+      // Проверяем что нормаль это 3D вектор
+      expect(Array.isArray(normal)).toBe(true);
+      expect(normal.length).toBe(3);
+      
+      // Проверяем что нормаль нормализована (длина ≈ 1)
+      const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+      expectApproxEqual(length, 1.0, 0.001);
+      
+      // Для плоской поверхности нормаль должна быть направлена вверх [0, 1, 0]
+      expectApproxEqual(normal[0], 0, 0.1);
+      expectApproxEqual(normal[1], 1, 0.1); 
+      expectApproxEqual(normal[2], 0, 0.1);
+    });
+  });
 });

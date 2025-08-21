@@ -9,7 +9,7 @@ owner: claude-agent
 tags: [landscape, terrain, refactor, heightmap, perlin]
 phases:
   total: 6
-  completed: 3
+  completed: 4
 ---
 
 # Рефакторинг системы ландшафтных слоев с HeightSampler и TerrainConfig
@@ -188,13 +188,15 @@ export interface GfxLayer {
 
 **Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Поддержка PNG heightmaps и Dexie интеграция
+### ✅ Фаза 4: Поддержка PNG heightmaps и Dexie интеграция
 - Реализовать загрузку PNG в Dexie через `terrainAssets` таблицу
 - Создать функции для конвертации PNG в ImageData без воркеров
 - Реализовать bilinear интерполяцию для источника `heightmap` в GfxHeightSampler
 - Добавить нормализацию высот через параметры `min`/`max` в GfxHeightmapParams
 - Реализовать различные режимы UV wrapping: `clamp`, `repeat`
 - Создать утилиты для валидации размеров и форматов PNG файлов
+
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: Обновление компонентов рендеринга и размещения объектов
 - Заменить логику в `LandscapeLayer.tsx`: убрать `createPerlinGeometry`, использовать `GfxHeightSampler` + `buildGfxTerrainGeometry`

@@ -1,5 +1,6 @@
-import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams } from '@/entities/terrain';
+import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
+import { loadTerrainAssetImageData } from './HeightmapUtils';
 
 /**
  * Реализация интерфейса GfxHeightSampler для получения высот из различных источников террейна.
@@ -18,6 +19,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private heightCache = new Map<string, number>();
   private cacheEnabled = true;
   private maxCacheSize = 10000; // максимальный размер кэша
+
+  // Данные heightmap (кэшируются при первом обращении)
+  private heightmapImageData?: ImageData;
+  private heightmapLoadPromise?: Promise<ImageData>;
 
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
@@ -125,9 +130,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         return this.createLegacySource(source);
       
       case 'heightmap':
-        // TODO: реализовать в фазе 4
-        console.warn('Heightmap source not implemented yet, using flat surface');
-        return () => 0;
+        return this.createHeightmapSource(source.params);
       
       default:
         console.warn('Unknown source type, using flat surface');
@@ -209,6 +212,128 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       // Применяем тот же масштаб что в старой реализации
       return noiseValue * 4;
     };
+  }
+
+  /**
+   * Создать функцию получения высот из PNG heightmap с bilinear интерполяцией
+   * @param params - параметры heightmap источника
+   * @returns функция для получения высоты из heightmap с нормализацией и UV wrapping
+   */
+  private createHeightmapSource(params: GfxHeightmapParams) {
+    return (x: number, z: number): number => {
+      // Если ImageData еще не загружена, возвращаем 0 пока она загружается асинхронно
+      if (!this.heightmapImageData) {
+        this.loadHeightmapImageDataIfNeeded(params.assetId);
+        return 0;
+      }
+
+      // Преобразуем мировые координаты в UV координаты [0, 1]
+      const halfWidth = this.config.worldWidth / 2;
+      const halfHeight = this.config.worldHeight / 2;
+      
+      let u = (x + halfWidth) / this.config.worldWidth;
+      let v = (z + halfHeight) / this.config.worldHeight;
+
+      // Применяем UV wrapping
+      const wrap = params.wrap || 'clamp';
+      switch (wrap) {
+        case 'repeat':
+          u = u - Math.floor(u); // оставляем только дробную часть
+          v = v - Math.floor(v);
+          if (u < 0) u += 1; // для отрицательных значений
+          if (v < 0) v += 1;
+          break;
+        case 'clamp':
+        default:
+          u = Math.max(0, Math.min(1, u));
+          v = Math.max(0, Math.min(1, v));
+          break;
+      }
+
+      // Преобразуем UV в пиксельные координаты
+      const pixelX = u * (params.imgWidth - 1);
+      const pixelY = v * (params.imgHeight - 1);
+
+      // Биlinear интерполяция
+      const height = this.sampleHeightmapBilinear(pixelX, pixelY, params);
+      
+      return height;
+    };
+  }
+
+  /**
+   * Загружает ImageData для heightmap асинхронно (если еще не загружена)
+   * @param assetId - идентификатор terrain asset
+   */
+  private loadHeightmapImageDataIfNeeded(assetId: string): void {
+    if (this.heightmapImageData || this.heightmapLoadPromise) {
+      return; // уже загружена или загружается
+    }
+
+    // Запускаем асинхронную загрузку
+    this.heightmapLoadPromise = loadTerrainAssetImageData(assetId)
+      .then(imageData => {
+        this.heightmapImageData = imageData;
+        // Очищаем кэш высот, чтобы пересчитать с новыми данными heightmap
+        this.heightCache.clear();
+        return imageData;
+      })
+      .catch(error => {
+        console.error('Ошибка загрузки heightmap:', error);
+        // В случае ошибки сбрасываем промис для возможности повторной попытки
+        this.heightmapLoadPromise = undefined;
+        throw error;
+      });
+  }
+
+  /**
+   * Выполняет bilinear интерполяцию высоты из heightmap ImageData
+   * @param pixelX - X координата в пикселях (может быть дробной)
+   * @param pixelY - Y координата в пикселях (может быть дробной)
+   * @param params - параметры heightmap для нормализации высоты
+   * @returns интерполированная высота в мировых единицах
+   */
+  private sampleHeightmapBilinear(pixelX: number, pixelY: number, params: GfxHeightmapParams): number {
+    if (!this.heightmapImageData) {
+      return 0;
+    }
+
+    const { data, width, height } = this.heightmapImageData;
+    
+    // Находим 4 соседних пикселя для интерполяции
+    const x0 = Math.floor(pixelX);
+    const y0 = Math.floor(pixelY);
+    const x1 = Math.min(x0 + 1, width - 1);
+    const y1 = Math.min(y0 + 1, height - 1);
+
+    // Вычисляем веса для интерполяции
+    const wx = pixelX - x0;
+    const wy = pixelY - y0;
+
+    // Получаем яркость 4 соседних пикселей (используем формулу luminance)
+    const getPixelLuminance = (x: number, y: number): number => {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      // Стандартная формула luminance
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+
+    const h00 = getPixelLuminance(x0, y0); // левый верхний
+    const h10 = getPixelLuminance(x1, y0); // правый верхний  
+    const h01 = getPixelLuminance(x0, y1); // левый нижний
+    const h11 = getPixelLuminance(x1, y1); // правый нижний
+
+    // Bilinear интерполяция
+    const h0 = h00 * (1 - wx) + h10 * wx; // интерполяция по верхней стороне
+    const h1 = h01 * (1 - wx) + h11 * wx; // интерполяция по нижней стороне
+    const interpolatedHeight = h0 * (1 - wy) + h1 * wy; // финальная интерполяция
+
+    // Нормализуем значение из диапазона [0, 255] в [min, max]
+    const normalizedHeight = (interpolatedHeight / 255) * (params.max - params.min) + params.min;
+    
+    return normalizedHeight;
   }
 
   /**
