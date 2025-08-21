@@ -34,7 +34,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
   // renderProfile может использоваться для различения настроек рендера между режимами Edit/View.
   // На текущем этапе реализации служит флагом подготовки к будущим настройкам.
   // Возможные применения: различные настройки post-processing, качество теней, LOD и др.
-  
+
   // Enable keyboard shortcuts
   useKeyboardShortcuts()
 
@@ -57,7 +57,6 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
           В режиме Play гизмо скрываются, чтобы они не мешали просмотру/управлению. */}
       {uiMode === UiMode.Edit && <ObjectTransformGizmo />}
       <EffectComposer>
-        <FXAA />
         <SMAA />
       </EffectComposer>
 
