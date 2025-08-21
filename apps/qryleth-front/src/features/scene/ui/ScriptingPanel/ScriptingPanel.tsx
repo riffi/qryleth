@@ -32,7 +32,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
 
   const handleSaveScript = useCallback(async () => {
     if (!saveScriptName.trim()) return
-    
+
     const success = await scriptManager.saveScript(saveScriptName, script, saveScriptDescription)
     if (success) {
       setIsSaveModalOpen(false)
@@ -78,7 +78,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
           ${script}
         })();
       `
-      
+
       const func = new Function('sceneApi', 'console', asyncScript)
       const result = await func(SceneAPI, window.console)
 
@@ -94,10 +94,10 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
 
   const handleEditorChange = useCallback((value: string, viewUpdate: any) => {
     setScript(value)
-    
+
     const selection = viewUpdate.state.selection.main
     const cursorPos = selection.head
-    
+
     const methodInfo = analyzeCurrentContext(value, cursorPos)
     setCurrentMethodInfo(methodInfo)
   }, [])
@@ -110,7 +110,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   }, [script])
 
   return (
-    <Box style={{ height, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height, display: 'flex', flexDirection: 'column', width: '100%' }}>
       <ToolbarPanel
         languageMode={languageMode}
         onLanguageModeChange={handleLanguageModeChange}

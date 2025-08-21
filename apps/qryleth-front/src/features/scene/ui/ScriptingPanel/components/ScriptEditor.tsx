@@ -25,7 +25,7 @@ export const ScriptEditor = memo<ScriptEditorProps>(({
   currentMethodInfo
 }) => {
   return (
-    <Box style={{ flex: '1', minHeight: 0, position: 'relative' }}>
+    <Box style={{ flex: '1', minHeight: 0, position: 'relative', width: '100%' }}>
       {currentMethodInfo && (
         <Paper
           shadow="md"
@@ -82,7 +82,10 @@ export const ScriptEditor = memo<ScriptEditorProps>(({
         }}
         theme={oneDark}
         height="100%"
-        style={{ height: '100%' }}
+        style={{ 
+          height: '100%',
+          width: '100%'
+        }}
       />
     </Box>
   )

@@ -513,7 +513,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             }}
           >
             {scriptingPanelVisible ? (
-              <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box style={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
                 <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
                   <Group>
                     <IconCode size={20} />
