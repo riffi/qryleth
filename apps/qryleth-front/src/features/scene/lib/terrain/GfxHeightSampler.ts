@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from './HeightmapUtils';
+import { TERRAIN_MAX_SEGMENTS } from '@/shared/config/terrain';
 // Флаг отладки: в продакшене подавляем подробные логи
 const DEBUG = (import.meta as any)?.env?.MODE !== 'production';
 
@@ -940,5 +941,5 @@ export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeigh
  */
 function decideSegments(worldWidth: number, worldHeight: number): number {
   const maxDimension = Math.max(worldWidth, worldHeight);
-  return maxDimension > 200 ? 200 : Math.max(10, Math.floor(maxDimension));
+  return maxDimension > TERRAIN_MAX_SEGMENTS ? TERRAIN_MAX_SEGMENTS : Math.max(10, Math.floor(maxDimension));
 }

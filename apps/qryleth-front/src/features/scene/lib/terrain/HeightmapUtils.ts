@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '@/shared/lib/database'
 import type { TerrainAssetRecord } from '@/shared/lib/database'
+import { HEIGHTMAP_MAX_DIMENSION } from '@/shared/config/terrain'
 
 /**
  * Результат валидации PNG файла для использования в качестве heightmap
@@ -133,7 +134,7 @@ export async function uploadTerrainAsset(file: File, fileName?: string): Promise
   // Грузим исходную картинку и выполняем масштабирование до ≤200px по большей стороне
   const origBitmap = await createImageBitmap(file)
   try {
-    const { imageData: scaledImageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(origBitmap, 200)
+    const { imageData: scaledImageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(origBitmap, HEIGHTMAP_MAX_DIMENSION)
 
     // Извлекаем массив высот из масштабированного изображения
     const heights = extractHeightsFromImageData(scaledImageData)
@@ -453,7 +454,7 @@ export async function loadTerrainHeightsFromAsset(assetId: string): Promise<{
  */
 export async function resizeBitmapToMaxSize(
   bitmap: ImageBitmap,
-  maxSize: number = 200
+  maxSize: number = HEIGHTMAP_MAX_DIMENSION
 ): Promise<{ imageData: ImageData; blob: Blob; width: number; height: number }> {
   const srcW = bitmap.width
   const srcH = bitmap.height
@@ -501,7 +502,7 @@ export async function performLazyHeightsMigration(assetId: string): Promise<{
 
   const bitmap = await createImageBitmap(asset.blob)
   try {
-    const { imageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(bitmap, 200)
+    const { imageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(bitmap, HEIGHTMAP_MAX_DIMENSION)
     const heights = extractHeightsFromImageData(imageData)
     const heightsHash = await sha256Hex(heights.buffer)
 
