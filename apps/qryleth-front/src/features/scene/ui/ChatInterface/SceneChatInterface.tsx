@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react'
-import { Stack, Paper, Text, Group, Badge, Select, Box, Tabs, ActionIcon } from '@mantine/core'
-import { IconArrowsDiagonalMinimize2 } from '@tabler/icons-react'
+import { useState } from 'react'
+import { Stack, Paper, Text, Group, Badge, Select, Box, Tabs } from '@mantine/core'
 import { ChatContainer, ChatInput, useChatScroll } from '@/shared/entities/chat'
 import { getProviderModels } from '@/shared/lib/openAISettings'
 import type {GfxObjectWithTransform} from "@/entities"
@@ -8,11 +7,13 @@ import { useSceneChat } from './hooks/useSceneChat'
 import { SceneDebugPanel } from './components/SceneDebugPanel'
 import { sceneToolUtils } from './components/SceneToolCallbacks'
 
-interface Props {
-  onCollapse?: () => void
-}
-
-export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
+/**
+ * SceneChatInterface — панель чата сцены без собственных кнопок сворачивания/закрытия.
+ *
+ * В заголовке панели SceneEditor теперь рендерится иконка закрытия (как у скриптинга),
+ * поэтому из самого компонента удалены элементы управления сворачиванием.
+ */
+export const SceneChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
 
   // Используем scene-специфичный хук чата
@@ -56,25 +57,12 @@ export const SceneChatInterface: React.FC<Props> = ({ onCollapse }) => {
         <Group justify="space-between" align="center">
           <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
             <Group flex={1} style={{ flexGrow: 1 }}>
-              <Text size="lg" fw={500}>
-                Чат
-              </Text>
               {connection && (
                 <Badge variant="light" color="gray">
                   {connection.name}
                 </Badge>
               )}
             </Group>
-            {onCollapse && (
-              <ActionIcon
-                variant="subtle"
-                size="sm"
-                onClick={onCollapse}
-                aria-label="Свернуть чат"
-              >
-                <IconArrowsDiagonalMinimize2 size={16} />
-              </ActionIcon>
-            )}
           </Group>
           <Group gap="xs" align="center" style={{ width: '100%' }}>
             {connection && (

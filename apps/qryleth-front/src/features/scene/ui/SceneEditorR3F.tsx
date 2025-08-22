@@ -748,7 +748,25 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </Box>
               </Box>
             ) : (
-              <SceneChatInterface onCollapse={() => setChatCollapsed(true)} />
+              <Box style={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
+                {/* Заголовок панели чата по аналогии с панелью скриптинга */}
+                <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+                  <Group>
+                    <IconMessages size={20} />
+                    <Text fw={500}>Панель чата</Text>
+                  </Group>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => setChatCollapsed(true)}
+                  >
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Group>
+                <Box style={{ flex: 1, minHeight: 0 }}>
+                  <SceneChatInterface />
+                </Box>
+              </Box>
             )}
           </Paper>
         )}
@@ -841,10 +859,26 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   backdropFilter: 'blur(8px)'
                 }}
               >
-                <SceneObjectManager
-                  onSaveSceneToLibrary={handleSaveSceneToLibrary}
-                  onEditObject={handleEditObject}
-                />
+                {/* Заголовок панели менеджера объектов с иконкой закрытия */}
+                <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+                  <Group>
+                    <IconFolder size={20} />
+                    <Text fw={500}>Менеджер объектов</Text>
+                  </Group>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => setObjectPanelCollapsed(true)}
+                  >
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Group>
+                <Box style={{ flex: 1, minHeight: 0 }}>
+                  <SceneObjectManager
+                    onSaveSceneToLibrary={handleSaveSceneToLibrary}
+                    onEditObject={handleEditObject}
+                  />
+                </Box>
               </Paper>
             )}
             {/* No side handle for right panel; use header icons */}

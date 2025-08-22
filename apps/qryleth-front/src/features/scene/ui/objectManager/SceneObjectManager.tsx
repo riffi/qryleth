@@ -470,10 +470,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         <>
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
-                    <Title order={4} c="gray.6" size="md">
-                        Менеджер сцены
-                    </Title>
-
                     <LightingControls
                         lighting={lighting}
                         onLightingChange={handleLightingChange}
