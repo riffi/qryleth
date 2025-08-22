@@ -16,7 +16,7 @@ import {
     Slider,
     Alert
 } from '@mantine/core'
-import { IconLayersLinked, IconSettings, IconUpload, IconPhoto } from '@tabler/icons-react'
+import { IconLayersLinked, IconSettings, IconUpload, IconPhoto, IconX } from '@tabler/icons-react'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
@@ -30,6 +30,7 @@ import {
     getAllTerrainAssetsSummary
 } from '@/features/scene/lib/terrain/HeightmapUtils'
 import type { GfxTerrainConfig, GfxHeightmapParams } from '@/entities/terrain'
+import { TerrainAssetPickerModal } from './TerrainAssetPickerModal'
 
 /**
  * Модальные окна для создания и редактирования слоёв сцены.
@@ -70,6 +71,10 @@ export const SceneLayerModals: React.FC = () => {
     const [terrainSource, setTerrainSource] = useState<'perlin' | 'heightmap'>('perlin')
     const [heightmapFile, setHeightmapFile] = useState<File | null>(null)
     const [heightmapPreviewUrl, setHeightmapPreviewUrl] = useState<string | null>(null)
+    // Выбранный ассет из коллекции (альтернатива загрузке файла)
+    const [selectedAsset, setSelectedAsset] = useState<{ assetId: string; width: number; height: number; fileName: string } | null>(null)
+    const [selectedAssetPreviewUrl, setSelectedAssetPreviewUrl] = useState<string | null>(null)
+    const [assetPickerOpened, setAssetPickerOpened] = useState(false)
     const [heightmapParams, setHeightmapParams] = useState<Partial<GfxHeightmapParams>>({
         min: 0,
         max: 10,
@@ -106,6 +111,12 @@ export const SceneLayerModals: React.FC = () => {
                 revokeTerrainAssetPreviewUrl(heightmapPreviewUrl)
                 setHeightmapPreviewUrl(null)
             }
+            // Если файл снят — также сбрасываем выбранный ассет
+            setSelectedAsset(null)
+            if (selectedAssetPreviewUrl) {
+                revokeTerrainAssetPreviewUrl(selectedAssetPreviewUrl)
+                setSelectedAssetPreviewUrl(null)
+            }
             setUploadError(null)
             return
         }
@@ -122,10 +133,17 @@ export const SceneLayerModals: React.FC = () => {
             }
 
             setHeightmapFile(file)
-            
+
             // Создаем превью
             const previewUrl = URL.createObjectURL(file)
             setHeightmapPreviewUrl(previewUrl)
+
+            // При выборе файла сбрасываем ранее выбранный ассет
+            if (selectedAssetPreviewUrl) {
+                revokeTerrainAssetPreviewUrl(selectedAssetPreviewUrl)
+                setSelectedAssetPreviewUrl(null)
+            }
+            setSelectedAsset(null)
 
             // Обновляем параметры heightmap
             if (validation.dimensions) {
@@ -158,6 +176,11 @@ export const SceneLayerModals: React.FC = () => {
             revokeTerrainAssetPreviewUrl(heightmapPreviewUrl)
             setHeightmapPreviewUrl(null)
         }
+        if (selectedAssetPreviewUrl) {
+            revokeTerrainAssetPreviewUrl(selectedAssetPreviewUrl)
+            setSelectedAssetPreviewUrl(null)
+        }
+        setSelectedAsset(null)
         setHeightmapParams({
             min: 0,
             max: 10,
@@ -165,7 +188,8 @@ export const SceneLayerModals: React.FC = () => {
         })
         setUploadError(null)
         setIsUploading(false)
-    }, [heightmapPreviewUrl, setLayerModalOpened, setLayerFormData])
+        setAssetPickerOpened(false)
+    }, [heightmapPreviewUrl, selectedAssetPreviewUrl, setLayerModalOpened, setLayerFormData])
 
     useEffect(() => {
         if (layerModalOpened && layerModalMode === 'create') {
@@ -175,6 +199,11 @@ export const SceneLayerModals: React.FC = () => {
 
     /**
      * Обработчик создания слоя с поддержкой heightmap
+     */
+    /**
+     * Создание слоя с учётом источника террейна.
+     * Если выбран heightmap, поддерживаются два варианта: новый файл (загрузка и создание ассета)
+     * или уже существующий ассет из коллекции (без повторной загрузки).
      */
     const handleCreateLayerWithTerrain = useCallback(async () => {
         if (layerModalMode !== 'create') {
@@ -189,13 +218,28 @@ export const SceneLayerModals: React.FC = () => {
         }
 
         // Логика для landscape слоев с terrain
-        if (terrainSource === 'heightmap' && heightmapFile) {
+        if (terrainSource === 'heightmap' && (heightmapFile || selectedAsset)) {
             try {
                 setIsUploading(true)
                 setUploadError(null)
 
-                // Загружаем файл в Dexie
-                const uploadResult = await uploadTerrainAsset(heightmapFile)
+                let assetId: string
+                let imgWidth: number
+                let imgHeight: number
+
+                if (heightmapFile) {
+                    // Загружаем файл в Dexie
+                    const uploadResult = await uploadTerrainAsset(heightmapFile)
+                    assetId = uploadResult.assetId
+                    imgWidth = uploadResult.width
+                    imgHeight = uploadResult.height
+                } else if (selectedAsset) {
+                    assetId = selectedAsset.assetId
+                    imgWidth = selectedAsset.width
+                    imgHeight = selectedAsset.height
+                } else {
+                    throw new Error('Не выбран файл или ассет карты высот')
+                }
 
                 // Создаем GfxTerrainConfig для heightmap
                 const terrainConfig: GfxTerrainConfig = {
@@ -205,9 +249,9 @@ export const SceneLayerModals: React.FC = () => {
                     source: {
                         kind: 'heightmap',
                         params: {
-                            assetId: uploadResult.assetId,
-                            imgWidth: uploadResult.width,
-                            imgHeight: uploadResult.height,
+                            assetId,
+                            imgWidth,
+                            imgHeight,
                             min: heightmapParams.min || 0,
                             max: heightmapParams.max || 10,
                             wrap: heightmapParams.wrap || 'clamp'
@@ -248,7 +292,7 @@ export const SceneLayerModals: React.FC = () => {
             // Обычная логика для perlin
             handleCreateLayer()
         }
-    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, heightmapParams, layers, handleCreateLayer, resetModalState, storeCreateLayer])
+    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleCreateLayer, resetModalState, storeCreateLayer])
 
     // Очистка при размонтировании
     useEffect(() => {
@@ -337,15 +381,26 @@ export const SceneLayerModals: React.FC = () => {
 
                                     {terrainSource === 'heightmap' && (
                                         <Stack gap="sm">
-                                            <FileInput
-                                                label="Загрузить PNG heightmap"
-                                                placeholder="Выберите PNG файл..."
-                                                accept="image/png"
-                                                value={heightmapFile}
-                                                onChange={handleHeightmapUpload}
-                                                leftSection={<IconUpload size={16} />}
-                                                disabled={isUploading}
-                                            />
+                                            <Group align="end" gap="sm">
+                                                <FileInput
+                                                    label="Загрузить PNG heightmap"
+                                                    placeholder="Выберите PNG файл..."
+                                                    accept="image/png"
+                                                    value={heightmapFile}
+                                                    onChange={handleHeightmapUpload}
+                                                    leftSection={<IconUpload size={16} />}
+                                                    disabled={isUploading || !!selectedAsset}
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <Button
+                                                    variant="light"
+                                                    leftSection={<IconPhoto size={16} />}
+                                                    onClick={() => setAssetPickerOpened(true)}
+                                                    disabled={isUploading}
+                                                >
+                                                    Выбрать из коллекции
+                                                </Button>
+                                            </Group>
 
                                             {uploadError && (
                                                 <Alert color="red" variant="light">
@@ -353,7 +408,31 @@ export const SceneLayerModals: React.FC = () => {
                                                 </Alert>
                                             )}
 
-                                            {heightmapPreviewUrl && (
+                                            {selectedAsset && (
+                                                <Stack gap="xs">
+                                                    <Group justify="space-between" align="center">
+                                                        <Text size="sm" fw={500}>Выбранный ассет:</Text>
+                                                        <Button variant="subtle" size="xs" leftSection={<IconX size={14} />} onClick={() => {
+                                                            setSelectedAsset(null)
+                                                            if (selectedAssetPreviewUrl) {
+                                                                revokeTerrainAssetPreviewUrl(selectedAssetPreviewUrl)
+                                                                setSelectedAssetPreviewUrl(null)
+                                                            }
+                                                        }}>Сбросить выбор</Button>
+                                                    </Group>
+                                                    <Image
+                                                        src={selectedAssetPreviewUrl || ''}
+                                                        alt={selectedAsset.fileName}
+                                                        width={200}
+                                                        height={150}
+                                                        fit="contain"
+                                                        style={{ border: '1px solid #e0e0e0', borderRadius: 4 }}
+                                                    />
+                                                    <Text size="sm" c="dimmed">{selectedAsset.fileName} — {selectedAsset.width}×{selectedAsset.height}px</Text>
+                                                </Stack>
+                                            )}
+
+                                            {!selectedAsset && heightmapPreviewUrl && (
                                                 <Stack gap="xs">
                                                     <Text size="sm" fw={500}>Превью heightmap:</Text>
                                                     <Image
@@ -474,7 +553,7 @@ export const SceneLayerModals: React.FC = () => {
                         <Button
                             onClick={layerModalMode === 'create' ? handleCreateLayerWithTerrain : handleUpdateLayer}
                             disabled={(layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()) || 
-                                     (terrainSource === 'heightmap' && !heightmapFile && layerFormData.shape === GfxLayerShape.Terrain) ||
+                                     (terrainSource === 'heightmap' && !heightmapFile && !selectedAsset && layerFormData.shape === GfxLayerShape.Terrain) ||
                                      isUploading}
                             loading={isUploading}
                         >
@@ -517,6 +596,32 @@ export const SceneLayerModals: React.FC = () => {
                     ))}
                 </Menu.Dropdown>
             </Menu>
+            {/* Модал выбора heightmap ассета из коллекции */}
+            <TerrainAssetPickerModal
+                opened={assetPickerOpened}
+                onClose={() => setAssetPickerOpened(false)}
+                onSelect={async ({ assetId, width, height, fileName }) => {
+                    // Сбрасываем файл и его превью, если были
+                    if (heightmapPreviewUrl) {
+                        revokeTerrainAssetPreviewUrl(heightmapPreviewUrl)
+                        setHeightmapPreviewUrl(null)
+                    }
+                    setHeightmapFile(null)
+
+                    // Сохраняем выбранный ассет и подгружаем превью
+                    setSelectedAsset({ assetId, width, height, fileName })
+                    try {
+                        const url = await createTerrainAssetPreviewUrl(assetId)
+                        setSelectedAssetPreviewUrl(url)
+                    } catch (e) {
+                        console.error('Не удалось создать превью выбранного ассета', e)
+                    }
+
+                    // Обновляем параметры изображения для terrain
+                    setHeightmapParams(prev => ({ ...prev, imgWidth: width, imgHeight: height }))
+                    setAssetPickerOpened(false)
+                }}
+            />
         </>
     )
 }
