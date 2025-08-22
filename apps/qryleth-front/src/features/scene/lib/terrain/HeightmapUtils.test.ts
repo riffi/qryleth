@@ -7,6 +7,7 @@ vi.mock('@/shared/lib/database', () => ({
     saveTerrainAsset: vi.fn(),
     updateTerrainAssetHeights: vi.fn(),
     updateTerrainAssetImage: vi.fn(),
+    findTerrainAssetByHeightsHash: vi.fn(),
     getTerrainAsset: vi.fn(),
     getAllTerrainAssets: vi.fn(),
     deleteTerrainAsset: vi.fn(),
@@ -161,6 +162,7 @@ describe('HeightmapUtils', () => {
       const { db } = await import('@/shared/lib/database');
       vi.mocked(db.saveTerrainAsset).mockResolvedValue(undefined);
       vi.mocked(db.updateTerrainAssetHeights).mockResolvedValue(undefined);
+      vi.mocked(db.findTerrainAssetByHeightsHash).mockResolvedValue(undefined as any);
 
       const result = await uploadTerrainAsset(mockFile);
 

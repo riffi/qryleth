@@ -29,6 +29,15 @@ export interface TerrainAssetRecord {
   /** Двоичные данные PNG файла */
   blob: Blob
   /**
+   * Хэш массива высот (SHA-256 по байтам Float32Array), служит для дедупликации ассетов.
+   *
+   * Если два исходных PNG после нормализации (ресайз ≤200 и извлечения яркости) дают
+   * одинаковое поле высот, их heightsHash совпадает. При загрузке нового PNG сначала
+   * считается heightsHash и выполняется поиск по нему. Если совпадение найдено, новый
+   * ассет не создаётся — переиспользуется существующий.
+   */
+  heightsHash?: string
+  /**
    * Массив высот, извлечённых из PNG heightmap.
    * 
    * Замечание по хранению: IndexedDB/Dexie не сохраняет непосредственно типизированные
@@ -90,6 +99,15 @@ export class SceneLibraryDB extends Dexie {
       connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
       scripts: '++id, uuid, name, createdAt, updatedAt',
       terrainAssets: '++id, assetId, fileName, createdAt, updatedAt'
+    })
+
+    // Версия 6: добавлен индекс по heightsHash для быстрого поиска дубликатов
+    this.version(6).stores({
+      scenes: '++id, uuid, name, createdAt, updatedAt',
+      objects: '++id, uuid, name, createdAt, updatedAt',
+      connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
+      scripts: '++id, uuid, name, createdAt, updatedAt',
+      terrainAssets: '++id, assetId, heightsHash, fileName, createdAt, updatedAt'
     })
 
     // Примечание: добавление новых полей (heightsBuffer/heightsWidth/heightsHeight)
@@ -492,13 +510,20 @@ export class SceneLibraryDB extends Dexie {
     assetId: string,
     heights: Float32Array,
     width: number,
-    height: number
+    height: number,
+    /**
+     * Опциональный хэш высот (SHA-256). Если передан — сохраняется в записи ассета
+     * для последующей дедупликации. Если не передан — поле heightsHash оставляется
+     * без изменений (полезно для обратной совместимости вызовов).
+     */
+    heightsHash?: string
   ): Promise<void> {
-    await this.terrainAssets.where('assetId').equals(assetId).modify({
-      heightsBuffer: heights.buffer,
-      heightsWidth: width,
-      heightsHeight: height,
-      updatedAt: new Date()
+    await this.terrainAssets.where('assetId').equals(assetId).modify((rec) => {
+      rec.heightsBuffer = heights.buffer
+      rec.heightsWidth = width
+      rec.heightsHeight = height
+      if (heightsHash) rec.heightsHash = heightsHash
+      rec.updatedAt = new Date()
     })
   }
 
@@ -526,6 +551,16 @@ export class SceneLibraryDB extends Dexie {
       width: rec.heightsWidth,
       height: rec.heightsHeight
     }
+  }
+
+  /**
+   * Ищет ассет террейна по хэшу высот (используется для дедупликации при загрузке PNG)
+   *
+   * @param heightsHash - строка SHA-256 по байтам Float32Array высот
+   * @returns запись ассета или undefined, если не найдено
+   */
+  async findTerrainAssetByHeightsHash(heightsHash: string): Promise<TerrainAssetRecord | undefined> {
+    return this.terrainAssets.where('heightsHash').equals(heightsHash).first()
   }
 }
 

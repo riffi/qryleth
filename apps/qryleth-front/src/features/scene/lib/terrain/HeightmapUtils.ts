@@ -31,6 +31,36 @@ export interface TerrainAssetUploadResult {
 }
 
 /**
+ * Вычисляет SHA-256 по содержимому ArrayBuffer и возвращает строку в hex-формате
+ *
+ * Используется для вычисления детерминированного хэша массива высот (Float32Array)
+ * с целью дедупликации ассетов: если два PNG после нормализации дают одинаковые
+ * высотные данные, их хэш совпадёт, и мы не будем создавать дубликат в Dexie.
+ */
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  // Предпочтительно используем WebCrypto (браузер/Node >=18)
+  const subtle: SubtleCrypto | undefined = (globalThis as any)?.crypto?.subtle
+  if (subtle && typeof subtle.digest === 'function') {
+    const digest = await subtle.digest('SHA-256', buffer)
+    const bytes = new Uint8Array(digest)
+    let hex = ''
+    for (let i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0')
+    return hex
+  }
+
+  // Фоллбэк для сред тестирования без WebCrypto: простая FNV-1a 64-bit по байтам.
+  // В проде не используется; коллизии маловероятны для наших целей дедупликации.
+  const data = new Uint8Array(buffer)
+  let h1 = 0xcbf29ce484222325n
+  let prime = 0x100000001b3n
+  for (let i = 0; i < data.length; i++) {
+    h1 ^= BigInt(data[i])
+    h1 = (h1 * prime) & 0xffffffffffffffffn
+  }
+  return h1.toString(16).padStart(16, '0')
+}
+
+/**
  * Валидирует PNG файл для использования в качестве heightmap
  */
 export async function validatePngFile(file: File): Promise<PngValidationResult> {
@@ -100,9 +130,6 @@ export async function uploadTerrainAsset(file: File, fileName?: string): Promise
     throw new Error(validation.error || 'Неверный файл')
   }
 
-  // Генерируем уникальный идентификатор ассета
-  const assetId = uuidv4()
-
   // Грузим исходную картинку и выполняем масштабирование до ≤200px по большей стороне
   const origBitmap = await createImageBitmap(file)
   try {
@@ -110,6 +137,46 @@ export async function uploadTerrainAsset(file: File, fileName?: string): Promise
 
     // Извлекаем массив высот из масштабированного изображения
     const heights = extractHeightsFromImageData(scaledImageData)
+
+    // Считаем хэш по высотам для дедупликации
+    const heightsHash = await sha256Hex(heights.buffer)
+
+    // Проверяем, есть ли уже такой ассет в Dexie (быстрый путь по индексу)
+    const existing = await db.findTerrainAssetByHeightsHash(heightsHash)
+    if (existing) {
+      // Если у существующего отсутствуют сохранённые высоты — допишем их
+      if (!existing.heightsBuffer || !existing.heightsWidth || !existing.heightsHeight) {
+        await db.updateTerrainAssetHeights(existing.assetId, heights, width, height, heightsHash)
+      }
+      return {
+        assetId: existing.assetId,
+        width: existing.width,
+        height: existing.height,
+        fileSize: existing.fileSize
+      }
+    }
+
+    // Медленный фоллбэк для старых записей без heightsHash: пробуем найти совпадение по сохранённым высотам
+    // После нахождения — запишем heightsHash, чтобы в будущем использовать быстрый индекс.
+    const allAssets = await db.getAllTerrainAssets()
+    for (const rec of allAssets) {
+      if (rec.heightsBuffer && rec.heightsWidth && rec.heightsHeight) {
+        const recHash = await sha256Hex(rec.heightsBuffer)
+        if (recHash === heightsHash) {
+          // Кешируем heightsHash в записи ассета
+          await db.updateTerrainAssetHeights(rec.assetId, heights, width, height, heightsHash)
+          return {
+            assetId: rec.assetId,
+            width: rec.width,
+            height: rec.height,
+            fileSize: rec.fileSize
+          }
+        }
+      }
+    }
+
+    // Генерируем уникальный идентификатор для нового ассета
+    const assetId = uuidv4()
 
     // Сохраняем PNG (уже масштабированный) и метаданные
     await db.saveTerrainAsset(
@@ -120,8 +187,8 @@ export async function uploadTerrainAsset(file: File, fileName?: string): Promise
       height
     )
 
-    // Сохраняем массив высот и размеры сетки
-    await db.updateTerrainAssetHeights(assetId, heights, width, height)
+    // Сохраняем массив высот, размеры сетки и хэш для будущей дедупликации
+    await db.updateTerrainAssetHeights(assetId, heights, width, height, heightsHash)
 
     return {
       assetId,
@@ -343,7 +410,9 @@ export async function saveTerrainHeightsToAsset(
   width: number,
   height: number
 ): Promise<void> {
-  await db.updateTerrainAssetHeights(assetId, heights, width, height)
+  // Для согласованности сохраняем и хэш высот (чтобы ассет можно было найти по нему)
+  const heightsHash = await sha256Hex(heights.buffer)
+  await db.updateTerrainAssetHeights(assetId, heights, width, height, heightsHash)
 }
 
 /**
@@ -434,14 +503,15 @@ export async function performLazyHeightsMigration(assetId: string): Promise<{
   try {
     const { imageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(bitmap, 200)
     const heights = extractHeightsFromImageData(imageData)
+    const heightsHash = await sha256Hex(heights.buffer)
 
     // Если фактические размеры/вес отличаются от сохранённых — обновляем blob и метаданные
     if (asset.width !== width || asset.height !== height || asset.fileSize !== scaledBlob.size) {
       await db.updateTerrainAssetImage(assetId, scaledBlob, width, height)
     }
 
-    // Записываем высоты
-    await db.updateTerrainAssetHeights(assetId, heights, width, height)
+    // Записываем высоты и соответствующий хэш
+    await db.updateTerrainAssetHeights(assetId, heights, width, height, heightsHash)
 
     return { heights, width, height }
   } finally {
