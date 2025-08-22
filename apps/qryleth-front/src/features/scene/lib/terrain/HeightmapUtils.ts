@@ -272,3 +272,86 @@ export async function getTerrainAssetInfo(assetId: string): Promise<{
     updatedAt: asset.updatedAt
   }
 }
+
+/**
+ * Извлекает массив высот из ImageData PNG heightmap
+ *
+ * Метод интерпретирует яркость пикселей как высоту. Яркость вычисляется по формуле
+ * относительной светимости: Y = 0.2126 * R + 0.7152 * G + 0.0722 * B.
+ * По умолчанию значения нормализуются в диапазон [0..1]. При указании параметров
+ * min/max выполняется линейный ремаппинг в заданный диапазон.
+ *
+ * Размер результирующего массива равен width*height переданного ImageData (после
+ * возможного масштабирования на этапе подготовки канваса).
+ *
+ * @param imageData - пиксельные данные изображения (RGBA), полученные из canvas
+ * @param options - параметры нормализации (опционально)
+ * @param options.min - минимальное значение высоты (по умолчанию 0)
+ * @param options.max - максимальное значение высоты (по умолчанию 1)
+ * @returns Float32Array длиной width*height с высотами в диапазоне [min..max]
+ */
+export function extractHeightsFromImageData(
+  imageData: ImageData,
+  options?: { min?: number; max?: number }
+): Float32Array {
+  const { data, width, height } = imageData
+  const result = new Float32Array(width * height)
+
+  const min = options?.min ?? 0
+  const max = options?.max ?? 1
+  const scale = max - min
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idxRGBA = (y * width + x) * 4
+      const r = data[idxRGBA]
+      const g = data[idxRGBA + 1]
+      const b = data[idxRGBA + 2]
+      // Стандартная формула относительной светимости для sRGB
+      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b // [0..255]
+      const normalized01 = luminance / 255 // [0..1]
+      result[y * width + x] = min + normalized01 * scale
+    }
+  }
+
+  return result
+}
+
+/**
+ * Сохраняет массив высот в IndexedDB (Dexie) для указанного ассета
+ *
+ * Метод записывает `Float32Array` высот в виде `ArrayBuffer` и размеры сетки высот
+ * в запись `terrainAssets`. В случае отсутствия записи метод завершится ошибкой —
+ * предварительно необходимо создать ассет через `uploadTerrainAsset`.
+ *
+ * @param assetId - идентификатор ассета в Dexie
+ * @param heights - массив высот (Float32Array)
+ * @param width - ширина сетки высот (количество столбцов)
+ * @param height - высота сетки высот (количество строк)
+ */
+export async function saveTerrainHeightsToAsset(
+  assetId: string,
+  heights: Float32Array,
+  width: number,
+  height: number
+): Promise<void> {
+  await db.updateTerrainAssetHeights(assetId, heights, width, height)
+}
+
+/**
+ * Загружает сохранённый массив высот из Dexie для указанного ассета
+ *
+ * Возвращает объект с `Float32Array` высот и размерами сетки. Если высоты ещё
+ * не были сохранены для данного ассета (например, старые записи), метод вернёт `null`.
+ * В таком случае рекомендуется инициировать построение высот из PNG (см. последующие фазы).
+ *
+ * @param assetId - идентификатор ассета в Dexie
+ * @returns объект с полями `heights`, `width`, `height` или `null`
+ */
+export async function loadTerrainHeightsFromAsset(assetId: string): Promise<{
+  heights: Float32Array
+  width: number
+  height: number
+} | null> {
+  return db.getTerrainAssetHeights(assetId)
+}

@@ -2,14 +2,14 @@
 id: 18
 epic: null
 title: "Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения"
-status: planned
+status: in-progress
 created: 2025-08-22
 updated: 2025-08-22
 owner: ai-agent
 tags: [terrain, heightmap, dexie, ui, r3f]
 phases:
   total: 6
-  completed: 0
+  completed: 1
 ---
 
 # Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения
@@ -29,7 +29,7 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Схема Dexie и утилиты высот
+### ✅ Фаза 1: Схема Dexie и утилиты высот
 - Расширить `TerrainAssetRecord` добавлением полей для высот и их размеров:
   - `heights?: Float32Array | ArrayBuffer` (хранение в IndexedDB через Dexie);
   - `heightsWidth?: number`, `heightsHeight?: number` (реальный размер сетки высот после масштабирования);
@@ -39,6 +39,8 @@ phases:
   - Нормализация в диапазон `[min..max]` при необходимости параметрами функции;
   - Выдавать `Float32Array` размера `w*h`.
 - Обеспечить обратную совместимость чтения ассетов без `heights` (ленивое заполнение на первой загрузке; см. Фаза 2).
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Масштабирование PNG ≤200×200 и первичное заполнение высот
 - Изменить `uploadTerrainAsset(file)` в `HeightmapUtils`:
@@ -79,4 +81,3 @@ phases:
   - `docs/api/stores/scene-store.md` — новый флаг прелоадера.
 - Добавить unit-тесты для утилиты извлечения высот и bilinear по массиву.
 - Минимальная регрессия: ручная проверка сценариев импорта, выбора из коллекции, применения на сцене.
-

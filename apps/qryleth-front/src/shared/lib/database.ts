@@ -28,6 +28,19 @@ export interface TerrainAssetRecord {
   fileSize: number
   /** Двоичные данные PNG файла */
   blob: Blob
+  /**
+   * Массив высот, извлечённых из PNG heightmap.
+   * 
+   * Замечание по хранению: IndexedDB/Dexie не сохраняет непосредственно типизированные
+   * массивы, но корректно сохраняет `ArrayBuffer`. Поэтому при записи используется
+   * `Float32Array.buffer`, а при чтении мы создаём новый `Float32Array` поверх
+   * сохранённого буфера. Поле является опциональным для обратной совместимости.
+   */
+  heightsBuffer?: ArrayBuffer
+  /** Ширина карты высот (в элементах массива высот), соответствует ширине канваса после масштабирования */
+  heightsWidth?: number
+  /** Высота карты высот (в элементах массива высот), соответствует высоте канваса после масштабирования */
+  heightsHeight?: number
   /** Дата создания записи */
   createdAt: Date
   /** Дата последнего обновления */
@@ -78,6 +91,11 @@ export class SceneLibraryDB extends Dexie {
       scripts: '++id, uuid, name, createdAt, updatedAt',
       terrainAssets: '++id, assetId, fileName, createdAt, updatedAt'
     })
+
+    // Примечание: добавление новых полей (heightsBuffer/heightsWidth/heightsHeight)
+    // не требует изменения индексов, поэтому версия схемы может оставаться прежней.
+    // Если в будущем понадобятся индексы по этим полям — потребуется повысить версию
+    // и объявить соответствующие индексы в строке stores.
   }
 
   /**
@@ -374,6 +392,11 @@ export class SceneLibraryDB extends Dexie {
   
   /**
    * Сохраняет PNG heightmap в базу данных
+   * 
+   * Метод создаёт/обновляет запись ассета с исходным PNG-блобом и
+   * базовой метаинформацией (размеры, имя, размер файла). Поля массива высот
+   * в этой операции не заполняются и могут быть добавлены отдельным методом
+   * после извлечения высот из изображения.
    */
   async saveTerrainAsset(
     assetId: string, 
@@ -425,6 +448,57 @@ export class SceneLibraryDB extends Dexie {
       fileName,
       updatedAt: new Date()
     })
+  }
+
+  /**
+   * Записывает массив высот для существующего ассета террейна
+   * 
+   * @param assetId - идентификатор ассета
+   * @param heights - массив высот (Float32Array), будет сохранён как ArrayBuffer
+   * @param width - ширина сетки высот
+   * @param height - высота сетки высот
+   * 
+   * Метод обновляет только поля, связанные с высотами, и timestamp `updatedAt`.
+   * PNG blob и его размеры остаются без изменений.
+   */
+  async updateTerrainAssetHeights(
+    assetId: string,
+    heights: Float32Array,
+    width: number,
+    height: number
+  ): Promise<void> {
+    await this.terrainAssets.where('assetId').equals(assetId).modify({
+      heightsBuffer: heights.buffer,
+      heightsWidth: width,
+      heightsHeight: height,
+      updatedAt: new Date()
+    })
+  }
+
+  /**
+   * Получает массив высот для указанного ассета
+   * 
+   * @param assetId - идентификатор ассета
+   * @returns объект с массивом высот и размерами карты, либо null если высоты ещё не сохранены
+   * 
+   * Метод читает сохранённый `ArrayBuffer` и конструирует поверх него `Float32Array`.
+   * Если данные отсутствуют, возвращается `null` — вызывающая сторона может инициировать
+   * «ленивую» генерацию высот из PNG (см. последующие фазы задачи).
+   */
+  async getTerrainAssetHeights(assetId: string): Promise<{
+    heights: Float32Array,
+    width: number,
+    height: number
+  } | null> {
+    const rec = await this.getTerrainAsset(assetId)
+    if (!rec || !rec.heightsBuffer || !rec.heightsWidth || !rec.heightsHeight) {
+      return null
+    }
+    return {
+      heights: new Float32Array(rec.heightsBuffer),
+      width: rec.heightsWidth,
+      height: rec.heightsHeight
+    }
   }
 }
 
