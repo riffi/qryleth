@@ -36,13 +36,16 @@ export const CameraControls: React.FC = () => {
   const setViewMode = useSceneStore(s => s.setViewMode)
   const saveCameraPose = useSceneStore(s => s.saveCameraPose)
   const restoreCameraPose = useSceneStore(s => s.restoreCameraPose)
+  // Флаг автопривязки цели OrbitControls к выбранному инстансу
+  const autoOrbitTargetOnSelect = useSceneStore(s => s.autoOrbitTargetOnSelect)
 
   /**
    * При смене выделения обновляет цель OrbitControls
    * чтобы камера вращалась вокруг выбранного объекта.
    */
   useEffect(() => {
-    if (viewMode !== 'orbit' || !controlsRef.current) return
+    // Если режим не Orbit, нет контролов или автопривязка отключена — ничего не делаем
+    if (viewMode !== 'orbit' || !controlsRef.current || !autoOrbitTargetOnSelect) return
 
     if (!selected) {
       controlsRef.current.target.set(0, 0, 0)
@@ -60,7 +63,7 @@ export const CameraControls: React.FC = () => {
 
     controlsRef.current.target.set(center[0], center[1], center[2])
     controlsRef.current.update()
-  }, [selected, viewMode, objects, instances, scene])
+  }, [selected, viewMode, objects, instances, scene, autoOrbitTargetOnSelect])
 
   /**
    * При входе в режим редактирования принудительно используем Orbit.

@@ -222,6 +222,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const gridVisible = useGridVisible()
   // const layers = useSceneLayers()
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
+  // Настройка автопривязки цели OrbitControls при выборе
+  const autoOrbitTargetOnSelect = useSceneStore(state => state.autoOrbitTargetOnSelect)
+  const toggleAutoOrbitTargetOnSelect = useSceneStore(state => state.toggleAutoOrbitTargetOnSelect)
   // Текущее состояние UI-режима (редактирование / play) и переключатель
   const uiMode = useSceneStore(state => state.uiMode)
   const togglePlay = useSceneStore(state => state.togglePlay)
@@ -771,6 +774,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             <SceneEditorToolBar
               gridVisible={gridVisible}
               onToggleGrid={toggleGridVisibility}
+              autoOrbitTargetOnSelect={autoOrbitTargetOnSelect}
+              onToggleAutoOrbitTargetOnSelect={toggleAutoOrbitTargetOnSelect}
               renderMode={renderMode}
               onChangeRenderMode={setRenderMode}
               transformMode={transformMode}

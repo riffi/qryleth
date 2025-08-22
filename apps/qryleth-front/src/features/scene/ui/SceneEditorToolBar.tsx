@@ -2,7 +2,7 @@ import React from 'react'
 import { ActionIcon, Box, Divider, Group, Text, Tooltip } from '@mantine/core'
 import { GridToggleButton, RenderModeSegment, TransformModeButtons } from '@/shared/ui'
 import type { RenderMode, TransformMode } from '@/shared/types/ui'
-import { IconTrash } from '@tabler/icons-react'
+import { IconTrash, IconTarget } from '@tabler/icons-react'
 
 interface SceneEditorToolBarProps {
   /**
@@ -15,6 +15,16 @@ interface SceneEditorToolBarProps {
    * Должен изменять состояние сетки в zustand‑хранилище сцены.
    */
   onToggleGrid: () => void
+
+  /**
+   * Флаг автопривязки цели OrbitControls к выбранному инстансу.
+   * При включении при клике/выборе объект становится target камеры.
+   */
+  autoOrbitTargetOnSelect?: boolean
+  /**
+   * Колбэк переключения автопривязки цели OrbitControls при выборе.
+   */
+  onToggleAutoOrbitTargetOnSelect?: () => void
 
   /**
    * Текущий режим рендера сцены (например: solid / wireframe / normals и т.п.).
@@ -65,6 +75,8 @@ interface SceneEditorToolBarProps {
 export const SceneEditorToolBar: React.FC<SceneEditorToolBarProps> = ({
   gridVisible,
   onToggleGrid,
+  autoOrbitTargetOnSelect,
+  onToggleAutoOrbitTargetOnSelect,
   renderMode,
   onChangeRenderMode,
   transformMode,
@@ -91,8 +103,21 @@ export const SceneEditorToolBar: React.FC<SceneEditorToolBarProps> = ({
       }}
     >
       <Group gap="xs" wrap="nowrap" align="center">
-        {/* Быстрые настройки (сетка / режим рендера) */}
+        {/* Быстрые настройки (сетка / автоцель / режим рендера) */}
         <GridToggleButton visible={gridVisible} onToggle={onToggleGrid} />
+        {typeof autoOrbitTargetOnSelect !== 'undefined' && onToggleAutoOrbitTargetOnSelect && (
+          <Tooltip label={autoOrbitTargetOnSelect ? 'Отключить автонаведение камеры' : 'Включить автонаведение камеры'} withArrow>
+            <ActionIcon
+              variant={autoOrbitTargetOnSelect ? 'filled' : 'light'}
+              c={autoOrbitTargetOnSelect ? 'white' : 'gray'}
+              onClick={onToggleAutoOrbitTargetOnSelect}
+              size="md"
+              aria-label={autoOrbitTargetOnSelect ? 'Отключить автонаведение камеры' : 'Включить автонаведение камеры'}
+            >
+              <IconTarget size={18} />
+            </ActionIcon>
+          </Tooltip>
+        )}
         <RenderModeSegment value={renderMode} onChange={onChangeRenderMode} frosted />
 
         {/* Если есть выбранный инстанс — показываем подпись и инструменты трансформации */}
@@ -128,4 +153,3 @@ export const SceneEditorToolBar: React.FC<SceneEditorToolBarProps> = ({
 }
 
 export default SceneEditorToolBar
-

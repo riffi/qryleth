@@ -73,6 +73,8 @@ const initialState: SceneStoreState = {
   selectedObject: null,
   hoveredObject: null,
   gridVisible: true,
+  // Автопривязка цели OrbitControls к выбранному инстансу включена по умолчанию
+  autoOrbitTargetOnSelect: true,
   cameraPose: undefined,
   // Флаг прелоадера применения heightmap
   isTerrainApplying: false,
@@ -384,6 +386,23 @@ export const useSceneStore = create<SceneStore>()(
 
     toggleGridVisibility: () => {
       set(state => ({ gridVisible: !state.gridVisible }))
+    },
+
+    /**
+     * Переключает режим автопривязки цели OrbitControls к выбранному инстансу.
+     * Если включено — при выборе/клике по инстансу камера автоматически наводится
+     * на его центр (устанавливается target). Если выключено — выбор не меняет цель.
+     */
+    toggleAutoOrbitTargetOnSelect: () => {
+      set(state => ({ autoOrbitTargetOnSelect: !state.autoOrbitTargetOnSelect }))
+    },
+
+    /**
+     * Устанавливает явно состояние автопривязки цели OrbitControls.
+     * @param enabled true — включить автопривязку; false — отключить.
+     */
+    setAutoOrbitTargetOnSelect: (enabled: boolean) => {
+      set({ autoOrbitTargetOnSelect: enabled })
     },
 
     /**

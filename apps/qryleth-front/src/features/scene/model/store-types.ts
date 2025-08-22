@@ -47,6 +47,14 @@ export interface SceneStoreState {
   renderMode: RenderMode
   transformMode: TransformMode
   gridVisible: boolean
+  /**
+   * Флаг автопривязки цели OrbitControls к выбранному инстансу.
+   *
+   * Когда включён — при клике/смене выделения камера автоматически
+   * наводится на центр выбранного объекта (target обновляется).
+   * Когда выключен — выбор объектов НЕ меняет цель OrbitControls.
+   */
+  autoOrbitTargetOnSelect: boolean
   /** Текущая сохранённая поза камеры для восстановления при переходах. */
   cameraPose?: CameraPose
   history: any[] // TODO: Define proper history type
@@ -122,6 +130,19 @@ export interface SceneStoreActions {
   setRenderMode: (mode: RenderMode) => void
   setTransformMode: (mode: TransformMode) => void
   toggleGridVisibility: () => void
+  /**
+   * Переключить автопривязку цели камеры (OrbitControls) к выбранному инстансу.
+   *
+   * Включение приводит к тому, что при последующих выборах объектов target
+   * будет автоматически устанавливаться в центр их bounding box.
+   */
+  toggleAutoOrbitTargetOnSelect: () => void
+  /**
+   * Явно установить состояние автопривязки цели камеры.
+   *
+   * @param enabled - true для включения автопривязки, false для выключения.
+   */
+  setAutoOrbitTargetOnSelect: (enabled: boolean) => void
   /**
    * Сохранить текущую позу камеры для последующего восстановления.
    * Поза включает позицию и опционально цель (для Orbit) и ориентацию (для Walk/Fly).
