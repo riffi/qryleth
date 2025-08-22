@@ -48,6 +48,7 @@ import {
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { GridToggleButton, TransformModeButtons, RenderModeSegment, ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
+import { IconTrash } from '@tabler/icons-react'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -102,6 +103,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
   const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
+  // Состояние подтверждения удаления инстанса
+  const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ globalIndex: number; title: string } | null>(null)
 
   // Локальное состояние инлайн-редактирования названия сцены
   // Позволяет вводить имя без дергания стора на каждый кейстрок, если потребуется расширить поведение.
@@ -220,7 +224,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
 
   const objects = useSceneStore(state => state.objects)
+  const objectInstances = useSceneStore(state => state.objectInstances)
   const updateObject = useSceneStore(state => state.updateObject)
+  const selectedObject = useSceneStore(state => state.selectedObject)
+  const removeObjectInstance = useSceneStore(state => state.removeObjectInstance)
+  const clearSelection = useSceneStore(state => state.clearSelection)
 
   const sceneMetaData = useSceneStore(state => state.sceneMetaData)
 
@@ -400,6 +408,91 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     if (!obj) return undefined
     return JSON.parse(JSON.stringify(obj))
   }, [editingObject, objects])
+
+  /**
+   * Вычисляет данные о выбранном инстансе объекта для отображения в верхней панели
+   * рядом с инструментами трансформации.
+   *
+   * Возвращает:
+   * - name: имя объекта
+   * - index: локальный индекс инстанса в рамках одного объекта (последовательность фильтрованных инстансов этого объекта)
+   * - globalIndex: позиция инстанса в глобальном массиве `objectInstances` (используется для удаления)
+   * - instance: сам инстанс
+   * Если выбран не инстанс или данные не найдены — возвращает undefined.
+   */
+  const selectedInstanceInfo = React.useMemo(() => {
+    if (!selectedObject?.isInstanced || !selectedObject.instanceUuid) return undefined
+    const globalIndex = objectInstances.findIndex(i => i.uuid === selectedObject.instanceUuid)
+    if (globalIndex < 0) return undefined
+    const inst = objectInstances[globalIndex]
+    const obj = objects.find(o => o.uuid === inst.objectUuid)
+    if (!obj) return undefined
+    // Индекс в рамках всех инстансов данного объекта
+    const instancesOfObject = objectInstances.filter(i => i.objectUuid === inst.objectUuid)
+    const localIndex = instancesOfObject.findIndex(i => i.uuid === selectedObject.instanceUuid)
+    return {
+      name: obj.name,
+      index: localIndex,
+      globalIndex,
+      instance: inst
+    }
+  }, [selectedObject?.isInstanced, selectedObject?.instanceUuid, objectInstances, objects])
+
+  /**
+   * Удаляет выбранный инстанс из сцены.
+   *
+   * Логика:
+   * - Проверяет, что вычислена информация о выбранном инстансе
+   * - Вызывает экшен стора `removeObjectInstance` по индексу инстанса
+   * - Сбрасывает выделение, чтобы избежать ссылок на удалённый инстанс
+   */
+  const handleDeleteSelectedInstance = React.useCallback(() => {
+    if (!selectedInstanceInfo) return
+    // Для удаления используем глобальный индекс, чтобы соответствовать API стора
+    removeObjectInstance(selectedInstanceInfo.globalIndex)
+    clearSelection()
+  }, [selectedInstanceInfo, removeObjectInstance, clearSelection])
+
+  /**
+   * Открывает модальное окно подтверждения удаления инстанса.
+   * Фиксирует текущее целевое состояние (заголовок и глобальный индекс)
+   * для корректного удаления даже при возможной смене выделения до подтверждения.
+   */
+  const openDeleteConfirm = React.useCallback(() => {
+    if (!selectedInstanceInfo) return
+    setPendingDelete({
+      globalIndex: selectedInstanceInfo.globalIndex,
+      title: `${selectedInstanceInfo.name} [${selectedInstanceInfo.index + 1}]`
+    })
+    setDeleteConfirmOpened(true)
+  }, [selectedInstanceInfo])
+
+  /**
+   * Закрывает модальное окно подтверждения удаления без выполнения действия.
+   */
+  const closeDeleteConfirm = React.useCallback(() => {
+    setDeleteConfirmOpened(false)
+    setPendingDelete(null)
+  }, [])
+
+  /**
+   * Подтверждает удаление инстанса: удаляет по сохранённому глобальному индексу,
+   * сбрасывает выделение и показывает уведомление с подсказкой про Undo (Ctrl+Z).
+   * Сценарий отката уже поддерживается механизмом истории стора.
+   */
+  const confirmDeleteInstance = React.useCallback(() => {
+    if (!pendingDelete) return
+    removeObjectInstance(pendingDelete.globalIndex)
+    clearSelection()
+    setDeleteConfirmOpened(false)
+    setPendingDelete(null)
+    notifications.show({
+      title: 'Инстанс удалён',
+      message: 'Действие можно отменить: Ctrl+Z или кнопкой Undo в хедере',
+      color: 'yellow',
+      icon: <IconCheck size="1rem" />
+    })
+  }, [pendingDelete, removeObjectInstance, clearSelection])
 
   // Ширины панелей: управляются в px для корректного ресайза
   const chatPanelWidth = `${leftPanelWidthPx}px`
@@ -668,10 +761,36 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 transition: 'opacity 200ms ease'
               }}
             >
-              <Group gap="xs" wrap="nowrap">
+              <Group gap="xs" wrap="nowrap" align="center">
+                {/* Блок быстрых настроек (сетка / трансформ / режим рендера) */}
                 <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
                 <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
                 <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
+
+                {/* Если выбран инстанс — показываем его имя и действия */}
+                {selectedInstanceInfo && (
+                  <>
+                    <Divider orientation="vertical" mx={4} />
+                    <Group gap={6} wrap="nowrap" align="center">
+                      {/* Имя в формате: Название объекта [индекс инстанса] */}
+                      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                        {selectedInstanceInfo.name} [{selectedInstanceInfo.index + 1}]
+                      </Text>
+                      {/* Действия над инстансом */}
+                      <Tooltip label="Удалить инстанс" withArrow>
+                        <ActionIcon
+                          size="sm"
+                          variant="subtle"
+                          color="red"
+                          onClick={openDeleteConfirm}
+                          aria-label="Удалить инстанс"
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  </>
+                )}
               </Group>
             </Box>
           )}
@@ -796,6 +915,26 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         onSave={handleSaveScene}
         currentSceneName={sceneMetaData?.name}
       />
+
+      {/* Подтверждение удаления инстанса */}
+      <Modal
+        opened={deleteConfirmOpened}
+        onClose={closeDeleteConfirm}
+        title="Удалить инстанс?"
+        centered
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Вы уверены, что хотите удалить инстанс {pendingDelete?.title}?
+            Это действие можно отменить через историю (Undo / Ctrl+Z).
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={closeDeleteConfirm}>Отмена</Button>
+            <Button color="red" onClick={confirmDeleteInstance}>Удалить</Button>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   )
 }
