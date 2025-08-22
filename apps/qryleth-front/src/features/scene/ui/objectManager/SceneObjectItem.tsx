@@ -1,8 +1,6 @@
 import React from 'react'
-import { Group, Text, Box, ActionIcon, Menu, Collapse, Stack } from '@mantine/core'
-import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconChevronDown, IconChevronRight, IconDownload, IconCopy } from '@tabler/icons-react'
-import { SceneObjectInstanceItem } from './SceneObjectInstanceItem.tsx'
-import type { ObjectInstance } from '../../../types/common'
+import { Group, Text, Box, ActionIcon, Menu } from '@mantine/core'
+import { IconCube, IconEye, IconEyeOff, IconEdit, IconBookmark, IconTrash, IconDownload, IconCopy } from '@tabler/icons-react'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 
 export interface ObjectInfo {
@@ -12,15 +10,12 @@ export interface ObjectInfo {
     objectUuid: string
     /** UUID объекта в библиотеке, если он был добавлен из неё */
     libraryUuid?: string
-    instances?: ObjectInstance[]
     layerId?: string
 }
 
 interface ObjectItemProps {
     obj: ObjectInfo
-    isExpanded: boolean
     isSelected: boolean
-    selectedObject?: { objectUuid: string; instanceId?: string } | null
 }
 
 /**
@@ -29,12 +24,9 @@ interface ObjectItemProps {
  */
 export const SceneObjectItem: React.FC<ObjectItemProps> = ({
     obj,
-    isExpanded,
     isSelected,
-    selectedObject,
 }) => {
     const {
-        toggleObjectExpanded,
         highlightObject,
         clearHighlight,
         selectObject,
@@ -44,8 +36,6 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
         editObject,
         exportObject,
         copyObject,
-        toggleInstanceVisibility,
-        removeInstance,
         dragStart,
         contextMenu,
     } = useSceneObjectManager()
@@ -69,40 +59,17 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
 
                 }}
                 onMouseEnter={() => {
-                    // При наведении подсвечиваем первый экземпляр объекта
-                    const firstInstanceId = obj.instances?.[0]?.id
-                    highlightObject(obj.objectUuid, firstInstanceId)
+                    highlightObject(obj.objectUuid)
                 }}
                 onMouseLeave={clearHighlight}
                 onClick={() => {
-                    // При клике выбираем первый экземпляр объекта
-                    const firstInstanceId = obj.instances?.[0]?.id
-                    selectObject(obj.objectUuid, firstInstanceId)
+                    selectObject(obj.objectUuid)
                 }}
                 onDragStart={(e) => dragStart(e, obj.objectUuid)}
                 onContextMenu={(e) => contextMenu(e, obj.objectUuid)}
             >
                 <Group justify="space-between" align="center" gap="xs">
                     <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                        <ActionIcon
-                            size="xs"
-                            variant="transparent"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                toggleObjectExpanded(obj.objectUuid)
-                            }}
-                            style={{
-                                width: '16px',
-                                height: '16px',
-                                minWidth: '16px'
-                            }}
-                        >
-                            {isExpanded ? (
-                                <IconChevronDown size={12} />
-                            ) : (
-                                <IconChevronRight size={12} />
-                            )}
-                        </ActionIcon>
                         <IconCube size={12} color="var(--mantine-color-blue-4)" style={{ flexShrink: 0 }} />
                         <Text
                             size="xs"
@@ -168,8 +135,7 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                                     leftSection={<IconEdit size={14} />}
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        const firstInstanceId = obj.instances?.[0]?.id
-                                        editObject(obj.objectUuid, firstInstanceId)
+                                        editObject(obj.objectUuid)
                                     }}
                                 >
                                     Редактировать
@@ -221,33 +187,6 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
                 </Group>
             </Box>
 
-            <Collapse in={isExpanded}>
-                <Box ml="lg" mt="2px">
-                    <Stack gap="2px">
-                        {obj.instances && obj.instances.length > 0 ? (
-                            obj.instances.map((instance: ObjectInstance) => (
-                                <SceneObjectInstanceItem
-                                    key={instance.id}
-                                    object={obj}
-                                    index={obj.instances?.indexOf(instance)}
-                                    instance={instance}
-                                    isSelected={selectedObject?.objectUuid === obj.objectUuid && selectedObject?.instanceId === instance.id}
-                                    onHighlight={() => highlightObject(obj.objectUuid, instance.id)}
-                                    onClearHighlight={clearHighlight}
-                                    onSelect={() => selectObject(obj.objectUuid, instance.id)}
-                                    onToggleVisibility={() => toggleInstanceVisibility(obj.objectUuid, instance.id)}
-                                    onEdit={() => editObject(obj.objectUuid, instance.id)}
-                                    onRemove={() => removeInstance(obj.objectUuid, instance.id)}
-                                />
-                            ))
-                        ) : (
-                            <Text size="xs" c="dimmed" ta="center">
-                                Нет экземпляров
-                            </Text>
-                        )}
-                    </Stack>
-                </Box>
-            </Collapse>
         </Box>
     )
 }

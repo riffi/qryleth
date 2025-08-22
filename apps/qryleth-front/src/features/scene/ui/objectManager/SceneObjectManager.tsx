@@ -15,7 +15,6 @@ import {
     Title,
     Text,
     Group,
-    Badge,
     ScrollArea,
     ActionIcon,
     Tooltip,
@@ -53,7 +52,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
     onEditObject
 }) => {
-    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
     const [layerModalOpened, setLayerModalOpened] = useState(false)
     const [layerModalMode, setLayerModalMode] = useState<SceneLayerModalMode>('create')
@@ -77,7 +75,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const sceneMetaData = useSceneStore(state => state.sceneMetaData)
     const {
         removeObject,
-        removeObjectInstance,
         selectObject: storeSelectObject,
         clearSelection,
         setHoveredObject,
@@ -88,7 +85,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         deleteLayer: storeDeleteLayer,
         toggleLayerVisibility: storeToggleLayerVisibility,
         toggleObjectVisibility: storeToggleObjectVisibility,
-        toggleInstanceVisibility: storeToggleInstanceVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
     } = useSceneActions()
 
@@ -102,13 +98,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 objectUuid: sceneObject.uuid,
                 layerId: sceneObject.layerId || 'objects',
                 libraryUuid: sceneObject.libraryUuid,
-                instances: objectInstancesList.map((instance) => ({
-                    id: instance.uuid,
-                    position: instance.transform?.position || [0,0,0],
-                    rotation: instance.transform?.rotation || [0,0,0],
-                    scale: instance.transform?.scale || [1,1,1],
-                    visible: instance.visible !== false
-                }))
             }
         })
     }, [sceneObjects, objectInstances])
@@ -131,17 +120,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         })
     }
 
-    const toggleObjectExpanded = (objectUuid: string) => {
-        setExpandedItems(prev => {
-            const newSet = new Set(prev)
-            if (newSet.has(objectUuid)) {
-                newSet.delete(objectUuid)
-            } else {
-                newSet.add(objectUuid)
-            }
-            return newSet
-        })
-    }
 
     /**
      * Создать новый слой сцены на основе введённых параметров.
@@ -262,18 +240,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         clearSelection()
     }
 
-    const handleToggleInstanceVisibility = (objectUuid: string, instanceId: string) => {
-        storeToggleInstanceVisibility(objectUuid, instanceId)
-    }
-
-    const handleRemoveInstance = (objectUuid: string, instanceId: string) => {
-        // instanceId теперь это просто objectInstanceUuid
-        const instanceIndex = objectInstances.findIndex(p => p.uuid === instanceId)
-        if (instanceIndex !== -1) {
-            removeObjectInstance(instanceIndex)
-            clearSelection()
-        }
-    }
 
     const handleHighlightObject = (objectUuid: string, instanceId?: string) => {
         setHoveredObject(objectUuid, instanceId)
@@ -497,7 +463,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             toggleLayerVisibility={storeToggleLayerVisibility}
             openEditLayerModal={openEditLayerModal}
             deleteLayer={storeDeleteLayer}
-            toggleObjectExpanded={toggleObjectExpanded}
             highlightObject={handleHighlightObject}
             clearHighlight={handleClearHighlight}
             selectObject={handleSelectObject}
@@ -505,8 +470,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             removeObject={handleRemoveObject}
             saveObjectToLibrary={handleSaveObjectToLibrary}
             editObject={handleEditObject}
-            toggleInstanceVisibility={handleToggleInstanceVisibility}
-            removeInstance={handleRemoveInstance}
             dragStart={handleDragStart}
             contextMenu={handleContextMenu}
             dragOver={handleDragOver}
@@ -572,7 +535,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                             layer={layer}
                                             layerObjects={layerObjects}
                                             isExpanded={isLayerExpanded}
-                                            expandedItems={expandedItems}
                                             selectedObject={selectedObject}
                                             dragOverLayerId={dragOverLayerId}
                                         />
@@ -581,15 +543,12 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                             ) : (
                                 // Fallback для случая без слоев
                                 objects.map((obj) => {
-                                    const isExpanded = expandedItems.has(obj.objectUuid)
                                     const isSelected = selectedObject?.objectUuid === obj.objectUuid
                                     return (
                                         <SceneObjectItem
                                             key={`${obj.name}-${obj.objectUuid}`}
                                             obj={obj}
-                                            isExpanded={isExpanded}
                                             isSelected={isSelected}
-                                            selectedObject={selectedObject}
                                         />
                                     )
                                 })

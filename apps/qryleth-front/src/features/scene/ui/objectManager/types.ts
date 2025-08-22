@@ -75,7 +75,6 @@ export interface SceneObjectManagerContextValue {
     deleteLayer: (layerId: string) => void
 
     // --- Object actions ---
-    toggleObjectExpanded: (objectUuid: string) => void
     highlightObject: (objectUuid: string, instanceId?: string) => void
     clearHighlight: () => void
     selectObject: (objectUuid: string, instanceId?: string) => void
@@ -83,8 +82,6 @@ export interface SceneObjectManagerContextValue {
     removeObject: (objectUuid: string) => void
     saveObjectToLibrary: (objectUuid: string) => void
     editObject: (objectUuid: string, instanceId?: string) => void
-    toggleInstanceVisibility: (objectUuid: string, instanceId: string) => void
-    removeInstance: (objectUuid: string, instanceId: string) => void
     dragStart: (e: React.DragEvent, objectUuid: string) => void
     contextMenu: (e: React.MouseEvent, objectUuid: string) => void
     dragOver: (e: React.DragEvent, layerId: string) => void

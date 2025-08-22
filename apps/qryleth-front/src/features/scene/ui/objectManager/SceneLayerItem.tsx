@@ -23,7 +23,6 @@ interface LayerItemProps {
   layer: SceneLayer,
   layerObjects: ObjectInfo[],
   isExpanded: boolean,
-  expandedItems: Set<string>,
   selectedObject?: { objectUuid: string, instanceId?: string } | null,
   dragOverLayerId: string | null
 }
@@ -32,7 +31,6 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                                                            layer,
                                                            layerObjects,
                                                            isExpanded,
-                                                           expandedItems,
                                                            selectedObject,
                                                            dragOverLayerId
                                                          }) => {
@@ -44,21 +42,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
     dragOver,
     dragLeave,
     drop,
-    toggleObjectExpanded,
-    highlightObject,
-    clearHighlight,
-    selectObject,
-    toggleObjectVisibility,
-    removeObject,
-    saveObjectToLibrary,
-    editObject,
-    toggleInstanceVisibility,
-    removeInstance,
-    dragStart,
-    contextMenu,
-    addObjectFromLibrary,
-    exportObject,
-    copyObject
+    addObjectFromLibrary
   } = useSceneObjectManager()
 
   /**
@@ -204,9 +188,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                       <SceneObjectItem
                           key={`${obj.name}-${obj.objectUuid}`}
                           obj={obj}
-                          isExpanded={expandedItems.has(obj.objectUuid)}
                           isSelected={selectedObject?.objectUuid === obj.objectUuid}
-                          selectedObject={selectedObject}
                       />
                   ))
               )}
