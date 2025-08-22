@@ -9,7 +9,7 @@ owner: ai-agent
 tags: [terrain, heightmap, dexie, ui, r3f]
 phases:
   total: 6
-  completed: 3
+  completed: 4
 ---
 
 # Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения
@@ -61,7 +61,7 @@ phases:
 
 **Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: UI — модал выбора карты высот из коллекции
+### ✅ Фаза 4: UI — модал выбора карты высот из коллекции
 - Создать `TerrainAssetPickerModal`:
   - грид карточек с превью (использовать `createTerrainAssetPreviewUrl`), названием, размерами, датой;
   - пагинация/скролл при большом количестве;
@@ -70,6 +70,8 @@ phases:
   - рядом с `FileInput` добавить кнопку «Выбрать из коллекции» → открывает модал пикера;
   - по выбору ассета проставлять `assetId`, `imgWidth`, `imgHeight`; скрывать `FileInput` (или оставить альтернативой);
   - предусмотреть сброс выбора.
+
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: Прелоадер и блокировка рендера на время применения heightmap
 - Добавить флаг в стор сцены, например `isTerrainApplying:boolean` и экшены `start/finish`.
