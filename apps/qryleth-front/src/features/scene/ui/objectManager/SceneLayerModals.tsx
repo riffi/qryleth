@@ -22,10 +22,10 @@ import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import { useSceneActions } from '../../model/optimizedSelectors.ts'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
-import { 
-    uploadTerrainAsset, 
-    validatePngFile, 
-    createTerrainAssetPreviewUrl, 
+import {
+    uploadTerrainAsset,
+    validatePngFile,
+    createTerrainAssetPreviewUrl,
     revokeTerrainAssetPreviewUrl,
     getAllTerrainAssetsSummary
 } from '@/features/scene/lib/terrain/HeightmapUtils'
@@ -59,7 +59,7 @@ export const SceneLayerModals: React.FC = () => {
         layers,
         handleMoveToLayer
     } = useSceneObjectManager()
-    
+
     const { createLayer: storeCreateLayer } = useSceneActions()
     /**
      * Флаг отображения ручных настроек размера ландшафта.
@@ -245,7 +245,7 @@ export const SceneLayerModals: React.FC = () => {
                 const terrainConfig: GfxTerrainConfig = {
                     worldWidth: layerFormData.width || 100,
                     worldHeight: layerFormData.height || 100,
-                    edgeFade: 0.15,
+                    edgeFade: 0,
                     source: {
                         kind: 'heightmap',
                         params: {
@@ -556,7 +556,7 @@ export const SceneLayerModals: React.FC = () => {
                         </Button>
                         <Button
                             onClick={layerModalMode === 'create' ? handleCreateLayerWithTerrain : handleUpdateLayer}
-                            disabled={(layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()) || 
+                            disabled={(layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()) ||
                                      (terrainSource === 'heightmap' && !heightmapFile && !selectedAsset && layerFormData.shape === GfxLayerShape.Terrain) ||
                                      isUploading}
                             loading={isUploading}
