@@ -1,5 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Paper, Container, Badge, ActionIcon, Tooltip, Group, Modal, Stack, TextInput, Textarea, Button, Text } from '@mantine/core'
+import {
+  Box,
+  Paper,
+  Container,
+  Badge,
+  ActionIcon,
+  Tooltip,
+  Group,
+  Modal,
+  Stack,
+  TextInput,
+  Textarea,
+  Button,
+  Text,
+  Divider
+} from '@mantine/core'
 import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
@@ -456,7 +471,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           <>
             {/* Кнопка сохранения сцены (primary) + Play справа от неё */}
             {!isPlay && (
-              <Group gap={8} wrap="nowrap" align="center" style={{ marginRight: 100 }}>
+              <Group gap={8} wrap="nowrap" align="center">
                 <Group gap={6} wrap="nowrap" align="center">
                   {/* Инлайн-редактирование названия сцены */}
                   <TextInput
@@ -477,31 +492,19 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 <Tooltip label="Сохранить (Ctrl/Cmd+S)" withArrow>
                   <ActionIcon
                       size="md"
-                      variant={'filled'}
-                      color={'blue'}
+                      variant={'subtle'}
+                      color={'white'}
                       onClick={handleSaveSceneToLibrary}
                       aria-label={'Сохранить'}
                   >
-                    <IconDeviceFloppy size={20} />
+                    <IconDeviceFloppy size={24} />
                   </ActionIcon>
 
                 </Tooltip>
               </Group>
             )}
 
-            {!isPlay && (
-              <Tooltip label="Войти в режим просмотра (Play)" withArrow>
-                <ActionIcon
-                  size="md"
-                  variant={'filled'}
-                  color={'blue'}
-                  onClick={handleTogglePlay}
-                  aria-label={'Запустить Play'}
-                >
-                  <IconPlayerPlay size={20} />
-                </ActionIcon>
-              </Tooltip>
-            )}
+            <Divider ml="md" mr="md" orientation="vertical"  />
 
             <Tooltip label="Отменить (Ctrl+Z)">
               <ActionIcon variant="subtle" size="sm" onClick={undo} disabled={!canUndo}>
@@ -514,6 +517,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 <IconArrowForward size="1.5rem" />
               </ActionIcon>
             </Tooltip>
+            <Divider ml="md" mr="md" orientation="vertical"  />
 
             {/* Panel toggles aligned with ObjectEditor style */}
             <Group gap="xs">
@@ -553,6 +557,20 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </ActionIcon>
               </Tooltip>
             </Group>
+
+            <Divider ml="md" mr="md" orientation="vertical"  />
+
+            {!isPlay && (
+                <Tooltip label="Войти в режим просмотра (Play)" withArrow>
+                  <Button
+                    variant={"gradient"}
+                    style={{height: '32px'}}
+                    rightSection={<IconPlayerPlay size={18} />}
+                  >
+                    Play
+                  </Button>
+                </Tooltip>
+            )}
           </>
         )}
       >
