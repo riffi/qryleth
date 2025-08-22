@@ -27,7 +27,8 @@ import {
     validatePngFile,
     createTerrainAssetPreviewUrl,
     revokeTerrainAssetPreviewUrl,
-    getAllTerrainAssetsSummary
+    getAllTerrainAssetsSummary,
+    getTerrainAssetInfo
 } from '@/features/scene/lib/terrain/HeightmapUtils'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 import type { GfxTerrainConfig, GfxHeightmapParams } from '@/entities/terrain'
@@ -61,7 +62,7 @@ export const SceneLayerModals: React.FC = () => {
         handleMoveToLayer
     } = useSceneObjectManager()
 
-    const { createLayer: storeCreateLayer } = useSceneActions()
+    const { createLayer: storeCreateLayer, updateLayer: storeUpdateLayer } = useSceneActions()
     /**
      * Флаг отображения ручных настроек размера ландшафта.
      * При false показываются только пресеты размеров.
@@ -103,7 +104,9 @@ export const SceneLayerModals: React.FC = () => {
     }, [setLayerFormData])
 
     /**
-     * Обработка загрузки PNG файла для heightmap
+     * Обработчик загрузки PNG файла для heightmap.
+     * Валидирует файл, создаёт локальное превью и сохраняет размеры изображения в параметры.
+     * При сбросе файла очищает связанное состояние и превью.
      */
     const handleHeightmapUpload = useCallback(async (file: File | null) => {
         if (!file) {
@@ -164,7 +167,8 @@ export const SceneLayerModals: React.FC = () => {
     }, [heightmapPreviewUrl])
 
     /**
-     * Очистка состояния при закрытии модального окна
+     * Очистка состояния при закрытии модального окна.
+     * Сбрасывает форму слоя, локальные состояния heightmap и превью.
      */
     const resetModalState = useCallback(() => {
         setLayerModalOpened(false)
@@ -197,6 +201,65 @@ export const SceneLayerModals: React.FC = () => {
             applyPreset(2)
         }
     }, [layerModalOpened, layerModalMode, applyPreset])
+
+    /**
+     * Инициализация формы при редактировании существующего слоя.
+     * Если слой — рельеф с источником heightmap, подставляем источник,
+     * параметры нормализации и формируем превью по текущему assetId.
+     */
+    useEffect(() => {
+        const initForEdit = async () => {
+            if (!layerModalOpened || layerModalMode !== 'edit') return
+            const currentId = (layerFormData as any).id as string | undefined
+            if (!currentId) return
+            const layer = layers?.find(l => l.id === currentId)
+            if (!layer) return
+            if (layer.type !== GfxLayerType.Landscape || layer.shape !== GfxLayerShape.Terrain) return
+            const terrain = layer.terrain
+            if (!terrain) return
+            if (terrain.source.kind === 'heightmap') {
+                setTerrainSource('heightmap')
+                const params = terrain.source.params
+                // Параметры нормализации и wrap
+                setHeightmapParams({
+                    min: params.min,
+                    max: params.max,
+                    wrap: params.wrap ?? 'clamp',
+                    imgWidth: params.imgWidth,
+                    imgHeight: params.imgHeight,
+                })
+                // Превью/инфо из Dexie по assetId
+                try {
+                    const info = await getTerrainAssetInfo(params.assetId)
+                    const previewUrl = await createTerrainAssetPreviewUrl(params.assetId)
+                    setSelectedAsset(info ? {
+                        assetId: params.assetId,
+                        fileName: info.fileName,
+                        width: info.width,
+                        height: info.height
+                    } : {
+                        assetId: params.assetId,
+                        fileName: 'heightmap.png',
+                        width: params.imgWidth,
+                        height: params.imgHeight
+                    })
+                    setSelectedAssetPreviewUrl(previewUrl)
+                } catch (e) {
+                    console.warn('Не удалось создать превью текущего heightmap ассета:', e)
+                    setSelectedAsset({
+                        assetId: params.assetId,
+                        fileName: 'heightmap.png',
+                        width: params.imgWidth,
+                        height: params.imgHeight
+                    })
+                }
+            } else {
+                setTerrainSource('perlin')
+            }
+        }
+        void initForEdit()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [layerModalOpened, layerModalMode, (layerFormData as any).id, layers])
 
     /**
      * Обработчик создания слоя с поддержкой heightmap
@@ -304,6 +367,103 @@ export const SceneLayerModals: React.FC = () => {
         }
     }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleCreateLayer, resetModalState, storeCreateLayer])
 
+    /**
+     * Обновление существующего слоя с учётом настроек heightmap.
+     * Если выбран источник heightmap, обновляет параметры min/max/wrap и при необходимости
+     * заменяет ассет (assetId) на загруженный/выбранный из коллекции.
+     */
+    const handleUpdateLayerWithTerrain = useCallback(async () => {
+        if (layerModalMode !== 'edit') {
+            handleUpdateLayer()
+            return
+        }
+
+        if (layerFormData.type !== GfxLayerType.Landscape || layerFormData.shape !== GfxLayerShape.Terrain) {
+            handleUpdateLayer()
+            return
+        }
+
+        // Если источник не heightmap — используем стандартный апдейт
+        if (terrainSource !== 'heightmap') {
+            handleUpdateLayer()
+            return
+        }
+
+        const currentId = (layerFormData as any).id as string | undefined
+        if (!currentId) {
+            handleUpdateLayer()
+            return
+        }
+
+        try {
+            // Определяем итоговый assetId и размеры
+            let assetId: string | undefined
+            let imgWidth: number | undefined
+            let imgHeight: number | undefined
+
+            if (heightmapFile) {
+                const upload = await uploadTerrainAsset(heightmapFile)
+                assetId = upload.assetId
+                imgWidth = upload.width
+                imgHeight = upload.height
+            } else if (selectedAsset) {
+                assetId = selectedAsset.assetId
+                imgWidth = selectedAsset.width
+                imgHeight = selectedAsset.height
+            }
+
+            // Получаем текущий слой, чтобы подхватить прежнюю конфигурацию при отсутствии новых ассетов
+            const currentLayer = layers?.find(l => l.id === currentId)
+            const currentTerrain = currentLayer?.terrain
+            if (!assetId || !imgWidth || !imgHeight) {
+                if (currentTerrain?.source.kind === 'heightmap') {
+                    assetId = currentTerrain.source.params.assetId
+                    imgWidth = currentTerrain.source.params.imgWidth
+                    imgHeight = currentTerrain.source.params.imgHeight
+                }
+            }
+
+            // Если и сейчас не определили ассет — делаем обычный апдейт без модификации terrain
+            if (!assetId || !imgWidth || !imgHeight) {
+                handleUpdateLayer()
+                return
+            }
+
+            const newTerrain: GfxTerrainConfig = {
+                worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
+                worldHeight: layerFormData.height || currentTerrain?.worldHeight || 100,
+                edgeFade: currentTerrain?.edgeFade ?? 0,
+                source: {
+                    kind: 'heightmap',
+                    params: {
+                        assetId,
+                        imgWidth,
+                        imgHeight,
+                        min: heightmapParams.min ?? 0,
+                        max: heightmapParams.max ?? 10,
+                        wrap: heightmapParams.wrap ?? 'clamp'
+                    }
+                },
+                ops: currentTerrain?.ops
+            }
+
+            // Обновляем слой через zustand-стор
+            storeUpdateLayer(currentId, {
+                name: layerFormData.name?.trim() || currentLayer?.name || 'landscape',
+                color: layerFormData.color || DEFAULT_LANDSCAPE_COLOR,
+                width: layerFormData.width,
+                height: layerFormData.height,
+                shape: GfxLayerShape.Terrain,
+                terrain: newTerrain
+            })
+
+            resetModalState()
+        } catch (e) {
+            console.error('Ошибка обновления heightmap-слоя:', e)
+            handleUpdateLayer()
+        }
+    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleUpdateLayer, resetModalState, storeUpdateLayer])
+
     // Очистка при размонтировании
     useEffect(() => {
         return () => {
@@ -353,7 +513,7 @@ export const SceneLayerModals: React.FC = () => {
                             onChange={(e) => setLayerFormData({ ...layerFormData, name: e.target.value })}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                    layerModalMode === 'create' ? handleCreateLayerWithTerrain() : handleUpdateLayer()
+                                    layerModalMode === 'create' ? handleCreateLayerWithTerrain() : handleUpdateLayerWithTerrain()
                                 }
                             }}
                             autoFocus
@@ -564,9 +724,9 @@ export const SceneLayerModals: React.FC = () => {
                             Отмена
                         </Button>
                         <Button
-                            onClick={layerModalMode === 'create' ? handleCreateLayerWithTerrain : handleUpdateLayer}
+                            onClick={layerModalMode === 'create' ? handleCreateLayerWithTerrain : handleUpdateLayerWithTerrain}
                             disabled={(layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()) ||
-                                     (terrainSource === 'heightmap' && !heightmapFile && !selectedAsset && layerFormData.shape === GfxLayerShape.Terrain) ||
+                                     (terrainSource === 'heightmap' && !heightmapFile && !selectedAsset && layerFormData.shape === GfxLayerShape.Terrain && layerModalMode === 'create') ||
                                      isUploading}
                             loading={isUploading}
                         >
