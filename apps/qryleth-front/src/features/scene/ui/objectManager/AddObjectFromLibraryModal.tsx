@@ -105,10 +105,9 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
       opened={opened}
       onClose={onClose}
       title="Добавить объект из библиотеки"
-      size="lg"
-      styles={{ body: { maxHeight: '70vh', overflow: 'hidden' } }}
+      size="xl"
     >
-      <Stack gap="md">
+      <Stack gap="md" style={{width:'100%'}}>
         <TextInput
           placeholder="Поиск объектов..."
           value={searchQuery}

@@ -480,7 +480,7 @@ export const SceneLayerModals: React.FC = () => {
                 opened={layerModalOpened}
                 onClose={resetModalState}
                 title={layerModalMode === 'create' ? 'Создать новый слой' : 'Редактировать слой'}
-                size="md"
+                size="xl"
             >
                 <Stack gap="md">
                     {layerModalMode === 'create' && (

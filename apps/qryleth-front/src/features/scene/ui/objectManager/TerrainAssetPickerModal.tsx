@@ -113,7 +113,7 @@ export const TerrainAssetPickerModal: React.FC<TerrainAssetPickerModalProps> = (
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Выбрать карту высот из коллекции" size="lg" styles={{ body: { maxHeight: '70vh', overflow: 'hidden' } }}>
+    <Modal opened={opened} onClose={onClose} title="Выбрать карту высот из коллекции" size="xl" styles={{ body: { maxHeight: '70vh', overflow: 'hidden' } }}>
       <Stack gap="md">
         <TextInput
           placeholder="Поиск по имени файла..."
@@ -174,4 +174,3 @@ export const TerrainAssetPickerModal: React.FC<TerrainAssetPickerModalProps> = (
     </Modal>
   )
 }
-
