@@ -467,7 +467,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   /**
    * Глобальный хоткей удаления инстанса: клавиша Delete.
-   * 
+   *
    * Поведение:
    * - Игнорируется, если фокус в полях ввода или редакторе кода.
    * - Срабатывает только при наличии выбранного инстанса.
@@ -788,7 +788,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
               <Group gap="xs" wrap="nowrap" align="center">
                 {/* Блок быстрых настроек (сетка / трансформ / режим рендера) */}
                 <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
-                <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
                 <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
 
                 {/* Если выбран инстанс — показываем его имя и действия */}
@@ -797,9 +796,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                     <Divider orientation="vertical" ml="xs" mr="xs" />
                     <Group gap={6} wrap="nowrap" align="center">
                       {/* Имя в формате: Название объекта [индекс инстанса] */}
-                      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                      <Text size="xs" c="#AAA" mr={"xs"} style={{ whiteSpace: 'nowrap' }}>
                         {selectedInstanceInfo.name} [{selectedInstanceInfo.index + 1}]
                       </Text>
+                      <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
+
                       {/* Действия над инстансом */}
                       <Tooltip label="Удалить инстанс" withArrow>
                         <ActionIcon
