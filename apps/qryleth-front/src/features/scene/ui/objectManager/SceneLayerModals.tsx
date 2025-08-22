@@ -29,7 +29,7 @@ import {
     revokeTerrainAssetPreviewUrl,
     getAllTerrainAssetsSummary
 } from '@/features/scene/lib/terrain/HeightmapUtils'
-import { scheduleTerrainAdjustment } from '@/features/scene/lib/terrain/TerrainAdjustmentUtils'
+import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 import type { GfxTerrainConfig, GfxHeightmapParams } from '@/entities/terrain'
 import { TerrainAssetPickerModal } from './TerrainAssetPickerModal'
 
@@ -278,26 +278,19 @@ export const SceneLayerModals: React.FC = () => {
 
                 if (DEBUG) console.log('🗻 Layer data being created:', layerData)
 
-                // Используем стор для создания слоя
-                storeCreateLayer(layerData)
+                // Используем централизованный API для создания слоя с выравниванием
+                const result = await SceneAPI.createLayerWithAdjustment(layerData, terrainConfig, {
+                    maxAttempts: 15,
+                    showNotifications: true
+                })
 
-                // Получаем созданный слой для корректировки объектов
-                const { useSceneStore } = await import('../../model/sceneStore')
-                const createdLayers = useSceneStore.getState().layers
-                const createdLayer = createdLayers[createdLayers.length - 1]
-                
-                if (createdLayer && createdLayer.terrain) {
-                    if (DEBUG) console.log('🗻 Scheduling terrain adjustment for heightmap layer:', createdLayer.id)
-                    
-                    // Используем универсальную функцию для выравнивания объектов
-                    scheduleTerrainAdjustment({
-                        layerId: createdLayer.id,
-                        maxAttempts: 15
-                    })
+                if (result.success) {
+                    if (DEBUG) console.log('🗻 Successfully created heightmap layer with adjustment:', result)
+                    // Закрываем модальное окно
+                    resetModalState()
+                } else {
+                    throw new Error(result.error || 'Failed to create layer')
                 }
-
-                // Закрываем модальное окно
-                resetModalState()
 
             } catch (error) {
                 console.error('Error creating heightmap layer:', error)

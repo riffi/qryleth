@@ -5,11 +5,12 @@
 
 import { useSceneStore } from '@/features/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
-import type { SceneObject, SceneObjectInstance, SceneData } from '@/entities/scene/types'
+import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
 import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import {
@@ -19,7 +20,6 @@ import {
 import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
-import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 
 /**
  * Simplified scene object info for agent tools
@@ -751,6 +751,92 @@ export class SceneAPI {
       return {
         success: false,
         error: `Failed to adjust instances for terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Создать слой с автоматическим выравниванием объектов по террейну (если применимо).
+   * Централизованный метод, который инкапсулирует всю логику создания слоев и последующего выравнивания.
+   * 
+   * @param layerData - данные для создания слоя
+   * @param terrainConfig - конфигурация террейна (для heightmap слоев)
+   * @param options - дополнительные опции
+   */
+  static async createLayerWithAdjustment(
+    layerData: Omit<SceneLayer, 'id'>,
+    terrainConfig?: import('@/entities/terrain').GfxTerrainConfig,
+    options?: {
+      /** Принудительно выравнивать объекты даже для не-terrain слоев */
+      forceAdjustment?: boolean
+      /** Максимальное количество попыток выравнивания */
+      maxAttempts?: number
+      /** Показывать ли уведомления */
+      showNotifications?: boolean
+    }
+  ): Promise<{ success: boolean; layerId?: string; adjustedCount?: number; error?: string }> {
+    try {
+      const {
+        forceAdjustment = false,
+        maxAttempts = 15,
+        showNotifications = true
+      } = options || {}
+
+      // Создаем данные слоя с terrain конфигурацией если есть
+      const finalLayerData = terrainConfig ? {
+        ...layerData,
+        terrain: terrainConfig
+      } : layerData
+
+      // Создаем слой через существующий механизм store
+      useSceneStore.getState().createLayer(finalLayerData)
+
+      // Получаем созданный слой
+      const createdLayers = useSceneStore.getState().layers
+      const createdLayer = createdLayers[createdLayers.length - 1]
+
+      if (!createdLayer) {
+        return {
+          success: false,
+          error: 'Failed to create layer'
+        }
+      }
+
+      // Определяем, нужно ли выравнивание объектов
+      const shouldAdjust = forceAdjustment || 
+        (createdLayer.type === GfxLayerType.Landscape && 
+         createdLayer.shape === GfxLayerShape.Terrain &&
+         (createdLayer.terrain || createdLayer.noiseData))
+
+      if (shouldAdjust) {
+        // Используем универсальную функцию выравнивания
+        const { adjustObjectsForCreatedTerrain } = await import('./terrain/TerrainAdjustmentUtils')
+        
+        const adjustmentResult = await adjustObjectsForCreatedTerrain({
+          layerId: createdLayer.id,
+          maxAttempts,
+          showSuccessNotification: showNotifications,
+          showErrorNotification: showNotifications
+        })
+
+        return {
+          success: true,
+          layerId: createdLayer.id,
+          adjustedCount: adjustmentResult.adjustedCount
+        }
+      }
+
+      return {
+        success: true,
+        layerId: createdLayer.id,
+        adjustedCount: 0
+      }
+
+    } catch (error) {
+      console.error('Error in createLayerWithAdjustment:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   }

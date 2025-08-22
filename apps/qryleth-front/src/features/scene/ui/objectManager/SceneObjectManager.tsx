@@ -38,7 +38,6 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-import { scheduleTerrainAdjustment } from '@/features/scene/lib/terrain/TerrainAdjustmentUtils'
 import type {
     ObjectManagerProps,
     SceneLayerModalMode,
@@ -125,9 +124,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     /**
      * Создать новый слой сцены на основе введённых параметров.
      * Цвет слоя сохраняется в поле `color` и используется при рендеринге.
-     * При создании перлин-слоя автоматически корректирует позиции всех объектов.
+     * При создании terrain-слоя автоматически корректирует позиции всех объектов.
      */
-    const handleCreateLayer = () => {
+    const handleCreateLayer = async () => {
         let layerName = layerFormData.name.trim()
 
         // Названия по умолчанию для специальных типов слоёв
@@ -152,25 +151,30 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             })
         }
 
-        storeCreateLayer(layerData)
+        try {
+            // Используем централизованный API для создания слоя с выравниванием
+            const result = await SceneAPI.createLayerWithAdjustment(layerData, undefined, {
+                maxAttempts: 10,
+                showNotifications: true
+            })
 
-        // Если создаётся ландшафтный слой с террейном, корректируем объекты
-        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === GfxLayerShape.Terrain) {
-            // Get the created layer ID (it's generated in store)
-            const createdLayers = useSceneStore.getState().layers
-            const createdLayer = createdLayers[createdLayers.length - 1]
-
-            if (createdLayer) {
-                // Используем универсальную функцию для выравнивания объектов
-                scheduleTerrainAdjustment({
-                    layerId: createdLayer.id,
-                    maxAttempts: 10
+            if (result.success) {
+                setLayerFormData(createEmptySceneLayer())
+                setLayerModalOpened(false)
+            } else {
+                notifications.show({
+                    title: 'Ошибка создания слоя',
+                    message: result.error || 'Не удалось создать слой',
+                    color: 'red'
                 })
             }
+        } catch (error) {
+            notifications.show({
+                title: 'Ошибка создания слоя',
+                message: error instanceof Error ? error.message : 'Неизвестная ошибка',
+                color: 'red'
+            })
         }
-
-        setLayerFormData(createEmptySceneLayer())
-        setLayerModalOpened(false)
     }
 
     /**
