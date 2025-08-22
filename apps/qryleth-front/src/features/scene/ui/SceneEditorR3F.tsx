@@ -532,14 +532,26 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   // Handlers to toggle panels from header
   const toggleChatPanel = () => {
-    // Ensure left panel is opened and show chat (not scripting)
-    setScriptingPanelVisible(false)
-    setChatCollapsed(prev => !prev)
+    if (!chatCollapsed && !scriptingPanelVisible) {
+      // Если чат уже открыт и скриптинг закрыт - закрываем левую панель
+      setChatCollapsed(true)
+    } else {
+      // Открываем чат и закрываем скриптинг
+      setScriptingPanelVisible(false)
+      setChatCollapsed(false)
+    }
   }
 
   const toggleScriptingPanel = () => {
-    setChatCollapsed(false)
-    setScriptingPanelVisible(prev => !prev)
+    if (scriptingPanelVisible) {
+      // Если скриптинг открыт - закрываем его (и всю левую панель)
+      setScriptingPanelVisible(false)
+      setChatCollapsed(true)
+    } else {
+      // Открываем скриптинг и закрываем чат
+      setChatCollapsed(false)
+      setScriptingPanelVisible(true)
+    }
   }
 
   const toggleRightPanel = () => {
@@ -712,7 +724,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   <ActionIcon
                     variant="subtle"
                     size="sm"
-                    onClick={() => setScriptingPanelVisible(false)}
+                    onClick={() => {
+                      setScriptingPanelVisible(false)
+                      setChatCollapsed(true)
+                    }}
                   >
                     <IconX size={16} />
                   </ActionIcon>
