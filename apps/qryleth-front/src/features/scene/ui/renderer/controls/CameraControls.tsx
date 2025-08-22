@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
+import { Vector3 } from 'three'
 import {
   useViewMode,
   useSelectedObject,
@@ -39,6 +40,58 @@ export const CameraControls: React.FC = () => {
   // Флаг автопривязки цели OrbitControls к выбранному инстансу
   const autoOrbitTargetOnSelect = useSceneStore(s => s.autoOrbitTargetOnSelect)
 
+  // RAF идентификатор для текущей анимации движения цели OrbitControls
+  const targetAnimRafRef = useRef<number | null>(null)
+
+  /**
+   * Плавно перемещает цель OrbitControls к указанной точке.
+   *
+   * Реализовано через requestAnimationFrame с кубическим сглаживанием (easeInOutCubic).
+   * При новом вызове прерывает предыдущую анимацию, чтобы не накапливать переходы.
+   *
+   * @param toPoint - конечная точка цели [x, y, z]
+   * @param durationMs - длительность анимации в миллисекундах (по умолчанию 420 мс)
+   */
+  const animateOrbitTarget = useCallback((toPoint: [number, number, number], durationMs = 420) => {
+    const controls = controlsRef.current
+    if (!controls) return
+
+    // Отменяем предыдущую анимацию, если она ещё идёт
+    if (targetAnimRafRef.current !== null) {
+      cancelAnimationFrame(targetAnimRafRef.current)
+      targetAnimRafRef.current = null
+    }
+
+    const start = new Vector3().copy(controls.target)
+    const end = new Vector3(toPoint[0], toPoint[1], toPoint[2])
+
+    // Если движение микроскопическое — просто установить и выйти
+    if (start.distanceToSquared(end) < 1e-6) {
+      controls.target.copy(end)
+      controls.update()
+      return
+    }
+
+    const t0 = performance.now()
+    const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+    const step = () => {
+      const now = performance.now()
+      const t = Math.min(1, (now - t0) / Math.max(1, durationMs))
+      const k = easeInOutCubic(t)
+      const cur = start.clone().lerp(end, k)
+      controls.target.copy(cur)
+      controls.update()
+      if (t < 1) {
+        targetAnimRafRef.current = requestAnimationFrame(step)
+      } else {
+        targetAnimRafRef.current = null
+      }
+    }
+
+    targetAnimRafRef.current = requestAnimationFrame(step)
+  }, [])
+
   /**
    * При смене выделения обновляет цель OrbitControls
    * чтобы камера вращалась вокруг выбранного объекта.
@@ -47,9 +100,9 @@ export const CameraControls: React.FC = () => {
     // Если режим не Orbit, нет контролов или автопривязка отключена — ничего не делаем
     if (viewMode !== 'orbit' || !controlsRef.current || !autoOrbitTargetOnSelect) return
 
+    // При отсутствии выделения плавно возвращаем цель в (0, 0, 0)
     if (!selected) {
-      controlsRef.current.target.set(0, 0, 0)
-      controlsRef.current.update()
+      animateOrbitTarget([0, 0, 0])
       return
     }
 
@@ -61,9 +114,18 @@ export const CameraControls: React.FC = () => {
     const worldBox = transformBoundingBox(baseBox, inst?.transform)
     const center = getBoundingBoxCenter(worldBox)
 
-    controlsRef.current.target.set(center[0], center[1], center[2])
-    controlsRef.current.update()
-  }, [selected, viewMode, objects, instances, scene, autoOrbitTargetOnSelect])
+    animateOrbitTarget([center[0], center[1], center[2]])
+  }, [selected, viewMode, objects, instances, scene, autoOrbitTargetOnSelect, animateOrbitTarget])
+
+  // Очистка RAF при размонтировании
+  useEffect(() => {
+    return () => {
+      if (targetAnimRafRef.current !== null) {
+        cancelAnimationFrame(targetAnimRafRef.current)
+        targetAnimRafRef.current = null
+      }
+    }
+  }, [])
 
   /**
    * При входе в режим редактирования принудительно используем Orbit.
