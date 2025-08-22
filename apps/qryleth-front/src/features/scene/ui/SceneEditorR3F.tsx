@@ -489,18 +489,18 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   </Badge>
                 </Group>
 
-                <Tooltip label="Сохранить (Ctrl/Cmd+S)" withArrow>
-                  <ActionIcon
-                      size="md"
-                      variant={'subtle'}
-                      color={'white'}
-                      onClick={handleSaveSceneToLibrary}
-                      aria-label={'Сохранить'}
-                  >
-                    <IconDeviceFloppy size={24} />
-                  </ActionIcon>
-
-                </Tooltip>
+                {sceneMetaData.status !== 'saved' && <Tooltip label="Сохранить (Ctrl/Cmd+S)" withArrow>
+                    <ActionIcon
+                        size="md"
+                        variant={'subtle'}
+                        color={'blue'}
+                        onClick={handleSaveSceneToLibrary}
+                        aria-label={'Сохранить'}
+                    >
+                      <IconDeviceFloppy size={24} />
+                    </ActionIcon>
+                  </Tooltip>
+                }
               </Group>
             )}
 
