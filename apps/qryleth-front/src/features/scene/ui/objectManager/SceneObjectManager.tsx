@@ -38,6 +38,7 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
+import { scheduleTerrainAdjustment } from '@/features/scene/lib/terrain/TerrainAdjustmentUtils'
 import type {
     ObjectManagerProps,
     SceneLayerModalMode,
@@ -153,38 +154,18 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
 
         storeCreateLayer(layerData)
 
-        // Если создаётся ландшафтный слой с формой Perlin, корректируем объекты
+        // Если создаётся ландшафтный слой с террейном, корректируем объекты
         if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === GfxLayerShape.Terrain) {
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]
 
             if (createdLayer) {
-                // Retry adjustment until terrain data is available (supports both terrain config and legacy noiseData)
-                const attemptAdjustment = (attempt = 1, maxAttempts = 10) => {
-                    const currentLayer = useSceneStore.getState().layers.find(l => l.id === createdLayer.id)
-
-                    // Проверяем наличие terrain данных (новая архитектура) или noiseData (legacy)
-                    const hasTerrainData = currentLayer?.terrain || currentLayer?.noiseData
-                    if (hasTerrainData) {
-                        const result = SceneAPI.adjustInstancesForPerlinTerrain(createdLayer.id)
-                        if (result.success && result.adjustedCount && result.adjustedCount > 0) {
-                            notifications.show({
-                                title: 'Объекты скорректированы',
-                                message: `Позиции ${result.adjustedCount} объектов скорректированы под рельеф Perlin Noise`,
-                                color: 'green'
-                            })
-                        }
-                    } else if (attempt < maxAttempts) {
-                        // Wait longer between attempts
-                        setTimeout(() => attemptAdjustment(attempt + 1, maxAttempts), 200 * attempt)
-                    } else {
-                        console.warn('Failed to adjust objects: terrain data not available after', maxAttempts, 'attempts')
-                    }
-                }
-
-                // Start first attempt after short delay
-                setTimeout(() => attemptAdjustment(), 100)
+                // Используем универсальную функцию для выравнивания объектов
+                scheduleTerrainAdjustment({
+                    layerId: createdLayer.id,
+                    maxAttempts: 10
+                })
             }
         }
 

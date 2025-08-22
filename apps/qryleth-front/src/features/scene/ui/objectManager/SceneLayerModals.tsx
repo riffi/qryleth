@@ -29,6 +29,7 @@ import {
     revokeTerrainAssetPreviewUrl,
     getAllTerrainAssetsSummary
 } from '@/features/scene/lib/terrain/HeightmapUtils'
+import { scheduleTerrainAdjustment } from '@/features/scene/lib/terrain/TerrainAdjustmentUtils'
 import type { GfxTerrainConfig, GfxHeightmapParams } from '@/entities/terrain'
 import { TerrainAssetPickerModal } from './TerrainAssetPickerModal'
 
@@ -279,6 +280,21 @@ export const SceneLayerModals: React.FC = () => {
 
                 // Используем стор для создания слоя
                 storeCreateLayer(layerData)
+
+                // Получаем созданный слой для корректировки объектов
+                const { useSceneStore } = await import('../../model/sceneStore')
+                const createdLayers = useSceneStore.getState().layers
+                const createdLayer = createdLayers[createdLayers.length - 1]
+                
+                if (createdLayer && createdLayer.terrain) {
+                    if (DEBUG) console.log('🗻 Scheduling terrain adjustment for heightmap layer:', createdLayer.id)
+                    
+                    // Используем универсальную функцию для выравнивания объектов
+                    scheduleTerrainAdjustment({
+                        layerId: createdLayer.id,
+                        maxAttempts: 15
+                    })
+                }
 
                 // Закрываем модальное окно
                 resetModalState()

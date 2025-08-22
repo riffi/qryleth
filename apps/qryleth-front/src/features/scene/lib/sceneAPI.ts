@@ -9,7 +9,7 @@ import type { SceneObject, SceneObjectInstance, SceneData } from '@/entities/sce
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, adjustAllInstancesForPerlinTerrain } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import {
@@ -669,6 +669,62 @@ export class SceneAPI {
 
       // Adjust all instances using the updated function that supports all terrain types
       const adjustedInstances = adjustAllInstancesForPerlinTerrain(
+        objectInstances,
+        terrainLayer,
+        state.objects.map(obj => ({
+          uuid: obj.uuid,
+          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj)
+        }))
+      )
+
+      // Count how many were actually adjusted
+      const adjustedCount = adjustedInstances.filter((instance, index) => {
+        const original = objectInstances[index]
+        return instance.transform?.position?.[1] !== original.transform?.position?.[1]
+      }).length
+
+      // Update the store
+      setObjectInstances(adjustedInstances)
+
+      return {
+        success: true,
+        adjustedCount
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to adjust instances for terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Асинхронная версия функции корректировки экземпляров объектов для террейна.
+   * Ожидает полной загрузки данных heightmap перед выравниванием инстансов.
+   */
+  static async adjustInstancesForTerrainAsync(terrainLayerId: string): Promise<{ success: boolean; adjustedCount?: number; error?: string }> {
+    try {
+      const state = useSceneStore.getState()
+      const { objectInstances, layers, setObjectInstances } = state
+
+      // Find the terrain layer (supports both new and legacy formats)
+      const terrainLayer = layers.find(layer =>
+        layer.id === terrainLayerId &&
+        layer.type === GfxLayerType.Landscape &&
+        layer.shape === GfxLayerShape.Terrain &&
+        (layer.terrain || layer.noiseData) // Поддерживаем как новую архитектуру, так и legacy
+      )
+
+      if (!terrainLayer) {
+        return {
+          success: false,
+          error: `Terrain layer with ID ${terrainLayerId} not found or has no terrain data`
+        }
+      }
+
+      // Используем асинхронную версию для корректного ожидания загрузки heightmap данных
+      const adjustedInstances = await adjustAllInstancesForTerrainAsync(
         objectInstances,
         terrainLayer,
         state.objects.map(obj => ({

@@ -435,6 +435,53 @@ export const placeInstance = (
 }
 
 /**
+ * Асинхронная версия функции размещения экземпляра объекта.
+ * Ожидает полной загрузки данных heightmap для правильного позиционирования.
+ */
+export const placeInstanceAsync = async (
+    instance: SceneObjectInstance,
+    options?: {
+      landscapeLayer?: SceneLayer;
+      placementX?: number;
+      placementZ?: number;
+      alignToTerrain?: boolean;
+      objectBoundingBox?: import('@/shared/types').BoundingBox;
+      existingInstances?: Array<{
+        instance: SceneObjectInstance
+        boundingBox: BoundingBox
+      }>;
+    }): Promise<SceneObjectInstance> => {
+  const newInstance = {...instance};
+
+  // Для heightmap слоев ожидаем загрузки данных
+  if (options?.landscapeLayer?.terrain?.source.kind === 'heightmap') {
+    const sampler = getHeightSamplerForLayer(options.landscapeLayer)
+    if (sampler) {
+      await new Promise<void>((resolve) => {
+        // Проверяем, готовы ли данные сразу
+        const testHeight = sampler.getHeight(0, 0)
+        if (testHeight !== 0 || 
+            (options.landscapeLayer?.terrain?.source.kind === 'heightmap' && 
+             options.landscapeLayer.terrain.source.params.min === 0 && 
+             options.landscapeLayer.terrain.source.params.max === 0)) {
+          // Данные готовы
+          resolve()
+          return
+        }
+
+        // Ожидаем загрузки данных
+        sampler.onHeightmapLoaded(() => {
+          resolve()
+        })
+      })
+    }
+  }
+
+  // Используем синхронную версию после ожидания
+  return placeInstance(instance, options)
+}
+
+/**
  * Подогнать все экземпляры объектов к высоте террейна.
  * Поддерживает все типы террейнов через унифицированный GfxHeightSampler.
  * @param instances - массив экземпляров объектов для корректировки
@@ -450,6 +497,86 @@ export const adjustAllInstancesForPerlinTerrain = (
   const sampler = getHeightSamplerForLayer(terrainLayer)
   if (!sampler) {
     return instances // No valid terrain layer, return unchanged
+  }
+
+  const layerWidth = terrainLayer.width || 1
+  const layerHeight = terrainLayer.height || 1
+  const halfWidth = layerWidth / 2
+  const halfHeight = layerHeight / 2
+
+  return instances.map(instance => {
+    if (!instance.transform?.position) {
+      return instance
+    }
+
+    const [originalX, currentY, originalZ] = instance.transform.position
+
+    // Check if instance is within terrain bounds
+    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfHeight || originalZ > halfHeight) {
+      return instance // Outside terrain bounds, don't adjust
+    }
+
+    // Calculate new Y position based on terrain height using unified sampler
+    let terrainY = sampler.getHeight(originalX, originalZ)
+
+    // Adjust Y position based on object's bounding box if available
+    if (objects) {
+      const object = objects.find(obj => obj.uuid === instance.objectUuid)
+      if (object?.boundingBox) {
+        const scale = instance.transform?.scale || [1, 1, 1]
+        const bottomOffset = object.boundingBox.min[1] * scale[1]
+        terrainY = terrainY - bottomOffset
+      }
+    }
+
+    // Important: preserve original X and Z coordinates exactly
+    return {
+      ...instance,
+      transform: {
+        ...instance.transform,
+        position: [originalX, terrainY, originalZ] as Vector3
+      }
+    }
+  })
+}
+
+/**
+ * Асинхронная версия функции подгонки экземпляров объектов к высоте террейна.
+ * Ожидает полной загрузки данных heightmap перед выравниванием инстансов.
+ * @param instances - массив экземпляров объектов для корректировки
+ * @param terrainLayer - слой террейна (может быть любого типа terrain)
+ * @param objects - массив объектов с bounding box для правильного позиционирования
+ * @returns Promise с скорректированным массивом экземпляров объектов
+ */
+export const adjustAllInstancesForTerrainAsync = async (
+  instances: SceneObjectInstance[],
+  terrainLayer: SceneLayer,
+  objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
+): Promise<SceneObjectInstance[]> => {
+  const sampler = getHeightSamplerForLayer(terrainLayer)
+  if (!sampler) {
+    return instances // No valid terrain layer, return unchanged
+  }
+
+  // Для heightmap источников ожидаем загрузки данных
+  if (terrainLayer.terrain?.source.kind === 'heightmap') {
+    await new Promise<void>((resolve) => {
+      // Проверяем, готовы ли данные сразу
+      const testHeight = sampler.getHeight(0, 0)
+      if (testHeight !== 0 || 
+          (terrainLayer.terrain?.source.kind === 'heightmap' && 
+           terrainLayer.terrain.source.params.min === 0 && 
+           terrainLayer.terrain.source.params.max === 0)) {
+        // Данные готовы
+        resolve()
+        return
+      }
+
+      // Ожидаем загрузки данных
+      sampler.onHeightmapLoaded(() => {
+        resolve()
+      })
+    })
   }
 
   const layerWidth = terrainLayer.width || 1
