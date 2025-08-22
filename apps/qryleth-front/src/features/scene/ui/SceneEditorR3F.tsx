@@ -136,9 +136,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       // Чуть уменьшаем минимальные ширины панелей, чтобы на ноутбуках
       // центр (рендеринг) был крупнее. Ранее было 260/240.
       const minLeft = 220
-      const maxLeft = scriptingPanelVisible
-        ? Math.min(window.innerWidth * 0.48, 820)
-        : Math.min(window.innerWidth * 0.32, 480)
+      const maxLeft = objectPanelCollapsed 
+        ? window.innerWidth * 0.5  // Если правая панель скрыта - можно до половины экрана
+        : scriptingPanelVisible
+          ? Math.min(window.innerWidth * 0.48, 820)
+          : Math.min(window.innerWidth * 0.32, 480)
       const minRight = 200
       const maxRight = Math.min(window.innerWidth * 0.36, 520)
 
@@ -555,7 +557,19 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const toggleRightPanel = () => {
-    setObjectPanelCollapsed(prev => !prev)
+    setObjectPanelCollapsed(prev => {
+      const newCollapsed = !prev
+      
+      // Если открываем правую панель и левая слишком широкая - уменьшаем её
+      if (!newCollapsed && leftPanelWidthPx > window.innerWidth * 0.32) {
+        const newMaxLeft = scriptingPanelVisible
+          ? Math.min(window.innerWidth * 0.48, 820)
+          : Math.min(window.innerWidth * 0.32, 480)
+        setLeftPanelWidthPx(Math.min(leftPanelWidthPx, newMaxLeft))
+      }
+      
+      return newCollapsed
+    })
   }
 
 
