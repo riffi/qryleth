@@ -21,3 +21,12 @@
   - постоянной подсказкой «1 — Orbit, 2 — Walk, 3 — Fly».
 
 Кнопка Play рендерится в `header.rightSection` страницы редактора и вызывает `togglePlay()` из стора. Переходы выполняются без пересоздания сцены.
+
+---
+
+## Ландшафтные слои (Landscape)
+
+- Компоненты: `src/features/scene/ui/renderer/landscape/LandscapeLayers.tsx`, `LandscapeLayer.tsx`
+- Генерация геометрии выполняется через `GfxHeightSampler` и `buildGfxTerrainGeometry`, что обеспечивает единый источник высот для рендера и логики размещения.
+- Поддерживаются источники: Perlin, PNG heightmap (через Dexie), Legacy (миграция старых `noiseData`).
+- UI создания слоя поддерживает загрузку PNG и настройки (min/max, wrap) — см. `SceneLayerModals.tsx`.

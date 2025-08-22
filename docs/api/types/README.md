@@ -15,6 +15,7 @@ src/
 │   ├── object/         # GfxObject
 │   ├── objectInstance/ # GfxObjectInstance
 │   ├── layer/          # GfxLayer
+│   ├── terrain/        # GfxTerrainConfig, GfxHeightSampler, источники
 │   ├── lighting/       # LightingSettings и источники света
 │   ├── material/       # GfxMaterial
 │   ├── scene/          # SceneData и производные
@@ -46,6 +47,9 @@ import type {
   GfxObject,         // Composite 3D objects
   GfxObjectInstance, // GfxObject инстансы
   GfxLayer,          // Scene layers
+  // 🆕 Террейн: конфигурация и сэмплер высот
+  GfxTerrainConfig,  // Конфигурация террейна слоя (perlin, heightmap, legacy, ops)
+  GfxHeightSampler,  // Единый интерфейс получения высот/нормалей для рендера и размещения
   GfxMaterial,       // Material definitions
   LightingSettings,   // Lighting configuration
   SceneData, // данные сцены
