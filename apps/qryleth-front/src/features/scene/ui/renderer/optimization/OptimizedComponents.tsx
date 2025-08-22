@@ -58,6 +58,15 @@ export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
 )
 
 // Memoized LandscapeLayer for better performance
+/**
+ * Мемоизированный компонент ландшафтного слоя.
+ * Использует кастомную функцию сравнения пропсов для снижения количества перерисовок.
+ *
+ * ВАЖНО: сюда добавлено сравнение `layer.color`, чтобы изменение цвета слоя
+ * (в том числе для слоёв с heightmap) приводило к повторному рендеру и
+ * обновлению материала в сцене. Ранее цвет не учитывался и UI не обновлялся,
+ * хоть значение корректно сохранялось в Dexie.
+ */
 export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   LandscapeLayer,
   (prevProps, nextProps) => {
@@ -69,6 +78,7 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
       prevProps.layer.height === nextProps.layer.height &&
       prevProps.layer.shape === nextProps.layer.shape &&
       prevProps.layer.noiseData === nextProps.layer.noiseData &&
+      prevProps.layer.color === nextProps.layer.color && // учитывать изменение цвета слоя
       // Важно: учитывать изменения конфигурации террейна (в т.ч. heightmap)
       prevProps.layer.terrain === nextProps.layer.terrain
     )

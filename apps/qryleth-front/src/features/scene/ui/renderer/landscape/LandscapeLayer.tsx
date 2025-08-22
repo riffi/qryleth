@@ -166,8 +166,8 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
   return (
     <mesh
-      // Ключ зависит от heightmapLoaded чтобы гарантированно пересоздать Mesh после загрузки
-      key={`${layer.id}-${heightmapLoaded ? 'hm1' : 'hm0'}`}
+      // Ключ зависит от heightmapLoaded и цвета чтобы гарантированно пересоздать Mesh при изменениях
+      key={`${layer.id}-${heightmapLoaded ? 'hm1' : 'hm0'}-${layer.color || 'default'}`}
       geometry={geometry}
       visible={layer.visible}
       rotation={rotation}

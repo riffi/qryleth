@@ -158,7 +158,7 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                   </Menu.Item>
                   {layer.type === GfxLayerType.Landscape && (
                       <Menu.Item onClick={() => openEditLayerModal(layer)}>
-                        Изменить размер
+                        Изменить
                       </Menu.Item>
                   )}
                   {layer.id !== 'objects' && (
