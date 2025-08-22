@@ -553,9 +553,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                     <IconPlus size={14} />
                                 </ActionIcon>
                             </Tooltip>
-                            <Badge variant="light" color="blue" size="xs">
-                                {totalObjects}
-                            </Badge>
                         </Group>
                     </Group>
 
