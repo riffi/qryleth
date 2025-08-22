@@ -444,43 +444,46 @@ export const SceneLayerModals: React.FC = () => {
                                                         fit="contain"
                                                         style={{ border: '1px solid #e0e0e0', borderRadius: 4 }}
                                                     />
-                                                    
-                                                    <Group gap="lg">
-                                                        <Stack gap="xs" style={{ flex: 1 }}>
-                                                            <Text size="sm">Минимальная высота: {heightmapParams.min}</Text>
-                                                            <Slider
-                                                                value={heightmapParams.min || 0}
-                                                                onChange={(val) => setHeightmapParams(prev => ({ ...prev, min: val }))}
-                                                                min={-50}
-                                                                max={50}
-                                                                step={0.1}
-                                                                size="sm"
-                                                            />
-                                                        </Stack>
-                                                        <Stack gap="xs" style={{ flex: 1 }}>
-                                                            <Text size="sm">Максимальная высота: {heightmapParams.max}</Text>
-                                                            <Slider
-                                                                value={heightmapParams.max || 10}
-                                                                onChange={(val) => setHeightmapParams(prev => ({ ...prev, max: val }))}
-                                                                min={-50}
-                                                                max={100}
-                                                                step={0.1}
-                                                                size="sm"
-                                                            />
-                                                        </Stack>
-                                                    </Group>
-
-                                                    <Select
-                                                        label="Режим обработки краев"
-                                                        data={[
-                                                            { value: 'clamp', label: 'Ограничение (clamp)' },
-                                                            { value: 'repeat', label: 'Повтор (repeat)' }
-                                                        ]}
-                                                        value={heightmapParams.wrap || 'clamp'}
-                                                        onChange={(v) => setHeightmapParams(prev => ({ ...prev, wrap: v as 'clamp' | 'repeat' }))}
-                                                    />
                                                 </Stack>
                                             )}
+
+                                            {/* Контролы нормализации высоты и режима UV-wrap показываем всегда, независимо от источника */}
+                                            <Stack gap="xs">
+                                                <Group gap="lg">
+                                                    <Stack gap="xs" style={{ flex: 1 }}>
+                                                        <Text size="sm">Минимальная высота: {heightmapParams.min}</Text>
+                                                        <Slider
+                                                            value={heightmapParams.min || 0}
+                                                            onChange={(val) => setHeightmapParams(prev => ({ ...prev, min: val }))}
+                                                            min={-50}
+                                                            max={50}
+                                                            step={0.1}
+                                                            size="sm"
+                                                        />
+                                                    </Stack>
+                                                    <Stack gap="xs" style={{ flex: 1 }}>
+                                                        <Text size="sm">Максимальная высота: {heightmapParams.max}</Text>
+                                                        <Slider
+                                                            value={heightmapParams.max || 10}
+                                                            onChange={(val) => setHeightmapParams(prev => ({ ...prev, max: val }))}
+                                                            min={-50}
+                                                            max={100}
+                                                            step={0.1}
+                                                            size="sm"
+                                                        />
+                                                    </Stack>
+                                                </Group>
+
+                                                <Select
+                                                    label="Режим обработки краев"
+                                                    data={[
+                                                        { value: 'clamp', label: 'Ограничение (clamp)' },
+                                                        { value: 'repeat', label: 'Повтор (repeat)' }
+                                                    ]}
+                                                    value={heightmapParams.wrap || 'clamp'}
+                                                    onChange={(v) => setHeightmapParams(prev => ({ ...prev, wrap: v as 'clamp' | 'repeat' }))}
+                                                />
+                                            </Stack>
                                         </Stack>
                                     )}
                                 </>
