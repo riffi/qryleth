@@ -88,6 +88,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
   const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
 
+  // Локальное состояние инлайн-редактирования названия сцены
+  // Позволяет вводить имя без дергания стора на каждый кейстрок, если потребуется расширить поведение.
+  const [sceneNameDraft, setSceneNameDraft] = useState<string>('')
+  const [isEditingSceneName, setIsEditingSceneName] = useState<boolean>(false)
+
   // Ресайз панелей: более современный UX с drag-handles
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [leftPanelWidthPx, setLeftPanelWidthPx] = useState<number>(360)
@@ -206,6 +211,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   // Get scene store actions
   const { loadSceneData, clearScene, setSceneMetadata } = useSceneStore.getState()
+  const markSceneAsModified = useSceneStore.getState().markSceneAsModified
 
   // Load scene data from database if uuid is provided
   useEffect(() => {
@@ -226,11 +232,17 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           name: 'Новая сцена',
           status: 'draft'
         })
+        setSceneNameDraft('Новая сцена')
       }
     }
 
     loadScene()
   }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
+
+  useEffect(() => {
+    // Синхронизация черновика названия при загрузке/смене сцены
+    setSceneNameDraft(sceneMetaData?.name || '')
+  }, [sceneMetaData?.name])
 
 
   const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
@@ -322,6 +334,42 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   /**
+   * Обновляет название сцены в zustand-хранилище и помечает сцену как изменённую.
+   * @param newName Новое название сцены, введённое пользователем инлайн в хедере
+   */
+  const handleSceneNameChange = (newName: string) => {
+    setSceneNameDraft(newName)
+    const current = useSceneStore.getState().sceneMetaData
+    setSceneMetadata({ ...current, name: newName })
+    markSceneAsModified()
+  }
+
+  /**
+   * Обработчик завершения редактирования названия (по blur).
+   * Здесь фиксируем выход из режима редактирования. Логика сохранения
+   * уже выполнена в handleSceneNameChange по мере ввода.
+   */
+  const handleSceneNameBlur = () => {
+    setIsEditingSceneName(false)
+  }
+
+  /**
+   * Глобальный хоткей сохранения сцены: Ctrl/Cmd + S.
+   * Перехватывает нажание, предотвращает дефолт и вызывает сохранение.
+   */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isSave = (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')
+      if (isSave) {
+        e.preventDefault()
+        handleSaveSceneToLibrary()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [sceneMetaData?.uuid, sceneMetaData?.name])
+
+  /**
    * Формирует объект из состояния редактора и закрывает модальное окно.
    */
   const handleEditorSaveClick = () => {
@@ -406,6 +454,41 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         navbarVisible={!isPlay}
         rightSection={(
           <>
+            {/* Кнопка сохранения сцены (primary) + Play справа от неё */}
+            {!isPlay && (
+              <Group gap={8} wrap="nowrap" align="center" style={{ marginRight: 100 }}>
+                <Group gap={6} wrap="nowrap" align="center">
+                  {/* Инлайн-редактирование названия сцены */}
+                  <TextInput
+                    value={sceneNameDraft}
+                    onChange={(e) => handleSceneNameChange(e.currentTarget.value)}
+                    onFocus={() => setIsEditingSceneName(true)}
+                    onBlur={handleSceneNameBlur}
+                    size="xs"
+                    styles={{ input: { height: 26, paddingTop: 2, paddingBottom: 2, minWidth: 160 } }}
+                    aria-label={'Название сцены'}
+                  />
+                  {/* Компактный индикатор статуса рядом с названием */}
+                  <Badge color={getStatusColor(sceneMetaData.status as SceneStatus)} variant="light" size="sm">
+                    {getStatusText(sceneMetaData.status as SceneStatus)}
+                  </Badge>
+                </Group>
+
+                <Tooltip label="Сохранить (Ctrl/Cmd+S)" withArrow>
+                  <ActionIcon
+                      size="md"
+                      variant={'filled'}
+                      color={'blue'}
+                      onClick={handleSaveSceneToLibrary}
+                      aria-label={'Сохранить'}
+                  >
+                    <IconDeviceFloppy size={20} />
+                  </ActionIcon>
+
+                </Tooltip>
+              </Group>
+            )}
+
             {!isPlay && (
               <Tooltip label="Войти в режим просмотра (Play)" withArrow>
                 <ActionIcon
@@ -419,13 +502,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </ActionIcon>
               </Tooltip>
             )}
-            <Badge
-              color={getStatusColor(sceneMetaData.status as SceneStatus)}
-              variant="light"
-              size="sm"
-            >
-              {getStatusText(sceneMetaData.status as SceneStatus)}
-            </Badge>
 
             <Tooltip label="Отменить (Ctrl+Z)">
               <ActionIcon variant="subtle" size="sm" onClick={undo} disabled={!canUndo}>

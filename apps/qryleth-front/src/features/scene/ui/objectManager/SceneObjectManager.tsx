@@ -23,7 +23,10 @@ import {
 import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
-import { SceneHeader } from './SceneHeader.tsx'
+// Заголовок сцены с мета-информацией переносится в хедер страницы.
+// Ранее использовался компонент SceneHeader внутри правой панели.
+// По новым правилам архитектуры мета-управление должно быть вверху,
+// поэтому SceneHeader здесь более не используется.
 import { LightingControls } from './LightingControls.tsx'
 import { SceneLayerItem } from './SceneLayerItem.tsx'
 import { SceneLayerModals } from './SceneLayerModals.tsx'
@@ -468,13 +471,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
                     <Title order={4} c="gray.6" size="md">
-                        Сцена
+                        Менеджер сцены
                     </Title>
-
-                    <SceneHeader
-                        sceneMetaData={sceneMetaData}
-                        onSaveSceneToLibrary={handleSaveSceneToLibraryInternal}
-                    />
 
                     <LightingControls
                         lighting={lighting}
