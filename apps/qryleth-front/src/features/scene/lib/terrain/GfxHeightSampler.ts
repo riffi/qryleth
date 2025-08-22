@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
-import { loadTerrainAssetImageData } from './HeightmapUtils';
+import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from './HeightmapUtils';
 
 /**
  * Глобальный кэш ImageData для heightmap по assetId.
@@ -15,6 +15,19 @@ const HEIGHTMAP_IMAGE_CACHE: Map<string, ImageData> = new Map();
  * не создавая дубликаты запросов к Dexie.
  */
 const HEIGHTMAP_LOAD_PROMISES: Map<string, Promise<ImageData>> = new Map();
+
+/**
+ * Глобальный кэш числовых высот по assetId.
+ * Используется, когда heights уже сохранены в Dexie (предпочтительный путь).
+ */
+const HEIGHTS_FIELD_CACHE: Map<string, { heights: Float32Array; width: number; height: number }> = new Map();
+
+/**
+ * Глобальный реестр активных промисов загрузки числовых высот по assetId.
+ * Нужен, чтобы несколько инстансов сэмплера не дублировали запросы к Dexie,
+ * а ожидали один и тот же результат (включая «ленивую миграцию» из PNG).
+ */
+const HEIGHTS_FIELD_LOAD_PROMISES: Map<string, Promise<{ heights: Float32Array; width: number; height: number }>> = new Map();
 
 /**
  * Реализация интерфейса GfxHeightSampler для получения высот из различных источников террейна.
@@ -39,6 +52,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private heightmapLoadPromise?: Promise<ImageData>;
   private onHeightmapLoadedCallback?: () => void;
 
+  // Данные предвычисленного поля высот (предпочтительный источник для heightmap)
+  private heightsField?: { heights: Float32Array; width: number; height: number };
+  private heightsLoadPromise?: Promise<{ heights: Float32Array; width: number; height: number }>;
+
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
    * @param config - конфигурация террейна с источником данных и параметрами
@@ -49,12 +66,19 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    */
   constructor(config: GfxTerrainConfig) {
     this.config = config;
-    // Если источник — heightmap и в кэше уже есть ImageData, используем его сразу
+    // Если источник — heightmap, пробуем подставить кэшированные данные:
+    // 1) сначала числовое поле высот (heights),
+    // 2) если нет — ImageData как фоллбэк.
     if (this.config.source.kind === 'heightmap') {
       const assetId = this.config.source.params.assetId;
-      const cached = HEIGHTMAP_IMAGE_CACHE.get(assetId);
-      if (cached) {
-        this.heightmapImageData = cached;
+      const cachedHeights = HEIGHTS_FIELD_CACHE.get(assetId);
+      if (cachedHeights) {
+        this.heightsField = cachedHeights;
+      } else {
+        const cachedImg = HEIGHTMAP_IMAGE_CACHE.get(assetId);
+        if (cachedImg) {
+          this.heightmapImageData = cachedImg;
+        }
       }
     }
     this.sourceHeight = this.createSourceFunction();
@@ -257,21 +281,61 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private createHeightmapSource(params: GfxHeightmapParams) {
     console.log('🗻 createHeightmapSource called with params:', params);
     return (x: number, z: number): number => {
-      // Если ImageData не загружена для текущего инстанса — пробуем взять из глобального кэша
+      // 1) Предпочитаем числовое поле высот (если доступно). Если нет — инициируем загрузку/миграцию.
+      if (!this.heightsField) {
+        const cached = HEIGHTS_FIELD_CACHE.get(params.assetId);
+        if (cached) {
+          this.heightsField = cached;
+          // При переключении источника на более точный — сбрасываем локальный кэш высот
+          this.heightCache.clear();
+        } else {
+          // Запускаем (или присоединяемся к) загрузку числовых высот
+          this.loadHeightsFieldIfNeeded(params.assetId);
+        }
+      }
+
+      // 2) Если heights уже доступны — используем их для семплинга
+      if (this.heightsField) {
+        // Преобразование мировых координат → UV [0..1]
+        const halfWidth = this.config.worldWidth / 2;
+        const halfHeight = this.config.worldHeight / 2;
+        let u = (x + halfWidth) / this.config.worldWidth;
+        let v = (z + halfHeight) / this.config.worldHeight;
+        const wrap = params.wrap || 'clamp';
+        switch (wrap) {
+          case 'repeat':
+            u = u - Math.floor(u);
+            v = v - Math.floor(v);
+            if (u < 0) u += 1;
+            if (v < 0) v += 1;
+            break;
+          case 'clamp':
+          default:
+            u = Math.max(0, Math.min(1, u));
+            v = Math.max(0, Math.min(1, v));
+            break;
+        }
+        // Перевод UV → координаты в сетке высот
+        const pixelX = u * (this.heightsField.width - 1);
+        const pixelY = v * (this.heightsField.height - 1);
+        return this.sampleHeightsFieldBilinear(pixelX, pixelY, this.heightsField.heights, this.heightsField.width, this.heightsField.height, params);
+      }
+
+      // 3) Фоллбэк: если нет heights — работаем по старому пути через ImageData
       if (!this.heightmapImageData) {
         const cached = HEIGHTMAP_IMAGE_CACHE.get(params.assetId);
         if (cached) {
-          // Немедленно используем кэшированные пиксели
           this.heightmapImageData = cached;
         } else {
-          // Запускаем (или присоединяемся к) асинхронную загрузку и возвращаем 0 до завершения
-          console.log('🗻 heightmapImageData not loaded yet, loading assetId:', params.assetId);
+          // Асинхронно грузим ImageData и возвращаем 0 до завершения
+          console.log('🗻 height source not ready (heights/ImageData); loading assetId:', params.assetId);
           this.loadHeightmapImageDataIfNeeded(params.assetId);
           return 0;
         }
       }
-      
-      console.log('🗻 Sampling heightmap at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
+
+      // Преобразуем мировые координаты в UV → пиксели под размеры изображения
+      console.log('🗻 Sampling heightmap (ImageData) at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
 
       // Преобразуем мировые координаты в UV координаты [0, 1]
       const halfWidth = this.config.worldWidth / 2;
@@ -360,6 +424,58 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   }
 
   /**
+   * Асинхронно загружает числовое поле высот (Float32Array) из Dexie (с ленивой миграцией при необходимости).
+   * 
+   * Использует общий реестр промисов, чтобы несколько инстансов сэмплера ожидали один и тот же
+   * запрос. При успешной загрузке:
+   * - сохраняет результат в глобальном кэше HEIGHTS_FIELD_CACHE,
+   * - привязывает поле высот к текущему инстансу,
+   * - очищает локальный кэш высот this.heightCache, чтобы пересчитать значения с новым источником,
+   * - вызывает onHeightmapLoadedCallback для триггера перегенерации геометрии в UI.
+   */
+  private loadHeightsFieldIfNeeded(assetId: string): void {
+    if (this.heightsField) return;
+
+    const ongoing = HEIGHTS_FIELD_LOAD_PROMISES.get(assetId);
+    if (ongoing) {
+      this.heightsLoadPromise = ongoing.then((res) => {
+        this.heightsField = res;
+        this.heightCache.clear();
+        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        return res;
+      });
+      return;
+    }
+
+    const promise = loadTerrainHeightsFromAsset(assetId)
+      .then((res) => {
+        if (!res) {
+          // heights ещё нет — ничего не делаем; фоллбэк продолжит работать по ImageData
+          return Promise.reject(new Error('Heights not available yet'));
+        }
+        // Кладём в глобальный кэш и привязываем к инстансу
+        HEIGHTS_FIELD_CACHE.set(assetId, res);
+        this.heightsField = res;
+        // Сбрасываем локальные кэши высот — переключились на новый источник данных
+        this.heightCache.clear();
+        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        return res;
+      })
+      .catch((err) => {
+        // Не фейлим пайплайн семплинга — оставляем фоллбэк через ImageData
+        console.warn('Не удалось загрузить числовые высоты (heights). Будет использован ImageData fallback.', err);
+        return Promise.reject(err);
+      })
+      .finally(() => {
+        HEIGHTS_FIELD_LOAD_PROMISES.delete(assetId);
+        this.heightsLoadPromise = undefined;
+      });
+
+    HEIGHTS_FIELD_LOAD_PROMISES.set(assetId, promise);
+    this.heightsLoadPromise = promise;
+  }
+
+  /**
    * Выполняет bilinear интерполяцию высоты из heightmap ImageData
    * @param pixelX - X координата в пикселях (может быть дробной)
    * @param pixelY - Y координата в пикселях (может быть дробной)
@@ -407,6 +523,66 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     const normalizedHeight = (interpolatedHeight / 255) * (params.max - params.min) + params.min;
     
     return normalizedHeight;
+  }
+
+  /**
+   * Выполняет билинейную интерполяцию по «полю высот» (числовому массиву),
+   * хранящемуся в Dexie как Float32Array. Предпочтительный путь семплинга для
+   * heightmap-источника, так как избавляет от пересчёта яркости пикселей и
+   * экономит время за счёт прямого доступа к нормализованным значениям высот.
+   *
+   * Алгоритм:
+   * - По дробным координатам (pixelX, pixelY) находим четыре соседних узла
+   *   (x0,y0), (x1,y0), (x0,y1), (x1,y1) в решётке высот.
+   * - Смешиваем значения по X (верхняя и нижняя стороны), затем по Y — получаем
+   *   итоговую интерполированную высоту.
+   * - Приводим результат к диапазону [min..max] из параметров heightmap.
+   *
+   * Важно: метод не делает «оборачивание» координат — обрезка/повтор уже
+   * выполнены на стадии преобразования мировых координат в UV (см. вызов).
+   *
+   * @param pixelX - X-координата в «пиксельном» пространстве решётки высот (может быть дробной)
+   * @param pixelY - Y-координата в «пиксельном» пространстве решётки высот (может быть дробной)
+   * @param heights - массив высот длиной width*height
+   * @param width - ширина решётки высот
+   * @param height - высота решётки высот
+   * @param params - параметры нормализации высоты (min/max)
+   * @returns интерполированная высота в мировых единицах
+   */
+  private sampleHeightsFieldBilinear(
+    pixelX: number,
+    pixelY: number,
+    heights: Float32Array,
+    width: number,
+    height: number,
+    params: GfxHeightmapParams
+  ): number {
+    // Индексы ближайших целочисленных узлов
+    const x0 = Math.floor(pixelX);
+    const y0 = Math.floor(pixelY);
+    const x1 = Math.min(x0 + 1, width - 1);
+    const y1 = Math.min(y0 + 1, height - 1);
+
+    // Весовые коэффициенты для интерполяции
+    const wx = pixelX - x0;
+    const wy = pixelY - y0;
+
+    // Доступ к значениям высот в узлах
+    const idx = (xx: number, yy: number) => yy * width + xx;
+    const h00 = heights[idx(x0, y0)];
+    const h10 = heights[idx(x1, y0)];
+    const h01 = heights[idx(x0, y1)];
+    const h11 = heights[idx(x1, y1)];
+
+    // Билинейная интерполяция
+    const h0 = h00 * (1 - wx) + h10 * wx;
+    const h1 = h01 * (1 - wx) + h11 * wx;
+    const interpolated = h0 * (1 - wy) + h1 * wy;
+
+    // Нормализация в диапазон [min..max]
+    const min = params.min;
+    const max = params.max;
+    return min + (max - min) * interpolated; // предполагаем, что heights уже [0..1]
   }
 
   /**

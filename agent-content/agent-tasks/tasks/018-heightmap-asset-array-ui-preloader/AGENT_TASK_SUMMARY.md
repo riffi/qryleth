@@ -9,7 +9,7 @@ owner: ai-agent
 tags: [terrain, heightmap, dexie, ui, r3f]
 phases:
   total: 6
-  completed: 2
+  completed: 3
 ---
 
 # Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения
@@ -53,11 +53,13 @@ phases:
 
 **Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: GfxHeightSampler — выбор источника данных на основе массива высот
+### ✅ Фаза 3: GfxHeightSampler — выбор источника данных на основе массива высот
 - В `GfxHeightSampler` добавить путь сэмплинга из `heights` (если есть) с bilinear интерполяцией по `heightsWidth/Height`.
 - Предпочитать `heights` перед `ImageData`; если `heights` отсутствуют — текущая логика `ImageData` как fallback.
 - Вынести билinear-интерполяцию по массиву чисел в отдельный метод с подробным комментарием на русском языке.
 - Очистка и инвалидация локальных кэшей при поступлении `heights` после ленивой миграции.
+
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: UI — модал выбора карты высот из коллекции
 - Создать `TerrainAssetPickerModal`:
