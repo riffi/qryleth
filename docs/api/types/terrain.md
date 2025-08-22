@@ -130,9 +130,11 @@ const n = sampler.getNormal(x, z)
 
 ## Импорт PNG heightmap
 
-- Dexie-таблица: `terrainAssets`
+- Dexie-таблица: `terrainAssets` (PNG blob, `heightsBuffer`, `heightsHash`).
 - Утилиты: `src/features/scene/lib/terrain/HeightmapUtils.ts`
   - `validatePngFile()`, `uploadTerrainAsset()`, `createTerrainAssetPreviewUrl()` и др.
+- Нормализация: входной PNG масштабируется до ≤200px по большей стороне, затем извлекается массив высот (`Float32Array`).
+- Дедупликация: по SHA‑256 хэшу массива высот (`heightsHash`). При загрузке идентичной карты возвращается уже существующий ассет (новый не создаётся).
 - Асинхронная загрузка ImageData; на время загрузки sampler может возвращать 0 и триггерить `onHeightmapLoaded`.
 
 ---
