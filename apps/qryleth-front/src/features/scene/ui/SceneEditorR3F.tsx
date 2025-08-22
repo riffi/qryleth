@@ -136,7 +136,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       // Чуть уменьшаем минимальные ширины панелей, чтобы на ноутбуках
       // центр (рендеринг) был крупнее. Ранее было 260/240.
       const minLeft = 220
-      const maxLeft = objectPanelCollapsed 
+      const maxLeft = objectPanelCollapsed
         ? window.innerWidth * 0.5  // Если правая панель скрыта - можно до половины экрана
         : scriptingPanelVisible
           ? Math.min(window.innerWidth * 0.48, 820)
@@ -559,7 +559,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const toggleRightPanel = () => {
     setObjectPanelCollapsed(prev => {
       const newCollapsed = !prev
-      
+
       // Если открываем правую панель и левая слишком широкая - уменьшаем её
       if (!newCollapsed && leftPanelWidthPx > window.innerWidth * 0.32) {
         const newMaxLeft = scriptingPanelVisible
@@ -567,7 +567,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           : Math.min(window.innerWidth * 0.32, 480)
         setLeftPanelWidthPx(Math.min(leftPanelWidthPx, newMaxLeft))
       }
-      
+
       return newCollapsed
     })
   }
@@ -668,8 +668,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             </Tooltip>
             <Divider ml="md" mr="md" orientation="vertical"  />
 
-
-            <Divider ml="md" mr="md" orientation="vertical"  />
 
             {!isPlay && (
                 <Tooltip label="Войти в режим просмотра (Play)" withArrow>
