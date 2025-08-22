@@ -259,7 +259,8 @@ export const SceneLayerModals: React.FC = () => {
                     }
                 }
 
-                console.log('🗻 Creating heightmap layer with terrain config:', terrainConfig)
+                const DEBUG = (import.meta as any)?.env?.MODE !== 'production'
+                if (DEBUG) console.log('🗻 Creating heightmap layer with terrain config:', terrainConfig)
 
                 // Создаем слой с terrain конфигурацией
                 const layerData = {
@@ -274,7 +275,7 @@ export const SceneLayerModals: React.FC = () => {
                     terrain: terrainConfig
                 }
 
-                console.log('🗻 Layer data being created:', layerData)
+                if (DEBUG) console.log('🗻 Layer data being created:', layerData)
 
                 // Используем стор для создания слоя
                 storeCreateLayer(layerData)

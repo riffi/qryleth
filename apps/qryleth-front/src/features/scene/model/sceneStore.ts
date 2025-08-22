@@ -74,6 +74,8 @@ const initialState: SceneStoreState = {
   hoveredObject: null,
   gridVisible: true,
   cameraPose: undefined,
+  // Флаг прелоадера применения heightmap
+  isTerrainApplying: false,
 
   // Scene metadata
   sceneMetaData: initialSceneMetaData,
@@ -385,6 +387,22 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     /**
+     * Включает флаг применения heightmap, блокируя рендер UI через оверлей.
+     * Использовать непосредственно перед началом загрузки/миграции массива высот.
+     */
+    startTerrainApplying: () => {
+      if (!get().isTerrainApplying) set({ isTerrainApplying: true })
+    },
+
+    /**
+     * Выключает флаг применения heightmap, снимая блокировку оверлея в UI.
+     * Вызывать после получения данных (колбэк onHeightmapLoaded или кэш).
+     */
+    finishTerrainApplying: () => {
+      if (get().isTerrainApplying) set({ isTerrainApplying: false })
+    },
+
+    /**
      * Сохраняет текущую позу камеры (позиция, цель/ориентация) для последующего восстановления.
      * Используется при переключении UiMode и смене типа камеры.
      */
@@ -554,6 +572,11 @@ export const useViewMode = () => useSceneStore(state => state.viewMode)
 export const useRenderMode = () => useSceneStore(state => state.renderMode)
 export const useTransformMode = () => useSceneStore(state => state.transformMode)
 export const useGridVisible = () => useSceneStore(state => state.gridVisible)
+/**
+ * Хук-селектор для статуса применения heightmap.
+ * Возвращает true, когда террейн применяет высоты и следует показать прелоадер.
+ */
+export const useIsTerrainApplying = () => useSceneStore(state => state.isTerrainApplying)
 
 // Global material access helpers (reads from MaterialRegistry)
 export const useGlobalMaterials = (): GfxMaterial[] => {

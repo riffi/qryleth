@@ -4,7 +4,7 @@ import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent.tsx'
 import { useSceneUISync, useSceneRealTimeSync } from '@/features/scene/lib/hooks/useSceneUISync'
-import { useSceneStore } from '../../model/sceneStore.ts'
+import { useSceneStore, useIsTerrainApplying } from '../../model/sceneStore.ts'
 
 interface Scene3DProps {
   className: string,
@@ -17,6 +17,8 @@ export const Scene3D: React.FC<Scene3DProps> = ({
 }) => {
   // Получаем текущий профиль рендера для передачи в SceneContent
   const renderProfile = useSceneStore(state => state.renderProfile)
+  // Флаг применения heightmap для показа прелоадера поверх канваса
+  const isTerrainApplying = useIsTerrainApplying()
   
   // Инициализируем синхронизацию UI и сцены
   useSceneUISync()
@@ -74,6 +76,12 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           <SceneContent renderProfile={renderProfile} />
         </Suspense>
       </Canvas>
+
+      {/* Прелоадер на время применения heightmap */}
+      <LoadingOverlay
+        visible={isTerrainApplying}
+        overlayProps={{ radius: 'sm', blur: 2, style: { position: 'absolute', inset: 0 } }}
+      />
 
       <Suspense fallback={
         <LoadingOverlay

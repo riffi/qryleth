@@ -51,6 +51,15 @@ export interface SceneStoreState {
   cameraPose?: CameraPose
   history: any[] // TODO: Define proper history type
   historyIndex: number
+  /**
+   * Флаг применения карты высот (heightmap) к ландшафту.
+   *
+   * Когда пользователь выбирает или загружает heightmap, высоты могут
+   * подгружаться и подготавливаться асинхронно (из Dexie или через миграцию).
+   * На время применения следует блокировать UI рендера оверлеем, чтобы избежать
+   * мерцаний и частично применённого состояния.
+   */
+  isTerrainApplying: boolean
 }
 
 // Store actions interface
@@ -144,6 +153,23 @@ export interface SceneStoreActions {
   redo: () => void
   canUndo: () => boolean
   canRedo: () => boolean
+
+  /**
+   * Установить флаг начала применения heightmap.
+   *
+   * Вызывается перед началом потенциально долгой загрузки/миграции данных
+   * высот. В UI на этот период показывается `LoadingOverlay` поверх канваса
+   * Scene3D. Повторные вызовы допускаются — флаг просто остаётся включённым.
+   */
+  startTerrainApplying: () => void
+
+  /**
+   * Сбросить флаг применения heightmap после завершения загрузки/миграции.
+   *
+   * Вызывается из обработчика `onHeightmapLoaded` в рендер-слое или из места,
+   * где стало достоверно известно, что высоты доступны (включая путь с кэшем).
+   */
+  finishTerrainApplying: () => void
 }
 
 // Combined store type

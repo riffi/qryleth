@@ -9,7 +9,7 @@ owner: ai-agent
 tags: [terrain, heightmap, dexie, ui, r3f]
 phases:
   total: 6
-  completed: 4
+  completed: 5
 ---
 
 # Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения
@@ -73,7 +73,7 @@ phases:
 
 **Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
-### ⏳ Фаза 5: Прелоадер и блокировка рендера на время применения heightmap
+### ✅ Фаза 5: Прелоадер и блокировка рендера на время применения heightmap
 - Добавить флаг в стор сцены, например `isTerrainApplying:boolean` и экшены `start/finish`.
 - В `LandscapeLayer` при источнике `heightmap`:
   - до загрузки данных высот выставлять `start`; при `onHeightmapLoaded`/получении `heights` — `finish`;

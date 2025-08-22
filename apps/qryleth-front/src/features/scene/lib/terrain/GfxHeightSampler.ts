@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from './HeightmapUtils';
+// Флаг отладки: в продакшене подавляем подробные логи
+const DEBUG = (import.meta as any)?.env?.MODE !== 'production';
 
 /**
  * Глобальный кэш ImageData для heightmap по assetId.
@@ -188,7 +190,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         return this.createLegacySource(source);
       
       case 'heightmap':
-        console.log('🗻 Creating HeightmapSource with params:', source.params);
+        if (DEBUG) console.log('🗻 Creating HeightmapSource with params:', source.params);
         return this.createHeightmapSource(source.params);
       
       default:
@@ -279,7 +281,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns функция для получения высоты из heightmap с нормализацией и UV wrapping
    */
   private createHeightmapSource(params: GfxHeightmapParams) {
-    console.log('🗻 createHeightmapSource called with params:', params);
+    if (DEBUG) console.log('🗻 createHeightmapSource called with params:', params);
     return (x: number, z: number): number => {
       // 1) Предпочитаем числовое поле высот (если доступно). Если нет — инициируем загрузку/миграцию.
       if (!this.heightsField) {
@@ -328,14 +330,14 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
           this.heightmapImageData = cached;
         } else {
           // Асинхронно грузим ImageData и возвращаем 0 до завершения
-          console.log('🗻 height source not ready (heights/ImageData); loading assetId:', params.assetId);
+          if (DEBUG) console.log('🗻 height source not ready (heights/ImageData); loading assetId:', params.assetId);
           this.loadHeightmapImageDataIfNeeded(params.assetId);
           return 0;
         }
       }
 
       // Преобразуем мировые координаты в UV → пиксели под размеры изображения
-      console.log('🗻 Sampling heightmap (ImageData) at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
+      if (DEBUG) console.log('🗻 Sampling heightmap (ImageData) at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
 
       // Преобразуем мировые координаты в UV координаты [0, 1]
       const halfWidth = this.config.worldWidth / 2;
@@ -395,7 +397,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     // Иначе инициируем новую загрузку и положим её в общий кэш промисов
     const promise = loadTerrainAssetImageData(assetId)
       .then(imageData => {
-        console.log('🗻 Heightmap ImageData loaded successfully:', imageData.width, 'x', imageData.height);
+        if (DEBUG) console.log('🗻 Heightmap ImageData loaded successfully:', imageData.width, 'x', imageData.height);
         // Сохраняем в глобальный кэш для всех будущих инстансов
         HEIGHTMAP_IMAGE_CACHE.set(assetId, imageData);
         // Привязываем к текущему инстансу
@@ -404,7 +406,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         this.heightCache.clear();
         // Уведомляем о том, что данные загружены
         if (this.onHeightmapLoadedCallback) {
-          console.log('🗻 Calling onHeightmapLoaded callback');
+          if (DEBUG) console.log('🗻 Calling onHeightmapLoaded callback');
           this.onHeightmapLoadedCallback();
         }
         return imageData;
