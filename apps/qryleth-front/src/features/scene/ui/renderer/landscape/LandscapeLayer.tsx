@@ -74,15 +74,30 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
       startTerrainApplying()
     }
 
+    // Таймаут-защита: гарантированно закрыть прелоадер, даже если событие не придёт
+    const safetyTimer = setTimeout(() => {
+      if (DEBUG) console.warn('⏳ Heightmap apply timeout reached — closing preloader safeguard')
+      finishTerrainApplying()
+    }, 10000)
+
+    // Флаг, чтобы обработать загрузку единожды для текущего assetId
+    let handled = false
+
     sampler.onHeightmapLoaded?.(() => {
+      if (handled) return
+      handled = true
       if (DEBUG) console.log('🗻 Heightmap data loaded, triggering geometry rebuild')
       // Триггерим пересоздание геометрии
       setHeightmapLoaded(prev => !prev)
-      if (layer.terrain) {
-        updateLayer(layer.id, { terrain: { ...layer.terrain } })
-      }
+      // Важное изменение: больше не дергаем updateLayer, чтобы не пересоздавать sampler
+      // и не запускать эффект заново. Локального триггера через state достаточно.
       finishTerrainApplying()
+      clearTimeout(safetyTimer)
     })
+
+    return () => {
+      clearTimeout(safetyTimer)
+    }
   }, [sampler, layer.shape, layer.terrain, updateLayer, startTerrainApplying, finishTerrainApplying])
 
   const geometry = useMemo(() => {

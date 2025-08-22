@@ -176,7 +176,21 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * Установить callback который будет вызван когда heightmap данные загрузятся
    */
   onHeightmapLoaded(callback: () => void): void {
+    // Сохраняем колбэк
     this.onHeightmapLoadedCallback = callback;
+    // Если данные уже готовы (heights или ImageData) — вызываем колбэк немедленно,
+    // чтобы UI мог закрыть прелоадер без ожидания повторной загрузки.
+    if (this.heightsField || this.heightmapImageData) {
+      // Вызываем в следующем тике, чтобы избежать синхронных эффектов в момент подписки
+      setTimeout(() => {
+        try {
+          this.onHeightmapLoadedCallback && this.onHeightmapLoadedCallback();
+        } catch (e) {
+          // подавляем ошибки пользовательского колбэка
+          if (DEBUG) console.warn('onHeightmapLoaded immediate callback error:', e);
+        }
+      }, 0);
+    }
   }
 
   /**
