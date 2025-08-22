@@ -18,7 +18,7 @@ export interface LandscapeLayerProps {
  * @returns конфигурация террейна для GfxHeightSampler
  */
 const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null => {
-  if (layer.shape === GfxLayerShape.Perlin && layer.noiseData) {
+  if (layer.shape === GfxLayerShape.Terrain && layer.noiseData) {
     return {
       worldWidth: layer.width || 1,
       worldHeight: layer.height || 1,
@@ -47,7 +47,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const [heightmapLoaded, setHeightmapLoaded] = useState(false)
 
   const geometry = useMemo(() => {
-    if (layer.shape === GfxLayerShape.Perlin) {
+    if (layer.shape === GfxLayerShape.Terrain) {
       // Новая архитектура: используем GfxHeightSampler если есть terrain конфигурация
       if (layer.terrain) {
         console.log('🗻 LandscapeLayer: Using terrain config for layer', layer.id, layer.terrain)
@@ -113,7 +113,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     if (layer.color) {
       return new THREE.Color(layer.color)
     }
-    if (layer.shape === GfxLayerShape.Perlin) {
+    if (layer.shape === GfxLayerShape.Terrain) {
       return new THREE.Color('#4a7c59')
     } else {
       return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
@@ -121,7 +121,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   }, [layer.shape, layer.color])
 
   const rotation = useMemo(() => {
-    if (layer.shape === GfxLayerShape.Perlin) {
+    if (layer.shape === GfxLayerShape.Terrain) {
       return [0, 0, 0] // Terrain geometries are already horizontal (rotated in buildGfxTerrainGeometry)
     } else {
       return [-Math.PI / 2, 0, 0] // Rotate plane to be horizontal

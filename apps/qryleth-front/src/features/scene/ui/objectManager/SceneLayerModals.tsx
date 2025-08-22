@@ -183,7 +183,7 @@ export const SceneLayerModals: React.FC = () => {
         }
 
         // Обычная логика для не-landscape слоев
-        if (layerFormData.type !== GfxLayerType.Landscape || layerFormData.shape !== GfxLayerShape.Perlin) {
+        if (layerFormData.type !== GfxLayerType.Landscape || layerFormData.shape !== GfxLayerShape.Terrain) {
             handleCreateLayer()
             return
         }
@@ -226,7 +226,7 @@ export const SceneLayerModals: React.FC = () => {
                     color: layerFormData.color,
                     width: layerFormData.width,
                     height: layerFormData.height,
-                    shape: GfxLayerShape.Perlin,
+                    shape: GfxLayerShape.Terrain,
                     terrain: terrainConfig
                 }
 
@@ -312,13 +312,13 @@ export const SceneLayerModals: React.FC = () => {
                                 label="Форма поверхности"
                                 data={[
                                     { value: GfxLayerShape.Plane, label: 'Плоская поверхность' },
-                                    { value: GfxLayerShape.Perlin, label: 'Рельефная поверхность (террейн)' }
+                                    { value: GfxLayerShape.Terrain, label: 'Рельефная поверхность (террейн)' }
                                 ]}
                                 value={layerFormData.shape}
                                 onChange={(v) => setLayerFormData({ ...layerFormData, shape: v as GfxLayerShape })}
                             />
 
-                            {layerFormData.shape === GfxLayerShape.Perlin && (
+                            {layerFormData.shape === GfxLayerShape.Terrain && (
                                 <>
                                     <Select
                                         label="Источник данных террейна"
@@ -474,7 +474,7 @@ export const SceneLayerModals: React.FC = () => {
                         <Button
                             onClick={layerModalMode === 'create' ? handleCreateLayerWithTerrain : handleUpdateLayer}
                             disabled={(layerFormData.type === GfxLayerType.Object && !layerFormData.name.trim()) || 
-                                     (terrainSource === 'heightmap' && !heightmapFile && layerFormData.shape === GfxLayerShape.Perlin) ||
+                                     (terrainSource === 'heightmap' && !heightmapFile && layerFormData.shape === GfxLayerShape.Terrain) ||
                                      isUploading}
                             loading={isUploading}
                         >

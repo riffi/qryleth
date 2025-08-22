@@ -118,7 +118,7 @@ export const WalkControls: React.FC = () => {
     // Adjust camera height based on perlin landscape
     const layers = useSceneStore.getState().layers
     const perlinLayerIds = layers
-      .filter(l => l.type === GfxLayerType.Landscape && l.shape === GfxLayerShape.Perlin)
+      .filter(l => l.type === GfxLayerType.Landscape && l.shape === GfxLayerShape.Terrain)
       .map(l => l.id)
 
     if (perlinLayerIds.length > 0) {

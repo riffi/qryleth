@@ -12,7 +12,7 @@ import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
  * @returns конфигурация террейна для GfxHeightSampler или null если не применимо
  */
 const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null => {
-  if (layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Perlin && layer.noiseData) {
+  if (layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain && layer.noiseData) {
     return {
       worldWidth: layer.width || 1,
       worldHeight: layer.height || 1,

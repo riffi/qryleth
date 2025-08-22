@@ -231,7 +231,7 @@ const handleCreateLandscape = () => {
     position: 1,
   width: 100,
   height: 100,
-  shape: GfxLayerShape.Perlin,
+  shape: GfxLayerShape.Terrain,
   color: '#4a7c59'
   })
 }

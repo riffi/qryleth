@@ -10,7 +10,7 @@ import type { GfxTerrainConfig } from '@/entities/terrain'
 
 // Извлекаем логику создания legacy конфигураций для тестирования
 const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null => {
-  if (layer.shape === GfxLayerShape.Perlin && layer.noiseData) {
+  if (layer.shape === GfxLayerShape.Terrain && layer.noiseData) {
     return {
       worldWidth: layer.width || 1,
       worldHeight: layer.height || 1,
@@ -32,7 +32,7 @@ describe('LandscapeLayer Legacy Compatibility Logic', () => {
       id: 'legacy-layer',
       name: 'Legacy Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 10,
       height: 8,
       noiseData: [0.1, 0.2, 0.3, 0.4],
@@ -63,7 +63,7 @@ describe('LandscapeLayer Legacy Compatibility Logic', () => {
       id: 'large-layer',
       name: 'Large Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 500,
       height: 300,
       noiseData: [1, 2, 3, 4],
@@ -103,7 +103,7 @@ describe('LandscapeLayer Legacy Compatibility Logic', () => {
       id: 'empty-perlin',
       name: 'Empty Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 10,
       height: 10,
       // noiseData отсутствует
@@ -120,7 +120,7 @@ describe('LandscapeLayer Legacy Compatibility Logic', () => {
       id: 'no-sizes-layer',
       name: 'Layer Without Sizes',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       // width и height не заданы
       noiseData: [1, 2],
       visible: true

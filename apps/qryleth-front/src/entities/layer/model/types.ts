@@ -23,8 +23,11 @@ export enum GfxLayerType {
 export enum GfxLayerShape {
   /** Плоская поверхность (плоскость) */
   Plane = 'plane',
-  /** Рельеф, построенный на основе шума Перлина */
-  Perlin = 'perlin',
+  /**
+   * Рельефная поверхность (террейн).
+   * Строковое значение 'terrain' для явного обозначения неплоской поверхности.
+   */
+  Terrain = 'terrain',
 }
 
 export interface GfxLayer {

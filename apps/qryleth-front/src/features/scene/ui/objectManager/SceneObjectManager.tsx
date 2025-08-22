@@ -176,7 +176,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         storeCreateLayer(layerData)
 
         // Если создаётся ландшафтный слой с формой Perlin, корректируем объекты
-        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === GfxLayerShape.Perlin) {
+        if (layerFormData.type === GfxLayerType.Landscape && layerFormData.shape === GfxLayerShape.Terrain) {
             // Get the created layer ID (it's generated in store)
             const createdLayers = useSceneStore.getState().layers
             const createdLayer = createdLayers[createdLayers.length - 1]

@@ -10,7 +10,7 @@ import type { GfxTerrainConfig } from '@/entities/terrain'
 // Симулируем логику из sceneAPI.adjustInstancesForPerlinTerrain
 const canLayerAdjustInstances = (layer: SceneLayer): boolean => {
   return layer.type === GfxLayerType.Landscape &&
-         layer.shape === GfxLayerShape.Perlin &&
+         layer.shape === GfxLayerShape.Terrain &&
          (Boolean(layer.terrain) || Boolean(layer.noiseData))
 }
 
@@ -20,7 +20,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'new-terrain',
       name: 'New Terrain Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       terrain: {
         worldWidth: 10,
         worldHeight: 10,
@@ -48,7 +48,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'legacy-terrain',
       name: 'Legacy Terrain Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       noiseData: [0.1, 0.2, 0.3, 0.4],
       visible: true
     }
@@ -73,7 +73,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'empty-perlin',
       name: 'Empty Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       // нет ни terrain, ни noiseData
       visible: true
     }
@@ -97,7 +97,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'terrain-layer',
       name: 'Terrain Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       terrain: {} as GfxTerrainConfig,
       visible: true
     }
@@ -106,7 +106,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'legacy-layer',
       name: 'Legacy Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       noiseData: [1, 2, 3],
       visible: true
     }
@@ -115,7 +115,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       id: 'empty-layer',
       name: 'Empty Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       visible: true
     }
 

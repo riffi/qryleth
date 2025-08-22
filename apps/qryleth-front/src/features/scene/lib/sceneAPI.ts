@@ -535,7 +535,7 @@ export class SceneAPI {
 
       // Найти подходящий landscape слой (логика из addInstanceToScene)
       const perlinLandscape = layers.find(layer =>
-        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Perlin
+        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
       )
       const anyLandscape = layers.find(layer => layer.type === GfxLayerType.Landscape)
       const landscapeLayer = perlinLandscape || anyLandscape || null
@@ -656,7 +656,7 @@ export class SceneAPI {
       const terrainLayer = layers.find(layer =>
         layer.id === terrainLayerId &&
         layer.type === GfxLayerType.Landscape &&
-        layer.shape === GfxLayerShape.Perlin &&
+        layer.shape === GfxLayerShape.Terrain &&
         (layer.terrain || layer.noiseData) // Поддерживаем как новую архитектуру, так и legacy
       )
 

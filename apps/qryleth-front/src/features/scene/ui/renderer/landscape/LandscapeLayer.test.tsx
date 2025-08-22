@@ -50,7 +50,7 @@ describe('LandscapeLayer Legacy Compatibility', () => {
       id: 'legacy-layer',
       name: 'Legacy Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 10,
       height: 10,
       noiseData: [0.1, 0.2, 0.3, 0.4], // legacy данные
@@ -75,7 +75,7 @@ describe('LandscapeLayer Legacy Compatibility', () => {
       id: 'new-layer',
       name: 'New Terrain Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 10,
       height: 10,
       terrain: {
@@ -109,7 +109,7 @@ describe('LandscapeLayer Legacy Compatibility', () => {
       id: 'empty-layer',
       name: 'Empty Perlin Layer',
       type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Perlin,
+      shape: GfxLayerShape.Terrain,
       width: 15,
       height: 20,
       visible: true
