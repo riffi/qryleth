@@ -6,3 +6,6 @@ export { TransformModeButtons } from './controls/TransformModeButtons'
 export { RenderModeSegment } from './controls/RenderModeSegment'
 export { ViewModeSegment } from './controls/ViewModeSegment'
 export { DragHandleVertical } from './controls/DragHandleVertical'
+// Инлайн-редактор текста (просмотр + редактирование)
+export { InlineEdit } from './InlineEdit'
+export type { InlineEditProps } from './InlineEdit'

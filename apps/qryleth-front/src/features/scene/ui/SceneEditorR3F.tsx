@@ -47,7 +47,7 @@ import {
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
-import { GridToggleButton, TransformModeButtons, RenderModeSegment, ViewModeSegment, DragHandleVertical } from '@/shared/ui'
+import { GridToggleButton, TransformModeButtons, RenderModeSegment, ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -473,15 +473,16 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             {!isPlay && (
               <Group gap={8} wrap="nowrap" align="center">
                 <Group gap={6} wrap="nowrap" align="center">
-                  {/* Инлайн-редактирование названия сцены */}
-                  <TextInput
+                  {/* Инлайн-редактирование названия сцены через shared компонент InlineEdit */}
+                  <InlineEdit
                     value={sceneNameDraft}
-                    onChange={(e) => handleSceneNameChange(e.currentTarget.value)}
-                    onFocus={() => setIsEditingSceneName(true)}
-                    onBlur={handleSceneNameBlur}
+                    onChange={handleSceneNameChange}
+                    onEditStart={() => setIsEditingSceneName(true)}
+                    onEditEnd={handleSceneNameBlur}
                     size="xs"
-                    styles={{ input: { height: 26, paddingTop: 2, paddingBottom: 2, minWidth: 160 } }}
-                    aria-label={'Название сцены'}
+                    ariaLabel={'Название сцены'}
+                    placeholder={'Название сцены'}
+                    minInputWidth={160}
                   />
                   {/* Компактный индикатор статуса рядом с названием */}
                   <Badge color={getStatusColor(sceneMetaData.status as SceneStatus)} variant="light" size="sm">
@@ -565,6 +566,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                   <Button
                     variant={"gradient"}
                     style={{height: '32px'}}
+                    onClick={() => togglePlay()}
                     rightSection={<IconPlayerPlay size={18} />}
                   >
                     Play
