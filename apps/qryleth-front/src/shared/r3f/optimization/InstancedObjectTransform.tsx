@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useMemo } from 'react'
+import React, { useRef, useEffect, useMemo, useState } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from '@/features/scene'
+import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
 
 interface InstancedObjectTransformProps {
   selectedObjectUuid: string
@@ -30,6 +31,8 @@ export const InstancedObjectTransform: React.FC<InstancedObjectTransformProps> =
   const helperObjectRef = useRef<THREE.Object3D>()
   const selectedObject = useSceneStore(state => state.selectedObject)
   const objectInstances = useSceneStore(state => state.objectInstances)
+  const { setOverride, clearOverride } = useInstancedTransformOverrides()
+  const draggingRef = useRef(false)
 
   // Найти выбранный инстанс объекта
   const selectedInstance = useMemo(() => {
@@ -84,9 +87,15 @@ export const InstancedObjectTransform: React.FC<InstancedObjectTransformProps> =
       ;(controls as any).enabled = !event.value
     }
 
+    draggingRef.current = event.value
+
     // Вызвать handleTransformChange только при завершении перетаскивания
     if (!event.value) {
+      // При завершении: зафиксировать в store и очистить локальный override
       handleTransformChange()
+      if (selectedInstanceUuid) {
+        clearOverride(selectedInstanceUuid)
+      }
     }
   }
 
@@ -96,8 +105,23 @@ export const InstancedObjectTransform: React.FC<InstancedObjectTransformProps> =
 
     transformControls.addEventListener('dragging-changed', handleDraggingChanged)
 
+    // Реакция на любые изменения гизма (каждый кадр) — пишем в локальные overrides,
+    // чтобы инстанс отображал трансформацию в реальном времени
+    const handleChange = () => {
+      if (!draggingRef.current || !transformControlsRef.current?.object || !selectedInstanceUuid) return
+      const obj = transformControlsRef.current.object
+      setOverride(selectedInstanceUuid, {
+        position: [obj.position.x, obj.position.y, obj.position.z],
+        rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+        scale: [obj.scale.x, obj.scale.y, obj.scale.z]
+      })
+    }
+
+    transformControls.addEventListener('change', handleChange)
+
     return () => {
       transformControls.removeEventListener('dragging-changed', handleDraggingChanged)
+      transformControls.removeEventListener('change', handleChange)
     }
   }, [selectedInstance])
 

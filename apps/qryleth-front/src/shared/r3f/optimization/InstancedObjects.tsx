@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import { GfxLayerType } from '@/entities/layer'
+import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
 
 // Component for rendering primitives in Instances
 const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
@@ -335,6 +336,8 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
   materials
 }) => {
   const ref = useRef<THREE.InstancedMesh>(null)
+  // Локальные (контекстные) переопределения трансформаций для realtime-отклика gizmo
+  const { overrides } = useInstancedTransformOverrides()
 
   const handleInstanceClick = useCallback((event: any) => {
     if (!onClick || !ref.current) return
@@ -394,8 +397,9 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
 
       {instances.map((instance, index) => {
         // Combine instance and primitive transforms
+        const sourceTransform = overrides[instance.uuid] || (instance.transform || {})
         const finalTransform = combineTransforms(
-          instance.transform || {},
+          sourceTransform,
           primitive.transform || {}
         )
 
