@@ -119,37 +119,51 @@ const PrimitiveMaterial: React.FC<PrimitiveMaterialProps> = ({ primitive, materi
   return <meshStandardMaterial color="#ffffff" />
 }
 
-// Utility function to combine instance and primitive transforms
+/**
+ * Комбинирует трансформации инстанса и примитива корректно для иерархии
+ * (primitive как дочерний узел instance), чтобы при повороте инстанса
+ * примитивы вращались вокруг центра инстанса.
+ *
+ * Правильная формула для позиции дочернего узла в three.js:
+ * worldPos = instance.pos + R(instance) * ( S(instance) * primitive.pos )
+ *
+ * - Поворот: кватернионы комбинируются умножением: Qfinal = Qinst * Qprim
+ * - Масштаб: покомпонентно: Sfinal = Sinst ⊙ Sprim
+ */
 const combineTransforms = (
   instanceTransform: { position?: number[], rotation?: number[], scale?: number[] },
   primitiveTransform: { position?: number[], rotation?: number[], scale?: number[] }
 ): { position: [number, number, number], rotation: [number, number, number], scale: [number, number, number] } => {
-  // Get instance transforms
+  // Инстанс
   const [ix, iy, iz] = instanceTransform.position || [0, 0, 0]
   const [irx, iry, irz] = instanceTransform.rotation || [0, 0, 0]
   const [isx, isy, isz] = instanceTransform.scale || [1, 1, 1]
 
-  // Get primitive transforms
+  // Примитив
   const [px, py, pz] = primitiveTransform.position || [0, 0, 0]
   const [prx, pry, prz] = primitiveTransform.rotation || [0, 0, 0]
   const [psx, psy, psz] = primitiveTransform.scale || [1, 1, 1]
 
-  // Combine transforms
-  // Position: instance position + primitive position (scaled by instance scale)
-  const finalPosition: [number, number, number] = [
-    ix + px * isx,
-    iy + py * isy,
-    iz + pz * isz
-  ]
+  // Кватернионы поворота
+  const qInst = new THREE.Quaternion().setFromEuler(new THREE.Euler(irx, iry, irz, 'XYZ'))
+  const qPrim = new THREE.Quaternion().setFromEuler(new THREE.Euler(prx, pry, prz, 'XYZ'))
+  const qFinal = new THREE.Quaternion().copy(qInst).multiply(qPrim)
 
-  // Rotation: instance rotation + primitive rotation
-  const finalRotation: [number, number, number] = [
-    irx + prx,
-    iry + pry,
-    irz + prz
-  ]
+  // Позиция: сначала масштабируем локальный сдвиг примитива масштабом инстанса,
+  // затем поворачиваем этим же поворотом инстанса, и только после — переносим
+  // в позицию инстанса. Это даёт вращение примитивов вокруг центра инстанса.
+  const vLocal = new THREE.Vector3(px, py, pz)
+  vLocal.multiply(new THREE.Vector3(isx, isy, isz))
+  vLocal.applyQuaternion(qInst)
+  vLocal.add(new THREE.Vector3(ix, iy, iz))
 
-  // Scale: instance scale * primitive scale
+  const finalPosition: [number, number, number] = [vLocal.x, vLocal.y, vLocal.z]
+
+  // Итоговый поворот — композиция поворотов
+  const eFinal = new THREE.Euler().setFromQuaternion(qFinal, 'XYZ')
+  const finalRotation: [number, number, number] = [eFinal.x, eFinal.y, eFinal.z]
+
+  // Итоговый масштаб — помножение компонент
   const finalScale: [number, number, number] = [
     isx * psx,
     isy * psy,
