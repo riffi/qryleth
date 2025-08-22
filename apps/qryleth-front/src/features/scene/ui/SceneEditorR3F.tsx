@@ -49,6 +49,8 @@ import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
 import { SceneEditorToolBar } from './SceneEditorToolBar'
+import { LeftToolbar } from './LeftToolbar'
+import { RightToolbar } from './RightToolbar'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -640,44 +642,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             </Tooltip>
             <Divider ml="md" mr="md" orientation="vertical"  />
 
-            {/* Panel toggles aligned with ObjectEditor style */}
-            <Group gap="xs">
-              <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} withArrow>
-                <ActionIcon
-                  size="md"
-                  variant={chatCollapsed ? 'subtle' : 'filled'}
-                  color={chatCollapsed ? 'gray' : 'blue'}
-                  onClick={toggleChatPanel}
-                  aria-label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'}
-                >
-                  <IconMessages size={20} />
-                </ActionIcon>
-              </Tooltip>
-
-              <Tooltip label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'} withArrow>
-                <ActionIcon
-                  size="md"
-                  variant={scriptingPanelVisible ? 'filled' : 'subtle'}
-                  color={scriptingPanelVisible ? 'blue' : 'gray'}
-                  onClick={toggleScriptingPanel}
-                  aria-label={scriptingPanelVisible ? 'Скрыть скриптинг' : 'Открыть скриптинг'}
-                >
-                  <IconCode size={20} />
-                </ActionIcon>
-              </Tooltip>
-
-              <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} withArrow>
-                <ActionIcon
-                  size="md"
-                  variant={objectPanelCollapsed ? 'subtle' : 'filled'}
-                  color={objectPanelCollapsed ? 'gray' : 'blue'}
-                  onClick={toggleRightPanel}
-                  aria-label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'}
-                >
-                  <IconFolder size={20} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
 
             <Divider ml="md" mr="md" orientation="vertical"  />
 
@@ -712,6 +676,16 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             paddingInline: 0
         }}
         >
+        {/* Левый тулбар с иконками чата и скриптинга */}
+        {!isPlay && (
+          <LeftToolbar
+            chatCollapsed={chatCollapsed}
+            onToggleChat={toggleChatPanel}
+            scriptingPanelVisible={scriptingPanelVisible}
+            onToggleScripting={toggleScriptingPanel}
+          />
+        )}
+
         {!isPlay && !chatCollapsed && (
           <Paper
             shadow="sm"
@@ -881,8 +855,15 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 </Box>
               </Paper>
             )}
-            {/* No side handle for right panel; use header icons */}
           </>
+        )}
+
+        {/* Правый тулбар с иконкой менеджера объектов - показывается только когда правая панель скрыта */}
+        {!isPlay && showObjectManager && objectPanelCollapsed && (
+          <RightToolbar
+            objectPanelCollapsed={objectPanelCollapsed}
+            onToggleObjectPanel={toggleRightPanel}
+          />
         )}
       </Container>
       </MainLayout>
