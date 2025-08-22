@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
 import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
 import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from './HeightmapUtils';
-import { TERRAIN_MAX_SEGMENTS } from '@/shared/config/terrain';
+import { TERRAIN_MAX_SEGMENTS } from '../../config/terrain';
 // Флаг отладки: в продакшене подавляем подробные логи
 const DEBUG = (import.meta as any)?.env?.MODE !== 'production';
 

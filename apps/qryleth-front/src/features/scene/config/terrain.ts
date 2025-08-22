@@ -22,4 +22,3 @@ export const HEIGHTMAP_MAX_DIMENSION = 200;
  * сегментов, исходя из размеров мира. Значение по умолчанию — 200.
  */
 export const TERRAIN_MAX_SEGMENTS = 200;
-

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '@/shared/lib/database'
 import type { TerrainAssetRecord } from '@/shared/lib/database'
-import { HEIGHTMAP_MAX_DIMENSION } from '@/shared/config/terrain'
+import { HEIGHTMAP_MAX_DIMENSION } from '../../config/terrain'
 
 /**
  * Результат валидации PNG файла для использования в качестве heightmap
