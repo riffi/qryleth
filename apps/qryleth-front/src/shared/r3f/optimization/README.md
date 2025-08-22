@@ -22,6 +22,7 @@
 - Поддерживает составные объекты (с несколькими примитивами)
 - Учитывает видимость слоев, объектов и экземпляров
 - **Поддерживает материалы примитивов** - каждый примитив использует свой материал
+ - **Realtime трансформации InstancedMesh** — во время перетаскивания gizmo изменения видны сразу без записи в глобальный store
 
 ### `useInstanceOptimization`
 
@@ -66,6 +67,40 @@
 - Использует `@react-three/drei` `Instances` и `Instance`
 - Применяет комбинированные трансформации
 - **Рендерит геометрию и материал примитива**
+
+## Realtime-трансформации InstancedMesh
+
+Для мгновенного визуального отклика при трансформации отдельных инстансов через gizmo используется локальный контекст переопределений трансформаций:
+
+- Провайдер: `InstancedTransformProvider`
+- Хук: `useInstancedTransformOverrides`
+- Источник данных в рендере: если существует `overrides[instanceUuid]`, он имеет приоритет над `instance.transform` из Zustand
+
+Поток изменений:
+- Событие `change` у `TransformControls` → компонент `InstancedObjectTransform` пишет текущие значения трансформации в `setOverride(instanceUuid, transform)`.
+- Компонент `InstancedObjects` читает override и немедленно отображает трансформацию в рендере.
+- Событие `dragging-changed = false` (отпускание мыши) → итоговая трансформация сохраняется в Zustand store и `clearOverride(instanceUuid)` очищает временное состояние.
+
+Интеграция провайдера (пример):
+
+```tsx
+import { InstancedTransformProvider } from '@/shared/r3f/optimization/InstancedTransformContext'
+
+<InstancedTransformProvider>
+  <SceneObjects />
+  {uiMode === UiMode.Edit && <ObjectTransformGizmo />}
+</InstancedTransformProvider>
+```
+
+## Корректная композиция трансформаций (центр вращения)
+
+Чтобы примитивы инстанса вращались вокруг геометрического центра инстанса (а не вокруг собственных центров), используется правильная композиция трансформаций дочернего узла относительно родителя:
+
+- Позиция: `worldPos = instance.pos + R(instance) * ( S(instance) * primitive.pos )`
+- Поворот: `Qfinal = Qinstance * Qprimitive`
+- Масштаб: `Sfinal = Sinstance ⊙ Sprimitive`
+
+Эта логика реализована в утилите `combineTransforms`, что устраняет эффект «раскручивания» примитивов вокруг их локальных центров при повороте инстанса.
 
 ## Поддержка материалов
 
