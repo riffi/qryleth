@@ -47,8 +47,8 @@ import {
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
-import { GridToggleButton, TransformModeButtons, RenderModeSegment, ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
-import { IconTrash } from '@tabler/icons-react'
+import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
+import { SceneEditorToolBar } from './SceneEditorToolBar'
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -768,56 +768,16 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           }}
         >
           {!isPlay && (
-            <Box
-              style={{
-                position: 'absolute',
-                top: 10,
-                left: 10,
-                zIndex: 10,
-                padding: 6,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0,
-                background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-                borderRadius: "10px",
-                transition: 'opacity 200ms ease'
-              }}
-            >
-              <Group gap="xs" wrap="nowrap" align="center">
-                {/* Блок быстрых настроек (сетка / трансформ / режим рендера) */}
-                <GridToggleButton visible={gridVisible} onToggle={toggleGridVisibility} />
-                <RenderModeSegment value={renderMode} onChange={setRenderMode} frosted />
-
-                {/* Если выбран инстанс — показываем его имя и действия */}
-                {selectedInstanceInfo && (
-                  <>
-                    <Divider orientation="vertical" ml="xs" mr="xs" />
-                    <Group gap={6} wrap="nowrap" align="center">
-                      {/* Имя в формате: Название объекта [индекс инстанса] */}
-                      <Text size="xs" c="#AAA" mr={"xs"} style={{ whiteSpace: 'nowrap' }}>
-                        {selectedInstanceInfo.name} [{selectedInstanceInfo.index + 1}]
-                      </Text>
-                      <TransformModeButtons mode={transformMode} onChange={setTransformMode} />
-
-                      {/* Действия над инстансом */}
-                      <Tooltip label="Удалить инстанс" withArrow>
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          color="red"
-                          onClick={openDeleteConfirm}
-                          aria-label="Удалить инстанс"
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </>
-                )}
-              </Group>
-            </Box>
+            <SceneEditorToolBar
+              gridVisible={gridVisible}
+              onToggleGrid={toggleGridVisibility}
+              renderMode={renderMode}
+              onChangeRenderMode={setRenderMode}
+              transformMode={transformMode}
+              onChangeTransformMode={setTransformMode}
+              selectedInstanceLabel={selectedInstanceInfo ? `${selectedInstanceInfo.name} [${selectedInstanceInfo.index + 1}]` : undefined}
+              onDeleteSelectedInstance={selectedInstanceInfo ? openDeleteConfirm : undefined}
+            />
           )}
 
           <Box style={{ width: '100%', height: '100%' }}>
