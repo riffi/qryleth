@@ -57,6 +57,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   // Данные предвычисленного поля высот (предпочтительный источник для heightmap)
   private heightsField?: { heights: Float32Array; width: number; height: number };
   private heightsLoadPromise?: Promise<{ heights: Float32Array; width: number; height: number }>;
+  // Флаги, предотвращающие спам логов и повторные подписки/инициации загрузки
+  private notReadyLogged = false;
+  private imageLoadInitiated = false;
+  private heightsLoadInitiated = false;
 
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
@@ -330,14 +334,17 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
           this.heightmapImageData = cached;
         } else {
           // Асинхронно грузим ImageData и возвращаем 0 до завершения
-          if (DEBUG) console.log('🗻 height source not ready (heights/ImageData); loading assetId:', params.assetId);
+          if (DEBUG && !this.notReadyLogged) {
+            console.log('🗻 height source not ready (heights/ImageData); loading assetId:', params.assetId);
+            this.notReadyLogged = true;
+          }
           this.loadHeightmapImageDataIfNeeded(params.assetId);
           return 0;
         }
       }
 
       // Преобразуем мировые координаты в UV → пиксели под размеры изображения
-      if (DEBUG) console.log('🗻 Sampling heightmap (ImageData) at', x, z, 'imageData size:', this.heightmapImageData.width, 'x', this.heightmapImageData.height);
+      // Подробный лог выборок по каждому сэмплу убран во избежание спама
 
       // Преобразуем мировые координаты в UV координаты [0, 1]
       const halfWidth = this.config.worldWidth / 2;
@@ -380,15 +387,20 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private loadHeightmapImageDataIfNeeded(assetId: string): void {
     // Уже загружено в инстансе — ничего делать не нужно
     if (this.heightmapImageData) return;
+    // Уже инициировано или есть локальный промис — избегаем повторной подписки
+    if (this.imageLoadInitiated || this.heightmapLoadPromise) return;
 
     // Если уже есть активный промис загрузки для этого assetId — используем его
     const ongoing = HEIGHTMAP_LOAD_PROMISES.get(assetId);
     if (ongoing) {
-      // Присоединяемся к завершению для установки данных в текущем инстансе
+      this.imageLoadInitiated = true;
+      // Присоединяемся один раз к завершению для установки данных в текущем инстансе
       this.heightmapLoadPromise = ongoing.then(imageData => {
-        this.heightmapImageData = imageData;
-        this.heightCache.clear();
-        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        if (!this.heightmapImageData) {
+          this.heightmapImageData = imageData;
+          this.heightCache.clear();
+          if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        }
         return imageData;
       });
       return;
@@ -419,6 +431,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         // Убираем промис из общего реестра после завершения (успешного или с ошибкой)
         HEIGHTMAP_LOAD_PROMISES.delete(assetId);
         this.heightmapLoadPromise = undefined;
+        this.imageLoadInitiated = false;
       });
 
     HEIGHTMAP_LOAD_PROMISES.set(assetId, promise);
@@ -437,9 +450,11 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    */
   private loadHeightsFieldIfNeeded(assetId: string): void {
     if (this.heightsField) return;
+    if (this.heightsLoadInitiated || this.heightsLoadPromise) return;
 
     const ongoing = HEIGHTS_FIELD_LOAD_PROMISES.get(assetId);
     if (ongoing) {
+      this.heightsLoadInitiated = true;
       this.heightsLoadPromise = ongoing.then((res) => {
         this.heightsField = res;
         this.heightCache.clear();
@@ -471,6 +486,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       .finally(() => {
         HEIGHTS_FIELD_LOAD_PROMISES.delete(assetId);
         this.heightsLoadPromise = undefined;
+        this.heightsLoadInitiated = false;
       });
 
     HEIGHTS_FIELD_LOAD_PROMISES.set(assetId, promise);
