@@ -451,6 +451,33 @@ export class SceneLibraryDB extends Dexie {
   }
 
   /**
+   * Обновляет бинарные данные PNG и размеры изображения для существующего ассета
+   *
+   * Метод используется в «ленивой миграции», когда для старых записей необходимо
+   * пересохранить blob в масштабе ≤ 200×200 c обновлением ширины/высоты и размера файла.
+   * Высотные данные (heightsBuffer/Width/Height) этим методом не трогаются.
+   *
+   * @param assetId - идентификатор ассета
+   * @param blob - новый PNG blob (обычно полученный из canvas.toBlob)
+   * @param width - новая ширина изображения (в пикселях)
+   * @param height - новая высота изображения (в пикселях)
+   */
+  async updateTerrainAssetImage(
+    assetId: string,
+    blob: Blob,
+    width: number,
+    height: number
+  ): Promise<void> {
+    await this.terrainAssets.where('assetId').equals(assetId).modify({
+      blob,
+      width,
+      height,
+      fileSize: blob.size,
+      updatedAt: new Date()
+    })
+  }
+
+  /**
    * Записывает массив высот для существующего ассета террейна
    * 
    * @param assetId - идентификатор ассета

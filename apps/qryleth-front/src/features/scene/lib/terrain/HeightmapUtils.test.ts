@@ -5,6 +5,8 @@ import { validatePngFile, uploadTerrainAsset, pngBlobToImageData } from './Heigh
 vi.mock('@/shared/lib/database', () => ({
   db: {
     saveTerrainAsset: vi.fn(),
+    updateTerrainAssetHeights: vi.fn(),
+    updateTerrainAssetImage: vi.fn(),
     getTerrainAsset: vi.fn(),
     getAllTerrainAssets: vi.fn(),
     deleteTerrainAsset: vi.fn(),
@@ -37,8 +39,9 @@ beforeEach(() => {
         width: 1,
         height: 1
       }))
-    }))
-  };
+    })),
+    toBlob: vi.fn((cb: (b: Blob|null) => void) => cb(new Blob(['scaled'], { type: 'image/png' })))
+  } as any;
   
   const mockDocument = {
     createElement: vi.fn(() => mockCanvas)
@@ -154,15 +157,18 @@ describe('HeightmapUtils', () => {
         value: vi.fn().mockResolvedValue(new ArrayBuffer(12))
       });
 
-      // Мокаем db.saveTerrainAsset
+      // Мокаем db методы сохранения
       const { db } = await import('@/shared/lib/database');
       vi.mocked(db.saveTerrainAsset).mockResolvedValue(undefined);
+      vi.mocked(db.updateTerrainAssetHeights).mockResolvedValue(undefined);
 
       const result = await uploadTerrainAsset(mockFile);
 
-      expect(result.width).toBe(256);
-      expect(result.height).toBe(256);
-      expect(result.fileSize).toBe(12); // размер mockFile
+      // Масштабирование до ≤200 по большей стороне
+      expect(result.width).toBe(200);
+      expect(result.height).toBe(200);
+      // Размер файла — размер сгенерированного scaled blob
+      expect(result.fileSize).toBe(new Blob(['scaled'], { type: 'image/png' }).size);
       expect(typeof result.assetId).toBe('string');
       expect(result.assetId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i); // UUID v4
     });

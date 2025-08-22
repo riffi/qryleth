@@ -94,36 +94,44 @@ export async function validatePngFile(file: File): Promise<PngValidationResult> 
  * Загружает PNG файл в базу данных как terrain asset
  */
 export async function uploadTerrainAsset(file: File, fileName?: string): Promise<TerrainAssetUploadResult> {
-  // Валидируем файл
+  // Валидируем файл (тип, разумные ограничения размера и габаритов)
   const validation = await validatePngFile(file)
   if (!validation.isValid) {
     throw new Error(validation.error || 'Неверный файл')
   }
 
-  if (!validation.dimensions) {
-    throw new Error('Не удалось определить размеры изображения')
-  }
-
-  // Генерируем уникальный ID
+  // Генерируем уникальный идентификатор ассета
   const assetId = uuidv4()
-  
-  // Создаем blob из файла
-  const blob = new Blob([await file.arrayBuffer()], { type: 'image/png' })
-  
-  // Сохраняем в базу данных
-  await db.saveTerrainAsset(
-    assetId,
-    fileName || file.name,
-    blob,
-    validation.dimensions.width,
-    validation.dimensions.height
-  )
 
-  return {
-    assetId,
-    width: validation.dimensions.width,
-    height: validation.dimensions.height,
-    fileSize: file.size
+  // Грузим исходную картинку и выполняем масштабирование до ≤200px по большей стороне
+  const origBitmap = await createImageBitmap(file)
+  try {
+    const { imageData: scaledImageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(origBitmap, 200)
+
+    // Извлекаем массив высот из масштабированного изображения
+    const heights = extractHeightsFromImageData(scaledImageData)
+
+    // Сохраняем PNG (уже масштабированный) и метаданные
+    await db.saveTerrainAsset(
+      assetId,
+      fileName || file.name,
+      scaledBlob,
+      width,
+      height
+    )
+
+    // Сохраняем массив высот и размеры сетки
+    await db.updateTerrainAssetHeights(assetId, heights, width, height)
+
+    return {
+      assetId,
+      width,
+      height,
+      fileSize: scaledBlob.size
+    }
+  } finally {
+    // Освобождаем ресурсы
+    origBitmap.close()
   }
 }
 
@@ -353,5 +361,90 @@ export async function loadTerrainHeightsFromAsset(assetId: string): Promise<{
   width: number
   height: number
 } | null> {
-  return db.getTerrainAssetHeights(assetId)
+  // Сначала пробуем прочитать уже сохранённые высоты
+  const existing = await db.getTerrainAssetHeights(assetId)
+  if (existing) return existing
+
+  // Высоты отсутствуют — выполним ленивую миграцию из PNG c обязательным ресайзом ≤200
+  return performLazyHeightsMigration(assetId)
+}
+
+/**
+ * Масштабирует ImageBitmap до максимального размера по большей стороне и
+ * возвращает как пиксельные данные (ImageData), так и PNG blob канваса.
+ *
+ * Внутри создаётся временный canvas, включается билинейная фильтрация через
+ * imageSmoothingEnabled/Quality, после чего производится отрисовка bitmap → canvas.
+ *
+ * Размеры результата сохраняют пропорции исходного изображения и не превышают
+ * maxSize (в пикселях) по большей стороне.
+ *
+ * @param bitmap - исходный ImageBitmap
+ * @param maxSize - предел по большей стороне (по умолчанию 200)
+ */
+export async function resizeBitmapToMaxSize(
+  bitmap: ImageBitmap,
+  maxSize: number = 200
+): Promise<{ imageData: ImageData; blob: Blob; width: number; height: number }> {
+  const srcW = bitmap.width
+  const srcH = bitmap.height
+  const scale = Math.min(1, maxSize / Math.max(srcW, srcH))
+  const dstW = Math.max(1, Math.round(srcW * scale))
+  const dstH = Math.max(1, Math.round(srcH * scale))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = dstW
+  canvas.height = dstH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Не удалось создать 2D контекст canvas для ресайза')
+  ctx.imageSmoothingEnabled = true
+  // @ts-expect-error: свойство поддерживается большинством браузеров
+  ctx.imageSmoothingQuality = 'high'
+  ctx.clearRect(0, 0, dstW, dstH)
+  ctx.drawImage(bitmap, 0, 0, dstW, dstH)
+
+  const imageData = ctx.getImageData(0, 0, dstW, dstH)
+
+  const blob: Blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (!b) return reject(new Error('Не удалось преобразовать canvas в PNG blob'))
+      resolve(b)
+    }, 'image/png')
+  })
+
+  return { imageData, blob, width: dstW, height: dstH }
+}
+
+/**
+ * «Ленивая миграция» ассета: если у записи отсутствуют сохранённые высоты,
+ * они строятся из текущего PNG blob с масштабированием ≤200, после чего запись
+ * обновляется (blob+габариты при необходимости; высоты всегда записываются).
+ *
+ * Возвращает рассчитанные высоты и их размеры или null, если ассет не найден.
+ */
+export async function performLazyHeightsMigration(assetId: string): Promise<{
+  heights: Float32Array
+  width: number
+  height: number
+} | null> {
+  const asset = await db.getTerrainAsset(assetId)
+  if (!asset) return null
+
+  const bitmap = await createImageBitmap(asset.blob)
+  try {
+    const { imageData, blob: scaledBlob, width, height } = await resizeBitmapToMaxSize(bitmap, 200)
+    const heights = extractHeightsFromImageData(imageData)
+
+    // Если фактические размеры/вес отличаются от сохранённых — обновляем blob и метаданные
+    if (asset.width !== width || asset.height !== height || asset.fileSize !== scaledBlob.size) {
+      await db.updateTerrainAssetImage(assetId, scaledBlob, width, height)
+    }
+
+    // Записываем высоты
+    await db.updateTerrainAssetHeights(assetId, heights, width, height)
+
+    return { heights, width, height }
+  } finally {
+    bitmap.close()
+  }
 }

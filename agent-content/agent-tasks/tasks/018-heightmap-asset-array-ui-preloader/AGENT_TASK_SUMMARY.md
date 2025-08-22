@@ -9,7 +9,7 @@ owner: ai-agent
 tags: [terrain, heightmap, dexie, ui, r3f]
 phases:
   total: 6
-  completed: 1
+  completed: 2
 ---
 
 # Heightmap: массив высот в Dexie, масштабирование ≤200x200, выбор из коллекции, прелоадер применения
@@ -42,7 +42,7 @@ phases:
 
 **Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Масштабирование PNG ≤200×200 и первичное заполнение высот
+### ✅ Фаза 2: Масштабирование PNG ≤200×200 и первичное заполнение высот
 - Изменить `uploadTerrainAsset(file)` в `HeightmapUtils`:
   - после валидации загрузить `ImageBitmap`, вычислить `targetWidth/targetHeight` с сохранением пропорций и ограничением по максимуму 200;
   - отрисовать с ресайзом на `canvas`, получить `ImageData` именно масштабированного изображения;
@@ -50,6 +50,8 @@ phases:
   - сохранить в Dexie: новый blob PNG (сжатый из канваса) соответствующего масштаба, `width/height` и `heights`, `heightsWidth/Height`.
 - Добавить «ленивую миграцию» для старых записей без `heights`:
   - при первом запросе ассета: если `heights` отсутствует — вычислить из текущего blob с масштабированием ≤200×200, записать назад в Dexie.
+
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: GfxHeightSampler — выбор источника данных на основе массива высот
 - В `GfxHeightSampler` добавить путь сэмплинга из `heights` (если есть) с bilinear интерполяцией по `heightsWidth/Height`.
