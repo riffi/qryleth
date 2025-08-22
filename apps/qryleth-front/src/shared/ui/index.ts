@@ -9,3 +9,6 @@ export { DragHandleVertical } from './controls/DragHandleVertical'
 // Инлайн-редактор текста (просмотр + редактирование)
 export { InlineEdit } from './InlineEdit'
 export type { InlineEditProps } from './InlineEdit'
+// Граница ошибок
+export { ErrorBoundary } from './ErrorBoundary'
+export type { ErrorFallback } from './ErrorBoundary'

@@ -222,6 +222,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const gridVisible = useGridVisible()
   // const layers = useSceneLayers()
   const toggleGridVisibility = useSceneStore(state => state.toggleGridVisibility)
+  // Текущее состояние UI-режима (редактирование / play) и переключатель
+  const uiMode = useSceneStore(state => state.uiMode)
+  const togglePlay = useSceneStore(state => state.togglePlay)
 
   const objects = useSceneStore(state => state.objects)
   const objectInstances = useSceneStore(state => state.objectInstances)
@@ -229,6 +232,35 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const selectedObject = useSceneStore(state => state.selectedObject)
   const removeObjectInstance = useSceneStore(state => state.removeObjectInstance)
   const clearSelection = useSceneStore(state => state.clearSelection)
+
+  /**
+   * Вычисляет данные о выбранном инстансе объекта для отображения в верхней панели
+   * рядом с инструментами трансформации.
+   *
+   * Возвращает:
+   * - name: имя объекта
+   * - index: локальный индекс инстанса в рамках одного объекта (последовательность фильтрованных инстансов этого объекта)
+   * - globalIndex: позиция инстанса в глобальном массиве `objectInstances` (используется для удаления)
+   * - instance: сам инстанс
+   * Если выбран не инстанс или данные не найдены — возвращает undefined.
+   */
+  const selectedInstanceInfo = React.useMemo(() => {
+    if (!selectedObject?.isInstanced || !selectedObject.instanceUuid) return undefined
+    const globalIndex = objectInstances.findIndex(i => i.uuid === selectedObject.instanceUuid)
+    if (globalIndex < 0) return undefined
+    const inst = objectInstances[globalIndex]
+    const obj = objects.find(o => o.uuid === inst.objectUuid)
+    if (!obj) return undefined
+    // Индекс в рамках всех инстансов данного объекта
+    const instancesOfObject = objectInstances.filter(i => i.objectUuid === inst.objectUuid)
+    const localIndex = instancesOfObject.findIndex(i => i.uuid === selectedObject.instanceUuid)
+    return {
+      name: obj.name,
+      index: localIndex,
+      globalIndex,
+      instance: inst
+    }
+  }, [selectedObject?.isInstanced, selectedObject?.instanceUuid, objectInstances, objects])
 
   const sceneMetaData = useSceneStore(state => state.sceneMetaData)
 
@@ -393,67 +425,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }, [sceneMetaData?.uuid, sceneMetaData?.name])
 
   /**
-   * Формирует объект из состояния редактора и закрывает модальное окно.
-   */
-  const handleEditorSaveClick = () => {
-    if (!editingObjectData) return
-    const updated = buildUpdatedObject(editingObjectData)
-    handleSaveObjectEdit(updated)
-    setEditorOpened(false)
-  }
-
-  const editingObjectData = React.useMemo(() => {
-    if (!editingObject) return undefined
-    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
-    if (!obj) return undefined
-    return JSON.parse(JSON.stringify(obj))
-  }, [editingObject, objects])
-
-  /**
-   * Вычисляет данные о выбранном инстансе объекта для отображения в верхней панели
-   * рядом с инструментами трансформации.
-   *
-   * Возвращает:
-   * - name: имя объекта
-   * - index: локальный индекс инстанса в рамках одного объекта (последовательность фильтрованных инстансов этого объекта)
-   * - globalIndex: позиция инстанса в глобальном массиве `objectInstances` (используется для удаления)
-   * - instance: сам инстанс
-   * Если выбран не инстанс или данные не найдены — возвращает undefined.
-   */
-  const selectedInstanceInfo = React.useMemo(() => {
-    if (!selectedObject?.isInstanced || !selectedObject.instanceUuid) return undefined
-    const globalIndex = objectInstances.findIndex(i => i.uuid === selectedObject.instanceUuid)
-    if (globalIndex < 0) return undefined
-    const inst = objectInstances[globalIndex]
-    const obj = objects.find(o => o.uuid === inst.objectUuid)
-    if (!obj) return undefined
-    // Индекс в рамках всех инстансов данного объекта
-    const instancesOfObject = objectInstances.filter(i => i.objectUuid === inst.objectUuid)
-    const localIndex = instancesOfObject.findIndex(i => i.uuid === selectedObject.instanceUuid)
-    return {
-      name: obj.name,
-      index: localIndex,
-      globalIndex,
-      instance: inst
-    }
-  }, [selectedObject?.isInstanced, selectedObject?.instanceUuid, objectInstances, objects])
-
-  /**
-   * Удаляет выбранный инстанс из сцены.
-   *
-   * Логика:
-   * - Проверяет, что вычислена информация о выбранном инстансе
-   * - Вызывает экшен стора `removeObjectInstance` по индексу инстанса
-   * - Сбрасывает выделение, чтобы избежать ссылок на удалённый инстанс
-   */
-  const handleDeleteSelectedInstance = React.useCallback(() => {
-    if (!selectedInstanceInfo) return
-    // Для удаления используем глобальный индекс, чтобы соответствовать API стора
-    removeObjectInstance(selectedInstanceInfo.globalIndex)
-    clearSelection()
-  }, [selectedInstanceInfo, removeObjectInstance, clearSelection])
-
-  /**
    * Открывает модальное окно подтверждения удаления инстанса.
    * Фиксирует текущее целевое состояние (заголовок и глобальный индекс)
    * для корректного удаления даже при возможной смене выделения до подтверждения.
@@ -494,6 +465,62 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     })
   }, [pendingDelete, removeObjectInstance, clearSelection])
 
+  /**
+   * Глобальный хоткей удаления инстанса: клавиша Delete.
+   * 
+   * Поведение:
+   * - Игнорируется, если фокус в полях ввода или редакторе кода.
+   * - Срабатывает только при наличии выбранного инстанса.
+   * - Не удаляет сразу: открывает модалку подтверждения, согласованную с кнопкой корзины.
+   */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // В режиме Play не реагируем на Delete
+      if (uiMode === UiMode.Play) return
+      // Пропускаем, если ввод идёт в текстовых полях
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const target = e.target as HTMLElement
+      if (target && (target.classList?.contains('cm-editor') || target.closest?.('.cm-editor'))) return
+      if (e.key === 'Delete') {
+        // Открываем подтверждение удаления выбранного инстанса
+        if (selectedInstanceInfo) {
+          e.preventDefault()
+          openDeleteConfirm()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedInstanceInfo, openDeleteConfirm, uiMode])
+
+  /**
+   * Формирует объект из состояния редактора и закрывает модальное окно.
+   */
+  const handleEditorSaveClick = () => {
+    if (!editingObjectData) return
+    const updated = buildUpdatedObject(editingObjectData)
+    handleSaveObjectEdit(updated)
+    setEditorOpened(false)
+  }
+
+  const editingObjectData = React.useMemo(() => {
+    if (!editingObject) return undefined
+    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
+    if (!obj) return undefined
+    return JSON.parse(JSON.stringify(obj))
+  }, [editingObject, objects])
+
+  /**
+   * Удаляет выбранный инстанс из сцены без подтверждения.
+   * Используется как утилита, но в UI по умолчанию вызываем openDeleteConfirm.
+   */
+  const handleDeleteSelectedInstance = React.useCallback(() => {
+    if (!selectedInstanceInfo) return
+    removeObjectInstance(selectedInstanceInfo.globalIndex)
+    clearSelection()
+  }, [selectedInstanceInfo, removeObjectInstance, clearSelection])
+
+
   // Ширины панелей: управляются в px для корректного ресайза
   const chatPanelWidth = `${leftPanelWidthPx}px`
   const objectPanelWidth = `${rightPanelWidthPx}px`
@@ -514,9 +541,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     setObjectPanelCollapsed(prev => !prev)
   }
 
-  // Текущее состояние UI-режима (редактирование / play)
-  const uiMode = useSceneStore(state => state.uiMode)
-  const togglePlay = useSceneStore(state => state.togglePlay)
 
   /**
    * Обработчик переключения play-режима из UI (кнопки Play/Exit).
@@ -770,7 +794,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 {/* Если выбран инстанс — показываем его имя и действия */}
                 {selectedInstanceInfo && (
                   <>
-                    <Divider orientation="vertical" mx={4} />
+                    <Divider orientation="vertical" ml="xs" mr="xs" />
                     <Group gap={6} wrap="nowrap" align="center">
                       {/* Имя в формате: Название объекта [индекс инстанса] */}
                       <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
