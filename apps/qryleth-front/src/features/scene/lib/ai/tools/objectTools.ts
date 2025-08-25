@@ -1,10 +1,11 @@
-import { DynamicStructuredTool } from '@langchain/core/tools'
-import { z } from 'zod'
-import { v4 as uuidv4 } from 'uuid'
-import type { GfxObject } from '@/entities/object/model/types'
-import type { GfxPrimitive } from '@/entities'
-import { generatePrimitiveName } from '@/entities/primitive'
-import { SceneAPI } from '@/features/scene/lib/sceneAPI.ts'
+import {DynamicStructuredTool} from '@langchain/core/tools'
+import {z} from 'zod'
+import {v4 as uuidv4} from 'uuid'
+import type {GfxObject} from '@/entities/object/model/types'
+import type {GfxPrimitive} from '@/entities'
+import {generatePrimitiveName} from '@/entities/primitive'
+import {SceneAPI} from '@/features/scene/lib/sceneAPI.ts'
+import {PlacementStrategy} from "@/features/scene/lib/placement/ObjectPlacementUtils.ts";
 
 // Схемы валидации для геометрии примитивов
 const BoxGeometrySchema = z.object({
@@ -22,23 +23,23 @@ const CylinderGeometrySchema = z.object({
   radiusBottom: z.number().positive(),
   height: z.number().positive(),
   radialSegments: z.number().int().positive().optional()
-}).describe("Цилиндр по умолчанию ориентирован вертикально (ось Y), плоской гранью вверх. Для горизонтального положения используй rotation: [Math.PI/2, 0, 0]")
+}).describe("Цилиндр по умолчанию ориентирован вертикально (ось Y), плоской гранью вверх. Для горизонтального положения используй transform: { rotation: [Math.PI/2, 0, 0] }")
 
 const ConeGeometrySchema = z.object({
   radius: z.number().positive(),
   height: z.number().positive(),
   radialSegments: z.number().int().positive().optional()
-}).describe("Конус по умолчанию ориентирован вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй поле rotation")
+}).describe("Конус по умолчанию ориентирован вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй transform: { rotation: [...] }")
 
 const PyramidGeometrySchema = z.object({
   baseSize: z.number().positive(),
   height: z.number().positive()
-}).describe("Пирамида по умолчанию ориентирована вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй поле rotation")
+}).describe("Пирамида по умолчанию ориентирована вертикально (ось Y), острием вверх, основанием вниз. Для изменения ориентации используй transform: { rotation: [...] }")
 
 const PlaneGeometrySchema = z.object({
   width: z.number().positive(),
   height: z.number().positive()
-}).describe("Плоскость по умолчанию лежит в плоскости XY (горизонтально). Для вертикального положения используй rotation: [Math.PI/2, 0, 0]")
+}).describe("Плоскость по умолчанию лежит в плоскости XY (горизонтально). Для вертикального положения используй transform: { rotation: [Math.PI/2, 0, 0] }")
 
 const TorusGeometrySchema = z.object({
   majorRadius: z.number().positive(),
@@ -108,14 +109,12 @@ const ObjectMaterialSchema = z.object({
 const PrimitiveGroupSchema = z.object({
   uuid: z.string().describe('UUID группы'),
   name: z.string().describe('Название группы'),
-  visible: z.boolean().optional().describe('Видимость группы'),
   parentGroupUuid: z.string().optional().describe('UUID родительской группы для иерархии'),
-  sourceObjectUuid: z.string().optional().describe('UUID исходного объекта при импорте'),
   transform: z.object({
-    position: z.array(z.number()).length(3).optional(),
-    rotation: z.array(z.number()).length(3).optional(),
-    scale: z.array(z.number()).length(3).optional()
-  }).optional().describe('Трансформация группы')
+    position: z.array(z.number()).length(3).optional().describe('Позиция группы [x, y, z]'),
+    rotation: z.array(z.number()).length(3).optional().describe('Поворот группы [rx, ry, rz] в радианах'),
+    scale: z.array(z.number()).length(3).optional().describe('Масштаб группы [sx, sy, sz]')
+  }).optional().describe('Трансформация группы для позиционирования и масштабирования')
 })
 
 // Схема валидации для объекта (данные самого объекта)
@@ -206,7 +205,7 @@ const AddNewObjectInputSchema = ObjectSchema.extend({
  *     name: "Кирпич",
  *     properties: { color: "#8B4513", roughness: 0.8 }
  *   }, {
- *     uuid: "roof-material", 
+ *     uuid: "roof-material",
  *     name: "Крыша",
  *     properties: { color: "#654321", roughness: 0.9 }
  *   }],
@@ -227,14 +226,14 @@ const AddNewObjectInputSchema = ObjectSchema.extend({
  *       visible: true
  *     },
  *     "walls-group": {
- *       uuid: "walls-group", 
+ *       uuid: "walls-group",
  *       name: "Стены",
  *       visible: true,
  *       parentGroupUuid: "foundation-group"
  *     },
  *     "roof-group": {
  *       uuid: "roof-group",
- *       name: "Крыша", 
+ *       name: "Крыша",
  *       visible: true
  *     }
  *   },
@@ -321,7 +320,7 @@ export const createAddNewObjectTool = () => {
           newObject,
           validatedInput.layerId || 'objects',
           validatedInput.count || 1,
-          { strategy: validatedInput.placementStrategy || 'Random' }
+          { strategy: validatedInput.placementStrategy || PlacementStrategy.RandomNoCollision }
         )
 
         if (!result.success) {
@@ -430,7 +429,7 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
         input.objectUuid,
         input.layerId || 'objects',
         input.count || 1,
-        { strategy: input.placementStrategy || 'Random' }
+        { strategy: input.placementStrategy || PlacementStrategy.RandomNoCollision }
       )
 
       if (!result.success) {
