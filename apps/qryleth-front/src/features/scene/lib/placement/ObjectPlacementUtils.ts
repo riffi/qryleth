@@ -57,7 +57,8 @@ const getHeightSamplerForLayer = (layer: SceneLayer) => {
  */
 export enum PlacementStrategy {
   Random = 'Random',
-  RandomNoCollision = 'RandomNoCollision'
+  RandomNoCollision = 'RandomNoCollision',
+  PlaceAround = 'PlaceAround'
 }
 
 /**
@@ -75,11 +76,38 @@ export interface RandomNoCollisionMetadata {
 }
 
 /**
+ * Метаданные для стратегии PlaceAround размещения
+ * Размещение объектов вокруг целевых инстансов с настраиваемыми параметрами
+ */
+export interface PlaceAroundMetadata {
+  // === ЦЕЛЕВЫЕ ОБЪЕКТЫ (взаимоисключающие параметры) ===
+  /** UUID конкретного инстанса (приоритет 1) */
+  targetInstanceUuid?: string
+  /** UUID объекта, вокруг всех инстансов которого размещать (приоритет 2) */
+  targetObjectUuid?: string
+  
+  // === РАССТОЯНИЯ (обязательные параметры) ===
+  /** минимальное расстояние от грани target до грани нового объекта (единицы мира) */
+  minDistance: number
+  /** максимальное расстояние от грани target до грани нового объекта (единицы мира) */
+  maxDistance: number
+  
+  // === ПАРАМЕТРЫ РАСПРЕДЕЛЕНИЯ (опциональные) ===
+  /** начальный угол в радианах (по умолчанию: 0) */
+  angleOffset?: number
+  /** равномерно по кругу или случайно (по умолчанию: true) */
+  distributeEvenly?: boolean
+  /** только горизонтально Y=const или 3D (по умолчанию: true) */
+  onlyHorizontal?: boolean
+}
+
+/**
  * Дискриминированное объединение для строгой связи стратегии с метаданными
  */
 export type PlacementStrategyConfig = 
   | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
   | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
+  | { strategy: PlacementStrategy.PlaceAround; metadata: PlaceAroundMetadata }
 
 export interface PlacementOptions {
   strategy: PlacementStrategy
@@ -265,6 +293,27 @@ const normalToRotation = (normal: Vector3): Vector3 => {
 
   return [rotationX, rotationY, rotationZ];
 };
+
+/**
+ * Валидировать параметры PlaceAround метаданных
+ * @param metadata - метаданные PlaceAround для валидации
+ * @throws Error если параметры невалидны
+ */
+const validatePlaceAroundMetadata = (metadata: PlaceAroundMetadata): void => {
+  // Проверка обязательности одного из target параметров
+  if (!metadata.targetInstanceUuid && !metadata.targetObjectUuid) {
+    throw new Error('PlaceAround strategy requires either targetInstanceUuid or targetObjectUuid')
+  }
+
+  // Проверка корректности расстояний
+  if (metadata.minDistance < 0) {
+    throw new Error('PlaceAround minDistance must be >= 0')
+  }
+
+  if (metadata.maxDistance <= metadata.minDistance) {
+    throw new Error('PlaceAround maxDistance must be > minDistance')
+  }
+}
 
 /**
  * Check if two bounding boxes intersect
