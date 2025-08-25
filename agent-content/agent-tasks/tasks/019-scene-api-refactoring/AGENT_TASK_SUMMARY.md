@@ -2,14 +2,14 @@
 id: 19
 epic: null
 title: "Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения"
-status: planned
+status: in-progress
 created: 2025-08-25
 updated: 2025-08-25
 owner: team-ui
 tags: [scene-api, refactoring, architecture]
 phases:
   total: 7
-  completed: 2
+  completed: 3
 ---
 
 # Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения
@@ -83,7 +83,8 @@ phases:
 - Удалить `placementX`, `placementZ` из options - координаты теперь определяются стратегией
 - Создать временную `placeInstanceLegacy` для обратной совместимости во время миграции
 
-### ⏳ Фаза 3: Создание новых унифицированных методов SceneAPI
+### ✅ Фаза 3: Создание новых унифицированных методов SceneAPI
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 - **Новые сигнатуры методов:**
   ```typescript
   // Основной метод для существующих объектов

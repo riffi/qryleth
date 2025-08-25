@@ -9,7 +9,7 @@ import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync, PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
@@ -605,12 +605,20 @@ export class SceneAPI {
   }
 
   /**
-   * Добавляет объект из библиотеки в сцену и помещает его на указанный слой
+   * Добавляет объект из библиотеки в сцену с унифицированным размещением экземпляров
+   * Обновленная версия для использования нового placeInstance с PlacementStrategyConfig
+   * 
+   * @param objectUuid - UUID объекта в библиотеке
+   * @param layerId - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
+   * @param count - количество экземпляров для создания (по умолчанию 1)
+   * @param placementStrategyConfig - конфигурация стратегии размещения
+   * @returns результат добавления объекта и создания экземпляров
    */
   static async addObjectFromLibrary(
     objectUuid: string,
-    layerId: string,
-    transform?: Transform
+    layerId?: string,
+    count: number = 1,
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
   ): Promise<AddObjectResult> {
     try {
       const record = await db.getObject(objectUuid)
@@ -618,23 +626,33 @@ export class SceneAPI {
         return { success: false, error: `Object ${objectUuid} not found` }
       }
 
-      const baseObject: GfxObjectWithTransform = {
+      // Подготовить данные объекта для создания через createObject
+      const objectData: import('@/entities/object/model/types').GfxObject = {
         uuid: generateUUID(),
         name: record.name,
         primitives: record.objectData.primitives.map(p => ({ ...p, uuid: generateUUID() })),
         libraryUuid: record.uuid,
-        ...(transform ?? {})
+        materials: record.objectData.materials || []
       }
 
-      const result = SceneAPI.addObjectWithTransform(baseObject)
-      if (!result.success || !result.objectUuid) return result
+      // Использовать новый метод createObject для унифицированного создания
+      const result = SceneAPI.createObject(
+        objectData,
+        layerId || 'objects',
+        count,
+        placementStrategyConfig
+      )
 
-      const state = useSceneStore.getState()
-      if (layerId && layerId !== 'objects') {
-        state.moveObjectToLayer(result.objectUuid, layerId)
+      if (!result.success) {
+        return result
       }
 
-      return result
+      return {
+        success: true,
+        objectUuid: result.objectUuid,
+        instanceUuid: result.instanceUuid
+      }
+
     } catch (error) {
       return {
         success: false,
@@ -837,6 +855,206 @@ export class SceneAPI {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  // Новые унифицированные методы SceneAPI (Фаза 3)
+
+  /**
+   * Основной метод для создания экземпляров существующих объектов
+   * Использует новый placeInstance с дискриминированным объединением PlacementStrategyConfig
+   * 
+   * @param objectUuid - UUID существующего объекта в сцене
+   * @param layerId - ID слоя для размещения объекта (опционально)
+   * @param count - количество экземпляров для создания (по умолчанию 1)
+   * @param placementStrategyConfig - конфигурация стратегии размещения
+   * @returns результат создания экземпляров
+   */
+  static addInstances(
+    objectUuid: string,
+    layerId?: string,
+    count: number = 1,
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
+  ): AddInstancesResult {
+    try {
+      const state = useSceneStore.getState()
+      
+      // Проверить существование объекта
+      const existingObject = state.objects.find(obj => obj.uuid === objectUuid)
+      if (!existingObject) {
+        return {
+          success: false,
+          instanceCount: 0,
+          error: `Object with UUID ${objectUuid} not found in scene`
+        }
+      }
+
+      // Получить bounding box объекта
+      const objectBoundingBox = existingObject.boundingBox || calculateObjectBoundingBox(existingObject)
+
+      // Найти landscape слой для размещения
+      const landscapeLayer = state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+
+      // Собрать существующие экземпляры для избежания коллизий
+      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
+      state.objectInstances.forEach(instance => {
+        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
+        if (instanceObject) {
+          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
+          existingInstances.push({
+            instance,
+            boundingBox: instanceBoundingBox
+          })
+        }
+      })
+
+      // Использовать новый placeInstance для создания экземпляров
+      const createdInstances = placeInstance(
+        objectUuid,
+        {
+          landscapeLayer,
+          alignToTerrain: true,
+          objectBoundingBox,
+          existingInstances
+        },
+        count,
+        placementStrategyConfig
+      )
+
+      // Добавить все созданные экземпляры в store
+      const createdInstancesInfo: CreatedInstanceInfo[] = []
+      createdInstances.forEach(instance => {
+        state.addObjectInstance(instance)
+        
+        const boundingBox = transformBoundingBox(objectBoundingBox, instance.transform!)
+        createdInstancesInfo.push({
+          instanceUuid: instance.uuid,
+          objectUuid: instance.objectUuid,
+          parameters: {
+            position: instance.transform!.position,
+            rotation: instance.transform!.rotation,
+            scale: instance.transform!.scale,
+            visible: instance.visible ?? true
+          },
+          boundingBox
+        })
+      })
+
+      // Переместить объект на указанный слой если нужно
+      if (layerId && layerId !== existingObject.layerId) {
+        state.moveObjectToLayer(objectUuid, layerId)
+      }
+
+      return {
+        success: true,
+        instanceCount: createdInstances.length,
+        instances: createdInstancesInfo
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        instanceCount: 0,
+        error: `Failed to add instances: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Создание нового объекта и размещение его экземпляров в сцене
+   * Объединяет создание объекта и размещение экземпляров в одном методе
+   * 
+   * @param objectData - данные для создания нового объекта
+   * @param layerId - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
+   * @param count - количество экземпляров для создания (по умолчанию 1)
+   * @param placementStrategyConfig - конфигурация стратегии размещения
+   * @returns результат создания объекта и размещения экземпляров
+   */
+  static createObject(
+    objectData: import('@/entities/object/model/types').GfxObject,
+    layerId?: string,
+    count: number = 1,
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
+  ): AddObjectWithTransformResult {
+    try {
+      const state = useSceneStore.getState()
+      const { addObject } = state
+
+      // Применить коррекцию для LLM-сгенерированных объектов
+      const correctedObject = correctLLMGeneratedObject(objectData)
+      
+      // Рассчитать BoundingBox для объекта
+      const boundingBox = calculateObjectBoundingBox(correctedObject)
+
+      // Генерировать UUID для объекта
+      const objectUuid = generateUUID()
+
+      // Создать объект сцены
+      const newObject: SceneObject = {
+        uuid: objectUuid,
+        name: correctedObject.name,
+        primitives: correctedObject.primitives,
+        boundingBox,
+        layerId: layerId || 'objects',
+        libraryUuid: correctedObject.libraryUuid,
+        materials: correctedObject.materials
+      }
+
+      // Добавить объект в store
+      addObject(newObject)
+
+      // Найти landscape слой для размещения
+      const landscapeLayer = state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+
+      // Собрать существующие экземпляры для избежания коллизий
+      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
+      state.objectInstances.forEach(instance => {
+        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
+        if (instanceObject) {
+          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
+          existingInstances.push({
+            instance,
+            boundingBox: instanceBoundingBox
+          })
+        }
+      })
+
+      // Использовать новый placeInstance для создания экземпляров
+      const createdInstances = placeInstance(
+        objectUuid,
+        {
+          landscapeLayer,
+          alignToTerrain: true,
+          objectBoundingBox: boundingBox,
+          existingInstances
+        },
+        count,
+        placementStrategyConfig
+      )
+
+      // Добавить первый экземпляр в store (остальные тоже нужно добавить)
+      if (createdInstances.length > 0) {
+        createdInstances.forEach(instance => {
+          state.addObjectInstance(instance)
+        })
+
+        return {
+          success: true,
+          objectUuid: objectUuid,
+          instanceUuid: createdInstances[0].uuid
+        }
+      } else {
+        return {
+          success: false,
+          error: 'Failed to create any instances'
+        }
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to create object: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }
   }
