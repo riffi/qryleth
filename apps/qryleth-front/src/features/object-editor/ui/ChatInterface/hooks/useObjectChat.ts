@@ -5,7 +5,7 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import { useChat } from '@/shared/entities/chat'
 import type { ChatConfig, ChatMessage } from '@/shared/entities/chat'
-import { createLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
+import { getOrCreateLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { createObjectEditorTools } from '@/features/object-editor/lib/ai/tools'
 import { useObjectContextPrompt } from './useObjectContextPrompt'
 import { nanoid } from 'nanoid'
@@ -80,20 +80,33 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
   }, [baseChatState, isLoading])
 
 
-  // Инициализация LangChain сервиса при монтировании
+  // Инициализация LangChain сервиса при монтировании (идемпотентно, синглтон)
   useEffect(() => {
     const initializeService = async () => {
       try {
-        // Создаем отдельный экземпляр для object editor
-        objectChatServiceRef.current = createLangChainChatService(systemPrompt)
+        // Получаем синглтон экземпляр для object editor
+        objectChatServiceRef.current = getOrCreateLangChainChatService(
+          'object-editor',
+          systemPrompt,
+          { autoLoadToolsFromRegistry: false }
+        )
+        // Идемпотентная инициализация внутри сервиса, StrictMode-дупликаты игнорируются
         await objectChatServiceRef.current.initialize()
 
+        // Регистрируем инструменты ObjectEditor только если их ещё нет
+        const existing = new Set(objectChatServiceRef.current.getRegisteredTools())
         const objectEditorTools = createObjectEditorTools()
+        let registeredNow = 0
         objectEditorTools.forEach(tool => {
-          objectChatServiceRef.current!.registerDynamicTool(tool)
+          if (!existing.has(tool.name)) {
+            objectChatServiceRef.current!.registerDynamicTool(tool)
+            registeredNow += 1
+          }
         })
 
-        console.log('ObjectEditor LangChain сервис инициализирован с', objectEditorTools.length, 'инструментами')
+        if (registeredNow > 0) {
+          console.log('ObjectEditor LangChain сервис инициализирован с', registeredNow, 'новыми инструментами')
+        }
       } catch (error) {
         console.error('Ошибка инициализации ObjectEditor LangChain сервиса:', error)
 
