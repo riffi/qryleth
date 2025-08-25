@@ -119,7 +119,7 @@ const PrimitiveGroupSchema = z.object({
   }).optional().describe('Трансформация группы')
 })
 
-// Схема валидации для объекта
+// Схема валидации для объекта (данные самого объекта)
 const ObjectSchema = z.object({
   name: z.string().describe("Имя объекта на русском"),
   primitives: z.array(PrimitiveSchema).describe("Массив примитивов объекта. КАЖДЫЙ примитив ОБЯЗАТЕЛЬНО должен содержать objectMaterialUuid или globalMaterialUuid"),
@@ -132,6 +132,14 @@ const ObjectSchema = z.object({
   position: z.array(z.number()).length(3).optional(),
   rotation: z.array(z.number()).length(3).optional(),
   scale: z.array(z.number()).length(3).optional()
+})
+
+// Расширенная схема для входных параметров инструмента add_new_object
+// Добавляет параметры размещения и создания нескольких экземпляров
+const AddNewObjectInputSchema = ObjectSchema.extend({
+  layerId: z.string().optional().describe('ID слоя для размещения (по умолчанию "objects")'),
+  count: z.number().min(1).max(20).optional().describe('Количество экземпляров для создания (по умолчанию 1)'),
+  placementStrategy: z.enum(['Random', 'RandomNoCollision']).optional().describe('Стратегия размещения: Random — случайное размещение, RandomNoCollision — избегание коллизий (по умолчанию Random)')
 })
 
 /**
@@ -241,11 +249,16 @@ const ObjectSchema = z.object({
  * })
  *
  */
+/**
+ * Создает LangChain-инструмент add_new_object для добавления нового объекта в сцену.
+ * Поддерживает создание нескольких экземпляров и стратегию размещения.
+ * Параметры инструмента: layerId (слой), count (количество), placementStrategy (стратегия).
+ */
 export const createAddNewObjectTool = () => {
   return new DynamicStructuredTool({
     name: 'add_new_object',
-    description: 'Добавляет новый объект в текущую сцену. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы - объект будет невидимым! ВАЖНО: примитивы имеют изначальную ориентацию - конус, цилиндр, пирамида смотрят вверх по оси Y, плоскость лежит горизонтально. Используй поле rotation для изменения ориентации при необходимости. ПОДДЕРЖИВАЕТ ГРУППИРОВКУ: можешь создавать иерархические группы примитивов для лучшей организации сложных объектов.',
-    schema: ObjectSchema,
+    description: 'Добавляет новый объект в текущую сцену. Поддерживает множественные экземпляры и выбор стратегии размещения. ОБЯЗАТЕЛЬНО создай материалы для объекта в поле materials с уникальными UUID, затем каждый примитив должен ссылаться на материал через objectMaterialUuid. Если не указать материалы — объект будет невидимым! ВАЖНО: примитивы имеют изначальную ориентацию — конус, цилиндр, пирамида смотрят вверх по оси Y, плоскость лежит горизонтально. Используй поле rotation для изменения ориентации при необходимости. ПОДДЕРЖИВАЕТ ГРУППИРОВКУ: можешь создавать иерархические группы примитивов для лучшей организации сложных объектов.',
+    schema: AddNewObjectInputSchema,
     verboseParsingErrors: true,
 
     func: async (input): Promise<string> => {
@@ -316,8 +329,13 @@ export const createAddNewObjectTool = () => {
           }),
         }
 
-        // Используем новый унифицированный метод createObject вместо addObjectWithTransform
-        const result = SceneAPI.createObject(newObject, 'objects', 1, { strategy: 'Random' })
+        // Используем новый унифицированный метод createObject с поддержкой количества и стратегии размещения
+        const result = SceneAPI.createObject(
+          newObject,
+          validatedInput.layerId || 'objects',
+          validatedInput.count || 1,
+          { strategy: validatedInput.placementStrategy || 'Random' }
+        )
 
         if (!result.success) {
           return JSON.stringify({
@@ -332,7 +350,9 @@ export const createAddNewObjectTool = () => {
           object: newObject,
           objectUuid: result.objectUuid,
           instanceUuid: result.instanceUuid,
-          message: `Объект "${validatedInput.name}" создан с ${primitives.length} примитивами`
+          count: validatedInput.count || 1,
+          placementStrategy: validatedInput.placementStrategy || 'Random',
+          message: `Объект "${validatedInput.name}" создан с ${primitives.length} примитивами (${validatedInput.count || 1} экземпляр(а), стратегия: ${validatedInput.placementStrategy || 'Random'})`
         })
 
       } catch (error) {

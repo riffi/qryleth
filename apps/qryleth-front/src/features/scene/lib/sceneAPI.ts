@@ -9,7 +9,8 @@ import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync, PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
+  type PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
@@ -383,7 +384,7 @@ export class SceneAPI {
   /**
    * Добавляет объект из библиотеки в сцену с унифицированным размещением экземпляров
    * Обновленная версия для использования нового placeInstance с PlacementStrategyConfig
-   * 
+   *
    * @param objectUuid - UUID объекта в библиотеке
    * @param layerId - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
    * @param count - количество экземпляров для создания (по умолчанию 1)
@@ -552,7 +553,7 @@ export class SceneAPI {
   /**
    * Создать слой с автоматическим выравниванием объектов по террейну (если применимо).
    * Централизованный метод, который инкапсулирует всю логику создания слоев и последующего выравнивания.
-   * 
+   *
    * @param layerData - данные для создания слоя
    * @param terrainConfig - конфигурация террейна (для heightmap слоев)
    * @param options - дополнительные опции
@@ -597,15 +598,15 @@ export class SceneAPI {
       }
 
       // Определяем, нужно ли выравнивание объектов
-      const shouldAdjust = forceAdjustment || 
-        (createdLayer.type === GfxLayerType.Landscape && 
+      const shouldAdjust = forceAdjustment ||
+        (createdLayer.type === GfxLayerType.Landscape &&
          createdLayer.shape === GfxLayerShape.Terrain &&
          (createdLayer.terrain || createdLayer.noiseData))
 
       if (shouldAdjust) {
         // Используем универсальную функцию выравнивания
         const { adjustObjectsForCreatedTerrain } = await import('./terrain/TerrainAdjustmentUtils')
-        
+
         const adjustmentResult = await adjustObjectsForCreatedTerrain({
           layerId: createdLayer.id,
           maxAttempts,
@@ -640,7 +641,7 @@ export class SceneAPI {
   /**
    * Основной метод для создания экземпляров существующих объектов
    * Использует новый placeInstance с дискриминированным объединением PlacementStrategyConfig
-   * 
+   *
    * @param objectUuid - UUID существующего объекта в сцене
    * @param layerId - ID слоя для размещения объекта (опционально)
    * @param count - количество экземпляров для создания (по умолчанию 1)
@@ -655,7 +656,7 @@ export class SceneAPI {
   ): AddInstancesResult {
     try {
       const state = useSceneStore.getState()
-      
+
       // Проверить существование объекта
       const existingObject = state.objects.find(obj => obj.uuid === objectUuid)
       if (!existingObject) {
@@ -702,7 +703,7 @@ export class SceneAPI {
       const createdInstancesInfo: CreatedInstanceInfo[] = []
       createdInstances.forEach(instance => {
         state.addObjectInstance(instance)
-        
+
         const boundingBox = transformBoundingBox(objectBoundingBox, instance.transform!)
         createdInstancesInfo.push({
           instanceUuid: instance.uuid,
@@ -740,7 +741,7 @@ export class SceneAPI {
   /**
    * Создание нового объекта и размещение его экземпляров в сцене
    * Объединяет создание объекта и размещение экземпляров в одном методе
-   * 
+   *
    * @param objectData - данные для создания нового объекта
    * @param layerId - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
    * @param count - количество экземпляров для создания (по умолчанию 1)
@@ -759,7 +760,7 @@ export class SceneAPI {
 
       // Применить коррекцию для LLM-сгенерированных объектов
       const correctedObject = correctLLMGeneratedObject(objectData)
-      
+
       // Рассчитать BoundingBox для объекта
       const boundingBox = calculateObjectBoundingBox(correctedObject)
 

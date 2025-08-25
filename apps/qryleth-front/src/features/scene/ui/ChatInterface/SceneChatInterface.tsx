@@ -20,6 +20,7 @@ export const SceneChatInterface: React.FC = () => {
   const {
     messages,
     isLoading,
+    isInitialized,
     sendMessage,
     connection,
     updateModel,
@@ -99,7 +100,7 @@ export const SceneChatInterface: React.FC = () => {
           <ChatContainer
             messages={messages}
             isLoading={isLoading}
-            emptyStateMessage="Попросите агента добавить объект в сцену..."
+            emptyStateMessage={isInitialized ? "Попросите агента добавить объект в сцену..." : "Инициализация чата..."}
             scrollAreaRef={scrollAreaRef}
             style={{ flex: 1, minHeight: 0 }}
           />
@@ -108,8 +109,8 @@ export const SceneChatInterface: React.FC = () => {
             value={inputValue}
             onChange={setInputValue}
             onSend={handleSendMessage}
-            placeholder="Попросите добавить объект..."
-            disabled={isLoading}
+            placeholder={isInitialized ? "Попросите добавить объект..." : "Инициализация чата..."}
+            disabled={isLoading || !isInitialized}
             loading={isLoading}
           />
         </Tabs.Panel>
