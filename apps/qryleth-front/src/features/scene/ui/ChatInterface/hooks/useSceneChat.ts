@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChat } from '@/shared/entities/chat'
 import type { ChatMessage, ChatConfig } from '@/shared/entities/chat'
-import { createLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
+import { getOrCreateLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
 import { createAddNewObjectTool } from '@/features/scene/lib/ai/tools'
@@ -71,21 +71,10 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     setIsLoading(true)
 
     try {
-      // Проверяем, инициализирован ли сервис
+      // Проверяем, инициализирован ли сервис. Ленивая инициализация удалена,
+      // единственный путь инициализации — через useEffect ниже.
       if (!mainServiceInitializedRef.current || !sceneChatServiceRef.current) {
-        // Если сервис не инициализирован, пробуем инициализировать его
-        if (!mainServiceInitializedRef.current) {
-          const activeConnection = await getActiveConnection()
-          connectionRef.current = activeConnection
-          
-          sceneChatServiceRef.current = createLangChainChatService(SCENE_SYSTEM_PROMPT)
-          await sceneChatServiceRef.current.initialize()
-          sceneChatServiceRef.current.setToolCallback(handleToolCallbackRef.current)
-          mainServiceInitializedRef.current = true
-          setIsInitialized(true)
-        } else {
-          throw new Error('Scene chat service not initialized')
-        }
+        throw new Error('Scene chat service not initialized')
       }
       
       const langChainResponse = await sceneChatServiceRef.current.chat([...baseChat.messages, userMessage])
@@ -180,13 +169,13 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
         const activeConnection = await getActiveConnection()
         connectionRef.current = activeConnection
 
-        // Создаем отдельный экземпляр для scene editor
-        sceneChatServiceRef.current = createLangChainChatService(SCENE_SYSTEM_PROMPT)
+        // Получаем синглтон экземпляр для scene editor
+        sceneChatServiceRef.current = getOrCreateLangChainChatService('scene', SCENE_SYSTEM_PROMPT)
+        // Идемпотентная инициализация внутри сервиса, StrictMode-дупликаты игнорируются
         await sceneChatServiceRef.current.initialize()
         sceneChatServiceRef.current.setToolCallback(handleToolCallbackRef.current)
-        console.log('Scene LangChain сервис инициализирован с инструментами:', sceneChatServiceRef.current.getRegisteredTools())
-        
-        // Помечаем сервис как инициализированный только после успешной инициализации
+
+        // Помечаем сервис как инициализированный для UI
         mainServiceInitializedRef.current = true
         setIsInitialized(true)
       } catch (error) {
@@ -220,15 +209,21 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
       if (debugServiceInitializedRef.current) return
 
       try {
-        const debugService = new LangChainChatService(
-          'Сразу же выполни tool по запросу пользователя, не уточняя детали'
+        const debugService = getOrCreateLangChainChatService(
+          'scene-debug',
+          'Сразу же выполни tool по запросу пользователя, не уточняя детали',
+          { autoLoadToolsFromRegistry: false }
         )
         await debugService.initialize()
-        debugService.clearTools()
-        debugService.registerDynamicTool(createAddNewObjectTool())
+        // Регистрируем инструмент отладки один раз, чтобы в StrictMode не было дубликатов и логов
+        const alreadyHasDebugTool = debugService.getRegisteredTools().includes('add_new_object')
+        if (!alreadyHasDebugTool) {
+          debugService.clearTools()
+          debugService.registerDynamicTool(createAddNewObjectTool())
+          console.log('Debug LangChain сервис инициализирован с инструментами:', debugService.getRegisteredTools())
+        }
         debugChatServiceRef.current = debugService
         debugServiceInitializedRef.current = true
-        console.log('Debug LangChain сервис инициализирован с инструментами:', debugService.getRegisteredTools())
       } catch (error) {
         console.error('Ошибка инициализации отладочного LangChain сервиса:', error)
         debugServiceInitializedRef.current = false

@@ -14,7 +14,12 @@ import type {GfxObjectWithTransform} from '@/entities'
 export type ToolCallback = (toolName: string, result: any) => void
 
 /**
- * LangChain chat service for handling AI conversations with tools
+ * Сервис LangChain для чата с поддержкой инструментов.
+ *
+ * Особенности:
+ * - Идемпотентная инициализация (без повторных подписок/создания модели)
+ * - Опциональная авто‑загрузка инструментов из глобального реестра
+ * - Безопасная работа при двойном монтировании в React StrictMode (coalesce init)
  */
 export const DEFAULT_SYSTEM_PROMPT =
   'You are a helpful assistant that can use tools to interact with a 3D scene. ' +
@@ -27,32 +32,59 @@ export class LangChainChatService {
   private toolExecutors: Map<string, (args: any) => Promise<ToolExecutionResult>> = new Map()
   private toolCallback: ToolCallback | null = null
   private systemPrompt: string
+  private initialized = false
+  private initPromise: Promise<void> | null = null
+  private autoLoadToolsFromRegistry: boolean
 
   /**
    * Создает экземпляр сервиса с указанным системным промптом
    * @param systemPrompt текст системного промпта, который будет использоваться агентом
    */
-  constructor(systemPrompt: string = DEFAULT_SYSTEM_PROMPT) {
+  constructor(systemPrompt: string = DEFAULT_SYSTEM_PROMPT, options?: { autoLoadToolsFromRegistry?: boolean }) {
     this.systemPrompt = systemPrompt
+    this.autoLoadToolsFromRegistry = options?.autoLoadToolsFromRegistry ?? true
   }
 
   /**
-   * Initialize the chat service with current connection settings
+   * Инициализирует сервис чата по текущим настройкам подключения. Идемпотентно.
+   * Повторный вызов не приводит к повторной подписке/созданию модели.
    */
   async initialize(): Promise<void> {
-    const connection = await getActiveConnection()
-    this.chatModel = createChatModel({
-      connection,
-      ...DEFAULT_LANGCHAIN_CONFIG,
-    })
+    // Если уже инициализирован — ничего не делаем
+    if (this.initialized) return
+    // Если инициализация уже идёт — ждём её завершения
+    if (this.initPromise) return this.initPromise
 
-    // Load tools from registry
-    this.loadToolsFromRegistry()
+    this.initPromise = (async () => {
+      const connection = await getActiveConnection()
+      this.chatModel = createChatModel({
+        connection,
+        ...DEFAULT_LANGCHAIN_CONFIG,
+      })
 
-    // Subscribe to tool registry changes
-    toolRegistry.onToolsChange(() => {
-      this.loadToolsFromRegistry()
-    })
+      // Загрузка инструментов из реестра (опционально)
+      if (this.autoLoadToolsFromRegistry) {
+        this.loadToolsFromRegistry()
+        toolRegistry.onToolsChange(() => {
+          this.loadToolsFromRegistry()
+        })
+      }
+
+      this.initialized = true
+
+      // Единоразовый лог успешной инициализации
+      if (this.autoLoadToolsFromRegistry) {
+        console.log('LangChain сервис инициализирован. Инструменты:', this.getRegisteredTools())
+      } else {
+        console.log('LangChain сервис (без авто‑реестра) инициализирован.')
+      }
+    })()
+
+    try {
+      await this.initPromise
+    } finally {
+      this.initPromise = null
+    }
   }
 
   /**
@@ -192,10 +224,23 @@ export class LangChainChatService {
   }
 
   /**
+   * Возвращает признак инициализации сервиса.
+   */
+  isInitialized(): boolean {
+    return this.initialized
+  }
+
+  /**
    * Update connection settings and reinitialize
    */
   async updateConnection(): Promise<void> {
-    await this.initialize()
+    // Сбрасываем только модель под новое подключение, инструменты переиспользуем
+    const connection = await getActiveConnection()
+    this.chatModel = createChatModel({
+      connection,
+      ...DEFAULT_LANGCHAIN_CONFIG,
+    })
+    this.initialized = true
   }
 
   /**
@@ -234,6 +279,27 @@ export class LangChainChatService {
 /**
  * Factory function to create new chat service instances
  */
-export const createLangChainChatService = (systemPrompt?: string) => {
-  return new LangChainChatService(systemPrompt)
+export const createLangChainChatService = (systemPrompt?: string, options?: { autoLoadToolsFromRegistry?: boolean }) => {
+  return new LangChainChatService(systemPrompt, options)
 }
+
+/**
+ * Возвращает синглтон LangChainChatService по ключу. Используется для избежания
+ * повторной инициализации в React StrictMode при двойном монтировании компонентов.
+ * @param key уникальный ключ фичи (например, 'scene', 'scene-debug', 'object-editor')
+ * @param systemPrompt системный промпт для первого создания
+ */
+const __langchainSingletons = new Map<string, LangChainChatService>()
+export const getOrCreateLangChainChatService = (key: string, systemPrompt?: string, options?: { autoLoadToolsFromRegistry?: boolean }) => {
+  if (__langchainSingletons.has(key)) {
+    return __langchainSingletons.get(key) as LangChainChatService
+  }
+  const instance = new LangChainChatService(systemPrompt, options)
+  __langchainSingletons.set(key, instance)
+  return instance
+}
+
+/**
+ * Признак инициализации сервиса
+ */
+export type LangChainChatServiceInitState = { isInitialized: boolean }
