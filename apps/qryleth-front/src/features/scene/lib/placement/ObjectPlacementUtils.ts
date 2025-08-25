@@ -51,7 +51,27 @@ const getHeightSamplerForLayer = (layer: SceneLayer) => {
   return null
 }
 
-export type PlacementStrategy = 'Random' | 'RandomNoCollision' | 'Center' | 'Origin' | 'Custom'
+/**
+ * Стратегии размещения объектов в сцене
+ */
+export enum PlacementStrategy {
+  Random = 'Random',
+  RandomNoCollision = 'RandomNoCollision'
+}
+
+/**
+ * Метаданные для стратегии Random размещения
+ */
+export interface RandomMetadata {
+  // Пустая структура - будет расширена позже при необходимости
+}
+
+/**
+ * Метаданные для стратегии RandomNoCollision размещения
+ */
+export interface RandomNoCollisionMetadata {
+  // Пустая структура - будет расширена позже при необходимости
+}
 
 export interface PlacementOptions {
   strategy: PlacementStrategy
@@ -92,56 +112,30 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
   const finalBounds = { ...defaultBounds, ...bounds }
 
   switch (strategy) {
-    case 'Random': {
+    case PlacementStrategy.Random: {
       const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
       const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
       return {
         position: [x, 0, z], // Y will be adjusted by correctLLMGeneratedObject
-        strategy: 'Random'
+        strategy: PlacementStrategy.Random
       }
     }
 
-    case 'RandomNoCollision': {
+    case PlacementStrategy.RandomNoCollision: {
       const position = generateRandomNoCollisionPosition(options)
       return {
         position,
-        strategy: 'RandomNoCollision'
-      }
-    }
-
-    case 'Center': {
-      return {
-        position: [0, 0, 0],
-        strategy: 'Center'
-      }
-    }
-
-    case 'Origin': {
-      return {
-        position: [0, 0, 0],
-        strategy: 'Origin'
-      }
-    }
-
-    case 'Custom': {
-      if (!customPosition) {
-        console.warn('Custom placement strategy requires customPosition, falling back to Origin')
-        return {
-          position: [0, 0, 0],
-          strategy: 'Custom'
-        }
-      }
-      return {
-        position: customPosition,
-        strategy: 'Custom'
+        strategy: PlacementStrategy.RandomNoCollision
       }
     }
 
     default: {
-      console.warn(`Unknown placement strategy: ${strategy}, falling back to Origin`)
+      console.warn(`Unknown placement strategy: ${strategy}, falling back to Random`)
+      const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
+      const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
       return {
-        position: [0, 0, 0],
-        strategy: 'Origin'
+        position: [x, 0, z],
+        strategy: PlacementStrategy.Random
       }
     }
   }
@@ -152,27 +146,8 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
  */
 export const getRandomPlacement = (landscapeLayer?: SceneLayer): PlacementResult => {
   return generateObjectPlacement({
-    strategy: 'Random',
+    strategy: PlacementStrategy.Random,
     landscapeLayer
-  })
-}
-
-/**
- * Get center placement
- */
-export const getCenterPlacement = (): PlacementResult => {
-  return generateObjectPlacement({
-    strategy: 'Center'
-  })
-}
-
-/**
- * Get custom placement
- */
-export const getCustomPlacement = (position: Vector3): PlacementResult => {
-  return generateObjectPlacement({
-    strategy: 'Custom',
-    customPosition: position
   })
 }
 
@@ -375,7 +350,7 @@ export const placeInstance = (
   // If no placement coordinates provided, use RandomNoCollision placement
   if (placementX === undefined || placementZ === undefined) {
     const placementResult = generateObjectPlacement({
-      strategy: 'RandomNoCollision',
+      strategy: PlacementStrategy.RandomNoCollision,
       landscapeLayer: options?.landscapeLayer,
       existingInstances: options?.existingInstances,
       newObjectBoundingBox: options?.objectBoundingBox

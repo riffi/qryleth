@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-api, refactoring, architecture]
 phases:
   total: 7
-  completed: 0
+  completed: 1
 ---
 
 # Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения
@@ -44,14 +44,22 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Создание enum PlacementStrategy и типов метаданных
+### ✅ Фаза 1: Создание enum PlacementStrategy и типов метаданных
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 - Преобразовать `PlacementStrategy` union type в настоящий enum
 - **ВАЖНО**: Оставить только две стратегии: `Random` и `RandomNoCollision` (удалить `Center`, `Origin`, `Custom`)
 - Создать пустые типы метаданных для стратегий `Random` и `RandomNoCollision` (пока только структура)
 - Обновить существующий код в `ObjectPlacementUtils.ts` для использования enum
 - Обновить все импорты и использования PlacementStrategy в проекте
 
-### ⏳ Фаза 2: Кардинальный рефакторинг placeInstance - новая сигнатура
+### ⏳ Фаза 2: Кардинальный рефакторинг placeInstance - новая сигнатура с дискриминированным объединением
+- **Создать дискриминированное объединение PlacementStrategyConfig для строгой типизации:**
+  ```typescript
+  // Дискриминированное объединение для строгой связи стратегии с метаданными
+  type PlacementStrategyConfig = 
+    | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
+    | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
+  ```
 - **BREAKING CHANGE**: Новая сигнатура:
   ```typescript
   placeInstance(
@@ -64,13 +72,12 @@ phases:
       // УДАЛИТЬ: placementX, placementZ - теперь не нужны
     },
     count: number,
-    strategy: PlacementStrategy, // enum: Random | RandomNoCollision
-    strategyMetadata: RandomMetadata | RandomNoCollisionMetadata
+    placementStrategyConfig: PlacementStrategyConfig // Дискриминированное объединение вместо двух отдельных параметров
   ): SceneObjectInstance[]
   ```
 - Функция должна сама создавать множественные инстансы внутри, а не размещать готовый instance
 - Интегрировать функциональность `addObjectInstance` прямо в `placeInstance`
-- Обновить `generateObjectPlacement` для работы только с `Random` и `RandomNoCollision` стратегиями
+- Обновить `generateObjectPlacement` для работы с дискриминированным объединением PlacementStrategyConfig
 - Удалить логику для `Center`, `Origin`, `Custom` из `generateObjectPlacement`
 - Удалить `placementX`, `placementZ` из options - координаты теперь определяются стратегией
 - Создать временную `placeInstanceLegacy` для обратной совместимости во время миграции
@@ -83,8 +90,7 @@ phases:
     objectUuid: string, 
     layerId?: string, 
     count: number = 1, 
-    strategy: PlacementStrategy = PlacementStrategy.Random,
-    strategyMetadata?: RandomMetadata | RandomNoCollisionMetadata
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
   ): AddInstancesResult
 
   // Создание нового объекта + размещение
@@ -92,8 +98,7 @@ phases:
     objectData: GfxObject, 
     layerId?: string, 
     count: number = 1, 
-    strategy: PlacementStrategy = PlacementStrategy.Random,
-    strategyMetadata?: RandomMetadata | RandomNoCollisionMetadata
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
   ): AddObjectWithTransformResult
 
   // Импорт из библиотеки + размещение (обновленный)
@@ -101,8 +106,7 @@ phases:
     objectUuid: string,
     layerId?: string,
     count: number = 1,
-    strategy: PlacementStrategy = PlacementStrategy.Random,
-    strategyMetadata?: RandomMetadata | RandomNoCollisionMetadata
+    placementStrategyConfig: PlacementStrategyConfig = { strategy: PlacementStrategy.Random }
   ): Promise<AddObjectResult>
   ```
 - Все методы используют новый `placeInstance` внутри
