@@ -2,9 +2,9 @@ import { createStyledTooltip } from '../utils/tooltipUtils'
 import type { LanguageMode } from './scriptTemplates'
 
 export const getSceneApiCompletions = () => [
-  { 
-    label: 'getSceneOverview', 
-    type: 'function', 
+  {
+    label: 'getSceneOverview',
+    type: 'function',
     info: createStyledTooltip(`getSceneOverview(): SceneOverview
 Возвращает: {
   totalObjects: number,
@@ -14,11 +14,11 @@ export const getSceneApiCompletions = () => [
   sceneName: string,
   layers: Array<{id, name, visible, objectCount}>
 }
-Описание: Получить общую информацию о сцене с объектами, экземплярами и слоями`) 
+Описание: Получить общую информацию о сцене с объектами, экземплярами и слоями`)
   },
-  { 
-    label: 'getSceneObjects', 
-    type: 'function', 
+  {
+    label: 'getSceneObjects',
+    type: 'function',
     info: createStyledTooltip(`getSceneObjects(): SceneObjectInfo[]
 Возвращает: Array<{
   uuid: string,
@@ -32,11 +32,11 @@ export const getSceneApiCompletions = () => [
   hasInstances: boolean,
   instanceCount: number
 }>
-Описание: Получить список всех объектов сцены`) 
+Описание: Получить список всех объектов сцены`)
   },
-  { 
-    label: 'getSceneInstances', 
-    type: 'function', 
+  {
+    label: 'getSceneInstances',
+    type: 'function',
     info: createStyledTooltip(`getSceneInstances(): SceneInstanceInfo[]
 Возвращает: Array<{
   uuid: string,
@@ -45,29 +45,29 @@ export const getSceneApiCompletions = () => [
   transform?: Transform,
   visible?: boolean
 }>
-Описание: Получить список всех экземпляров объектов`) 
+Описание: Получить список всех экземпляров объектов`)
   },
-  { 
-    label: 'findObjectByUuid', 
-    type: 'function', 
+  {
+    label: 'findObjectByUuid',
+    type: 'function',
     info: createStyledTooltip(`findObjectByUuid(uuid: string): SceneObject | null
 Параметры:
   uuid: string - UUID объекта для поиска
 Возвращает: SceneObject | null
-Описание: Найти объект по UUID`) 
+Описание: Найти объект по UUID`)
   },
-  { 
-    label: 'findObjectByName', 
-    type: 'function', 
+  {
+    label: 'findObjectByName',
+    type: 'function',
     info: createStyledTooltip(`findObjectByName(name: string): SceneObject | null
 Параметры:
   name: string - Имя объекта для поиска (частичное совпадение)
 Возвращает: SceneObject | null
-Описание: Найти объект по имени (первый найденный)`) 
+Описание: Найти объект по имени (первый найденный)`)
   },
-  { 
-    label: 'addInstances', 
-    type: 'function', 
+  {
+    label: 'addInstances',
+    type: 'function',
     info: createStyledTooltip(`addInstances(objectUuid, layerId?, count?, placementStrategyConfig?): AddInstancesResult
 Параметры:
   objectUuid: string - UUID существующего объекта
@@ -75,22 +75,22 @@ export const getSceneApiCompletions = () => [
   count?: number = 1 - Количество экземпляров
   placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
 Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[]}
-Описание: Создать экземпляры существующего объекта с унифицированным размещением`) 
+Описание: Создать экземпляры существующего объекта с унифицированным размещением`)
   },
-  { 
-    label: 'getSceneStats', 
-    type: 'function', 
+  {
+    label: 'getSceneStats',
+    type: 'function',
     info: createStyledTooltip(`getSceneStats(): SceneStats
 Возвращает: {
   total: {objects: number, instances: number, layers: number},
   visible: {objects: number, instances: number, layers: number},
   primitiveTypes: string[]
 }
-Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)`) 
+Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)`)
   },
-  { 
-    label: 'createObject', 
-    type: 'function', 
+  {
+    label: 'createObject',
+    type: 'function',
     info: createStyledTooltip(`createObject(objectData, layerId?, count?, placementStrategyConfig?): AddObjectWithTransformResult
 Параметры:
   objectData: GfxObject - Данные для создания объекта
@@ -98,11 +98,11 @@ export const getSceneApiCompletions = () => [
   count?: number = 1 - Количество экземпляров
   placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
 Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
-Описание: Создать новый объект и разместить его экземпляры`) 
+Описание: Создать новый объект и разместить его экземпляры`)
   },
-  { 
-    label: 'getAvailableLayers', 
-    type: 'function', 
+  {
+    label: 'getAvailableLayers',
+    type: 'function',
     info: createStyledTooltip(`getAvailableLayers(): Array<LayerInfo>
 Возвращает: Array<{
   id: string,
@@ -110,46 +110,29 @@ export const getSceneApiCompletions = () => [
   visible: boolean,
   position: Vector3
 }>
-Описание: Получить доступные слои для размещения объектов`) 
+Описание: Получить доступные слои для размещения объектов`)
   },
-  { 
-    label: 'canAddInstance', 
-    type: 'function', 
+  {
+    label: 'canAddInstance',
+    type: 'function',
     info: createStyledTooltip(`canAddInstance(objectUuid: string): boolean
 Параметры:
   objectUuid: string - UUID объекта для проверки
 Возвращает: boolean
-Описание: Проверить можно ли добавить экземпляр объекта`) 
+Описание: Проверить можно ли добавить экземпляр объекта`)
   },
-  { 
-    label: 'addObjectWithTransform', 
-    type: 'function', 
-    info: createStyledTooltip(`addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult
-Параметры:
-  objectData: GfxObjectWithTransform = {
-    uuid?: string,
-    name: string,
-    primitives: Primitive[],
-    libraryUuid?: string,
-    position?: Vector3,
-    rotation?: Vector3,
-    scale?: Vector3
-  }
-Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
-Описание: Добавить объект с трансформацией в сцену`) 
-  },
-  { 
-    label: 'searchObjectsInLibrary', 
-    type: 'function', 
+  {
+    label: 'searchObjectsInLibrary',
+    type: 'function',
     info: createStyledTooltip(`searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
 Параметры:
   query: string - Строка поиска (по имени или описанию)
 Возвращает: Promise<ObjectRecord[]>
-Описание: Поиск объектов в библиотеке по строке запроса`) 
+Описание: Поиск объектов в библиотеке по строке запроса`)
   },
-  { 
-    label: 'addObjectFromLibrary', 
-    type: 'function', 
+  {
+    label: 'addObjectFromLibrary',
+    type: 'function',
     info: createStyledTooltip(`addObjectFromLibrary(objectUuid, layerId?, count?, placementStrategyConfig?): Promise<AddObjectResult>
 Параметры:
   objectUuid: string - UUID объекта в библиотеке
@@ -159,14 +142,14 @@ export const getSceneApiCompletions = () => [
 Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
 Описание: Импортировать объект из библиотеки и разместить экземпляры по стратегии`)
   },
-  { 
-    label: 'adjustInstancesForPerlinTerrain', 
-    type: 'function', 
+  {
+    label: 'adjustInstancesForPerlinTerrain',
+    type: 'function',
     info: createStyledTooltip(`adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
 Параметры:
   perlinLayerId: string - ID слоя с Perlin ландшафтом
 Возвращает: {success: boolean, adjustedCount?: number, error?: string}
-Описание: Привязать экземпляры к ландшафту Perlin`) 
+Описание: Привязать экземпляры к ландшафту Perlin`)
   }
 ]
 

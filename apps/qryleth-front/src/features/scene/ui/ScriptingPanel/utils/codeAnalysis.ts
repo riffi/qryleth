@@ -8,24 +8,24 @@ import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
  */
 export const analyzeVariableTypes = (scriptText: string): Record<string, string> => {
   const variableTypes: Record<string, string> = {}
-  
+
   const patterns = [
     /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*sceneApi\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
     /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*await\s+sceneApi\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g
   ]
-  
+
   patterns.forEach(pattern => {
     let match
     while ((match = pattern.exec(scriptText)) !== null) {
       const varName = match[1]
       const methodName = match[2]
-      
+
       if (API_RETURN_TYPES[methodName]) {
         variableTypes[varName] = methodName
       }
     }
   })
-  
+
   return variableTypes
 }
 
@@ -36,7 +36,7 @@ export const analyzeVariableTypes = (scriptText: string): Record<string, string>
  */
 export const extractVariablesFromScript = (scriptText: string): string[] => {
   const variables = new Set<string>()
-  
+
   const patterns = [
     /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,
     /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g,
@@ -48,7 +48,7 @@ export const extractVariablesFromScript = (scriptText: string): string[] => {
     /\.filter\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g,
     /catch\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g
   ]
-  
+
   patterns.forEach(pattern => {
     let match
     while ((match = pattern.exec(scriptText)) !== null) {
@@ -58,7 +58,7 @@ export const extractVariablesFromScript = (scriptText: string): string[] => {
       }
     }
   })
-  
+
   return Array.from(variables)
 }
 
@@ -69,23 +69,23 @@ export const extractVariablesFromScript = (scriptText: string): string[] => {
  */
 export const analyzeCurrentContext = (text: string, cursorPos: number): string | null => {
   const beforeCursor = text.substring(0, cursorPos)
-  
+
   const sceneApiPattern = /sceneApi\.(\w+)\s*\(/g
   let match
   let lastMatch = null
-  
+
   while ((match = sceneApiPattern.exec(beforeCursor)) !== null) {
     lastMatch = match
   }
-  
+
   if (lastMatch) {
     const methodName = lastMatch[1]
     const methodStartPos = lastMatch.index + lastMatch[0].length - 1
-    
+
     const afterMethodStart = text.substring(methodStartPos)
     let parenCount = 0
     let insideMethod = false
-    
+
     for (let i = 0; i < afterMethodStart.length; i++) {
       const char = afterMethodStart[i]
       if (char === '(') {
@@ -99,12 +99,12 @@ export const analyzeCurrentContext = (text: string, cursorPos: number): string |
         }
       }
     }
-    
+
     if (insideMethod) {
       return getMethodInfo(methodName)
     }
   }
-  
+
   return null
 }
 
@@ -146,9 +146,6 @@ export const getMethodInfo = (methodName: string): string | null => {
   objectUuid: string - UUID объекта для проверки`,
     'getSceneStats': `getSceneStats(): SceneStats
 Возвращает статистику сцены`,
-    'addObjectWithTransform': `addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult
-  Параметры:
-  objectData: GfxObjectWithTransform - Данные объекта с трансформацией`,
     'searchObjectsInLibrary': `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
 Параметры:
   query: string - Строка поиска`,
@@ -168,6 +165,6 @@ export const getMethodInfo = (methodName: string): string | null => {
 Параметры:
   perlinLayerId: string - ID слоя с Perlin ландшафтом`
   }
-  
+
   return methodInfoMap[methodName] || null
 }

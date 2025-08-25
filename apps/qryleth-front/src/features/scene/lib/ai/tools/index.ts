@@ -12,7 +12,6 @@ export {
 export {
   addObjectInstanceTool,
   canAddInstanceTool,
-  getObjectInstancesTool
 } from './instanceTools'
 
 export {

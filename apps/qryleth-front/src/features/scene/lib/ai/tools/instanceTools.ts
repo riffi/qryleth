@@ -66,7 +66,7 @@ BoundingBox объекта учитывается при расчёте пози
       const validatedParams = input
 
       let result
-      
+
       // Определяем количество экземпляров для создания
       let count = 1
       if (validatedParams.instances && validatedParams.instances.length > 0) {
@@ -155,43 +155,3 @@ export const canAddInstanceTool = new DynamicStructuredTool({
   }
 })
 
-/**
- * Инструмент для получения информации о существующих экземплярах объекта
- */
-export const getObjectInstancesTool = new DynamicStructuredTool({
-  name: 'get_object_instances',
-  description: `Получить список всех экземпляров указанного объекта.
-Параметр: objectUuid - UUID объекта
-Возвращает массив экземпляров с их трансформациями и свойствами.`,
-  schema: z.object({
-    objectUuid: z.string().describe('UUID объекта для получения экземпляров')
-  }),
-  func: async ({ objectUuid }: { objectUuid: string }) => {
-    try {
-      if (!objectUuid) {
-        return JSON.stringify({
-          error: 'Object UUID is required',
-          success: false
-        })
-      }
-
-      const allInstances = SceneAPI.getSceneInstances()
-      const objectInstances = allInstances.filter(inst => inst.objectUuid === objectUuid)
-      const objectInfo = SceneAPI.findObjectByUuid(objectUuid)
-
-      return JSON.stringify({
-        objectUuid,
-        objectName: objectInfo?.name || 'Unknown Object',
-        instanceCount: objectInstances.length,
-        instances: objectInstances,
-        success: true
-      })
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      return JSON.stringify({
-        error: `Failed to get object instances: ${errorMessage}`,
-        success: false
-      })
-    }
-  }
-})

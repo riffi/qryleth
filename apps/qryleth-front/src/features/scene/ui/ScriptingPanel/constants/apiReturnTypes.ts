@@ -37,8 +37,8 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
   },
   'getSceneStats': {
     properties: {
-      'total': { 
-        type: 'object', 
+      'total': {
+        type: 'object',
         description: 'Общая статистика',
         properties: {
           'objects': { type: 'number', description: 'Общее количество объектов' },
@@ -46,8 +46,8 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
           'layers': { type: 'number', description: 'Общее количество слоев' }
         }
       },
-      'visible': { 
-        type: 'object', 
+      'visible': {
+        type: 'object',
         description: 'Статистика видимых элементов',
         properties: {
           'objects': { type: 'number', description: 'Видимые объекты' },
@@ -104,14 +104,6 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
   'canAddInstance': {
     properties: {
       'result': { type: 'boolean', description: 'Результат проверки' }
-    }
-  },
-  'addObjectWithTransform': {
-    properties: {
-      'success': { type: 'boolean', description: 'Успешность операции' },
-      'objectUuid': { type: 'string', description: 'UUID созданного объекта' },
-      'instanceUuid': { type: 'string', description: 'UUID созданного экземпляра' },
-      'error': { type: 'string', description: 'Сообщение об ошибке' }
     }
   },
   'searchObjectsInLibrary': {
