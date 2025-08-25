@@ -35,7 +35,7 @@ if (objects.length > 0) {
     objects[0].uuid,
     undefined, // layerId - автоматически определится
     1, // count
-    { strategy: 'Random' } // placementStrategy
+    { strategy: 'RandomNoCollision' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
 }`
@@ -64,7 +64,7 @@ if (objects.length > 0) {
     objects[0].uuid,
     undefined, // layerId - автоматически определится
     1, // count
-    { strategy: 'Random' } // placementStrategy
+    { strategy: 'RandomNoCollision' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
 }`

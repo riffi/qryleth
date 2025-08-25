@@ -9,7 +9,7 @@ import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
+import { placeInstance, placeInstanceLegacy, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
   type PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { Vector3 } from '@/shared/types'
@@ -138,6 +138,34 @@ export interface AddInstancesResult {
  * Scene API class для предоставления методов агентам
  */
 export class SceneAPI {
+  /**
+   * Выбрать подходящий landscape-слой для размещения объектов.
+   * В приоритете слой с формой `Terrain`, иначе будет выбран любой слой типа `Landscape`.
+   */
+  private static pickLandscapeLayer(): SceneLayer | undefined {
+    const state = useSceneStore.getState()
+    return state.layers.find(layer =>
+      layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
+    ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+  }
+
+  /**
+   * Подготовить список уже существующих экземпляров с их BoundingBox для проверки коллизий.
+   * Вычисляет bounding box каждого объекта (если он не сохранён в объекте),
+   * и сопоставляет его с каждым существующим экземпляром для корректной проверки пересечений.
+   */
+  private static collectExistingInstancesWithBounds(): Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }>{
+    const state = useSceneStore.getState()
+    const result: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
+    state.objectInstances.forEach(instance => {
+      const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
+      if (instanceObject) {
+        const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
+        result.push({ instance, boundingBox: instanceBoundingBox })
+      }
+    })
+    return result
+  }
   /**
    * Получить обзор текущей сцены с информацией об объектах и экземплярах
    */
@@ -281,10 +309,15 @@ export class SceneAPI {
    * Метод объединяет функциональность handleObjectAdded из SceneEditorR3F.
    * Перед добавлением BoundingBox объекта вычисляется автоматически.
    */
+  /**
+   * Добавить объект с заранее заданной трансформацией в сцену.
+   * ВНИМАНИЕ: метод поддерживается для обратной совместимости, предпочтительно использовать `createObject`.
+   * Размещение производится через legacy-сигнатуру с последующим выравниванием по террейну.
+   */
   static addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult {
     try {
       const state = useSceneStore.getState()
-      const { addObject, addObjectInstance, layers } = state
+      const { addObject, addObjectInstance } = state
 
       // Применить коррекцию для LLM-сгенерированных объектов
       const correctedObject = correctLLMGeneratedObject(objectData)
@@ -310,12 +343,8 @@ export class SceneAPI {
       // Добавить объект в store
       addObject(newObject)
 
-      // Найти подходящий landscape слой (логика из addInstanceToScene)
-      const perlinLandscape = layers.find(layer =>
-        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
-      )
-      const anyLandscape = layers.find(layer => layer.type === GfxLayerType.Landscape)
-      const landscapeLayer = perlinLandscape || anyLandscape || null
+      // Найти подходящий landscape слой
+      const landscapeLayer = SceneAPI.pickLandscapeLayer() || null
 
       // Создать экземпляр объекта
       const instanceUuid = generateUUID()
@@ -326,21 +355,11 @@ export class SceneAPI {
         visible: true
       }
 
-      // Collect existing instances for collision detection
-      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: import('@/shared/types').BoundingBox }> = []
-      state.objectInstances.forEach(instance => {
-        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
-        if (instanceObject) {
-          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
-          existingInstances.push({
-            instance,
-            boundingBox: instanceBoundingBox
-          })
-        }
-      })
+      // Собрать существующие экземпляры для проверки коллизий
+      const existingInstances = SceneAPI.collectExistingInstancesWithBounds()
 
-      // Разместить экземпляр с учетом ландшафта
-      const placedInstance = placeInstance(newInstance, {
+      // Разместить экземпляр с учетом ландшафта (legacy-сигнатура)
+      const placedInstance = placeInstanceLegacy(newInstance, {
         landscapeLayer,
         objectBoundingBox: boundingBox,
         existingInstances
@@ -670,23 +689,11 @@ export class SceneAPI {
       // Получить bounding box объекта
       const objectBoundingBox = existingObject.boundingBox || calculateObjectBoundingBox(existingObject)
 
-      // Найти landscape слой для размещения: в приоритете Terrain, затем любой Landscape
-      const landscapeLayer = state.layers.find(layer =>
-        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
-      ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+      // Найти landscape слой для размещения
+      const landscapeLayer = SceneAPI.pickLandscapeLayer()
 
       // Собрать существующие экземпляры для избежания коллизий
-      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
-      state.objectInstances.forEach(instance => {
-        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
-        if (instanceObject) {
-          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
-          existingInstances.push({
-            instance,
-            boundingBox: instanceBoundingBox
-          })
-        }
-      })
+      const existingInstances = SceneAPI.collectExistingInstancesWithBounds()
 
       // Использовать новый placeInstance для создания экземпляров
       const createdInstances = placeInstance(
@@ -783,23 +790,11 @@ export class SceneAPI {
       // Добавить объект в store
       addObject(newObject)
 
-      // Найти landscape слой для размещения: в приоритете Terrain, затем любой Landscape
-      const landscapeLayer = state.layers.find(layer =>
-        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
-      ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+      // Найти landscape слой для размещения
+      const landscapeLayer = SceneAPI.pickLandscapeLayer()
 
       // Собрать существующие экземпляры для избежания коллизий
-      const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
-      state.objectInstances.forEach(instance => {
-        const instanceObject = state.objects.find(obj => obj.uuid === instance.objectUuid)
-        if (instanceObject) {
-          const instanceBoundingBox = instanceObject.boundingBox || calculateObjectBoundingBox(instanceObject)
-          existingInstances.push({
-            instance,
-            boundingBox: instanceBoundingBox
-          })
-        }
-      })
+      const existingInstances = SceneAPI.collectExistingInstancesWithBounds()
 
       // Использовать новый placeInstance для создания экземпляров
       const createdInstances = placeInstance(
