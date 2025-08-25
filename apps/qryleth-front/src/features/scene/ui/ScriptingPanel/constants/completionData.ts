@@ -66,17 +66,16 @@ export const getSceneApiCompletions = () => [
 Описание: Найти объект по имени (первый найденный)`) 
   },
   { 
-    label: 'addObjectInstance', 
+    label: 'addInstances', 
     type: 'function', 
-    info: createStyledTooltip(`addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
+    info: createStyledTooltip(`addInstances(objectUuid, layerId?, count?, placementStrategyConfig?): AddInstancesResult
 Параметры:
   objectUuid: string - UUID существующего объекта
-  position?: Vector3 = [0, 0, 0] - Позиция [x, y, z]
-  rotation?: Vector3 = [0, 0, 0] - Поворот [x, y, z] в радианах
-  scale?: Vector3 = [1, 1, 1] - Масштаб [x, y, z]
-  visible?: boolean = true - Видимость экземпляра
-Возвращает: {success: boolean, instanceUuid?: string, objectUuid?: string, error?: string}
-Описание: Добавить экземпляр объекта`) 
+  layerId?: string - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: PlacementStrategyConfig - Конфигурация стратегии размещения
+Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[]}
+Описание: Создать экземпляры существующего объекта с унифицированным размещением`) 
   },
   { 
     label: 'getSceneStats', 
@@ -90,45 +89,16 @@ export const getSceneApiCompletions = () => [
 Описание: Получить статистику сцены (общие и видимые объекты, экземпляры, слои)`) 
   },
   { 
-    label: 'addSingleObjectInstance', 
+    label: 'createObject', 
     type: 'function', 
-    info: createStyledTooltip(`addSingleObjectInstance(objectUuid, params): AddInstancesResult
+    info: createStyledTooltip(`createObject(objectData, layerId?, count?, placementStrategyConfig?): AddObjectWithTransformResult
 Параметры:
-  objectUuid: string - UUID объекта
-  params: InstanceCreationParams = {
-    position?: Vector3,
-    rotation?: Vector3,
-    scale?: Vector3,
-    visible?: boolean
-  }
-Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
-Описание: Добавить один экземпляр с BoundingBox`) 
-  },
-  { 
-    label: 'addObjectInstances', 
-    type: 'function', 
-    info: createStyledTooltip(`addObjectInstances(objectUuid, instances): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID объекта
-  instances: InstanceCreationParams[] - Массив параметров экземпляров
-Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[], errors?: string[], error?: string}
-Описание: Добавить несколько экземпляров объекта`) 
-  },
-  { 
-    label: 'addRandomObjectInstances', 
-    type: 'function', 
-    info: createStyledTooltip(`addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID объекта
-  count: number - Количество экземпляров
-  options?: {
-    rotation?: Vector3,
-    scale?: Vector3,
-    visible?: boolean,
-    alignToTerrain?: boolean
-  }
-Возвращает: AddInstancesResult
-Описание: Создать случайные экземпляры с автоматическим размещением`) 
+  objectData: GfxObject - Данные для создания объекта
+  layerId?: string = 'objects' - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: PlacementStrategyConfig - Конфигурация стратегии размещения
+Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
+Описание: Создать новый объект и разместить его экземпляры`) 
   },
   { 
     label: 'getAvailableLayers', 

@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-api, refactoring, architecture]
 phases:
   total: 7
-  completed: 3
+  completed: 4
 ---
 
 # Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения
@@ -115,7 +115,8 @@ phases:
 - в методах не должно быть создания инстансов, их будет создавать placeInstance
 - Убрать явную передачу трансформации из всех методов - делегировать placeInstance
 
-### ⏳ Фаза 4: Удаление старых методов SceneAPI
+### ✅ Фаза 4: Удаление старых методов SceneAPI
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 - Удалить старые методы: `addObjectInstance`, `addSingleObjectInstance`, `addObjectInstances`, `addRandomObjectInstances`
 - Найти и обновить все использования удаленных методов в проекте
 - Обновить тесты для использования новых методов

@@ -5,6 +5,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { SceneAPI } from '../../../lib/sceneAPI'
+import { PlacementStrategy } from '../../../lib/placement/ObjectPlacementUtils'
 
 /**
  * Схема валидации для параметров одного экземпляра
@@ -65,34 +66,27 @@ BoundingBox объекта учитывается при расчёте пози
       const validatedParams = input
 
       let result
-
+      
+      // Определяем количество экземпляров для создания
+      let count = 1
       if (validatedParams.instances && validatedParams.instances.length > 0) {
-        result = SceneAPI.addObjectInstances(
-          validatedParams.objectUuid,
-          validatedParams.instances
-        )
+        count = validatedParams.instances.length
       } else if (validatedParams.count && validatedParams.count > 1) {
-        result = SceneAPI.addRandomObjectInstances(
-          validatedParams.objectUuid,
-          validatedParams.count,
-          {
-            rotation: validatedParams.rotation,
-            scale: validatedParams.scale,
-            visible: validatedParams.visible,
-            alignToTerrain: validatedParams.alignToTerrain
-          }
-        )
-      } else {
-        result = SceneAPI.addSingleObjectInstance(
-          validatedParams.objectUuid,
-          {
-            position: validatedParams.position,
-            rotation: validatedParams.rotation,
-            scale: validatedParams.scale,
-            visible: validatedParams.visible
-          }
-        )
+        count = validatedParams.count
       }
+
+      // Выбираем стратегию размещения в зависимости от наличия конкретных позиций
+      const placementStrategy = validatedParams.instances && validatedParams.instances.length > 0
+        ? PlacementStrategy.Random // Для множественных экземпляров с конкретными параметрами
+        : PlacementStrategy.RandomNoCollision // Для случайного размещения
+
+      // Используем новый унифицированный метод addInstances
+      result = SceneAPI.addInstances(
+        validatedParams.objectUuid,
+        undefined, // layerId - позволим API определить автоматически
+        count,
+        { strategy: placementStrategy }
+      )
 
       return JSON.stringify(result)
     } catch (error) {

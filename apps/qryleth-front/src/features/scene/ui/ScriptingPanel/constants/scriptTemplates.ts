@@ -30,11 +30,11 @@ objects.forEach((obj: SceneObjectInfo) => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
-  const result: AddInstanceResult = sceneApi.addObjectInstance(
+  const result = sceneApi.addInstances(
     objects[0].uuid,
-    [2, 0, 2] as Vector3, // position
-    [0, 0, 0] as Vector3, // rotation
-    [1, 1, 1] as Vector3  // scale
+    undefined, // layerId - автоматически определится
+    1, // count
+    { strategy: 'Random' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
 }`
@@ -58,11 +58,11 @@ objects.forEach(obj => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
-  const result = sceneApi.addObjectInstance(
+  const result = sceneApi.addInstances(
     objects[0].uuid,
-    [2, 0, 2], // position
-    [0, 0, 0], // rotation
-    [1, 1, 1]  // scale
+    undefined, // layerId - автоматически определится
+    1, // count
+    { strategy: 'Random' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
 }`
