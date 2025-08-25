@@ -5,6 +5,7 @@ import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { GfxTerrainConfig } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
 import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import { generateUUID } from '@/shared/lib/uuid'
 
 /**
  * Создать terrain конфигурацию из legacy данных слоя для обратной совместимости
@@ -73,6 +74,13 @@ export interface RandomNoCollisionMetadata {
   // Пустая структура - будет расширена позже при необходимости
 }
 
+/**
+ * Дискриминированное объединение для строгой связи стратегии с метаданными
+ */
+export type PlacementStrategyConfig = 
+  | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
+  | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
+
 export interface PlacementOptions {
   strategy: PlacementStrategy
   customPosition?: Vector3
@@ -96,7 +104,7 @@ export interface PlacementResult {
 }
 
 /**
- * Generate object placement position based on strategy
+ * Generate object placement position based on strategy (legacy version)
  */
 export const generateObjectPlacement = (options: PlacementOptions): PlacementResult => {
   const { strategy, customPosition, bounds, landscapeLayer } = options
@@ -139,6 +147,39 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
       }
     }
   }
+}
+
+/**
+ * Новая версия генерации размещения с использованием дискриминированного объединения
+ */
+export const generateObjectPlacementWithConfig = (
+  placementStrategyConfig: PlacementStrategyConfig,
+  options: {
+    bounds?: {
+      minX?: number
+      maxX?: number
+      minZ?: number
+      maxZ?: number
+    }
+    landscapeLayer?: SceneLayer
+    existingInstances?: Array<{
+      instance: SceneObjectInstance
+      boundingBox: BoundingBox
+    }>
+    newObjectBoundingBox?: BoundingBox
+  }
+): PlacementResult => {
+  // Создаем старый формат options для использования с legacy функцией
+  const legacyOptions: PlacementOptions = {
+    strategy: placementStrategyConfig.strategy,
+    bounds: options.bounds,
+    landscapeLayer: options.landscapeLayer,
+    existingInstances: options.existingInstances,
+    newObjectBoundingBox: options.newObjectBoundingBox
+  };
+
+  // Вызываем старую функцию генерации размещения
+  return generateObjectPlacement(legacyOptions);
 }
 
 /**
@@ -327,7 +368,173 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
   return [x, y, z];
 };
 
+/**
+ * Временная функция для обратной совместимости во время миграции.
+ * Использует старую сигнатуру и логику placeInstance.
+ * @deprecated Будет удалена после завершения миграции всех вызовов на новый placeInstance
+ */
+export const placeInstanceLegacy = (
+    instance: SceneObjectInstance,
+    options?: {
+      landscapeLayer?: SceneLayer;
+      placementX?: number;
+      placementZ?: number;
+      alignToTerrain?: boolean;
+      objectBoundingBox?: import('@/shared/types').BoundingBox;
+      existingInstances?: Array<{
+        instance: SceneObjectInstance
+        boundingBox: BoundingBox
+      }>;
+    })=> {
+  const newInstance = {...instance};
+
+  let placementX: number | undefined = options?.placementX;
+  let placementZ: number | undefined = options?.placementZ;
+
+  let targetY = 0; // Default: place on y=0
+
+  // If no placement coordinates provided, use RandomNoCollision placement
+  if (placementX === undefined || placementZ === undefined) {
+    const placementResult = generateObjectPlacement({
+      strategy: PlacementStrategy.RandomNoCollision,
+      landscapeLayer: options?.landscapeLayer,
+      existingInstances: options?.existingInstances,
+      newObjectBoundingBox: options?.objectBoundingBox
+    });
+    placementX = placementResult.position[0];
+    targetY = placementResult.position[1]; // Use Y from strategy
+    placementZ = placementResult.position[2];
+  } else if (options?.landscapeLayer) {
+    // Calculate target Y position manually if coordinates are provided
+    targetY = queryHeightAtCoordinate(
+        options.landscapeLayer,
+        placementX,
+        placementZ
+    );
+
+    // Adjust Y position based on object's bounding box to prevent sinking into terrain
+    if (options?.objectBoundingBox) {
+      // Get the object's scale to properly transform the bounding box
+      const scale = newInstance.transform?.scale || [1, 1, 1];
+
+      // Calculate the bottom Y offset of the scaled object
+      // The object's bottom should touch the terrain surface
+      const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
+
+      // Adjust target Y so the object's bottom aligns with terrain
+      targetY = targetY - bottomOffset;
+    }
+  }
+
+  let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
+
+  // If alignToTerrain is enabled, calculate surface normal and align object
+  if (options?.alignToTerrain && options?.landscapeLayer) {
+    const surfaceNormal = calculateSurfaceNormal(
+      options.landscapeLayer,
+      placementX,
+      placementZ
+    );
+
+    const terrainRotation = normalToRotation(surfaceNormal);
+
+    // Combine original rotation with terrain alignment
+    // Add terrain rotation to existing rotation
+    finalRotation = [
+      (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
+      (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
+      (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
+    ];
+  }
+
+  newInstance.transform = {
+    ...newInstance.transform,
+    position: [placementX, targetY, placementZ],
+    rotation: finalRotation as [number, number, number]
+  }
+  return newInstance
+}
+
+/**
+ * Размещение объекта в сцене с новой сигнатурой.
+ * Функция принимает UUID объекта и создает множественные инстансы внутри.
+ * @param objectUuid - UUID объекта для создания инстансов
+ * @param options - опции размещения
+ * @param count - количество инстансов для создания
+ * @param placementStrategyConfig - конфигурация стратегии размещения
+ * @returns массив созданных инстансов объектов
+ */
 export const placeInstance = (
+    objectUuid: string,
+    options: {
+      landscapeLayer?: SceneLayer;
+      alignToTerrain?: boolean;
+      objectBoundingBox?: import('@/shared/types').BoundingBox;
+      existingInstances?: Array<{instance: SceneObjectInstance, boundingBox: BoundingBox}>;
+    },
+    count: number,
+    placementStrategyConfig: PlacementStrategyConfig
+): SceneObjectInstance[] => {
+  const createdInstances: SceneObjectInstance[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    // Создать новый экземпляр
+    const newInstance: SceneObjectInstance = {
+      uuid: generateUUID(),
+      objectUuid: objectUuid,
+      transform: {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1]
+      },
+      visible: true
+    };
+
+    // Генерировать позицию с помощью новой generateObjectPlacementWithConfig
+    const placementResult = generateObjectPlacementWithConfig(placementStrategyConfig, {
+      landscapeLayer: options.landscapeLayer,
+      existingInstances: [...(options.existingInstances || []), ...createdInstances.map(inst => ({
+        instance: inst,
+        boundingBox: options.objectBoundingBox || { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }
+      }))],
+      newObjectBoundingBox: options.objectBoundingBox
+    });
+    let targetY = placementResult.position[1];
+    let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
+    
+    // Если нужно выровнять по террейну
+    if (options.alignToTerrain && options.landscapeLayer) {
+      const surfaceNormal = calculateSurfaceNormal(
+        options.landscapeLayer,
+        placementResult.position[0],
+        placementResult.position[2]
+      );
+
+      const terrainRotation = normalToRotation(surfaceNormal);
+      finalRotation = [
+        (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
+        (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
+        (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
+      ];
+    }
+
+    // Установить финальную позицию и поворот
+    newInstance.transform = {
+      ...newInstance.transform,
+      position: [placementResult.position[0], targetY, placementResult.position[2]],
+      rotation: finalRotation as [number, number, number]
+    };
+    
+    createdInstances.push(newInstance);
+  }
+  
+  return createdInstances;
+}
+
+/**
+ * @deprecated Старая функция placeInstance. Используйте placeInstanceLegacy для временной совместимости.
+ */
+const oldPlaceInstance = (
     instance: SceneObjectInstance,
     options?: {
       landscapeLayer?: SceneLayer;
@@ -452,8 +659,8 @@ export const placeInstanceAsync = async (
     }
   }
 
-  // Используем синхронную версию после ожидания
-  return placeInstance(instance, options)
+  // Используем legacy версию после ожидания
+  return placeInstanceLegacy(instance, options)
 }
 
 /**
