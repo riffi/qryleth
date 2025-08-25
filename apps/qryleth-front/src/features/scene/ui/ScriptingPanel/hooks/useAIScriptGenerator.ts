@@ -114,7 +114,7 @@ export function useAIScriptGenerator() {
       '    - Требования к objectData: { name: string, primitives: [...], materials?: [...], libraryUuid?: string } (uuid задаётся автоматически).',
       '',
       '11) addObjectFromLibrary(objectUuid: string, layerId?: string, count?: number, placement?: PlacementStrategyConfig): { success, objectUuid?, instanceUuid?, error? }',
-      '    - Назначение: добавить объект из библиотеки и разместить инстансы.',
+      '    - Назначение: добавить объект из библиотеки и разместить инстансы. Возвращает Promise',
       '',
       'Типы данных (минимальные определения для контекста):',
       '',
