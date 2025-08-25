@@ -103,9 +103,13 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
             registeredNow += 1
           }
         })
+        const toolNameArray: string[] = []
+        objectEditorTools.forEach(tool => {
+          toolNameArray.push(tool.name)
+        })
 
         if (registeredNow > 0) {
-          console.log('ObjectEditor LangChain сервис инициализирован с', registeredNow, 'новыми инструментами')
+          console.log('ObjectEditor LangChain сервис инициализирован с', toolNameArray, ' инструментами')
         }
       } catch (error) {
         console.error('Ошибка инициализации ObjectEditor LangChain сервиса:', error)

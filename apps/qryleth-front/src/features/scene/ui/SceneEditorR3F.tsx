@@ -19,7 +19,7 @@ import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
 import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
-import { ObjectEditorR3F, useObjectEditorToolRegistration, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
+import { ObjectEditorR3F, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX, IconDeviceFloppy } from '@tabler/icons-react'
@@ -93,9 +93,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   uuid,
   isNew = false
 }) => {
-  // Автоматическая регистрация инструментов сцены и редактора объектов
+  // Автоматическая регистрация только инструментов сцены.
+  // Инструменты ObjectEditor подключаются исключительно в его собственном сервисе,
+  // чтобы избежать попадания их в глобальный LangChain сервис сцены.
   useSceneToolRegistration()
-  useObjectEditorToolRegistration()
   // Initialize scene history for undo/redo and get controls
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 
