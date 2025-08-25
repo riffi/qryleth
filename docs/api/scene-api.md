@@ -26,8 +26,26 @@
 ### `findObjectByName(name: string): SceneObject | null`
 Ищет объект по имени (первое совпадение по подстроке). Возвращает `null`, если совпадений нет.
 
-### `addObjectInstance(objectUuid: string, position?: Vector3, rotation?: Vector3, scale?: Vector3, visible?: boolean): AddInstanceResult`
-Создает экземпляр существующего объекта с указанной трансформацией. Проверяет наличие объекта и добавляет экземпляр в хранилище.
+### `addInstances(objectUuid: string, layerId?: string, count: number = 1, placementStrategyConfig: PlacementStrategyConfig): AddInstancesResult`
+Унифицированный метод создания экземпляров существующих объектов в сцене. Использует стратегии размещения для гибкого позиционирования.
+
+**Параметры:**
+- `objectUuid` - UUID объекта для создания экземпляров
+- `layerId` - ID слоя для размещения объекта (опционально)
+- `count` - количество экземпляров для создания (по умолчанию 1)
+- `placementStrategyConfig` - конфигурация стратегии размещения
+
+**Возвращает:** `AddInstancesResult` с информацией о созданных экземплярах
+
+```typescript
+// Пример использования
+const result = SceneAPI.addInstances(
+  'object-uuid-123',
+  'objects',
+  5,
+  { strategy: PlacementStrategy.RandomNoCollision }
+)
+```
 
 ### `getAvailableLayers(): LayerInfo[]`
 Возвращает массив доступных слоёв сцены с их идентификаторами, названиями,
@@ -43,16 +61,87 @@ interface LayerInfo {
 }
 ```
 
+## 🆕 Placement Strategies / Стратегии размещения
+
+### `PlacementStrategy` (enum)
+```typescript
+enum PlacementStrategy {
+  Random = 'Random',
+  RandomNoCollision = 'RandomNoCollision'
+}
+```
+
+### `PlacementStrategyConfig` (discriminated union)
+```typescript
+type PlacementStrategyConfig = 
+  | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
+  | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
+```
+
+**Доступные стратегии:**
+
+- **`Random`** - случайное размещение без проверки коллизий
+- **`RandomNoCollision`** - случайное размещение с избеганием пересечений существующих объектов
+
+### Result Types / Типы результатов
+
+```typescript
+// Результат массового добавления экземпляров
+interface AddInstancesResult {
+  success: boolean
+  instanceCount: number
+  instances?: CreatedInstanceInfo[]
+  errors?: string[]
+  error?: string
+}
+
+// Информация о созданном экземпляре
+interface CreatedInstanceInfo {
+  instanceUuid: string
+  objectUuid: string
+  parameters: {
+    position: Vector3
+    rotation: Vector3
+    scale: Vector3
+    visible: boolean
+  }
+  boundingBox?: BoundingBox
+}
+```
+
 ### `canAddInstance(objectUuid: string): boolean`
 Проверяет, существует ли объект с заданным UUID и можно ли создать его экземпляр.
 
 ### `getSceneStats()`
 Собирает статистику по количеству объектов, экземпляров и слоев, а также типам примитивов в сцене.
 
-### `addObjectWithTransform(objectData: GfxObjectWithTransform): AddObjectWithTransformResult`
-Добавляет новый объект и его экземпляр с трансформацией. Применяет коррекцию к данным и учитывает ландшафт при размещении.
+### `createObject(objectData: GfxObject, layerId?: string, count: number = 1, placementStrategyConfig: PlacementStrategyConfig): AddObjectWithTransformResult`
+Унифицированный метод создания нового объекта и размещения его экземпляров в сцене. Объединяет создание объекта и размещение экземпляров в одном методе.
+
+**Параметры:**
+- `objectData` - данные для создания нового объекта
+- `layerId` - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
+- `count` - количество экземпляров для создания (по умолчанию 1)
+- `placementStrategyConfig` - конфигурация стратегии размещения
+
+**Возвращает:** `AddObjectWithTransformResult` с UUID созданного объекта и первого экземпляра
 
 🆕 **Поддержка групп**: Метод автоматически обрабатывает объекты с иерархическими группами примитивов (`primitiveGroups` и `primitiveGroupAssignments`).
+
+```typescript
+// Пример использования
+const result = SceneAPI.createObject(
+  {
+    uuid: generateUUID(),
+    name: 'Дом',
+    primitives: [...],
+    materials: [...]
+  },
+  'buildings',
+  3,
+  { strategy: PlacementStrategy.Random }
+)
+```
 
 ### `adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string }`
 Корректирует положение всех экземпляров объектов под ландшафтный слой, используя единый `GfxHeightSampler`.
@@ -64,8 +153,30 @@ interface LayerInfo {
 ### `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>`
 Ищет объекты в библиотеке по названию или описанию и возвращает массив найденных записей.
 
-### `addObjectFromLibrary(objectUuid: string, layerId: string, transform?: Transform): Promise<AddObjectResult>`
-Добавляет объект из библиотеки на сцену. Поле `libraryUuid` сохраняется в объекте сцены для отслеживания происхождения.
+### `addObjectFromLibrary(objectUuid: string, layerId?: string, count: number = 1, placementStrategyConfig: PlacementStrategyConfig): Promise<AddObjectResult>`
+Унифицированный метод добавления объекта из библиотеки на сцену с использованием стратегий размещения.
+
+**Параметры:**
+- `objectUuid` - UUID объекта в библиотеке
+- `layerId` - ID слоя для размещения объекта (опционально, по умолчанию 'objects')
+- `count` - количество экземпляров для создания (по умолчанию 1)
+- `placementStrategyConfig` - конфигурация стратегии размещения
+
+**Возвращает:** `Promise<AddObjectResult>` с UUID созданного объекта и первого экземпляра
+
+**Особенности:**
+- Поле `libraryUuid` сохраняется в объекте сцены для отслеживания происхождения
+- Внутренне использует `createObject` для унифицированного создания
+
+```typescript
+// Пример использования
+const result = await SceneAPI.addObjectFromLibrary(
+  'library-object-uuid-456',
+  'environment',
+  2,
+  { strategy: PlacementStrategy.RandomNoCollision }
+)
+```
 
 ### `SceneObjectInfo`
 ```typescript
@@ -81,6 +192,59 @@ interface SceneObjectInfo {
   hasInstances: boolean
   instanceCount: number
 }
+```
+
+---
+
+## 🔄 Migration Guide / Руководство по миграции
+
+### Устаревшие методы (удалены в рефакторинге)
+
+Следующие методы были удалены и заменены унифицированными:
+
+| Устаревший метод | Новый метод | Описание миграции |
+|------------------|-------------|-------------------|
+| `addObjectInstance()` | `addInstances()` | Используйте `addInstances(uuid, layerId, 1, config)` |
+| `addSingleObjectInstance()` | `addInstances()` | Используйте `addInstances(uuid, layerId, 1, config)` |
+| `addObjectInstances()` | `addInstances()` | Замените прямым вызовом `addInstances()` |
+| `addRandomObjectInstances()` | `addInstances()` | Используйте `addInstances()` с `PlacementStrategy.Random` |
+| `addObjectWithTransform()` | `createObject()` | Замените на `createObject()` с соответствующими параметрами |
+
+### Примеры миграции
+
+**До рефакторинга:**
+```typescript
+// Старый способ
+SceneAPI.addRandomObjectInstances(objectUuid, 5, layerId)
+
+// Старый способ создания объекта
+SceneAPI.addObjectWithTransform({
+  name: 'House',
+  primitives: [...],
+  transform: { position: [0, 0, 0] }
+})
+```
+
+**После рефакторинга:**
+```typescript
+// Новый способ - более гибкий
+SceneAPI.addInstances(
+  objectUuid, 
+  layerId, 
+  5, 
+  { strategy: PlacementStrategy.Random }
+)
+
+// Новый способ создания объекта - с автоматическим размещением
+SceneAPI.createObject(
+  {
+    name: 'House',
+    primitives: [...]
+  },
+  layerId,
+  1,
+  { strategy: PlacementStrategy.Random }
+)
 ```
 
 ---
