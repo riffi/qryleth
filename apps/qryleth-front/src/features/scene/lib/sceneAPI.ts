@@ -670,8 +670,10 @@ export class SceneAPI {
       // Получить bounding box объекта
       const objectBoundingBox = existingObject.boundingBox || calculateObjectBoundingBox(existingObject)
 
-      // Найти landscape слой для размещения
-      const landscapeLayer = state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+      // Найти landscape слой для размещения: в приоритете Terrain, затем любой Landscape
+      const landscapeLayer = state.layers.find(layer =>
+        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
+      ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
 
       // Собрать существующие экземпляры для избежания коллизий
       const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
@@ -781,8 +783,10 @@ export class SceneAPI {
       // Добавить объект в store
       addObject(newObject)
 
-      // Найти landscape слой для размещения
-      const landscapeLayer = state.layers.find(layer => layer.type === GfxLayerType.Landscape)
+      // Найти landscape слой для размещения: в приоритете Terrain, затем любой Landscape
+      const landscapeLayer = state.layers.find(layer =>
+        layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
+      ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
 
       // Собрать существующие экземпляры для избежания коллизий
       const existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []

@@ -499,7 +499,23 @@ export const placeInstance = (
       }))],
       newObjectBoundingBox: options.objectBoundingBox
     });
+    // Корректируем высоту Y: если стратегия не задала Y, а требуется выравнивание по террейну,
+    // вычисляем высоту ландшафта и поднимаем объект так, чтобы нижняя грань касалась поверхности.
     let targetY = placementResult.position[1];
+    if (options.alignToTerrain && options.landscapeLayer) {
+      const heightY = queryHeightAtCoordinate(
+        options.landscapeLayer,
+        placementResult.position[0],
+        placementResult.position[2]
+      );
+      if (options.objectBoundingBox) {
+        const scale = newInstance.transform?.scale || [1, 1, 1];
+        const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
+        targetY = heightY - bottomOffset;
+      } else {
+        targetY = heightY;
+      }
+    }
     let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
     
     // Если нужно выровнять по террейну
