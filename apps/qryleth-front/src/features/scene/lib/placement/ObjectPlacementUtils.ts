@@ -325,6 +325,7 @@ const normalToRotation = (normal: Vector3): Vector3 => {
 
 /**
  * Генерировать позицию вокруг target объектов для стратегии PlaceAround
+ * Включает проверку коллизий со всеми существующими объектами (максимум 100 попыток)
  * @param metadata - метаданные PlaceAround с параметрами размещения
  * @param existingInstances - существующие инстансы для поиска target объектов
  * @param newObjectBoundingBox - bounding box создаваемого объекта
@@ -395,42 +396,112 @@ const generatePlaceAroundPosition = (
     newObjectBoundingBox.max[2] - newObjectBoundingBox.min[2]
   ) / 2
 
-  // 7. Расчет случайного расстояния от грани до грани
-  const edgeToEdgeDistance = Math.random() * (metadata.maxDistance - metadata.minDistance) + metadata.minDistance
-  const actualCenterDistance = edgeToEdgeDistance + targetRadius + newObjectRadius
-
-  // 8. Расчет угла размещения
-  let angle: number
+  // 7. Настройки для поиска позиции без коллизий
+  const maxAttempts = 100
+  const minDistance = 0.5 // Минимальное расстояние между объектами для избежания коллизий
+  const onlyHorizontal = metadata.onlyHorizontal !== false // по умолчанию true
   const distributeEvenly = metadata.distributeEvenly !== false // по умолчанию true
 
-  if (distributeEvenly) {
-    // Равномерное распределение по кругу
-    const angleStep = (2 * Math.PI) / totalInstancesCount
-    angle = (metadata.angleOffset || 0) + instanceIndex * angleStep
-  } else {
-    // Случайное распределение углов
-    angle = (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
+  // 8. Поиск позиции без коллизий (максимум 100 попыток)
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Расчет случайного расстояния от грани до грани
+    const edgeToEdgeDistance = Math.random() * (metadata.maxDistance - metadata.minDistance) + metadata.minDistance
+    const actualCenterDistance = edgeToEdgeDistance + targetRadius + newObjectRadius
+
+    // Расчет угла размещения
+    let angle: number
+    if (distributeEvenly) {
+      // Равномерное распределение по кругу с небольшой случайностью на каждой попытке
+      const angleStep = (2 * Math.PI) / totalInstancesCount
+      const baseAngle = (metadata.angleOffset || 0) + instanceIndex * angleStep
+      // Добавляем случайное отклонение ±10% от равномерного угла при повторных попытках
+      const angleVariation = attempt > 0 ? (Math.random() - 0.5) * 0.2 * angleStep : 0
+      angle = baseAngle + angleVariation
+    } else {
+      // Случайное распределение углов
+      angle = (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
+    }
+
+    // Расчет новой позиции относительно target центра
+    const newX = targetPosition[0] + actualCenterDistance * Math.cos(angle)
+    const newZ = targetPosition[2] + actualCenterDistance * Math.sin(angle)
+
+    // Расчет позиции по высоте Y
+    let newY: number
+    if (onlyHorizontal) {
+      // Горизонтальное размещение - та же высота что у target
+      newY = targetPosition[1]
+    } else {
+      // 3D размещение - случайная высота в пределах actualCenterDistance * 0.5
+      const verticalRange = actualCenterDistance * 0.5
+      const verticalOffset = (Math.random() - 0.5) * 2 * verticalRange
+      newY = targetPosition[1] + verticalOffset
+    }
+
+    // 9. Создание transformed bounding box для нового объекта в кандидатской позиции
+    const candidateTransformedBB = transformBoundingBox(newObjectBoundingBox, {
+      position: [newX, newY, newZ],
+      scale: [1, 1, 1],
+      rotation: [0, 0, 0]
+    })
+
+    // 10. Добавление padding для минимального расстояния
+    const paddedCandidateBB = {
+      min: [
+        candidateTransformedBB.min[0] - minDistance,
+        candidateTransformedBB.min[1] - minDistance,
+        candidateTransformedBB.min[2] - minDistance
+      ] as Vector3,
+      max: [
+        candidateTransformedBB.max[0] + minDistance,
+        candidateTransformedBB.max[1] + minDistance,
+        candidateTransformedBB.max[2] + minDistance
+      ] as Vector3
+    }
+
+    // 11. Проверка коллизий со всеми существующими инстансами
+    let hasCollision = false
+    for (const existing of existingInstances) {
+      const existingPosition = existing.instance.transform?.position || [0, 0, 0]
+      const existingScale = existing.instance.transform?.scale || [1, 1, 1]
+      const existingRotation = existing.instance.transform?.rotation || [0, 0, 0]
+
+      const existingTransformedBB = transformBoundingBox(existing.boundingBox, {
+        position: existingPosition,
+        scale: existingScale,
+        rotation: existingRotation
+      })
+
+      if (checkBoundingBoxCollision(paddedCandidateBB, existingTransformedBB)) {
+        hasCollision = true
+        break
+      }
+    }
+
+    // 12. Если коллизий нет - возвращаем найденную позицию
+    if (!hasCollision) {
+      return [newX, newY, newZ]
+    }
   }
 
-  // 9. Расчет новой позиции относительно target центра
-  const newX = targetPosition[0] + actualCenterDistance * Math.cos(angle)
-  const newZ = targetPosition[2] + actualCenterDistance * Math.sin(angle)
+  // 13. Если не удалось найти позицию без коллизий за maxAttempts попыток
+  // Возвращаем позицию с предупреждением (fallback механизм)
+  console.warn(`PlaceAround: Could not find collision-free position after ${maxAttempts} attempts, placing with potential collision`)
+  
+  // Fallback: используем базовые параметры для размещения
+  const fallbackEdgeDistance = (metadata.minDistance + metadata.maxDistance) / 2
+  const fallbackCenterDistance = fallbackEdgeDistance + targetRadius + newObjectRadius
+  const fallbackAngle = distributeEvenly 
+    ? (metadata.angleOffset || 0) + instanceIndex * (2 * Math.PI) / totalInstancesCount
+    : (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
 
-  // 10. Расчет позиции по высоте Y
-  let newY: number
-  const onlyHorizontal = metadata.onlyHorizontal !== false // по умолчанию true
+  const fallbackX = targetPosition[0] + fallbackCenterDistance * Math.cos(fallbackAngle)
+  const fallbackZ = targetPosition[2] + fallbackCenterDistance * Math.sin(fallbackAngle)
+  const fallbackY = onlyHorizontal 
+    ? targetPosition[1]
+    : targetPosition[1] + (Math.random() - 0.5) * fallbackCenterDistance
 
-  if (onlyHorizontal) {
-    // Горизонтальное размещение - та же высота что у target
-    newY = targetPosition[1]
-  } else {
-    // 3D размещение - случайная высота в пределах actualCenterDistance * 0.5
-    const verticalRange = actualCenterDistance * 0.5
-    const verticalOffset = (Math.random() - 0.5) * 2 * verticalRange
-    newY = targetPosition[1] + verticalOffset
-  }
-
-  return [newX, newY, newZ]
+  return [fallbackX, fallbackY, fallbackZ]
 }
 
 /**

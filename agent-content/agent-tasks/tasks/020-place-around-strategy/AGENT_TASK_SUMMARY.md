@@ -9,7 +9,7 @@ owner: agent
 tags: [placement-strategy, scene-api, object-placement]
 phases:
   total: 6
-  completed: 2
+  completed: 3
 ---
 
 # Реализация стратегии размещения PlaceAround
@@ -181,11 +181,13 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 
 **Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Интеграция с системой коллизий
-- Добавить проверку коллизий для PlaceAround стратегии
-- Поддержка как 2D, так и 3D размещения (onlyHorizontal параметр)
-- Интеграция с существующими функциями коллизий (checkBoundingBoxCollision)
-- Тестирование механизма избежания коллизий (максимум 100 попыток)
+### ✅ Фаза 3: Интеграция с системой коллизий
+- [x] Добавить проверку коллизий для PlaceAround стратегии
+- [x] Поддержка как 2D, так и 3D размещения (onlyHorizontal параметр)
+- [x] Интеграция с существующими функциями коллизий (checkBoundingBoxCollision)
+- [x] Тестирование механизма избежания коллизий (максимум 100 попыток)
+
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: Обновление AI tools чата в sceneEditor
 - Обновить `objectTools.ts`:
