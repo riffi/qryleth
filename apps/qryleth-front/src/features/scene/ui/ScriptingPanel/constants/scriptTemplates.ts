@@ -30,7 +30,7 @@ objects.forEach((obj: SceneObjectInfo) => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
-  // Доступные стратегии: 'Random' | 'RandomNoCollision'
+  // Доступные стратегии: 'Random' | 'RandomNoCollision' | 'PlaceAround'
   const result = sceneApi.addInstances(
     objects[0].uuid,
     undefined, // layerId - автоматически определится
@@ -38,6 +38,30 @@ if (objects.length > 0) {
     { strategy: 'RandomNoCollision' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
+}
+
+// Пример использования PlaceAround: разместить 6 объектов вокруг всех инстансов первого объекта
+if (objects.length > 0) {
+  const res2 = sceneApi.addInstances(
+    objects[0].uuid,
+    undefined,
+    6,
+    {
+      strategy: 'PlaceAround',
+      metadata: {
+        // Приоритет 1: конкретный инстанс – укажите UUID при необходимости
+        // targetInstanceUuid: 'some-instance-uuid',
+        // Приоритет 2: вокруг всех инстансов объекта
+        targetObjectUuid: objects[0].uuid,
+        minDistance: 2.0,
+        maxDistance: 5.0,
+        angleOffset: 0,
+        distributeEvenly: true,
+        onlyHorizontal: true
+      }
+    }
+  )
+  console.log('PlaceAround:', res2)
 }`
   } else {
     return `// Пример использования SceneAPI
@@ -59,7 +83,7 @@ objects.forEach(obj => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
-  // Доступные стратегии: 'Random' | 'RandomNoCollision'
+  // Доступные стратегии: 'Random' | 'RandomNoCollision' | 'PlaceAround'
   const result = sceneApi.addInstances(
     objects[0].uuid,
     undefined, // layerId - автоматически определится
@@ -67,6 +91,27 @@ if (objects.length > 0) {
     { strategy: 'RandomNoCollision' } // placementStrategy
   )
   console.log('Результат создания экземпляра:', result)
+}
+
+// Пример PlaceAround: 8 экземпляров по кругу вокруг всех инстансов выбранного объекта
+if (objects.length > 0) {
+  const res2 = sceneApi.addInstances(
+    objects[0].uuid,
+    undefined,
+    8,
+    {
+      strategy: 'PlaceAround',
+      metadata: {
+        targetObjectUuid: objects[0].uuid,
+        minDistance: 1.5,
+        maxDistance: 4.0,
+        angleOffset: 0,
+        distributeEvenly: true,
+        onlyHorizontal: true
+      }
+    }
+  )
+  console.log('PlaceAround:', res2)
 }`
   }
 }

@@ -8,6 +8,30 @@ import { SceneAPI } from '../../../lib/sceneAPI'
 import { PlacementStrategy } from '../../../lib/placement/ObjectPlacementUtils'
 
 /**
+ * Схема валидации для PlaceAroundMetadata в instance tools
+ */
+const PlaceAroundMetadataSchema = z.object({
+  // === ЦЕЛЕВЫЕ ОБЪЕКТЫ (взаимоисключающие параметры) ===
+  targetInstanceUuid: z.string().optional().describe('UUID конкретного инстанса, вокруг которого размещать (приоритет 1)'),
+  targetObjectUuid: z.string().optional().describe('UUID объекта, вокруг всех инстансов которого размещать (приоритет 2)'),
+  
+  // === РАССТОЯНИЯ (обязательные параметры) ===
+  minDistance: z.number().positive().describe('минимальное расстояние от грани target до грани нового объекта (единицы мира)'),
+  maxDistance: z.number().positive().describe('максимальное расстояние от грани target до грани нового объекта (единицы мира)'),
+  
+  // === ПАРАМЕТРЫ РАСПРЕДЕЛЕНИЯ (опциональные) ===
+  angleOffset: z.number().optional().describe('начальный угол в радианах (по умолчанию: 0)'),
+  distributeEvenly: z.boolean().optional().describe('равномерно по кругу или случайно (по умолчанию: true)'),
+  onlyHorizontal: z.boolean().optional().describe('только горизонтально Y=const или 3D (по умолчанию: true)')
+}).refine(
+  (data) => data.targetInstanceUuid || data.targetObjectUuid,
+  { message: "Требуется указать targetInstanceUuid ИЛИ targetObjectUuid" }
+).refine(
+  (data) => data.minDistance < data.maxDistance,
+  { message: "minDistance должно быть меньше maxDistance" }
+)
+
+/**
  * Схема валидации для параметров одного экземпляра
  */
 const instanceParamsSchema = z.object({
@@ -32,7 +56,10 @@ const addInstanceSchema = z.object({
   // Количество экземпляров для случайного размещения
   count: z.number().min(1).max(100).optional(),
   // Выравнивание по поверхности ландшафта
-  alignToTerrain: z.boolean().optional().default(false)
+  alignToTerrain: z.boolean().optional().default(false),
+  // Стратегия размещения
+  placementStrategy: z.enum(['Random', 'RandomNoCollision', 'PlaceAround']).optional().describe('Стратегия размещения: Random — случайное размещение, RandomNoCollision — избегание коллизий, PlaceAround — размещение вокруг указанного объекта/инстанса (по умолчанию RandomNoCollision)'),
+  placementMetadata: PlaceAroundMetadataSchema.optional().describe('Метаданные для PlaceAround стратегии. ОБЯЗАТЕЛЬНЫ при использовании PlaceAround!')
 })
 
 /**
@@ -65,7 +92,15 @@ BoundingBox объекта учитывается при расчёте пози
     try {
       const validatedParams = input
 
-      let result
+      // Дополнительная валидация для PlaceAround стратегии
+      if (validatedParams.placementStrategy === 'PlaceAround') {
+        if (!validatedParams.placementMetadata) {
+          return JSON.stringify({
+            error: 'Для стратегии PlaceAround обязательны placementMetadata',
+            success: false
+          })
+        }
+      }
 
       // Определяем количество экземпляров для создания
       let count = 1
@@ -75,17 +110,31 @@ BoundingBox объекта учитывается при расчёте пози
         count = validatedParams.count
       }
 
-      // Выбираем стратегию размещения в зависимости от наличия конкретных позиций
-      const placementStrategy = validatedParams.instances && validatedParams.instances.length > 0
-        ? PlacementStrategy.Random // Для множественных экземпляров с конкретными параметрами
-        : PlacementStrategy.RandomNoCollision // Для случайного размещения
+      // Формирование конфигурации размещения
+      let placementConfig: { strategy: PlacementStrategy; metadata?: any }
+
+      if (validatedParams.placementStrategy === 'PlaceAround' && validatedParams.placementMetadata) {
+        placementConfig = {
+          strategy: PlacementStrategy.PlaceAround,
+          metadata: validatedParams.placementMetadata
+        }
+      } else {
+        // Выбираем стратегию размещения в зависимости от наличия конкретных позиций
+        const strategy = validatedParams.instances && validatedParams.instances.length > 0
+          ? PlacementStrategy.Random // Для множественных экземпляров с конкретными параметрами
+          : (validatedParams.placementStrategy === 'Random' 
+              ? PlacementStrategy.Random 
+              : PlacementStrategy.RandomNoCollision) // Для случайного размещения
+        
+        placementConfig = { strategy }
+      }
 
       // Используем новый унифицированный метод addInstances
-      result = SceneAPI.addInstances(
+      const result = SceneAPI.addInstances(
         validatedParams.objectUuid,
         undefined, // layerId - позволим API определить автоматически
         count,
-        { strategy: placementStrategy }
+        placementConfig
       )
 
       return JSON.stringify(result)

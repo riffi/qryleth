@@ -138,7 +138,19 @@ export const getMethodInfo = (methodName: string): string | null => {
   objectUuid: string - UUID существующего объекта
   layerId?: string - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
+  placementStrategyConfig?: {
+    strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround',
+    // Для PlaceAround требуется metadata следующего вида:
+    metadata?: {
+      targetInstanceUuid?: string,   // UUID конкретного инстанса (приоритет 1)
+      targetObjectUuid?: string,     // UUID объекта (все его инстансы, приоритет 2)
+      minDistance: number,           // мин. расстояние от грани до грани
+      maxDistance: number,           // макс. расстояние от грани до грани
+      angleOffset?: number,          // сдвиг начального угла (рад)
+      distributeEvenly?: boolean,    // равномерно по кругу (по умолчанию true)
+      onlyHorizontal?: boolean       // только по горизонтали (по умолчанию true)
+    }
+  }`,
     'getAvailableLayers': `getAvailableLayers(): Array<LayerInfo>
 Возвращает массив доступных слоев`,
     'canAddInstance': `canAddInstance(objectUuid: string): boolean
@@ -154,13 +166,13 @@ export const getMethodInfo = (methodName: string): string | null => {
   objectData: GfxObject - Данные для создания объекта
   layerId?: string = 'objects' - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround', metadata?: any }`,
     'addObjectFromLibrary': `addObjectFromLibrary(objectUuid, layerId?, count?, placementStrategyConfig?): Promise<AddObjectResult>
 Параметры:
   objectUuid: string - UUID объекта в библиотеке
   layerId?: string - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround', metadata?: any }`,
     'adjustInstancesForPerlinTerrain': `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
 Параметры:
   perlinLayerId: string - ID слоя с Perlin ландшафтом`

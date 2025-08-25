@@ -73,7 +73,23 @@ export const getSceneApiCompletions = () => [
   objectUuid: string - UUID существующего объекта
   layerId?: string - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
+  placementStrategyConfig?: {
+    strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround',
+    // Для PlaceAround требуется metadata следующего вида:
+    metadata?: {
+      // Приоритет 1: конкретный инстанс
+      targetInstanceUuid?: string,
+      // Приоритет 2: все инстансы объекта
+      targetObjectUuid?: string,
+      // Обязательные расстояния (ед. мира):
+      minDistance: number,
+      maxDistance: number,
+      // Опциональные параметры распределения:
+      angleOffset?: number,          // начальный угол в радианах
+      distributeEvenly?: boolean,    // равномерно по кругу (по умолчанию true)
+      onlyHorizontal?: boolean       // только по горизонтали (по умолчанию true)
+    }
+  }
 Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[]}
 Описание: Создать экземпляры существующего объекта с унифицированным размещением`)
   },
@@ -96,7 +112,11 @@ export const getSceneApiCompletions = () => [
   objectData: GfxObject - Данные для создания объекта
   layerId?: string = 'objects' - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
+  placementStrategyConfig?: {
+    strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround',
+    // Для PlaceAround требуется metadata, см. addInstances
+    metadata?: any
+  }
 Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
 Описание: Создать новый объект и разместить его экземпляры`)
   },
@@ -138,7 +158,11 @@ export const getSceneApiCompletions = () => [
   objectUuid: string - UUID объекта в библиотеке
   layerId?: string - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
+  placementStrategyConfig?: {
+    strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround',
+    // Для PlaceAround требуется metadata, см. addInstances
+    metadata?: any
+  }
 Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
 Описание: Импортировать объект из библиотеки и разместить экземпляры по стратегии`)
   },
@@ -172,7 +196,17 @@ export const getBaseCompletions = () => [
   { label: 'Array', type: 'variable', info: 'Конструктор массивов' },
   { label: 'Object', type: 'variable', info: 'Конструктор объектов' },
   { label: 'String', type: 'variable', info: 'Конструктор строк' },
-  { label: 'Number', type: 'variable', info: 'Конструктор чисел' }
+  { label: 'Number', type: 'variable', info: 'Конструктор чисел' },
+  // Подсказки для конфигурации размещения и PlaceAround metadata
+  { label: 'strategy', type: 'property', info: "Стратегия размещения: 'Random' | 'RandomNoCollision' | 'PlaceAround'" },
+  { label: 'metadata', type: 'property', info: 'Объект метаданных для выбранной стратегии (обязателен для PlaceAround)' },
+  { label: 'targetInstanceUuid', type: 'property', info: 'UUID конкретного инстанса (приоритет 1 для PlaceAround)' },
+  { label: 'targetObjectUuid', type: 'property', info: 'UUID объекта — разместить вокруг всех его инстансов (приоритет 2)' },
+  { label: 'minDistance', type: 'property', info: 'Минимальное расстояние от грани до грани (>= 0)' },
+  { label: 'maxDistance', type: 'property', info: 'Максимальное расстояние от грани до грани (> minDistance)' },
+  { label: 'angleOffset', type: 'property', info: 'Начальный угол (радианы), по умолчанию 0' },
+  { label: 'distributeEvenly', type: 'property', info: 'Равномерное распределение по кругу (boolean, по умолчанию true)' },
+  { label: 'onlyHorizontal', type: 'property', info: 'Горизонтальное размещение по Y (boolean, по умолчанию true)' }
 ]
 
 export const getTypeScriptTypes = () => [
@@ -185,8 +219,9 @@ export const getTypeScriptTypes = () => [
   { label: 'SceneStats', type: 'type', info: 'Статистика сцены' },
   { label: 'Transform', type: 'type', info: 'Трансформация объекта' },
   { label: 'BoundingBox', type: 'type', info: 'Ограничивающий бокс' },
-  { label: 'PlacementStrategy', type: 'type', info: 'Перечисление стратегий размещения: Random | RandomNoCollision' },
-  { label: 'PlacementStrategyConfig', type: 'type', info: 'Конфигурация стратегии размещения с метаданными' }
+  { label: 'PlacementStrategy', type: 'type', info: "Перечисление стратегий размещения: Random | RandomNoCollision | PlaceAround" },
+  { label: 'PlacementStrategyConfig', type: 'type', info: 'Конфигурация стратегии размещения с метаданными' },
+  { label: 'PlaceAroundMetadata', type: 'type', info: `Метаданные стратегии PlaceAround:\n- targetInstanceUuid?: string (приоритет 1)\n- targetObjectUuid?: string (приоритет 2)\n- minDistance: number (>= 0)\n- maxDistance: number (> minDistance)\n- angleOffset?: number (радианы)\n- distributeEvenly?: boolean (по умолчанию true)\n- onlyHorizontal?: boolean (по умолчанию true)` }
 ]
 
 export const getJavaScriptKeywords = () => [

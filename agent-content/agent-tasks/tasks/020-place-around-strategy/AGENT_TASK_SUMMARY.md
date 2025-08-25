@@ -9,7 +9,7 @@ owner: agent
 tags: [placement-strategy, scene-api, object-placement]
 phases:
   total: 6
-  completed: 3
+  completed: 4
 ---
 
 # Реализация стратегии размещения PlaceAround
@@ -198,14 +198,16 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 - Обновить `index.ts` - экспорт обновленных tools
 - Тестирование корректной работы чат-бота с PlaceAround командами
 
-### ⏳ Фаза 5: Обновление поддержки скриптинга в ScriptingPanel
-- Обновить `completionData.ts`:
-  - Автодополнение PlaceAround стратегии
-  - Автодополнение всех параметров PlaceAroundMetadata
-  - Контекстные подсказки с примерами значений
-- Обновить `codeAnalysis.ts` - анализ кода с PlaceAround синтаксисом
-- Обновить `scriptTemplates.ts` - добавить примеры использования PlaceAround
-- Обновить `apiReturnTypes.ts` - типы для PlaceAround если требуется
+### ✅ Фаза 5: Обновление поддержки скриптинга в ScriptingPanel
+- [x] Обновить `completionData.ts`:
+  - [x] Автодополнение PlaceAround стратегии
+  - [x] Автодополнение всех параметров PlaceAroundMetadata
+  - [x] Контекстные подсказки с примерами значений
+- [x] Обновить `codeAnalysis.ts` - анализ кода с PlaceAround синтаксисом
+- [x] Обновить `scriptTemplates.ts` - добавить примеры использования PlaceAround
+- [x] Обновить `apiReturnTypes.ts` - типы для PlaceAround если требуется
+
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 ### ⏳ Фаза 6: Тестирование и обновление документации
 - Тестирование всех сценариев использования PlaceAround
@@ -223,9 +225,9 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 - [ ] AI tools чата в sceneEditor поддерживают PlaceAround:
   - [ ] objectTools.ts и instanceTools.ts обновлены с zod валидацией
   - [ ] Чат-бот корректно обрабатывает PlaceAround команды
-- [ ] Скриптинг в ScriptingPanel поддерживает PlaceAround:
-  - [ ] Автодополнение работает для всех параметров PlaceAround
-  - [ ] Анализ кода распознает PlaceAround синтаксис
-  - [ ] Примеры шаблонов включают PlaceAround сценарии
+- [x] Скриптинг в ScriptingPanel поддерживает PlaceAround:
+  - [x] Автодополнение работает для всех параметров PlaceAround
+  - [x] Анализ кода распознает PlaceAround синтаксис
+  - [x] Примеры шаблонов включают PlaceAround сценарии
 - [ ] Проект успешно собирается и проходит линтинг
 - [ ] Документация обновлена

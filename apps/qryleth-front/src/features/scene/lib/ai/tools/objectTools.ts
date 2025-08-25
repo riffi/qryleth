@@ -129,12 +129,45 @@ const ObjectSchema = z.object({
   primitiveGroupAssignments: z.record(z.string(), z.string()).optional().describe("Привязка примитивов к группам. Ключ - UUID примитива, значение - UUID группы"),
 })
 
+// Схема валидации для PlaceAroundMetadata
+const PlaceAroundMetadataSchema = z.object({
+  // === ЦЕЛЕВЫЕ ОБЪЕКТЫ (взаимоисключающие параметры) ===
+  targetInstanceUuid: z.string().optional().describe('UUID конкретного инстанса, вокруг которого размещать (приоритет 1)'),
+  targetObjectUuid: z.string().optional().describe('UUID объекта, вокруг всех инстансов которого размещать (приоритет 2)'),
+  
+  // === РАССТОЯНИЯ (обязательные параметры) ===
+  minDistance: z.number().positive().describe('минимальное расстояние от грани target до грани нового объекта (единицы мира)'),
+  maxDistance: z.number().positive().describe('максимальное расстояние от грани target до грани нового объекта (единицы мира)'),
+  
+  // === ПАРАМЕТРЫ РАСПРЕДЕЛЕНИЯ (опциональные) ===
+  angleOffset: z.number().optional().describe('начальный угол в радианах (по умолчанию: 0)'),
+  distributeEvenly: z.boolean().optional().describe('равномерно по кругу или случайно (по умолчанию: true)'),
+  onlyHorizontal: z.boolean().optional().describe('только горизонтально Y=const или 3D (по умолчанию: true)')
+}).refine(
+  (data) => data.targetInstanceUuid || data.targetObjectUuid,
+  { message: "Требуется указать targetInstanceUuid ИЛИ targetObjectUuid" }
+).refine(
+  (data) => data.minDistance < data.maxDistance,
+  { message: "minDistance должно быть меньше maxDistance" }
+)
+
+// Схема стратегии размещения с дискриминированными типами (для будущего использования)
+// const PlacementStrategyConfigSchema = z.discriminatedUnion('strategy', [
+//   z.object({ strategy: z.literal('Random') }),
+//   z.object({ strategy: z.literal('RandomNoCollision') }),
+//   z.object({ 
+//     strategy: z.literal('PlaceAround'),
+//     metadata: PlaceAroundMetadataSchema
+//   })
+// ])
+
 // Расширенная схема для входных параметров инструмента add_new_object
 // Добавляет параметры размещения и создания нескольких экземпляров
 const AddNewObjectInputSchema = ObjectSchema.extend({
   layerId: z.string().optional().describe('ID слоя для размещения (по умолчанию "objects")'),
   count: z.number().min(1).max(20).optional().describe('Количество экземпляров для создания (по умолчанию 1)'),
-  placementStrategy: z.enum(['Random', 'RandomNoCollision']).optional().describe('Стратегия размещения: Random — случайное размещение, RandomNoCollision — избегание коллизий (по умолчанию Random)')
+  placementStrategy: z.enum(['Random', 'RandomNoCollision', 'PlaceAround']).optional().describe('Стратегия размещения: Random — случайное размещение, RandomNoCollision — избегание коллизий, PlaceAround — размещение вокруг указанного объекта/инстанса (по умолчанию Random)'),
+  placementMetadata: PlaceAroundMetadataSchema.optional().describe('Метаданные для PlaceAround стратегии. ОБЯЗАТЕЛЬНЫ при использовании PlaceAround!')
 })
 
 /**
@@ -261,6 +294,17 @@ export const createAddNewObjectTool = () => {
         // Валидация входных данных уже выполнена схемой
         const validatedInput = input
 
+        // Дополнительная валидация для PlaceAround стратегии
+        if (validatedInput.placementStrategy === 'PlaceAround') {
+          if (!validatedInput.placementMetadata) {
+            return JSON.stringify({
+              success: false,
+              error: 'Для стратегии PlaceAround обязательны placementMetadata',
+              message: 'При использовании PlaceAround необходимо указать placementMetadata с targetInstanceUuid или targetObjectUuid'
+            })
+          }
+        }
+
         // Преобразование примитивов в GfxPrimitive формат
         const primitives: GfxPrimitive[] = validatedInput.primitives.map((primitive, index) => {
           const basePrimitive = {
@@ -315,12 +359,22 @@ export const createAddNewObjectTool = () => {
           ...(validatedInput.primitiveGroupAssignments && { primitiveGroupAssignments: validatedInput.primitiveGroupAssignments }),
         }
 
+        // Формирование конфигурации размещения
+        let placementConfig: { strategy: PlacementStrategy; metadata?: any } = { strategy: validatedInput.placementStrategy || PlacementStrategy.RandomNoCollision }
+        
+        if (validatedInput.placementStrategy === 'PlaceAround' && validatedInput.placementMetadata) {
+          placementConfig = {
+            strategy: PlacementStrategy.PlaceAround,
+            metadata: validatedInput.placementMetadata
+          }
+        }
+
         // Используем новый унифицированный метод createObject с поддержкой количества и стратегии размещения
         const result = SceneAPI.createObject(
           newObject,
           validatedInput.layerId || 'objects',
           validatedInput.count || 1,
-          { strategy: validatedInput.placementStrategy || PlacementStrategy.RandomNoCollision }
+          placementConfig
         )
 
         if (!result.success) {
@@ -420,16 +474,38 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
     objectUuid: z.string().describe('UUID объекта из библиотеки'),
     layerId: z.string().optional().describe('ID слоя для размещения (по умолчанию "objects")'),
     count: z.number().min(1).max(20).optional().describe('Количество экземпляров для создания (по умолчанию 1)'),
-    placementStrategy: z.enum(['Random', 'RandomNoCollision']).optional().describe('Стратегия размещения: Random - случайное размещение, RandomNoCollision - избегание коллизий (по умолчанию Random)')
+    placementStrategy: z.enum(['Random', 'RandomNoCollision', 'PlaceAround']).optional().describe('Стратегия размещения: Random - случайное размещение, RandomNoCollision - избегание коллизий, PlaceAround - размещение вокруг указанного объекта/инстанса (по умолчанию Random)'),
+    placementMetadata: PlaceAroundMetadataSchema.optional().describe('Метаданные для PlaceAround стратегии. ОБЯЗАТЕЛЬНЫ при использовании PlaceAround!')
   }),
   func: async (input): Promise<string> => {
     try {
+      // Дополнительная валидация для PlaceAround стратегии
+      if (input.placementStrategy === 'PlaceAround') {
+        if (!input.placementMetadata) {
+          return JSON.stringify({
+            success: false,
+            error: 'Для стратегии PlaceAround обязательны placementMetadata',
+            message: 'При использовании PlaceAround необходимо указать placementMetadata с targetInstanceUuid или targetObjectUuid'
+          })
+        }
+      }
+
+      // Формирование конфигурации размещения
+      let placementConfig: { strategy: PlacementStrategy; metadata?: any } = { strategy: input.placementStrategy || PlacementStrategy.RandomNoCollision }
+      
+      if (input.placementStrategy === 'PlaceAround' && input.placementMetadata) {
+        placementConfig = {
+          strategy: PlacementStrategy.PlaceAround,
+          metadata: input.placementMetadata
+        }
+      }
+
       // Используем новую сигнатуру addObjectFromLibrary
       const result = await SceneAPI.addObjectFromLibrary(
         input.objectUuid,
         input.layerId || 'objects',
         input.count || 1,
-        { strategy: input.placementStrategy || PlacementStrategy.RandomNoCollision }
+        placementConfig
       )
 
       if (!result.success) {
