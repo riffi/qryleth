@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-api, refactoring, architecture]
 phases:
   total: 7
-  completed: 4
+  completed: 5
 ---
 
 # Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения
@@ -122,7 +122,8 @@ phases:
 - Обновить тесты для использования новых методов
 - Убедиться что весь функционал покрыт новыми унифицированными методами
 
-### ⏳ Фаза 5: Обновление AI langChain tools
+### ✅ Фаза 5: Обновление AI langChain tools
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 - Обновить scene langChain tools в `apps/qryleth-front/src/features/scene/lib/ai/tools/` для использования новых методов API
 - Найти и обновить все references на старые методы SceneAPI в AI tools
 - Обеспечить что AI агенты используют новые унифицированные методы

@@ -316,8 +316,8 @@ export const createAddNewObjectTool = () => {
           }),
         }
 
-        // Использовать новый метод SceneAPI для добавления объекта
-        const result = SceneAPI.addObjectWithTransform(newObject)
+        // Используем новый унифицированный метод createObject вместо addObjectWithTransform
+        const result = SceneAPI.createObject(newObject, 'objects', 1, { strategy: 'Random' })
 
         if (!result.success) {
           return JSON.stringify({
@@ -409,23 +409,21 @@ export const searchObjectsInLibraryTool = new DynamicStructuredTool({
  */
 export const addObjectFromLibraryTool = new DynamicStructuredTool({
   name: 'add_object_from_library',
-  description: 'Добавляет существующий объект из библиотеки в текущую сцену. BoundingBox рассчитывается автоматически и возвращается в ответе.',
+  description: 'Добавляет существующий объект из библиотеки в текущую сцену с использованием новой унифицированной архитектуры размещения. Поддерживает создание множественных экземпляров и стратегическое размещение.',
   schema: z.object({
     objectUuid: z.string().describe('UUID объекта из библиотеки'),
-    position: z.array(z.number()).length(3).optional().describe('Позиция объекта в сцене [x, y, z]'),
-    rotation: z.array(z.number()).length(3).optional().describe('Поворот объекта [rx, ry, rz] в радианах'),
-    scale: z.array(z.number()).length(3).optional().describe('Масштаб объекта [sx, sy, sz]')
+    layerId: z.string().optional().describe('ID слоя для размещения (по умолчанию "objects")'),
+    count: z.number().min(1).max(20).optional().describe('Количество экземпляров для создания (по умолчанию 1)'),
+    placementStrategy: z.enum(['Random', 'RandomNoCollision']).optional().describe('Стратегия размещения: Random - случайное размещение, RandomNoCollision - избегание коллизий (по умолчанию Random)')
   }),
   func: async (input): Promise<string> => {
     try {
+      // Используем новую сигнатуру addObjectFromLibrary
       const result = await SceneAPI.addObjectFromLibrary(
         input.objectUuid,
-        'objects',
-        {
-          position: input.position as [number, number, number] | undefined,
-          rotation: input.rotation as [number, number, number] | undefined,
-          scale: input.scale as [number, number, number] | undefined
-        }
+        input.layerId || 'objects',
+        input.count || 1,
+        { strategy: input.placementStrategy || 'Random' }
       )
 
       if (!result.success) {
@@ -436,23 +434,13 @@ export const addObjectFromLibraryTool = new DynamicStructuredTool({
         })
       }
 
-      const objectInfo = result.objectUuid
-        ? SceneAPI.findObjectByUuid(result.objectUuid)
-        : null
-      const bbox = objectInfo?.boundingBox
-        ? transformBoundingBox(objectInfo.boundingBox, {
-            position: input.position as [number, number, number] | undefined,
-            rotation: input.rotation as [number, number, number] | undefined,
-            scale: input.scale as [number, number, number] | undefined
-          })
-        : null
-
       return JSON.stringify({
         success: true,
         objectUuid: result.objectUuid,
         instanceUuid: result.instanceUuid,
-        boundingBox: bbox,
-        message: `Объект с UUID ${input.objectUuid} добавлен в сцену из библиотеки`
+        count: input.count || 1,
+        placementStrategy: input.placementStrategy || 'Random',
+        message: `Объект с UUID ${input.objectUuid} добавлен в сцену из библиотеки (${input.count || 1} экземпляров)`
       })
 
     } catch (error) {

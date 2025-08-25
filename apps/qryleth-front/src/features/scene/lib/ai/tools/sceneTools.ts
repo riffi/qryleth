@@ -130,3 +130,53 @@ export const findObjectByNameTool = new DynamicStructuredTool({
     }
   }
 })
+
+/**
+ * Инструмент для поиска объекта по UUID
+ */
+export const findObjectByUuidTool = new DynamicStructuredTool({
+  name: 'find_object_by_uuid',
+  description: `Найти объект в сцене по его точному UUID.
+Параметр: {"uuid": "точный UUID объекта"}
+Возвращает полную информацию об объекте или null если объект не найден.`,
+  schema: z.object({
+    uuid: z.string().describe('UUID объекта для поиска')
+  }),
+  func: async ({ uuid }: { uuid: string }) => {
+    try {
+      if (!uuid) {
+        return JSON.stringify({
+          error: 'Object UUID is required',
+          success: false
+        })
+      }
+
+      const foundObject = SceneAPI.findObjectByUuid(uuid)
+      
+      if (!foundObject) {
+        return JSON.stringify({
+          result: null,
+          message: `No object found with UUID "${uuid}"`
+        })
+      }
+
+      // Получаем дополнительную информацию об объекте
+      const sceneObjects = SceneAPI.getSceneObjects()
+      const objectInfo = sceneObjects.find(obj => obj.uuid === foundObject.uuid)
+
+      return JSON.stringify({
+        result: {
+          ...foundObject,
+          ...objectInfo
+        },
+        success: true
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return JSON.stringify({
+        error: `Failed to find object: ${errorMessage}`,
+        success: false
+      })
+    }
+  }
+})

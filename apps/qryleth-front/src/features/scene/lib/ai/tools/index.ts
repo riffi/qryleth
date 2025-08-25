@@ -5,7 +5,8 @@
 export {
   getSceneObjectsTool,
   getSceneStatsTool,
-  findObjectByNameTool
+  findObjectByNameTool,
+  findObjectByUuidTool
 } from './sceneTools'
 
 export {
