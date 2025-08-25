@@ -1,11 +1,10 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
-import type { GfxObjectWithTransform } from '@/entities/object/model/types'
+import type { GfxObject } from '@/entities/object/model/types'
 import type { GfxPrimitive } from '@/entities'
 import { generatePrimitiveName } from '@/entities/primitive'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI.ts'
-import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 
 // Схемы валидации для геометрии примитивов
 const BoxGeometrySchema = z.object({
@@ -129,9 +128,6 @@ const ObjectSchema = z.object({
   primitiveGroups: z.record(z.string(), PrimitiveGroupSchema).optional().describe("Опциональные группы примитивов для организации иерархии. Ключ - UUID группы"),
   // Привязки примитивов к группам (опционально)
   primitiveGroupAssignments: z.record(z.string(), z.string()).optional().describe("Привязка примитивов к группам. Ключ - UUID примитива, значение - UUID группы"),
-  position: z.array(z.number()).length(3).optional(),
-  rotation: z.array(z.number()).length(3).optional(),
-  scale: z.array(z.number()).length(3).optional()
 })
 
 // Расширенная схема для входных параметров инструмента add_new_object
@@ -285,7 +281,7 @@ export const createAddNewObjectTool = () => {
           return basePrimitive as GfxPrimitive
         })
 
-        // Создание объекта в формате GfxObjectWithTransform
+        // Создание объекта в формате GfxObject
         const materials = validatedInput.materials?.map(mat => ({
           uuid: mat.uuid,
           name: mat.name,
@@ -311,22 +307,13 @@ export const createAddNewObjectTool = () => {
           }
         }))
 
-        let newObject: GfxObjectWithTransform = {
+        const newObject: GfxObject = {
           uuid: uuidv4(),
           name: validatedInput.name,
           primitives,
           ...(materials && { materials }),
           ...(validatedInput.primitiveGroups && { primitiveGroups: validatedInput.primitiveGroups }),
           ...(validatedInput.primitiveGroupAssignments && { primitiveGroupAssignments: validatedInput.primitiveGroupAssignments }),
-          ...(validatedInput.position && {
-            position: validatedInput.position as [number, number, number]
-          }),
-          ...(validatedInput.rotation && {
-            rotation: validatedInput.rotation as [number, number, number]
-          }),
-          ...(validatedInput.scale && {
-            scale: validatedInput.scale as [number, number, number]
-          }),
         }
 
         // Используем новый унифицированный метод createObject с поддержкой количества и стратегии размещения
