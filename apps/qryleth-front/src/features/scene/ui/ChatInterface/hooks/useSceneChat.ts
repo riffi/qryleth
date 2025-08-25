@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useChat } from '@/shared/entities/chat'
+import { useChatWithStop } from '@/shared/entities/chat'
 import type { ChatMessage, ChatConfig } from '@/shared/entities/chat'
 import { getOrCreateLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection } from '@/shared/lib/openAISettings'
@@ -16,8 +16,10 @@ interface UseSceneChatOptions {
 interface UseSceneChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
+  isStoppable: boolean
   isInitialized: boolean
   sendMessage: (content: string) => Promise<void>
+  stopExecution: () => void
   addMessage: (message: ChatMessage) => void
   clearMessages: () => void
   connection: OpenAISettingsConnection | null
@@ -32,7 +34,6 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
   const connectionRef = useRef<OpenAISettingsConnection | null>(null)
   const mainServiceInitializedRef = useRef(false)
   const debugServiceInitializedRef = useRef(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
   // Системный промпт для scene editor
@@ -48,17 +49,17 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     debugMode
   }
 
-  const baseChat = useChat({
+  const baseChat = useChatWithStop({
     config: chatConfig,
     generateMessageId: () => nanoid()
   })
 
   /**
-   * Отправляет сообщение в LangChain сервис и управляет состоянием загрузки.
-   * Пока агент обрабатывает запрос, интерфейс блокируется и отображается индикатор загрузки.
+   * Переопределяем sendMessage для интеграции с LangChain сервисом.
+   * Поддерживает принудительную остановку через AbortController.
    */
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading) return
+    if (!content.trim() || baseChat.isLoading) return
 
     const userMessage: ChatMessage = {
       id: nanoid(),
@@ -68,26 +69,43 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
     }
 
     baseChat.addMessage(userMessage)
-    setIsLoading(true)
+    
+    // Устанавливаем состояние загрузки и возможности остановки
+    baseChat.setLoadingState(true)
+    baseChat.setStoppableState(true)
 
+    // Создаем AbortController для этого запроса и сохраняем его
+    const abortController = new AbortController()
+    baseChat.setAbortController(abortController)
+    
     try {
-      // Проверяем, инициализирован ли сервис. Ленивая инициализация удалена,
-      // единственный путь инициализации — через useEffect ниже.
+      // Проверяем, инициализирован ли сервис
       if (!mainServiceInitializedRef.current || !sceneChatServiceRef.current) {
         throw new Error('Scene chat service not initialized')
       }
       
-      const langChainResponse = await sceneChatServiceRef.current.chat([...baseChat.messages, userMessage])
+      const langChainResponse = await sceneChatServiceRef.current.chat(
+        [...baseChat.messages, userMessage], 
+        abortController.signal
+      )
 
-      const assistantMessage: ChatMessage = {
-        id: nanoid(),
-        role: 'assistant',
-        content: langChainResponse.message,
-        timestamp: new Date()
+      // Проверяем, не был ли запрос отменен
+      if (!abortController.signal.aborted) {
+        const assistantMessage: ChatMessage = {
+          id: nanoid(),
+          role: 'assistant',
+          content: langChainResponse.message,
+          timestamp: new Date()
+        }
+        baseChat.addMessage(assistantMessage)
       }
-      baseChat.addMessage(assistantMessage)
 
     } catch (error) {
+      // Не показываем ошибку, если запрос был отменен пользователем
+      if (error instanceof Error && error.message === 'Request aborted') {
+        return
+      }
+      
       console.error('Scene chat error:', error)
       const errorMessage: ChatMessage = {
         id: nanoid(),
@@ -97,9 +115,14 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
       }
       baseChat.addMessage(errorMessage)
     } finally {
-      setIsLoading(false)
+      // Сбрасываем состояния только если запрос не был отменен
+      if (!abortController.signal.aborted) {
+        baseChat.setLoadingState(false)
+        baseChat.setStoppableState(false)
+        baseChat.setAbortController(null)
+      }
     }
-  }, [baseChat, isLoading])
+  }, [baseChat])
 
   // Scene-специфичный callback для обработки tool calls
   const handleToolCallback = useCallback((toolName: string, result: unknown) => {
@@ -235,7 +258,6 @@ export const useSceneChat = (options: UseSceneChatOptions = {}): UseSceneChatRet
 
   return {
     ...baseChat,
-    isLoading,
     isInitialized,
     sendMessage,
     connection: connectionRef.current,

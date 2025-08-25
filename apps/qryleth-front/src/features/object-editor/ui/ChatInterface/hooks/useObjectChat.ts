@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
-import { useChat } from '@/shared/entities/chat'
+import { useChatWithStop } from '@/shared/entities/chat'
 import type { ChatConfig, ChatMessage } from '@/shared/entities/chat'
 import { getOrCreateLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { createObjectEditorTools } from '@/features/object-editor/lib/ai/tools'
@@ -12,13 +12,15 @@ import { nanoid } from 'nanoid'
 
 interface UseObjectChatOptions {
   mode?: 'page' | 'modal'
+  onPrimitiveAdded?: (primitive: any) => void
+  onMaterialCreated?: (material: any) => void
+  onObjectModified?: (modifications: Record<string, unknown>) => void
 }
 
 export const useObjectChat = (options: UseObjectChatOptions = {}) => {
-  const { mode = 'page' } = options
+  const { mode = 'page', onPrimitiveAdded, onMaterialCreated, onObjectModified } = options
   const { systemPrompt, objectInfo } = useObjectContextPrompt()
   const objectChatServiceRef = useRef<LangChainChatService | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
 
   // Конфигурация чата для object-editor
   const chatConfig: ChatConfig = useMemo(() => ({
@@ -30,15 +32,15 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
     autoScroll: true
   }), [systemPrompt])
 
-  // Базовый useChat без отправки сообщений
-  const baseChatState = useChat({
+  // Базовый useChatWithStop с поддержкой остановки
+  const baseChatState = useChatWithStop({
     config: chatConfig,
     generateMessageId: () => nanoid()
   })
 
-  // Переопределённая функция отправки сообщений
+  // Переопределённая функция отправки сообщений с поддержкой остановки
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading) return
+    if (!content.trim() || baseChatState.isLoading) return
 
     const userMessage: ChatMessage = {
       id: nanoid(),
@@ -48,24 +50,43 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
     }
 
     baseChatState.addMessage(userMessage)
-    setIsLoading(true)
+    
+    // Устанавливаем состояние загрузки и возможности остановки
+    baseChatState.setLoadingState(true)
+    baseChatState.setStoppableState(true)
+
+    // Создаем AbortController для этого запроса и сохраняем его
+    const abortController = new AbortController()
+    baseChatState.setAbortController(abortController)
 
     try {
       // Используем LangChain агент для обработки сообщений
       if (!objectChatServiceRef.current) {
         throw new Error('Object chat service not initialized')
       }
-      const langChainResponse = await objectChatServiceRef.current.chat([...baseChatState.messages, userMessage])
+      
+      const langChainResponse = await objectChatServiceRef.current.chat(
+        [...baseChatState.messages, userMessage],
+        abortController.signal
+      )
 
-      const assistantMessage: ChatMessage = {
-        id: nanoid(),
-        role: 'assistant',
-        content: langChainResponse.message,
-        timestamp: new Date()
+      // Проверяем, не был ли запрос отменен
+      if (!abortController.signal.aborted) {
+        const assistantMessage: ChatMessage = {
+          id: nanoid(),
+          role: 'assistant',
+          content: langChainResponse.message,
+          timestamp: new Date()
+        }
+        baseChatState.addMessage(assistantMessage)
       }
-      baseChatState.addMessage(assistantMessage)
 
     } catch (error) {
+      // Не показываем ошибку, если запрос был отменен пользователем
+      if (error instanceof Error && error.message === 'Request aborted') {
+        return
+      }
+      
       console.error('ObjectEditor chat error:', error)
       const errorMessage: ChatMessage = {
         id: nanoid(),
@@ -75,9 +96,14 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
       }
       baseChatState.addMessage(errorMessage)
     } finally {
-      setIsLoading(false)
+      // Сбрасываем состояния только если запрос не был отменен
+      if (!abortController.signal.aborted) {
+        baseChatState.setLoadingState(false)
+        baseChatState.setStoppableState(false)
+        baseChatState.setAbortController(null)
+      }
     }
-  }, [baseChatState, isLoading])
+  }, [baseChatState])
 
 
   // Инициализация LangChain сервиса при монтировании (идемпотентно, синглтон)
@@ -129,7 +155,6 @@ export const useObjectChat = (options: UseObjectChatOptions = {}) => {
 
   return {
     ...baseChatState,
-    isLoading,
     sendMessage, // Переопределенный sendMessage
     objectInfo,
     isCompactMode: mode === 'modal'

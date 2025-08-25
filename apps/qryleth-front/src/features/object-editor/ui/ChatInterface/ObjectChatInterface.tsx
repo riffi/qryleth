@@ -34,7 +34,9 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
   const {
     messages,
     isLoading,
+    isStoppable,
     sendMessage,
+    stopExecution,
     clearMessages,
     objectInfo
   } = useObjectChat({
@@ -113,6 +115,7 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
         value={inputValue}
         onChange={setInputValue}
         onSend={handleSend}
+        onStop={stopExecution}
         placeholder={
           objectInfo.isEmpty
             ? "Например: 'Создай базовую структуру дома'"
@@ -120,6 +123,7 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
         }
         disabled={isLoading}
         loading={isLoading}
+        stoppable={isStoppable}
       />
     </Stack>
   )

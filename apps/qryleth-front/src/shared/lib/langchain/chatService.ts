@@ -156,16 +156,26 @@ export class LangChainChatService {
 
   /**
    * Send a chat message and get response with tool support
+   * @param messages массив сообщений для обработки
+   * @param abortSignal опциональный сигнал для отмены запроса
    */
-  async chat(messages: ChatMessage[]): Promise<LangChainChatResponse> {
+  async chat(messages: ChatMessage[], abortSignal?: AbortSignal): Promise<LangChainChatResponse> {
     if (!this.chatModel) {
       throw new Error('Chat service not initialized. Call initialize() first.')
     }
+    
+    // Проверяем, не был ли запрос отменен до начала выполнения
+    if (abortSignal?.aborted) {
+      throw new Error('Request aborted')
+    }
+    
     try {
       // If no tools are registered, use simple chat
       if (this.tools.length === 0) {
         const langChainMessages = adaptMessagesToLangChain(messages)
-        const response = await this.chatModel.invoke(langChainMessages)
+        const response = await this.chatModel.invoke(langChainMessages, { 
+          signal: abortSignal 
+        })
         return adaptLangChainResponse(response)
       }
 
@@ -179,7 +189,6 @@ export class LangChainChatService {
         ['human', '{input}'],
         ['placeholder', '{agent_scratchpad}'],
       ])
-
 
       const agent = await createToolCallingAgent({
         llm: this.chatModel,
@@ -199,10 +208,17 @@ export class LangChainChatService {
         throw new Error('Last message must be from user')
       }
 
-      // Execute the agent
+      // Проверяем отмену перед выполнением агента
+      if (abortSignal?.aborted) {
+        throw new Error('Request aborted')
+      }
+
+      // Execute the agent with abort signal support
       const result = await agentExecutor.invoke({
         input: lastMessage.content,
         chat_history: adaptMessagesToLangChain(messages.slice(0, -1)),
+      }, {
+        signal: abortSignal
       })
 
       return {
@@ -211,6 +227,11 @@ export class LangChainChatService {
       }
 
     } catch (error) {
+      // Обрабатываем ошибку отмены отдельно
+      if (error instanceof Error && (error.message === 'Request aborted' || error.name === 'AbortError')) {
+        throw new Error('Request aborted')
+      }
+      
       console.error('LangChain chat error:', error)
       throw new Error(`Chat failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

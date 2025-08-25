@@ -16,12 +16,14 @@ import { sceneToolUtils } from './components/SceneToolCallbacks'
 export const SceneChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
 
-  // Используем scene-специфичный хук чата
+  // Используем scene-специфичный хук чата с поддержкой остановки
   const {
     messages,
     isLoading,
+    isStoppable,
     isInitialized,
     sendMessage,
+    stopExecution,
     connection,
     updateModel,
     debugChatService
@@ -109,9 +111,11 @@ export const SceneChatInterface: React.FC = () => {
             value={inputValue}
             onChange={setInputValue}
             onSend={handleSendMessage}
+            onStop={stopExecution}
             placeholder={isInitialized ? "Попросите добавить объект..." : "Инициализация чата..."}
             disabled={isLoading || !isInitialized}
             loading={isLoading}
+            stoppable={isStoppable}
           />
         </Tabs.Panel>
 
