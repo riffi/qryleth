@@ -2,14 +2,14 @@
 id: 020
 epic: null
 title: "Реализация стратегии размещения PlaceAround"
-status: planned
+status: in-progress
 created: 2025-08-25
 updated: 2025-08-25
 owner: agent
 tags: [placement-strategy, scene-api, object-placement]
 phases:
   total: 6
-  completed: 1
+  completed: 2
 ---
 
 # Реализация стратегии размещения PlaceAround
@@ -172,12 +172,14 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 
 **Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Реализация основного алгоритма размещения
-- Создать функцию generatePlaceAroundPosition
-- Реализовать поиск target инстансов по targetInstanceUuid/targetObjectUuid
-- Добавить расчет позиций вокруг target с учетом boundingBox
-- Реализовать равномерное и случайное распределение углов
-- Интегрировать в существующую функцию generateObjectPlacement
+### ✅ Фаза 2: Реализация основного алгоритма размещения
+- [x] Создать функцию generatePlaceAroundPosition
+- [x] Реализовать поиск target инстансов по targetInstanceUuid/targetObjectUuid
+- [x] Добавить расчет позиций вокруг target с учетом boundingBox
+- [x] Реализовать равномерное и случайное распределение углов
+- [x] Интегрировать в существующую функцию generateObjectPlacement
+
+**Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: Интеграция с системой коллизий
 - Добавить проверку коллизий для PlaceAround стратегии

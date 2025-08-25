@@ -38,17 +38,17 @@ const getHeightSamplerForLayer = (layer: SceneLayer) => {
   if (layer.type !== GfxLayerType.Landscape) {
     return null
   }
-  
+
   // Приоритет: новая архитектура (terrain) > legacy (noiseData)
   if (layer.terrain) {
     return createGfxHeightSampler(layer.terrain)
   }
-  
+
   const legacyConfig = createLegacyTerrainConfig(layer)
   if (legacyConfig) {
     return createGfxHeightSampler(legacyConfig)
   }
-  
+
   return null
 }
 
@@ -85,13 +85,13 @@ export interface PlaceAroundMetadata {
   targetInstanceUuid?: string
   /** UUID объекта, вокруг всех инстансов которого размещать (приоритет 2) */
   targetObjectUuid?: string
-  
+
   // === РАССТОЯНИЯ (обязательные параметры) ===
   /** минимальное расстояние от грани target до грани нового объекта (единицы мира) */
   minDistance: number
   /** максимальное расстояние от грани target до грани нового объекта (единицы мира) */
   maxDistance: number
-  
+
   // === ПАРАМЕТРЫ РАСПРЕДЕЛЕНИЯ (опциональные) ===
   /** начальный угол в радианах (по умолчанию: 0) */
   angleOffset?: number
@@ -104,7 +104,7 @@ export interface PlaceAroundMetadata {
 /**
  * Дискриминированное объединение для строгой связи стратегии с метаданными
  */
-export type PlacementStrategyConfig = 
+export type PlacementStrategyConfig =
   | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
   | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
   | { strategy: PlacementStrategy.PlaceAround; metadata: PlaceAroundMetadata }
@@ -165,6 +165,20 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
       }
     }
 
+    case PlacementStrategy.PlaceAround: {
+      // PlaceAround стратегия требует специфических параметров в новом формате
+      // Для старой сигнатуры этот случай будет обработан только через generateObjectPlacementWithConfig
+      console.warn('PlaceAround strategy requires PlacementStrategyConfig with metadata. Use generateObjectPlacementWithConfig instead.')
+
+      // Fallback на Random для backward compatibility
+      const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
+      const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
+      return {
+        position: [x, 0, z],
+        strategy: PlacementStrategy.Random
+      }
+    }
+
     default: {
       console.warn(`Unknown placement strategy: ${strategy}, falling back to Random`)
       const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
@@ -179,6 +193,7 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
 
 /**
  * Новая версия генерации размещения с использованием дискриминированного объединения
+ * Поддерживает дополнительные параметры instanceIndex и totalInstancesCount для PlaceAround
  */
 export const generateObjectPlacementWithConfig = (
   placementStrategyConfig: PlacementStrategyConfig,
@@ -195,9 +210,34 @@ export const generateObjectPlacementWithConfig = (
       boundingBox: BoundingBox
     }>
     newObjectBoundingBox?: BoundingBox
+    instanceIndex?: number // для PlaceAround стратегии
+    totalInstancesCount?: number // для PlaceAround стратегии
   }
 ): PlacementResult => {
-  // Создаем старый формат options для использования с legacy функцией
+  // Для PlaceAround используем специальную логику
+  if (placementStrategyConfig.strategy === PlacementStrategy.PlaceAround) {
+    if (!options.existingInstances || !options.newObjectBoundingBox) {
+      throw new Error('PlaceAround strategy requires existingInstances and newObjectBoundingBox')
+    }
+
+    const instanceIndex = options.instanceIndex ?? 0
+    const totalInstancesCount = options.totalInstancesCount ?? 1
+
+    const position = generatePlaceAroundPosition(
+      placementStrategyConfig.metadata,
+      options.existingInstances,
+      options.newObjectBoundingBox,
+      instanceIndex,
+      totalInstancesCount
+    )
+
+    return {
+      position,
+      strategy: PlacementStrategy.PlaceAround
+    }
+  }
+
+  // Для остальных стратегий используем старую функцию
   const legacyOptions: PlacementOptions = {
     strategy: placementStrategyConfig.strategy,
     bounds: options.bounds,
@@ -206,18 +246,7 @@ export const generateObjectPlacementWithConfig = (
     newObjectBoundingBox: options.newObjectBoundingBox
   };
 
-  // Вызываем старую функцию генерации размещения
   return generateObjectPlacement(legacyOptions);
-}
-
-/**
- * Get random placement within landscape bounds
- */
-export const getRandomPlacement = (landscapeLayer?: SceneLayer): PlacementResult => {
-  return generateObjectPlacement({
-    strategy: PlacementStrategy.Random,
-    landscapeLayer
-  })
 }
 
 /**
@@ -237,7 +266,7 @@ const queryHeightAtCoordinate = (
   if (!sampler) {
     return 0 // Default height for non-terrain layers
   }
-  
+
   return sampler.getHeight(worldX, worldZ)
 };
 
@@ -258,7 +287,7 @@ const calculateSurfaceNormal = (
   if (!sampler) {
     return [0, 1, 0] // Default upward normal for non-terrain layers
   }
-  
+
   return sampler.getNormal(worldX, worldZ)
 };
 
@@ -293,6 +322,116 @@ const normalToRotation = (normal: Vector3): Vector3 => {
 
   return [rotationX, rotationY, rotationZ];
 };
+
+/**
+ * Генерировать позицию вокруг target объектов для стратегии PlaceAround
+ * @param metadata - метаданные PlaceAround с параметрами размещения
+ * @param existingInstances - существующие инстансы для поиска target объектов
+ * @param newObjectBoundingBox - bounding box создаваемого объекта
+ * @param instanceIndex - индекс текущего инстанса (для равномерного распределения)
+ * @param totalInstancesCount - общее количество создаваемых инстансов
+ * @returns позицию Vector3 для размещения нового объекта
+ */
+const generatePlaceAroundPosition = (
+  metadata: PlaceAroundMetadata,
+  existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }>,
+  newObjectBoundingBox: BoundingBox,
+  instanceIndex: number,
+  totalInstancesCount: number
+): Vector3 => {
+  // Валидация метаданных
+  validatePlaceAroundMetadata(metadata)
+
+  // 1. Поиск целевых инстансов по приоритету
+  let targetInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }> = []
+
+  if (metadata.targetInstanceUuid) {
+    // Приоритет 1: конкретный инстанс
+    const targetInstance = existingInstances.find(
+      ({ instance }) => instance.uuid === metadata.targetInstanceUuid
+    )
+    if (!targetInstance) {
+      throw new Error(`Target instance with UUID ${metadata.targetInstanceUuid} not found`)
+    }
+    targetInstances = [targetInstance]
+  } else if (metadata.targetObjectUuid) {
+    // Приоритет 2: все инстансы объекта
+    targetInstances = existingInstances.filter(
+      ({ instance }) => instance.objectUuid === metadata.targetObjectUuid
+    )
+    if (targetInstances.length === 0) {
+      throw new Error(`No instances found for target object UUID ${metadata.targetObjectUuid}`)
+    }
+  }
+
+  // 2. Выбор конкретного target инстанса для текущего создаваемого объекта
+  // Распределяем новые объекты равномерно между всеми target инстансами
+  const targetIndex = instanceIndex % targetInstances.length
+  const targetInstanceData = targetInstances[targetIndex]
+  const targetInstance = targetInstanceData.instance
+  const targetBoundingBox = targetInstanceData.boundingBox
+
+  // 3. Получение позиции и transform target инстанса
+  const targetPosition = targetInstance.transform?.position || [0, 0, 0]
+  const targetScale = targetInstance.transform?.scale || [1, 1, 1]
+  const targetRotation = targetInstance.transform?.rotation || [0, 0, 0]
+
+  // 4. Расчет transformed bounding box для target инстанса
+  const targetTransformedBB = transformBoundingBox(targetBoundingBox, {
+    position: targetPosition,
+    scale: targetScale,
+    rotation: targetRotation
+  })
+
+  // 5. Расчет радиуса target объекта (максимальный размер по X и Z осям)
+  const targetRadius = Math.max(
+    targetTransformedBB.max[0] - targetTransformedBB.min[0],
+    targetTransformedBB.max[2] - targetTransformedBB.min[2]
+  ) / 2
+
+  // 6. Расчет радиуса нового объекта
+  const newObjectRadius = Math.max(
+    newObjectBoundingBox.max[0] - newObjectBoundingBox.min[0],
+    newObjectBoundingBox.max[2] - newObjectBoundingBox.min[2]
+  ) / 2
+
+  // 7. Расчет случайного расстояния от грани до грани
+  const edgeToEdgeDistance = Math.random() * (metadata.maxDistance - metadata.minDistance) + metadata.minDistance
+  const actualCenterDistance = edgeToEdgeDistance + targetRadius + newObjectRadius
+
+  // 8. Расчет угла размещения
+  let angle: number
+  const distributeEvenly = metadata.distributeEvenly !== false // по умолчанию true
+
+  if (distributeEvenly) {
+    // Равномерное распределение по кругу
+    const angleStep = (2 * Math.PI) / totalInstancesCount
+    angle = (metadata.angleOffset || 0) + instanceIndex * angleStep
+  } else {
+    // Случайное распределение углов
+    angle = (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
+  }
+
+  // 9. Расчет новой позиции относительно target центра
+  const newX = targetPosition[0] + actualCenterDistance * Math.cos(angle)
+  const newZ = targetPosition[2] + actualCenterDistance * Math.sin(angle)
+
+  // 10. Расчет позиции по высоте Y
+  let newY: number
+  const onlyHorizontal = metadata.onlyHorizontal !== false // по умолчанию true
+
+  if (onlyHorizontal) {
+    // Горизонтальное размещение - та же высота что у target
+    newY = targetPosition[1]
+  } else {
+    // 3D размещение - случайная высота в пределах actualCenterDistance * 0.5
+    const verticalRange = actualCenterDistance * 0.5
+    const verticalOffset = (Math.random() - 0.5) * 2 * verticalRange
+    newY = targetPosition[1] + verticalOffset
+  }
+
+  return [newX, newY, newZ]
+}
 
 /**
  * Валидировать параметры PlaceAround метаданных
@@ -525,7 +664,7 @@ export const placeInstance = (
     placementStrategyConfig: PlacementStrategyConfig
 ): SceneObjectInstance[] => {
   const createdInstances: SceneObjectInstance[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     // Создать новый экземпляр
     const newInstance: SceneObjectInstance = {
@@ -546,7 +685,9 @@ export const placeInstance = (
         instance: inst,
         boundingBox: options.objectBoundingBox || { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }
       }))],
-      newObjectBoundingBox: options.objectBoundingBox
+      newObjectBoundingBox: options.objectBoundingBox,
+      instanceIndex: i, // передаем индекс текущего инстанса для PlaceAround
+      totalInstancesCount: count // передаем общее количество инстансов для PlaceAround
     });
     // Корректируем высоту Y: если стратегия не задала Y, а требуется выравнивание по террейну,
     // вычисляем высоту ландшафта и поднимаем объект так, чтобы нижняя грань касалась поверхности.
@@ -566,7 +707,7 @@ export const placeInstance = (
       }
     }
     let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
-    
+
     // Если нужно выровнять по террейну
     if (options.alignToTerrain && options.landscapeLayer) {
       const surfaceNormal = calculateSurfaceNormal(
@@ -589,144 +730,14 @@ export const placeInstance = (
       position: [placementResult.position[0], targetY, placementResult.position[2]],
       rotation: finalRotation as [number, number, number]
     };
-    
+
     createdInstances.push(newInstance);
   }
-  
+
   return createdInstances;
 }
 
-/**
- * @deprecated Старая функция placeInstance. Используйте placeInstanceLegacy для временной совместимости.
- */
-const oldPlaceInstance = (
-    instance: SceneObjectInstance,
-    options?: {
-      landscapeLayer?: SceneLayer;
-      placementX?: number;
-      placementZ?: number;
-      alignToTerrain?: boolean;
-      objectBoundingBox?: import('@/shared/types').BoundingBox;
-      existingInstances?: Array<{
-        instance: SceneObjectInstance
-        boundingBox: BoundingBox
-      }>;
-    })=> {
-  const newInstance = {...instance};
 
-  let placementX: number | undefined = options?.placementX;
-  let placementZ: number | undefined = options?.placementZ;
-
-  let targetY = 0; // Default: place on y=0
-
-  // If no placement coordinates provided, use RandomNoCollision placement
-  if (placementX === undefined || placementZ === undefined) {
-    const placementResult = generateObjectPlacement({
-      strategy: PlacementStrategy.RandomNoCollision,
-      landscapeLayer: options?.landscapeLayer,
-      existingInstances: options?.existingInstances,
-      newObjectBoundingBox: options?.objectBoundingBox
-    });
-    placementX = placementResult.position[0];
-    targetY = placementResult.position[1]; // Use Y from strategy
-    placementZ = placementResult.position[2];
-  } else if (options?.landscapeLayer) {
-    // Calculate target Y position manually if coordinates are provided
-    targetY = queryHeightAtCoordinate(
-        options.landscapeLayer,
-        placementX,
-        placementZ
-    );
-
-    // Adjust Y position based on object's bounding box to prevent sinking into terrain
-    if (options?.objectBoundingBox) {
-      // Get the object's scale to properly transform the bounding box
-      const scale = newInstance.transform?.scale || [1, 1, 1];
-
-      // Calculate the bottom Y offset of the scaled object
-      // The object's bottom should touch the terrain surface
-      const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
-
-      // Adjust target Y so the object's bottom aligns with terrain
-      targetY = targetY - bottomOffset;
-    }
-  }
-
-  let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
-
-  // If alignToTerrain is enabled, calculate surface normal and align object
-  if (options?.alignToTerrain && options?.landscapeLayer) {
-    const surfaceNormal = calculateSurfaceNormal(
-      options.landscapeLayer,
-      placementX,
-      placementZ
-    );
-
-    const terrainRotation = normalToRotation(surfaceNormal);
-
-    // Combine original rotation with terrain alignment
-    // Add terrain rotation to existing rotation
-    finalRotation = [
-      (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
-      (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],
-      (newInstance.transform?.rotation?.[2] || 0) + terrainRotation[2]
-    ];
-  }
-
-  newInstance.transform = {
-    ...newInstance.transform,
-    position: [placementX, targetY, placementZ],
-    rotation: finalRotation as [number, number, number]
-  }
-  return newInstance
-}
-
-/**
- * Асинхронная версия функции размещения экземпляра объекта.
- * Ожидает полной загрузки данных heightmap для правильного позиционирования.
- */
-export const placeInstanceAsync = async (
-    instance: SceneObjectInstance,
-    options?: {
-      landscapeLayer?: SceneLayer;
-      placementX?: number;
-      placementZ?: number;
-      alignToTerrain?: boolean;
-      objectBoundingBox?: import('@/shared/types').BoundingBox;
-      existingInstances?: Array<{
-        instance: SceneObjectInstance
-        boundingBox: BoundingBox
-      }>;
-    }): Promise<SceneObjectInstance> => {
-  const newInstance = {...instance};
-
-  // Для heightmap слоев ожидаем загрузки данных
-  if (options?.landscapeLayer?.terrain?.source.kind === 'heightmap') {
-    const sampler = getHeightSamplerForLayer(options.landscapeLayer)
-    if (sampler) {
-      await new Promise<void>((resolve) => {
-        // Проверяем, готовы ли данные сразу
-        const testHeight = sampler.getHeight(0, 0)
-        if (testHeight !== 0 || 
-            (options.landscapeLayer?.terrain?.source.kind === 'heightmap' && 
-             options.landscapeLayer.terrain.source.params.min === 0 && 
-             options.landscapeLayer.terrain.source.params.max === 0)) {
-          // Данные готовы
-          resolve()
-          return
-        }
-
-        // Ожидаем загрузки данных
-        sampler.onHeightmapLoaded(() => {
-          resolve()
-        })
-      })
-    }
-  }
-
-  // Используем legacy версию после ожидания
-  return placeInstanceLegacy(instance, options)
-}
 
 /**
  * Подогнать все экземпляры объектов к высоте террейна.
@@ -810,9 +821,9 @@ export const adjustAllInstancesForTerrainAsync = async (
     await new Promise<void>((resolve) => {
       // Проверяем, готовы ли данные сразу
       const testHeight = sampler.getHeight(0, 0)
-      if (testHeight !== 0 || 
-          (terrainLayer.terrain?.source.kind === 'heightmap' && 
-           terrainLayer.terrain.source.params.min === 0 && 
+      if (testHeight !== 0 ||
+          (terrainLayer.terrain?.source.kind === 'heightmap' &&
+           terrainLayer.terrain.source.params.min === 0 &&
            terrainLayer.terrain.source.params.max === 0)) {
         // Данные готовы
         resolve()
