@@ -30,6 +30,7 @@ objects.forEach((obj: SceneObjectInfo) => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
+  // Доступные стратегии: 'Random' | 'RandomNoCollision'
   const result = sceneApi.addInstances(
     objects[0].uuid,
     undefined, // layerId - автоматически определится
@@ -58,6 +59,7 @@ objects.forEach(obj => {
 
 // Создать экземпляр первого объекта (если есть)
 if (objects.length > 0) {
+  // Доступные стратегии: 'Random' | 'RandomNoCollision'
   const result = sceneApi.addInstances(
     objects[0].uuid,
     undefined, // layerId - автоматически определится

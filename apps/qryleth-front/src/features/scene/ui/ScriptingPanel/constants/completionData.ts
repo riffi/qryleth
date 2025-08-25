@@ -73,7 +73,7 @@ export const getSceneApiCompletions = () => [
   objectUuid: string - UUID существующего объекта
   layerId?: string - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: PlacementStrategyConfig - Конфигурация стратегии размещения
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
 Возвращает: {success: boolean, instanceCount: number, instances?: CreatedInstanceInfo[]}
 Описание: Создать экземпляры существующего объекта с унифицированным размещением`) 
   },
@@ -96,7 +96,7 @@ export const getSceneApiCompletions = () => [
   objectData: GfxObject - Данные для создания объекта
   layerId?: string = 'objects' - ID слоя для размещения
   count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: PlacementStrategyConfig - Конфигурация стратегии размещения
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
 Возвращает: {success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}
 Описание: Создать новый объект и разместить его экземпляры`) 
   },
@@ -150,17 +150,14 @@ export const getSceneApiCompletions = () => [
   { 
     label: 'addObjectFromLibrary', 
     type: 'function', 
-    info: createStyledTooltip(`addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
+    info: createStyledTooltip(`addObjectFromLibrary(objectUuid, layerId?, count?, placementStrategyConfig?): Promise<AddObjectResult>
 Параметры:
   objectUuid: string - UUID объекта в библиотеке
-  layerId: string - ID слоя для размещения
-  transform?: Transform = {
-    position?: Vector3,
-    rotation?: Vector3,
-    scale?: Vector3
-  }
+  layerId?: string - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }
 Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
-Описание: Добавить объект из библиотеки`) 
+Описание: Импортировать объект из библиотеки и разместить экземпляры по стратегии`)
   },
   { 
     label: 'adjustInstancesForPerlinTerrain', 
@@ -204,7 +201,9 @@ export const getTypeScriptTypes = () => [
   { label: 'LayerInfo', type: 'type', info: 'Информация о слое' },
   { label: 'SceneStats', type: 'type', info: 'Статистика сцены' },
   { label: 'Transform', type: 'type', info: 'Трансформация объекта' },
-  { label: 'BoundingBox', type: 'type', info: 'Ограничивающий бокс' }
+  { label: 'BoundingBox', type: 'type', info: 'Ограничивающий бокс' },
+  { label: 'PlacementStrategy', type: 'type', info: 'Перечисление стратегий размещения: Random | RandomNoCollision' },
+  { label: 'PlacementStrategyConfig', type: 'type', info: 'Конфигурация стратегии размещения с метаданными' }
 ]
 
 export const getJavaScriptKeywords = () => [

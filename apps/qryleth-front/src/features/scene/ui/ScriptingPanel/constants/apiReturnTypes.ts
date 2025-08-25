@@ -67,20 +67,13 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
       'find': { type: 'function', description: 'Поиск элемента в массиве' }
     }
   },
-  'addObjectInstance': {
-    properties: {
-      'success': { type: 'boolean', description: 'Успешность операции' },
-      'instanceUuid': { type: 'string', description: 'UUID созданного экземпляра' },
-      'objectUuid': { type: 'string', description: 'UUID объекта' },
-      'error': { type: 'string', description: 'Сообщение об ошибке' }
-    }
-  },
-  'addObjectInstances': {
+  // Новые унифицированные методы SceneAPI
+  'addInstances': {
     properties: {
       'success': { type: 'boolean', description: 'Успешность операции' },
       'instanceCount': { type: 'number', description: 'Количество созданных экземпляров' },
       'instances': { type: 'CreatedInstanceInfo[]', description: 'Информация о созданных экземплярах' },
-      'errors': { type: 'string[]', description: 'Массив ошибок' },
+      'errors': { type: 'string[]', description: 'Массив ошибок при создании' },
       'error': { type: 'string', description: 'Сообщение об ошибке' }
     }
   },
@@ -100,21 +93,11 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
       'visible': { type: 'boolean', description: 'Видимость объекта' }
     }
   },
-  'addSingleObjectInstance': {
+  'createObject': {
     properties: {
       'success': { type: 'boolean', description: 'Успешность операции' },
-      'instanceCount': { type: 'number', description: 'Количество созданных экземпляров' },
-      'instances': { type: 'CreatedInstanceInfo[]', description: 'Информация о созданных экземплярах' },
-      'errors': { type: 'string[]', description: 'Массив ошибок' },
-      'error': { type: 'string', description: 'Сообщение об ошибке' }
-    }
-  },
-  'addRandomObjectInstances': {
-    properties: {
-      'success': { type: 'boolean', description: 'Успешность операции' },
-      'instanceCount': { type: 'number', description: 'Количество созданных экземпляров' },
-      'instances': { type: 'CreatedInstanceInfo[]', description: 'Информация о созданных экземплярах' },
-      'errors': { type: 'string[]', description: 'Массив ошибок' },
+      'objectUuid': { type: 'string', description: 'UUID созданного объекта' },
+      'instanceUuid': { type: 'string', description: 'UUID первого созданного экземпляра' },
       'error': { type: 'string', description: 'Сообщение об ошибке' }
     }
   },

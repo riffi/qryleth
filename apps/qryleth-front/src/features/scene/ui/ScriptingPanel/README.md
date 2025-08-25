@@ -60,6 +60,13 @@ ScriptingPanel/
 - TypeScript типов
 - JavaScript ключевых слов
 
+Поддерживаются унифицированные методы SceneAPI для создания объектов и экземпляров:
+- `sceneApi.addInstances(objectUuid, layerId?, count?, { strategy: 'Random' | 'RandomNoCollision' })`
+- `sceneApi.createObject(objectData, layerId?, count?, { strategy: 'Random' | 'RandomNoCollision' })`
+- `sceneApi.addObjectFromLibrary(objectUuid, layerId?, count?, { strategy: 'Random' | 'RandomNoCollision' })`
+
+Для стратегий размещения используется перечисление стратегий с возможностью расширения метаданных.
+
 ### useTooltipCreation
 Создание интерактивных подсказок с информацией о:
 - Методах API

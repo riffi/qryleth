@@ -9,7 +9,7 @@ owner: team-ui
 tags: [scene-api, refactoring, architecture]
 phases:
   total: 7
-  completed: 5
+  completed: 6
 ---
 
 # Рефакторинг SceneAPI: Унификация методов создания объектов и стратегий размещения
@@ -129,7 +129,8 @@ phases:
 - Обеспечить что AI агенты используют новые унифицированные методы
 - Протестировать AI интеграцию с новыми методами
 
-### ⏳ Фаза 6: Обновление ScriptingPanel и автокомплита
+### ✅ Фаза 6: Обновление ScriptingPanel и автокомплита
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 - Обновить автокомплит в `apps/qryleth-front/src/features/scene/ui/ScriptingPanel/` для новых методов
 - Обновить `completionData.ts` с новыми сигнатурами методов
 - Обновить подсказки и документацию в ScriptingPanel

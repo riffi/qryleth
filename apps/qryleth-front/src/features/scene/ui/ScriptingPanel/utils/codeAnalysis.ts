@@ -1,5 +1,11 @@
 import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
 
+/**
+ * Проанализировать текст скрипта и вывести карту типов переменных,
+ * присвоенных результатам вызовов sceneApi.*. Это позволяет автокомплиту
+ * подсказывать вложенные свойства результата конкретного метода API.
+ * Возвращает объект вида { varName: apiMethodName }.
+ */
 export const analyzeVariableTypes = (scriptText: string): Record<string, string> => {
   const variableTypes: Record<string, string> = {}
   
@@ -23,6 +29,11 @@ export const analyzeVariableTypes = (scriptText: string): Record<string, string>
   return variableTypes
 }
 
+/**
+ * Извлечь имена переменных из пользовательского скрипта для показа их
+ * в общем списке автокомплита. Метод использует набор регулярных выражений
+ * для типичных конструкций объявления/использования переменных.
+ */
 export const extractVariablesFromScript = (scriptText: string): string[] => {
   const variables = new Set<string>()
   
@@ -51,6 +62,11 @@ export const extractVariablesFromScript = (scriptText: string): string[] => {
   return Array.from(variables)
 }
 
+/**
+ * Определить текущий контекст вызова метода sceneApi.* под курсором.
+ * Если курсор находится внутри круглых скобок вызова метода, возвращает
+ * краткую справку по сигнатуре и параметрам этого метода для показа в тултипе.
+ */
 export const analyzeCurrentContext = (text: string, cursorPos: number): string | null => {
   const beforeCursor = text.substring(0, cursorPos)
   
@@ -92,6 +108,10 @@ export const analyzeCurrentContext = (text: string, cursorPos: number): string |
   return null
 }
 
+/**
+ * Вернуть текстовую справку по методу SceneAPI по его имени. Справка
+ * содержит сигнатуру и описание основных параметров/возвращаемых данных.
+ */
 export const getMethodInfo = (methodName: string): string | null => {
   const methodInfoMap: Record<string, string> = {
     'getSceneOverview': `getSceneOverview(): SceneOverview
@@ -113,26 +133,12 @@ export const getMethodInfo = (methodName: string): string | null => {
     'findObjectByName': `findObjectByName(name: string): SceneObject | null
 Параметры:
   name: string - Имя объекта (частичное совпадение)`,
-    'addObjectInstance': `addObjectInstance(objectUuid, position?, rotation?, scale?, visible?): AddInstanceResult
+    'addInstances': `addInstances(objectUuid, layerId?, count?, placementStrategyConfig?): AddInstancesResult
 Параметры:
   objectUuid: string - UUID существующего объекта
-  position?: Vector3 = [0, 0, 0] - Позиция [x, y, z]
-  rotation?: Vector3 = [0, 0, 0] - Поворот [x, y, z] в радианах
-  scale?: Vector3 = [1, 1, 1] - Масштаб [x, y, z]
-  visible?: boolean = true - Видимость экземпляра`,
-    'addSingleObjectInstance': `addSingleObjectInstance(objectUuid, params): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID объекта
-  params: InstanceCreationParams - Параметры создания экземпляра`,
-    'addObjectInstances': `addObjectInstances(objectUuid, instances): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID объекта
-  instances: InstanceCreationParams[] - Массив параметров`,
-    'addRandomObjectInstances': `addRandomObjectInstances(objectUuid, count, options?): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID объекта
-  count: number - Количество экземпляров
-  options?: RandomInstanceOptions - Опции размещения`,
+  layerId?: string - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
     'getAvailableLayers': `getAvailableLayers(): Array<LayerInfo>
 Возвращает массив доступных слоев`,
     'canAddInstance': `canAddInstance(objectUuid: string): boolean
@@ -146,11 +152,18 @@ export const getMethodInfo = (methodName: string): string | null => {
     'searchObjectsInLibrary': `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
 Параметры:
   query: string - Строка поиска`,
-    'addObjectFromLibrary': `addObjectFromLibrary(objectUuid, layerId, transform?): Promise<AddObjectResult>
+    'createObject': `createObject(objectData, layerId?, count?, placementStrategyConfig?): AddObjectWithTransformResult
+Параметры:
+  objectData: GfxObject - Данные для создания объекта
+  layerId?: string = 'objects' - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
+    'addObjectFromLibrary': `addObjectFromLibrary(objectUuid, layerId?, count?, placementStrategyConfig?): Promise<AddObjectResult>
 Параметры:
   objectUuid: string - UUID объекта в библиотеке
-  layerId: string - ID слоя для размещения
-  transform?: Transform - Опциональная трансформация`,
+  layerId?: string - ID слоя для размещения
+  count?: number = 1 - Количество экземпляров
+  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision', metadata?: any }`,
     'adjustInstancesForPerlinTerrain': `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
 Параметры:
   perlinLayerId: string - ID слоя с Perlin ландшафтом`
