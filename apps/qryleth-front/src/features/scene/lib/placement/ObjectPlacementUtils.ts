@@ -373,6 +373,8 @@ const generatePlaceAroundPosition = (
   const targetBoundingBox = targetInstanceData.boundingBox
 
   // 3. Получение позиции и transform target инстанса
+  // Пояснение: для корректного окружения вокруг геометрического центра объекта
+  // далее будем использовать центр преобразованного bounding box (а не pivot-позицию).
   const targetPosition = targetInstance.transform?.position || [0, 0, 0]
   const targetScale = targetInstance.transform?.scale || [1, 1, 1]
   const targetRotation = targetInstance.transform?.rotation || [0, 0, 0]
@@ -384,7 +386,16 @@ const generatePlaceAroundPosition = (
     rotation: targetRotation
   })
 
-  // 5. Расчет радиуса target объекта (максимальный размер по X и Z осям)
+  // 5. Расчет центра и радиуса target объекта
+  // Центр: берём центр трансформированного bounding box, чтобы круг размещения
+  // проходил вокруг геометрического центра, а не вокруг pivot, что исключает сдвиг.
+  const targetCenter: Vector3 = [
+    (targetTransformedBB.min[0] + targetTransformedBB.max[0]) / 2,
+    (targetTransformedBB.min[1] + targetTransformedBB.max[1]) / 2,
+    (targetTransformedBB.min[2] + targetTransformedBB.max[2]) / 2,
+  ]
+
+  // Радиус: используем максимальный размер по X/Z как консервативную оценку до грани
   const targetRadius = Math.max(
     targetTransformedBB.max[0] - targetTransformedBB.min[0],
     targetTransformedBB.max[2] - targetTransformedBB.min[2]
@@ -423,14 +434,16 @@ const generatePlaceAroundPosition = (
     }
 
     // Расчет новой позиции относительно target центра
-    const newX = targetPosition[0] + actualCenterDistance * Math.cos(angle)
-    const newZ = targetPosition[2] + actualCenterDistance * Math.sin(angle)
+    // Используем targetCenter по X/Z, чтобы исключить сдвиг кольца относительно объекта
+    const newX = targetCenter[0] + actualCenterDistance * Math.cos(angle)
+    const newZ = targetCenter[2] + actualCenterDistance * Math.sin(angle)
 
     // Расчет позиции по высоте Y
     let newY: number
     if (onlyHorizontal) {
-      // Горизонтальное размещение - та же высота что у target
-      newY = targetPosition[1]
+      // Горизонтальное размещение — та же высота, что у геометрического центра target
+      // (соответствует спецификации: targetCenter[1])
+      newY = targetCenter[1]
     } else {
       // 3D размещение - случайная высота в пределах actualCenterDistance * 0.5
       const verticalRange = actualCenterDistance * 0.5
