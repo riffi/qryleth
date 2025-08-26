@@ -4,12 +4,12 @@ epic: null
 title: "Реализация стратегии размещения PlaceAround"
 status: in-progress
 created: 2025-08-25
-updated: 2025-08-25
+updated: 2025-08-26
 owner: agent
 tags: [placement-strategy, scene-api, object-placement]
 phases:
   total: 6
-  completed: 4
+  completed: 5
 ---
 
 # Реализация стратегии размещения PlaceAround
@@ -189,14 +189,16 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 
 **Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Обновление AI tools чата в sceneEditor
-- Обновить `objectTools.ts`:
-  - Добавить PlaceAround в zod схему с валидацией параметров
-  - Валидация minDistance < maxDistance
-  - Валидация обязательности targetInstanceUuid OR targetObjectUuid
-- Обновить `instanceTools.ts` - поддержка PlaceAround для работы с инстансами
-- Обновить `index.ts` - экспорт обновленных tools
-- Тестирование корректной работы чат-бота с PlaceAround командами
+### ✅ Фаза 4: Обновление AI tools чата в sceneEditor
+- [x] Обновить `objectTools.ts`:
+  - [x] Добавить PlaceAround в zod схему с валидацией параметров
+  - [x] Валидация minDistance < maxDistance
+  - [x] Валидация обязательности targetInstanceUuid OR targetObjectUuid
+- [x] Обновить `instanceTools.ts` - поддержка PlaceAround для работы с инстансами
+- [x] Обновить `index.ts` - экспорт обновленных tools
+- [x] Тестирование корректной работы чат-бота с PlaceAround командами (ручная проверка сценариев)
+
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ✅ Фаза 5: Обновление поддержки скриптинга в ScriptingPanel
 - [x] Обновить `completionData.ts`:
@@ -220,8 +222,8 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 - [ ] Работает как с targetInstanceUuid, так и с targetObjectUuid
 - [ ] Поддерживается 2D и 3D размещение
 - [ ] AI tools чата в sceneEditor поддерживают PlaceAround:
-  - [ ] objectTools.ts и instanceTools.ts обновлены с zod валидацией
-  - [ ] Чат-бот корректно обрабатывает PlaceAround команды
+  - [x] objectTools.ts и instanceTools.ts обновлены с zod валидацией
+  - [x] Чат-бот корректно обрабатывает PlaceAround команды
 - [x] Скриптинг в ScriptingPanel поддерживает PlaceAround:
   - [x] Автодополнение работает для всех параметров PlaceAround
   - [x] Анализ кода распознает PlaceAround синтаксис
