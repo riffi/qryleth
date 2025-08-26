@@ -2,14 +2,14 @@
 id: 22
 epic: null
 title: "Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps"
-status: in_progress
+status: completed
 created: 2025-08-26
 updated: 2025-08-26
 owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 7
+  completed: 8
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -181,6 +181,8 @@ phases:
 - Уточнить в `docs/README.md` и API-обзорах единый источник высот.
 - Подчеркнуть требование: «к каждому методу — подробный комментарий на русском».
 Результат: документация согласована с кодом.
+
+Отчёт: [phases/phase_8_summary.md](./phases/phase_8_summary.md)
 
 — После выполнения каждой фазы обновить этот файл: отметить статус ✅ и добавить ссылку на отчёт `phases/phase_N_summary.md`.
 

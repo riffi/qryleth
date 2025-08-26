@@ -91,24 +91,32 @@ export interface GfxHeightSampler {
 
 - Реализация: `src/features/scene/lib/terrain/GfxHeightSampler.ts`
 - Создание: `createGfxHeightSampler(cfg: GfxTerrainConfig)`
-- Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` — формирует `THREE.BufferGeometry` по сэмплеру.
+- Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
+
+### Жизненный цикл сэмплера
+
+- `isReady()` — источник готов к корректным выборкам (Perlin — всегда true; Heightmap — после загрузки heights/ImageData).
+- `ready()` — промис готовности; используйте в UI вместо таймеров для прелоадеров.
+- `dispose()` — освобождение подписок/ссылок.
 
 ---
 
 ## Использование в рендеринге
 
 ```ts
-import { createGfxHeightSampler, buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GfxHeightSampler'
+import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
+import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder'
 
 // 1) получить конфигурацию террейна
 const sampler = createGfxHeightSampler(layer.terrain)
+await sampler.ready?.() // для heightmap дождаться загрузки данных
 const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
 ```
 
 - Компонент: `src/features/scene/ui/renderer/landscape/LandscapeLayer.tsx`
 - Поведение:
   - при наличии `layer.terrain` используется напрямую;
-  - для пустых слоёв создаётся новая `perlin` конфигурация, сохраняемая в store.
+  - создание слоя должно обеспечивать валидную конфигурацию террейна через SceneAPI (рендер не модифицирует store).
 
 ---
 
@@ -133,7 +141,12 @@ const n = sampler.getNormal(x, z)
   - `validatePngFile()`, `uploadTerrainAsset()`, `createTerrainAssetPreviewUrl()` и др.
 - Нормализация: входной PNG масштабируется до ≤200px по большей стороне, затем извлекается массив высот (`Float32Array`).
 - Дедупликация: по SHA‑256 хэшу массива высот (`heightsHash`). При загрузке идентичной карты возвращается уже существующий ассет (новый не создаётся).
-- Асинхронная загрузка ImageData; на время загрузки sampler может возвращать 0 и триггерить `onHeightmapLoaded`.
+- Асинхронная загрузка heights/ImageData; ожидание следует выполнять через `sampler.ready()`.
+
+### Кэширование и инвалидация
+
+- Кэш `assets/heightmapCache.ts` хранит ImageData и числовые поля высот с TTL/LRU, предоставляет `invalidate(assetId)` и `clear()`.
+- `HeightmapUtils.deleteTerrainAsset/renameTerrainAsset` вызывают `invalidate(assetId)` для консистентности данных.
 
 ---
 
@@ -173,4 +186,5 @@ const terrainConfig: GfxTerrainConfig = {
 
 - Сэмплер включает кэширование значений высот и пространственный индекс для `TerrainOps`.
 - R3F-геометрия строится один раз и регенерируется при изменении источника/параметров/загрузке heightmap.
+- `assets/heightmapCache.ts` контролирует рост памяти за счёт TTL/LRU.
 

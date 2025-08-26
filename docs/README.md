@@ -41,6 +41,9 @@
 - Поддержка PNG heightmap (Dexie) и `TerrainOps` (локальные модификации)
 - Обновлён `LandscapeLayer` и UI создания слоя (загрузка PNG)
  - Дедупликация PNG heightmap по хэшу высот в Dexie: повторная загрузка идентичной карты переиспользует существующий ассет
+ - Введены `sampler.isReady()/ready()/dispose()`; UI ждёт `ready()` без таймеров
+ - Выделены модули: sources/sampling/ops/effects/assets; `GeometryBuilder.ts`
+ - Кэши heightmap с TTL/LRU и `invalidate(assetId)` для консистентности
 
 ---
 
