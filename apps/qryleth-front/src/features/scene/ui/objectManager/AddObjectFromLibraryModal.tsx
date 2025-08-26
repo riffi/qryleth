@@ -4,18 +4,13 @@ import {
   Stack,
   TextInput,
   Grid,
-  Card,
-  Text,
-  Group,
-  Badge,
-  Button,
   ScrollArea,
   Box,
-  ActionIcon,
-  Tooltip
+  Text
 } from '@mantine/core'
-import { IconSearch, IconCalendar, IconCube, IconX } from '@tabler/icons-react'
+import { IconSearch } from '@tabler/icons-react'
 import { db, type ObjectRecord } from '@/shared/lib/database.ts'
+import { ObjectPreviewCard } from '@/shared/ui'
 import { notifications } from '@mantine/notifications'
 import type { SceneObject } from '@/entities/scene/types'
 
@@ -76,15 +71,6 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
       (object.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   )
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   useEffect(() => {
     if (opened) {
@@ -130,53 +116,15 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
             <Grid>
               {filteredObjects.map((object) => (
                 <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4 }}>
-                  <Card shadow="sm" padding="md" radius="md" withBorder>
-                    <Stack gap="sm">
-                      <Group justify="space-between" align="flex-start">
-                        <Box style={{ flex: 1 }}>
-                          <Text fw={500} lineClamp={1}>{object.name}</Text>
-                          {object.description && (
-                            <Text size="sm" c="dimmed" lineClamp={2} mt={4}>
-                              {object.description}
-                            </Text>
-                          )}
-                        </Box>
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          color="red"
-                          onClick={() => onClose()}
-                        >
-                          <IconX size={14} />
-                        </ActionIcon>
-                      </Group>
-
-                      <Group gap="xs">
-                        <IconCalendar size={14} />
-                        <Text size="xs" c="dimmed">
-                          {formatDate(object.updatedAt)}
-                        </Text>
-                      </Group>
-
-                      <Group gap="xs" mt="xs">
-                        <Badge color="blue" variant="light" size="sm">
-                          {object.objectData.primitives.length} примитивов
-                        </Badge>
-                      </Group>
-
-                      <Group gap="xs" mt="xs">
-                        <Button
-                          size="xs"
-                          leftSection={<IconCube size={14} />}
-                          onClick={() => handleAddObject(object)}
-                          loading={isLoading}
-                          style={{ flex: 1 }}
-                        >
-                          Добавить
-                        </Button>
-                      </Group>
-                    </Stack>
-                  </Card>
+                  <ObjectPreviewCard
+                    object={object}
+                    onAdd={handleAddObject}
+                    showAddButton={true}
+                    showDeleteButton={false}
+                    showDate={true}
+                    size="sm"
+                    loading={isLoading}
+                  />
                 </Grid.Col>
               ))}
             </Grid>

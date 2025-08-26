@@ -1,5 +1,9 @@
 export { SaveObjectDialog } from './SaveObjectDialog'
 export type { SaveObjectDialogProps } from './SaveObjectDialog'
+export { ObjectPreviewCard } from './ObjectPreviewCard'
+export type { ObjectPreviewCardProps } from './ObjectPreviewCard'
+export { VirtualizedObjectGrid } from './VirtualizedObjectGrid'
+export type { VirtualizedObjectGridProps } from './VirtualizedObjectGrid'
 // Общие элементы управления для HUD редакторов
 export { GridToggleButton } from './controls/GridToggleButton'
 export { TransformModeButtons } from './controls/TransformModeButtons'

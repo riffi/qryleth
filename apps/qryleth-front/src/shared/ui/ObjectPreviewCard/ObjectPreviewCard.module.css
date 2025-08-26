@@ -1,0 +1,92 @@
+/* ObjectPreviewCard styles */
+
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.previewContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: var(--mantine-color-gray-0);
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-gray-2);
+  overflow: hidden;
+}
+
+[data-mantine-color-scheme="dark"] .previewContainer {
+  background-color: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.previewImage {
+  border-radius: var(--mantine-radius-sm);
+  transition: opacity 0.2s ease;
+}
+
+.previewSkeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+}
+
+.placeholderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-gray-1);
+  border-radius: var(--mantine-radius-sm);
+  gap: 4px;
+  padding: 8px;
+}
+
+[data-mantine-color-scheme="dark"] .placeholderContainer {
+  background: var(--mantine-color-dark-6);
+}
+
+.placeholderIcon {
+  color: var(--mantine-color-gray-5);
+}
+
+[data-mantine-color-scheme="dark"] .placeholderIcon {
+  color: var(--mantine-color-dark-3);
+}
+
+/* Оптимизация для виртуализации */
+.card {
+  contain: layout style paint;
+}
+
+/* Состояние загрузки */
+.card[data-loading="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Responsive изображения */
+@media (max-width: 768px) {
+  .previewContainer {
+    height: 80px;
+  }
+  
+  .previewImage {
+    max-width: 80px;
+    max-height: 80px;
+  }
+  
+  .placeholderContainer {
+    width: 80px;
+    height: 80px;
+  }
+}

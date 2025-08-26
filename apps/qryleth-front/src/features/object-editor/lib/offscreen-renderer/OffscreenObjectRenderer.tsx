@@ -113,12 +113,28 @@ const AutoFitCamera: React.FC<{
 }
 
 /**
+ * Компонент для сохранения ссылки на renderer
+ */
+const RendererCapture: React.FC<{ 
+  onCapture: (renderer: THREE.WebGLRenderer) => void 
+}> = ({ onCapture }) => {
+  const { gl } = useThree()
+  
+  React.useEffect(() => {
+    onCapture(gl)
+  }, [gl, onCapture])
+  
+  return null
+}
+
+/**
  * Компонент для рендеринга превью объекта с освещением и камерой
  */
 const PreviewScene: React.FC<{ 
   gfxObject: GfxObject
-  onReady?: () => void 
-}> = ({ gfxObject, onReady }) => {
+  onReady?: () => void
+  onRendererCapture?: (renderer: THREE.WebGLRenderer) => void
+}> = ({ gfxObject, onReady, onRendererCapture }) => {
   return (
     <>
       {/* Стандартное освещение для превью */}
@@ -140,6 +156,9 @@ const PreviewScene: React.FC<{
         renderMode="solid"
       />
       
+      {/* Захват ссылки на рендерер */}
+      {onRendererCapture && <RendererCapture onCapture={onRendererCapture} />}
+      
       {/* Автоматическая установка камеры */}
       <AutoFitCamera gfxObject={gfxObject} onReady={onReady} />
     </>
@@ -158,6 +177,7 @@ const PreviewScene: React.FC<{
 export class OffscreenObjectRenderer {
   private canvas: HTMLCanvasElement
   private root: ReturnType<typeof createRoot> | null = null
+  private renderer: THREE.WebGLRenderer | null = null
   private readonly config: Required<PreviewRenderConfig>
   
   /**
@@ -216,6 +236,11 @@ export class OffscreenObjectRenderer {
         // Настройка цвета фона
         const bgColor = this.config.transparent ? 0x000000 : this.config.backgroundColor
         
+        // Callback для захвата рендерера
+        const handleRendererCapture = (renderer: THREE.WebGLRenderer) => {
+          this.renderer = renderer
+        }
+
         // Callback когда камера установлена и сцена готова
         const handleReady = async () => {
           try {
@@ -250,7 +275,8 @@ export class OffscreenObjectRenderer {
             React.createElement(PreviewScene, { 
               key: 'scene',
               gfxObject, 
-              onReady: handleReady 
+              onReady: handleReady,
+              onRendererCapture: handleRendererCapture
             })
           ])
         )
@@ -283,15 +309,15 @@ export class OffscreenObjectRenderer {
    */
   private cleanup(): void {
     if (this.root) {
-      // Получаем рендерер перед уничтожением root
-      const renderer = this.root.getState().gl
-      
       // Уничтожаем R3F root
       this.root.unmount()
       this.root = null
-      
-      // Очищаем WebGL ресурсы
-      renderer.dispose()
+    }
+    
+    // Очищаем WebGL ресурсы если у нас есть ссылка на renderer
+    if (this.renderer) {
+      this.renderer.dispose()
+      this.renderer = null
     }
   }
   

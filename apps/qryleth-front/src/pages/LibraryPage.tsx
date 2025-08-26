@@ -26,6 +26,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, type SceneRecord, type ObjectRecord } from '@/shared/lib/database'
+import { ObjectPreviewCard } from '@/shared/ui'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { useNavigate } from 'react-router-dom'
 
@@ -252,43 +253,15 @@ const LibraryPage: React.FC = () => {
                   <Grid>
                     {filteredObjects.map((object) => (
                       <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                        <Card shadow="sm" padding="md" radius="md" withBorder>
-                          <Stack gap="sm">
-                            <Group justify="space-between" align="flex-start">
-                              <Box style={{ flex: 1 }}>
-                                <Text fw={500} lineClamp={1}>{object.name}</Text>
-                                {object.description && (
-                                  <Text size="sm" c="dimmed" lineClamp={2} mt={4}>{object.description}</Text>
-                                )}
-                              </Box>
-                            </Group>
-                            <Group gap="xs" mt="auto">
-                              <IconCalendar size={14} />
-                              <Text size="xs" c="dimmed">{formatDate(object.updatedAt)}</Text>
-                            </Group>
-                            <Group gap="xs" mt="xs">
-                              <Button
-                                size="xs"
-                                leftSection={<IconEdit size={14} />}
-                                onClick={() => handleEditObject(object)}
-                                loading={isLoading}
-                                style={{ flex: 1 }}
-                              >
-                                Редактировать
-                              </Button>
-                              <Tooltip label="Удалить объект">
-                                <ActionIcon
-                                  size="sm"
-                                  color="red"
-                                  variant="subtle"
-                                  onClick={() => handleDeleteObject(object)}
-                                >
-                                  <IconTrash size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Group>
-                          </Stack>
-                        </Card>
+                        <ObjectPreviewCard
+                          object={object}
+                          onEdit={handleEditObject}
+                          onDelete={handleDeleteObject}
+                          showDeleteButton={true}
+                          showDate={true}
+                          size="md"
+                          loading={isLoading}
+                        />
                       </Grid.Col>
                     ))}
                   </Grid>

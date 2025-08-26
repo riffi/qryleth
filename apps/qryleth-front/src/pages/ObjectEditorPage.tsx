@@ -61,7 +61,7 @@ const ObjectEditorPage: React.FC = () => {
         // Генерируем превью для обновляемого объекта
         let thumbnail: string | undefined
         try {
-          const previewDataUrl = await generateObjectPreview(object, true)
+          const previewDataUrl = await generateObjectPreview(object, false)
           thumbnail = previewDataUrl || undefined
         } catch (error) {
           console.warn('Не удалось сгенерировать превью при обновлении:', error)
@@ -76,7 +76,7 @@ const ObjectEditorPage: React.FC = () => {
         // Генерируем превью для нового объекта
         let thumbnail: string | undefined
         try {
-          const previewDataUrl = await generateObjectPreview(object, true)
+          const previewDataUrl = await generateObjectPreview(object, false)
           thumbnail = previewDataUrl || undefined
         } catch (error) {
           console.warn('Не удалось сгенерировать превью при создании:', error)
@@ -126,7 +126,7 @@ const ObjectEditorPage: React.FC = () => {
       // Генерируем превью для нового объекта
       let thumbnail: string | undefined
       try {
-        const previewDataUrl = await generateObjectPreview(objectWithName, true)
+        const previewDataUrl = await generateObjectPreview(objectWithName, false)
         thumbnail = previewDataUrl || undefined
       } catch (error) {
         console.warn('Не удалось сгенерировать превью для нового объекта:', error)
