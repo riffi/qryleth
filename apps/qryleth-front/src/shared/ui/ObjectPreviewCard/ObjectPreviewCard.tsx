@@ -21,6 +21,7 @@ import {
 } from '@tabler/icons-react'
 import type { ObjectRecord } from '@/shared/lib/database'
 import classes from './ObjectPreviewCard.module.css'
+import { HoverInteractivePreview } from './HoverInteractivePreview'
 
 export interface ObjectPreviewCardProps {
   /** Объект из библиотеки */
@@ -48,7 +49,7 @@ export interface ObjectPreviewCardProps {
  * Поддерживает отображение thumbnail, placeholder для объектов без превью,
  * оптимизированное кеширование изображений
  */
-export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
+export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({ 
   object,
   onEdit,
   onDelete,
@@ -61,6 +62,7 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
 }) => {
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   /**
    * Форматирует дату в читаемый формат
@@ -118,7 +120,11 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
     >
       <Stack gap={size === 'sm' ? 'xs' : 'sm'}>
         {/* Превью изображение */}
-        <Box className={classes.previewContainer} >
+        <Box
+          className={classes.previewContainer}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
           {hasThumbnail && !imageError ? (
             <>
               {imageLoading && (
@@ -139,10 +145,16 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
                 onError={handleImageError}
                 className={classes.previewImage}
                 style={{
+                  // Скрываем PNG превью при hover без потери места в раскладке
+                  visibility: hovered ? 'hidden' : 'visible',
                   display: imageLoading ? 'none' : 'block',
                   opacity: loading ? 0.5 : 1
                 }}
               />
+              {/* Интерактивный рендер поверх превью при hover */}
+              {hovered && !loading && (
+                <HoverInteractivePreview gfxObject={object.objectData} />
+              )}
             </>
           ) : (
             <Box
