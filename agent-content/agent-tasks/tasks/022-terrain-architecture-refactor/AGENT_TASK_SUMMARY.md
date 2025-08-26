@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 5
+  completed: 6
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -152,13 +152,15 @@ phases:
 
 Отчёт: [phases/phase_5_summary.md](./phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: Кэши и инвалидация ассетов
+### ✅ Фаза 6: Кэши и инвалидация ассетов
 - В `assets/heightmapCache.ts` реализовать:
   - `get/set` для ImageData и heights field.
   - `invalidate(assetId)` и глобальную `clear()`.
   - Soft TTL (LRU или по времени бездействия).
 - В `HeightmapUtils` вызывать `invalidate` при `deleteTerrainAsset/rename`.
 Результат: контроль памяти и консистентности кэшей.
+
+Отчёт: [phases/phase_6_summary.md](./phases/phase_6_summary.md)
 
 ### ⏳ Фаза 7: Тестирование
 - Unit-тесты:

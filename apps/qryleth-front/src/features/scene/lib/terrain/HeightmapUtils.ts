@@ -281,7 +281,17 @@ export async function getAllTerrainAssetsSummary(): Promise<Array<{
  * Удаляет terrain asset из базы данных
  */
 export async function deleteTerrainAsset(assetId: string): Promise<void> {
+  // 1) Удаляем запись ассета из хранилища Dexie
   await db.deleteTerrainAsset(assetId)
+  // 2) Инвалидируем связанные кэши высот и изображений.
+  // ВАЖНО: используем динамический импорт, чтобы не создавать циклическую
+  // зависимость на уровне модулей (heightmapCache уже импортирует этот файл).
+  try {
+    const mod = await import('./assets/heightmapCache')
+    mod.invalidate(assetId)
+  } catch (e) {
+    console.warn('Не удалось инвалидировать кэш heightmap после удаления ассета', e)
+  }
 }
 
 /**
@@ -293,6 +303,15 @@ export async function renameTerrainAsset(assetId: string, newFileName: string): 
   }
   
   await db.updateTerrainAssetName(assetId, newFileName)
+  // Имя файла изменилось — на стороне кэша это не обязательно влияет на данные,
+  // однако для простоты и консистентности очистим кэш по assetId, чтобы избежать
+  // показа устаревших данных (например, превью) при последующих обращениях.
+  try {
+    const mod = await import('./assets/heightmapCache')
+    mod.invalidate(assetId)
+  } catch (e) {
+    console.warn('Не удалось инвалидировать кэш heightmap после переименования ассета', e)
+  }
 }
 
 /**
