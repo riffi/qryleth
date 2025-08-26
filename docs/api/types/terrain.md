@@ -150,24 +150,138 @@ const n = sampler.getNormal(x, z)
 
 ---
 
-## Пример создания слоя с heightmap
+## Примеры создания слоёв с разными источниками
+
+### Пример создания слоя с Perlin Noise
 
 ```ts
 import type { GfxTerrainConfig } from '@/entities/terrain'
 
-const terrainConfig: GfxTerrainConfig = {
+const perlinTerrainConfig: GfxTerrainConfig = {
+  worldWidth: 200,
+  worldHeight: 200,
+  edgeFade: 0.1,
+  source: {
+    kind: 'perlin',
+    params: {
+      seed: 12345,           // детерминированное зерно для воспроизводимости
+      octaveCount: 4,        // количество слоёв шума (детализация)
+      amplitude: 8.0,        // максимальная высота рельефа
+      persistence: 0.5,      // затухание амплитуды между октавами
+      width: 64,             // размер сетки по ширине (в сегментах)
+      height: 64             // размер сетки по высоте (в сегментах)
+    }
+  },
+  ops: [
+    // Добавление холма в центре
+    {
+      id: 'central-hill',
+      mode: 'add',
+      center: [100, 100],
+      radius: 30,
+      intensity: 5.0,
+      falloff: 'smoothstep'
+    },
+    // Выемка-озеро
+    {
+      id: 'lake',
+      mode: 'sub',
+      center: [150, 150],
+      radius: 20,
+      radiusZ: 15,          // эллиптическая форма
+      rotation: Math.PI / 4, // поворот на 45°
+      intensity: 3.0,
+      falloff: 'gauss'
+    }
+  ]
+}
+```
+
+#### Описание параметров Perlin Noise:
+
+- **seed**: детерминированное зерно — одинаковое значение всегда даёт идентичный рельеф
+- **octaveCount**: количество слоёв шума. Больше октав = более детальный и сложный рельеф
+- **amplitude**: максимальная высота генерируемого рельефа (в мировых единицах)
+- **persistence**: коэффициент затухания амплитуды между октавами (0.0-1.0). Меньше = более гладкий рельеф
+- **width/height**: размеры сетки для генерации шума (в сегментах). Влияют на частоту деталей
+
+#### Примеры различных конфигураций Perlin:
+
+**Горный ландшафт (высокая амплитуда, много деталей):**
+```ts
+const mountainTerrain: GfxTerrainConfig = {
+  worldWidth: 300,
+  worldHeight: 300,
+  source: {
+    kind: 'perlin',
+    params: {
+      seed: 9876,
+      octaveCount: 6,      // много слоёв для деталей
+      amplitude: 15.0,     // высокие горы
+      persistence: 0.6,    // сохранение деталей
+      width: 128,
+      height: 128
+    }
+  }
+}
+```
+
+**Холмистая равнина (мягкий рельеф):**
+```ts
+const hillsTerrain: GfxTerrainConfig = {
+  worldWidth: 200,
+  worldHeight: 200,
+  source: {
+    kind: 'perlin',
+    params: {
+      seed: 1111,
+      octaveCount: 3,      // мало слоёв для плавности
+      amplitude: 4.0,      // невысокие холмы
+      persistence: 0.3,    // быстрое затухание деталей
+      width: 32,           // крупная сетка = плавные формы
+      height: 32
+    }
+  }
+}
+```
+
+**Пустынные дюны (средний рельеф):**
+```ts
+const dunesTerrain: GfxTerrainConfig = {
+  worldWidth: 150,
+  worldHeight: 150,
+  source: {
+    kind: 'perlin',
+    params: {
+      seed: 5555,
+      octaveCount: 4,
+      amplitude: 8.0,
+      persistence: 0.4,    // умеренное затухание
+      width: 48,
+      height: 48
+    }
+  }
+}
+```
+
+### Пример создания слоя с heightmap
+
+```ts
+import type { GfxTerrainConfig } from '@/entities/terrain'
+
+const heightmapTerrainConfig: GfxTerrainConfig = {
   worldWidth: 100,
   worldHeight: 100,
   edgeFade: 0.15,
   source: {
     kind: 'heightmap',
     params: {
-      assetId: 'dexie-asset-id',
-      imgWidth: 1024,
-      imgHeight: 1024,
-      min: 0,
-      max: 10,
-      wrap: 'clamp'
+      assetId: 'dexie-asset-id',  // ID загруженного PNG в Dexie
+      imgWidth: 1024,             // ширина исходного изображения
+      imgHeight: 1024,            // высота исходного изображения
+      min: 0,                     // минимальная высота (чёрные пиксели)
+      max: 10,                    // максимальная высота (белые пиксели)
+      wrap: 'clamp'               // обработка краёв: 'clamp' | 'repeat'
     }
   }
 }
