@@ -2,7 +2,7 @@ import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams,
 import { createPerlinSource } from './heightSources/PerlinSource';
 import { sampleHeightFromHeightsField, sampleHeightFromImageData } from './heightSources/HeightmapSource';
 import { buildSpatialIndex, getRelevantOps } from './ops/spatialIndex';
-import { applyTerrainOpsOptimized } from './ops/applyOps';
+import { applyTerrainOpsOptimized as applyTerrainOpsOptimizedFn } from './ops/applyOps';
 import { calculateEdgeFade } from './effects/edgeFade';
 import { getCachedImageData, getCachedHeightsField, loadHeightsField, loadImageData } from './assets/heightmapCache';
 // Константы геометрии теперь используются в GeometryBuilder
@@ -18,7 +18,7 @@ const DEBUG = (import.meta as any)?.env?.MODE !== 'production';
 export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private config: GfxTerrainConfig;
   private sourceHeight: (x: number, z: number) => number;
-  private sampleStep = 0.01; // шаг для вычисления нормалей через центральные разности
+  private sampleStep = 0.01; // динамический шаг для нормалей (обновляется по разрешению источника)
   
   // Оптимизация: пространственный индекс для быстрого поиска релевантных операций
   private spatialIndex?: Map<string, GfxTerrainOp[]>;
@@ -66,6 +66,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       }
     }
     this.sourceHeight = this.createSourceFunction();
+    this.updateSampleStepBasedOnSource();
     this.buildSpatialIndex();
   }
 
@@ -114,46 +115,82 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   }
 
   /**
-   * Получить нормаль поверхности в указанной точке
-   * Вычисляется через конечные разности (центральные)
-   * @param x - координата X в мировой системе координат
-   * @param z - координата Z в мировой системе координат
-   * @returns нормализованный вектор нормали [nx, ny, nz]
+   * Получить нормаль поверхности в указанной точке.
+   *
+   * Метод использует центральные разности по X и Z с динамическим шагом выборки
+   * `sampleStep`, зависящим от разрешения источника высот. Это даёт устойчивые
+   * и «масштабно-инвариантные» нормали для разных размеров мира и сеток.
+   *
+   * Алгоритм:
+   * - Вычисляем четыре соседних значения высоты: слева/справа и сзади/спереди.
+   * - Формируем два касательных вектора на поверхности и берём их векторное произведение.
+   * - Нормализуем результат; в вырожденном случае возвращаем [0,1,0].
    */
   getNormal(x: number, z: number): [number, number, number] {
-    const step = this.sampleStep;
-    
-    // Получаем высоты соседних точек для вычисления градиента
-    const heightL = this.getHeight(x - step, z);     // левая
-    const heightR = this.getHeight(x + step, z);     // правая
-    const heightB = this.getHeight(x, z - step);     // задняя
-    const heightF = this.getHeight(x, z + step);     // передняя
+    const step = this.sampleStep
 
-    // Получаем градиент через центральные разности (используем для создания касательных векторов)
+    const heightL = this.getHeight(x - step, z)
+    const heightR = this.getHeight(x + step, z)
+    const heightB = this.getHeight(x, z - step)
+    const heightF = this.getHeight(x, z + step)
 
-    // Создаем два касательных вектора на поверхности
-    const tangentX: [number, number, number] = [2 * step, heightR - heightL, 0];
-    const tangentZ: [number, number, number] = [0, heightF - heightB, 2 * step];
+    const tangentX: [number, number, number] = [2 * step, heightR - heightL, 0]
+    const tangentZ: [number, number, number] = [0, heightF - heightB, 2 * step]
 
-    // Нормаль как векторное произведение касательных векторов
     const normal: [number, number, number] = [
-      tangentX[1] * tangentZ[2] - tangentX[2] * tangentZ[1],  // X компонент
-      tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],  // Y компонент
-      tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]   // Z компонент
-    ];
+      tangentX[1] * tangentZ[2] - tangentX[2] * tangentZ[1],
+      tangentX[2] * tangentZ[0] - tangentX[0] * tangentZ[2],
+      tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]
+    ]
 
-    // Нормализуем вектор
-    const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-    if (length > 0) {
-      normal[0] /= length;
-      normal[1] /= length;
-      normal[2] /= length;
+    const length = Math.hypot(normal[0], normal[1], normal[2])
+    if (length <= 1e-8) return [0, 1, 0]
+    return [normal[0] / length, normal[1] / length, normal[2] / length]
+  }
+
+  /**
+   * Обновляет динамический шаг выборки `sampleStep` для нормалей,
+   * исходя из фактического разрешения источника высот.
+   *
+   * Формула:
+   *  - gridW/gridH — размеры решётки источника (Perlin: params.width/height;
+   *    Heightmap: heightsField.width/height либо ImageData.width/height,
+   *    либо параметры imgWidth/imgHeight, если данные ещё не загружены).
+   *  - base = min(worldW/(gridW-1), worldH/(gridH-1)).
+   *  - Ограничения: stepMin = worldMin/1000, stepMax = worldMin/10.
+   *  - sampleStep = clamp(base, stepMin, stepMax).
+   */
+  private updateSampleStepBasedOnSource(): void {
+    const worldW = Math.max(1e-6, this.config.worldWidth)
+    const worldH = Math.max(1e-6, this.config.worldHeight)
+    const worldMin = Math.min(worldW, worldH)
+
+    let gridW = 2
+    let gridH = 2
+
+    if (this.config.source.kind === 'perlin') {
+      gridW = Math.max(2, this.config.source.params.width)
+      gridH = Math.max(2, this.config.source.params.height)
     } else {
-      // Если длина 0, возвращаем вектор "вверх"
-      return [0, 1, 0];
+      if (this.heightsField) {
+        gridW = Math.max(2, this.heightsField.width)
+        gridH = Math.max(2, this.heightsField.height)
+      } else if (this.heightmapImageData) {
+        gridW = Math.max(2, this.heightmapImageData.width)
+        gridH = Math.max(2, this.heightmapImageData.height)
+      } else {
+        gridW = Math.max(2, this.config.source.params.imgWidth)
+        gridH = Math.max(2, this.config.source.params.imgHeight)
+      }
     }
 
-    return normal;
+    const cellW = worldW / Math.max(1, gridW - 1)
+    const cellH = worldH / Math.max(1, gridH - 1)
+    const base = Math.min(cellW, cellH)
+
+    const stepMin = worldMin / 1000
+    const stepMax = worldMin / 10
+    this.sampleStep = Math.max(stepMin, Math.min(stepMax, base))
   }
 
   /**
@@ -290,6 +327,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         if (DEBUG) console.log('🗻 Heightmap ImageData loaded successfully:', imageData.width, 'x', imageData.height);
         this.heightmapImageData = imageData;
         this.heightCache.clear();
+        this.updateSampleStepBasedOnSource();
         if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
         return imageData;
       })
@@ -321,6 +359,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         if (res) {
           this.heightsField = res;
           this.heightCache.clear();
+          this.updateSampleStepBasedOnSource();
           if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
         }
         return res;
@@ -430,7 +469,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private applyTerrainOpsOptimized(baseHeight: number, x: number, z: number): number {
     let height = baseHeight;
     const relevantOps = this.spatialIndex ? getRelevantOps(this.spatialIndex, this.spatialCellSize, x, z) : (this.config.ops || [])
-    return applyTerrainOpsOptimized(height, x, z, relevantOps);
+    return applyTerrainOpsOptimizedFn(height, x, z, relevantOps);
   }
 
   /**

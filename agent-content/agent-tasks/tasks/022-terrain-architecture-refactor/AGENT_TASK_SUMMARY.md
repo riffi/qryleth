@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 3
+  completed: 4
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -131,13 +131,15 @@ phases:
 
 Отчёт: [phases/phase_3_summary.md](./phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Нормали и шаг выборки
+### ✅ Фаза 4: Нормали и шаг выборки
 - Динамический `sampleStep`:
   - `step = clamp(min(worldW/(gridW-1), worldH/(gridH-1)), stepMin, stepMax)`.
   - `stepMin` выбрать эмпирически (например, `worldMin/1000`), `stepMax` — чтобы не терять рельеф.
 - Обновить `getNormal`: центральные разности, гарантировать нормализацию, обработать вырожденные случаи.
 - Русский комментарий к методу: формулы, сложность, граничные условия.
 Результат: стабильные нормали на разных масштабах.
+
+Отчёт: [phases/phase_4_summary.md](./phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: UI/Store — чистый LandscapeLayer и ready()
 - `LandscapeLayer`:
