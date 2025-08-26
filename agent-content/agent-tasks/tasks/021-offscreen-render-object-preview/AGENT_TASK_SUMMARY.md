@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, r3f, preview, offscreen-render]
 phases:
   total: 4
-  completed: 0
+  completed: 1
 ---
 
 # Реализация offscreen render превью объектов в библиотеке при сохранении
@@ -36,13 +36,15 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Создание утилиты offscreen рендеринга
-- Создание `shared/lib/offscreen-renderer/OffscreenObjectRenderer.ts`
-- Реализация класса для offscreen рендеринга 3D объектов с использованием OffscreenCanvas и R3F
+### ✅ Фаза 1: Создание утилиты offscreen рендеринга
+- Создание `features/object-editor/lib/offscreen-renderer/OffscreenObjectRenderer.ts`
+- Реализация класса для offscreen рендеринга 3D объектов с использованием Three.js WebGLRenderer
 - Параметры превью: 256x256 PNG с прозрачным фоном
 - Стандартное освещение для консистентного вида превью
 - Автоматический выбор оптимального ракурса через анализ bounding box объекта
 - Оптимизация для быстрого рендеринга (упрощенные материалы, отключение теней)
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Интеграция с процессом сохранения объектов
 - Модификация `saveUtils.ts` для генерации превью перед сохранением (только при сохранении)
