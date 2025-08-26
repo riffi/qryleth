@@ -109,16 +109,16 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
   const hasThumbnail = Boolean(object.thumbnail)
 
   return (
-    <Card 
-      shadow="sm" 
-      padding={size === 'sm' ? 'xs' : 'md'} 
-      radius="md" 
+    <Card
+      shadow="sm"
+      padding={size === 'sm' ? 'xs' : 'md'}
+      radius="md"
       withBorder
       className={classes.card}
     >
       <Stack gap={size === 'sm' ? 'xs' : 'sm'}>
         {/* Превью изображение */}
-        <Box className={classes.previewContainer} style={{ height: previewSize.height }}>
+        <Box className={classes.previewContainer} >
           {hasThumbnail && !imageError ? (
             <>
               {imageLoading && (
@@ -162,19 +162,19 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
 
         {/* Информация об объекте */}
         <Box style={{ flex: 1 }}>
-          <Text 
-            fw={500} 
+          <Text
+            fw={500}
             lineClamp={size === 'sm' ? 1 : 2}
             size={size === 'sm' ? 'sm' : 'md'}
           >
             {object.name}
           </Text>
-          
+
           {object.description && size !== 'sm' && (
-            <Text 
-              size="sm" 
-              c="dimmed" 
-              lineClamp={2} 
+            <Text
+              size="sm"
+              c="dimmed"
+              lineClamp={2}
               mt={4}
             >
               {object.description}
