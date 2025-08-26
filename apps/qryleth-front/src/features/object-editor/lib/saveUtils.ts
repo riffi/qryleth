@@ -91,19 +91,40 @@ export const clearPreviewCache = (): void => {
  * @returns строковый ключ кеша
  */
 function generateCacheKey(gfxObject: GfxObject): string {
-  // Создаем хеш на основе критических свойств объекта
+  /**
+   * Формируем детерминированные данные для ключа кеша на основе важных полей объекта.
+   * Включаем типы и параметры примитивов, id материалов/групп и сами коллекции материалов/групп.
+   */
   const keyData = {
     primitives: gfxObject.primitives.map(p => ({
       type: p.type,
       params: p.params,
-      materialId: p.materialId,
-      groupId: p.groupId
+      materialId: (p as any).materialId,
+      groupId: (p as any).groupId
     })),
     materials: gfxObject.materials,
     primitiveGroups: gfxObject.primitiveGroups,
     primitiveGroupAssignments: gfxObject.primitiveGroupAssignments
   }
-  
-  // Простой способ создания хеша из объекта
-  return btoa(JSON.stringify(keyData)).slice(0, 32)
+
+  /**
+   * Кодирует строку в base64 без ограничений Latin1, используя UTF-8 кодировку.
+   *
+   * Стандартные window.btoa/atob ожидают строки в Latin1 и бросают InvalidCharacterError
+   * при наличии кириллицы/эмодзи и т.п. Здесь используем TextEncoder для получения байтов
+   * UTF-8 и затем конвертируем их в base64 совместимым способом.
+   */
+  const toBase64Utf8 = (str: string): string => {
+    const bytes = new TextEncoder().encode(str)
+    // Конвертация Uint8Array -> бинарная строка порционно, чтобы избежать переполнения стека
+    let binary = ''
+    const chunk = 0x8000
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+    }
+    return btoa(binary)
+  }
+
+  const json = JSON.stringify(keyData)
+  return toBase64Utf8(json).slice(0, 32)
 }

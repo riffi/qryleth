@@ -148,6 +148,9 @@ const PreviewScene: React.FC<{
 }> = ({ gfxObject, onReady, onRendererCapture }) => {
   return (
     <>
+      {/* Фон превью: светлый небесно-голубой для лучшей читаемости силуэта */}
+      {/* Даже при прозрачном канвасе задаём цвет фона сцены для единообразия */}
+      <color attach="background" args={["#EAF4FF"]} />
       {/* Улучшенное освещение для превью с повышенной яркостью */}
       <ambientLight color="#ffffff" intensity={0.8} />
       <directionalLight
@@ -256,7 +259,8 @@ export class OffscreenObjectRenderer {
         const handleReady = async () => {
           try {
             // Даем дополнительное время для финального рендеринга
-            await new Promise(resolve => setTimeout(resolve, 100))
+            // Увеличено до 200мс для более стабильного получения кадра
+            await new Promise(resolve => setTimeout(resolve, 200))
 
             // Получаем результат как data URL и blob
             const dataUrl = this.canvas.toDataURL('image/png')

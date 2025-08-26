@@ -41,6 +41,7 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
+import { generateObjectPreview } from '@/features/object-editor/lib/saveUtils'
 import type {
     ObjectManagerProps,
     SceneLayerModalMode,
@@ -250,21 +251,59 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * Сохраняет выбранный объект в библиотеку
      * и присваивает его UUID из библиотеки сценному объекту
      */
+    /**
+     * Сохраняет выбранный объект сцены в библиотеку с полной структурой данных
+     * и автогенерацией превью.
+     *
+     * Под «полной структурой» подразумевается не только список примитивов,
+     * но и:
+     * - materials: материалы объекта;
+     * - boundingBox: ограничивающий бокс объекта;
+     * - primitiveGroups: группы примитивов (иерархия/контейнеры);
+     * - primitiveGroupAssignments: привязка примитивов к группам.
+     * Это устраняет проблему потери материалов и связей групп при сохранении из SceneEditor.
+     * Дополнительно генерируется миниатюра (thumbnail) для карточки в библиотеке.
+     *
+     * @param name Человекочитаемое имя объекта для записи в библиотеку
+     * @param description Необязательное описание объекта
+     * @returns UUID записи объекта в библиотеке или undefined при ошибке
+     */
     const handleSaveObject = async (name: string, description?: string): Promise<string | undefined> => {
         if (!savingObjectUuid) return
         const object = useSceneStore.getState().objects.find(o => o.uuid === savingObjectUuid)
         if (!object) return
 
-        const { uuid, primitives } = object
-        const objectData = { uuid, name: object.name, primitives }
+        // Формируем полные данные объекта для сохранения в библиотеку
+        const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments } = object
+        const objectData = {
+            uuid,
+            name: object.name,
+            primitives,
+            materials,
+            boundingBox,
+            primitiveGroups,
+            primitiveGroupAssignments,
+        }
 
         try {
-            const libraryUuid = await db.saveObject(name, objectData, description, undefined)
+            // Пытаемся сгенерировать превью объекта (PNG data URL)
+            // Примечание: используем оффскрин‑рендер из ObjectEditor, чтобы
+            // получить единообразный вид превью с учётом материалов и групп.
+            let thumbnail: string | undefined
+            try {
+                const previewDataUrl = await generateObjectPreview(objectData as any, false)
+                thumbnail = previewDataUrl || undefined
+            } catch (e) {
+                // Генерация превью не критична — продолжаем без него
+                console.warn('Не удалось сгенерировать превью для объекта при сохранении из SceneEditor:', e)
+            }
+
+            const libraryUuid = await db.saveObject(name, objectData as any, description, thumbnail)
             // обновить объект сцены, добавив UUID записи библиотеки
             useSceneStore.getState().updateObject(object.uuid, { libraryUuid })
             notifications.show({
                 title: 'Успешно!',
-                message: `Объект "${name}" сохранен в библиотеку`,
+                message: `Объект "${name}" сохранён в библиотеку`,
                 color: 'green',
                 icon: <IconCheck size="1rem" />,
             })
