@@ -170,7 +170,13 @@ const LibraryPage: React.FC = () => {
                   style={{ flex: 1 }}
                 />
               </Group>
-              <ScrollArea style={{ height: 'calc(100vh - 200px)' }}>
+              {/**
+               * ScrollArea для списка сцен: отключаем горизонтальную прокрутку у viewport,
+               * т.к. Mantine Grid использует отрицательные внешние отступы (gutters),
+               * что может создавать горизонтальный скролл. Дополнительно даём горизонтальные
+               * внутренние отступы обёртке Grid, чтобы компенсировать эти отрицательные отступы.
+               */}
+              <ScrollArea style={{ height: 'calc(100vh - 200px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
                 {filteredScenes.length === 0 ? (
                   <Box ta="center" py="xl">
                     <Text size="lg" c="dimmed">
@@ -181,10 +187,11 @@ const LibraryPage: React.FC = () => {
                     </Text>
                   </Box>
                 ) : (
-                  <Grid>
-                    {filteredScenes.map((scene) => (
-                      <Grid.Col key={scene.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                        <Card shadow="sm" padding="md" radius="md" withBorder>
+                  <Box px="sm">
+                    <Grid>
+                      {filteredScenes.map((scene) => (
+                        <Grid.Col key={scene.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
+                          <Card shadow="sm" padding="md" radius="md" withBorder>
                           <Stack gap="sm">
                             <Group justify="space-between" align="flex-start">
                               <Box style={{ flex: 1 }}>
@@ -223,7 +230,8 @@ const LibraryPage: React.FC = () => {
                         </Card>
                       </Grid.Col>
                     ))}
-                  </Grid>
+                    </Grid>
+                  </Box>
                 )}
               </ScrollArea>
             </Stack>
@@ -239,7 +247,11 @@ const LibraryPage: React.FC = () => {
                   style={{ flex: 1 }}
                 />
               </Group>
-              <ScrollArea style={{ height: 'calc(100vh - 280px)' }}>
+              {/**
+               * ScrollArea для списка объектов: аналогично отключаем горизонтальный скролл
+               * и компенсируем отрицательные отступы Grid через горизонтальные паддинги.
+               */}
+              <ScrollArea style={{ height: 'calc(100vh - 280px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
                 {filteredObjects.length === 0 ? (
                   <Box ta="center" py="xl">
                     <Text size="lg" c="dimmed">
@@ -250,10 +262,11 @@ const LibraryPage: React.FC = () => {
                     </Text>
                   </Box>
                 ) : (
-                  <Grid>
-                    {filteredObjects.map((object) => (
-                      <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                        <ObjectPreviewCard
+                  <Box px="sm">
+                    <Grid>
+                      {filteredObjects.map((object) => (
+                        <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
+                          <ObjectPreviewCard
                           object={object}
                           onEdit={handleEditObject}
                           onDelete={handleDeleteObject}
@@ -264,7 +277,8 @@ const LibraryPage: React.FC = () => {
                         />
                       </Grid.Col>
                     ))}
-                  </Grid>
+                    </Grid>
+                  </Box>
                 )}
               </ScrollArea>
             </Stack>

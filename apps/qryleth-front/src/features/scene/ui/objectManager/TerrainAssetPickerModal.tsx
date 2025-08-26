@@ -11,7 +11,8 @@ import {
   ScrollArea,
   Badge,
   Image,
-  Loader
+  Loader,
+  Box
 } from '@mantine/core'
 import { IconSearch, IconCalendar, IconPhoto, IconCheck } from '@tabler/icons-react'
 import { createTerrainAssetPreviewUrl, getAllTerrainAssetsSummary, revokeTerrainAssetPreviewUrl } from '@/features/scene/lib/terrain/HeightmapUtils'
@@ -122,7 +123,11 @@ export const TerrainAssetPickerModal: React.FC<TerrainAssetPickerModalProps> = (
           leftSection={<IconSearch size={16} />}
         />
 
-        <ScrollArea style={{ height: 'calc(70vh - 120px)' }}>
+        {/**
+         * Отключаем горизонтальную прокрутку viewport и добавляем горизонтальные отступы
+         * вокруг Grid, чтобы нивелировать отрицательные внешние отступы сетки.
+         */}
+        <ScrollArea style={{ height: 'calc(70vh - 120px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
           {isLoading ? (
             <Group justify="center" py="xl">
               <Loader size="sm" />
@@ -132,7 +137,8 @@ export const TerrainAssetPickerModal: React.FC<TerrainAssetPickerModalProps> = (
               <Text c="dimmed">Нет загруженных карт высот</Text>
             </Group>
           ) : (
-            <Grid>
+            <Box px="sm">
+              <Grid>
               {filtered.map((a) => (
                 <Grid.Col key={a.assetId} span={{ base: 12, sm: 6, md: 4 }}>
                   <Card withBorder padding="sm" radius="md" shadow={selectedId === a.assetId ? 'sm' : 'xs'} style={{ borderColor: selectedId === a.assetId ? 'var(--mantine-color-blue-6)' : undefined }}>
@@ -156,7 +162,8 @@ export const TerrainAssetPickerModal: React.FC<TerrainAssetPickerModalProps> = (
                   </Card>
                 </Grid.Col>
               ))}
-            </Grid>
+              </Grid>
+            </Box>
           )}
         </ScrollArea>
 

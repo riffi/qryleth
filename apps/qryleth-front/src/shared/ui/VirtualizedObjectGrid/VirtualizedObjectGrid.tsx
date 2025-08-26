@@ -115,6 +115,15 @@ const LazyObjectCard: React.FC<{
  * Виртуализированная сетка объектов для оптимальной производительности
  * при отображении большого количества превью объектов
  */
+/**
+ * Виртуализированная сетка объектов для оптимальной производительности
+ * при отображении большого количества превью объектов.
+ *
+ * Важные детали реализации:
+ * - Для больших списков контейнер ограничен по высоте и получает вертикальную
+ *   прокрутку (`overflowY: 'auto'`) при отключённой горизонтальной (`overflowX: 'hidden'`).
+ *   Это предотвращает появление горизонтальной полосы прокрутки из-за гаттеров/округлений.
+ */
 export const VirtualizedObjectGrid: React.FC<VirtualizedObjectGridProps> = ({
   objects,
   onEdit,
@@ -156,7 +165,7 @@ export const VirtualizedObjectGrid: React.FC<VirtualizedObjectGridProps> = ({
 
   // Для большого количества объектов используем ленивую загрузку
   return (
-    <Box style={{ maxHeight: height, overflow: 'auto' }}>
+    <Box style={{ maxHeight: height, overflowY: 'auto', overflowX: 'hidden' }}>
       <Grid>
         {objects.map((object) => (
           <Grid.Col 

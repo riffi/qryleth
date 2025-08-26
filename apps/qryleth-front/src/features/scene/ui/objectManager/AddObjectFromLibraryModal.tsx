@@ -102,7 +102,11 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
           style={{ flex: 1 }}
         />
 
-        <ScrollArea style={{ height: 'calc(70vh - 120px)' }}>
+        {/**
+         * Во viewport отключаем горизонтальную прокрутку, а вокруг Grid даём горизонтальные
+         * отступы, чтобы компенсировать отрицательные внешние отступы сетки (gutters).
+         */}
+        <ScrollArea style={{ height: 'calc(70vh - 120px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
           {filteredObjects.length === 0 ? (
             <Box ta="center" py="xl">
               <Text size="lg" c="dimmed">
@@ -113,7 +117,8 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
               </Text>
             </Box>
           ) : (
-            <Grid>
+            <Box px="sm">
+              <Grid>
               {filteredObjects.map((object) => (
                 <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4 }}>
                   <ObjectPreviewCard
@@ -127,7 +132,8 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
                   />
                 </Grid.Col>
               ))}
-            </Grid>
+              </Grid>
+            </Box>
           )}
         </ScrollArea>
       </Stack>

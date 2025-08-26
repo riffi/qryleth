@@ -20,6 +20,18 @@ interface MainLayoutProps {
   navbarVisible?: boolean
 }
 
+/**
+ * Основной макет приложения на базе Mantine AppShell.
+ * 
+ * Задачи макета:
+ * - Управление видимостью шапки (`headerVisible`) и боковой панели (`navbarVisible`).
+ * - Предоставление области `main`, растянутой на всю высоту окна (`100dvh`).
+ * - Принудительное отключение горизонтальной прокрутки внутри основной области,
+ *   чтобы предотвратить появление горизонтального скролла из-за округлений/гаттеров и т.п.
+ * 
+ * Примечание: именно установка `overflowX: 'hidden'` на `main` решает проблему
+ * случайного появления горизонтального скролла на страницах с сетками и скролл-областями.
+ */
 export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection, headerVisible = true, navbarVisible = true }) => {
   const navigate = useNavigate()
   const [settingsOpened, setSettingsOpened] = useState(false)
@@ -59,7 +71,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, rightSection, 
         main: {
           display: 'flex',
           flexDirection: 'column',
-          height: '100dvh'
+          height: '100dvh',
+          // Важно: отключаем горизонтальный скролл в основной области макета
+          overflowX: 'hidden'
         }
       }}
     >
