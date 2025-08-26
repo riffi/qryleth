@@ -13,12 +13,25 @@ export interface HoverInteractivePreviewProps {
 }
 
 /**
- * Автоподстройка камеры под габариты объекта с последующим мягким вращением вокруг центра.
- * Камера выставляется так, чтобы весь объект гарантированно попадал в кадр, затем
- * выполняется плавное вращение по окружности вокруг вертикальной оси (Y) с постоянной угловой скоростью.
+ * Автоподстройка и мягкое вращение камеры вокруг объекта.
+ *
+ * Логика подбора дистанции учитывает реальный аспект Canvas и вертикальный FOV камеры.
+ * Дистанция выбирается как максимум из вертикального и горизонтального вписывания:
+ *   dV = (H/2) / tan(FOVy/2), dH = (W/2) / (tan(FOVy/2) * aspect)
+ * Для более крупного кадрирования используется небольшой отступ (padding ~ 1.05).
+ * После подстройки выполняется плавное вращение вокруг оси Y.
  */
+/**
+ * Вспомогательная функция для вычисления аспект‑отношения Canvas.
+ * Принимает объект размера R3F (`size.width`, `size.height`) и возвращает `width / height`.
+ * Содержит защиту от деления на ноль: при нулевой высоте возвращает 1.
+ */
+function sizeRefFromThree(size: { width: number; height: number }): number {
+  return size.height > 0 ? size.width / size.height : 1
+}
+
 const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void }> = ({ gfxObject, onReady }) => {
-  const { camera, scene } = useThree()
+  const { camera, scene, size } = useThree()
   const centerRef = React.useRef(new THREE.Vector3(0, 0, 0))
   const radiusRef = React.useRef(3)
   const elevationRef = React.useRef(0.6) // радианы, ~34° над горизонтом
@@ -26,8 +39,10 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void 
   const readyRef = React.useRef(false)
 
   /**
-   * Вычисляет bounding box сцены, центр и оптимальную дистанцию для камеры.
-   * Вызывается один раз после того, как примитивы оказались в сцене.
+   * Вычисляет геометрию охвата (AABB + bounding sphere), центр и оптимальную дистанцию камеры.
+   * Используем сферу охвата для устойчивого кадрирования при вращении: если камера всегда смотрит в центр
+   * сферы, то при дистанции d >= r/sin(FOV/2) объект гарантированно целиком влезает в кадр.
+   * Учитываем вертикальный FOV (fovY) и горизонтальный FOV (fovX), выбираем максимальную необходимую дистанцию.
    */
   React.useLayoutEffect(() => {
     const t = setTimeout(() => {
@@ -56,12 +71,18 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void 
       }
 
       const center = bbox.getCenter(new THREE.Vector3())
-      const size = bbox.getSize(new THREE.Vector3())
-      const maxDim = Math.max(size.x, size.y, size.z)
+      const sphere = bbox.getBoundingSphere(new THREE.Sphere())
+      const r = sphere.radius > 0 ? sphere.radius : 1
 
       const perspective = camera as THREE.PerspectiveCamera
-      const fov = (perspective.fov * Math.PI) / 180
-      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.1
+      const fovY = (perspective.fov * Math.PI) / 180
+      const aspect = sizeRefFromThree(size)
+      const fovX = 2 * Math.atan(Math.tan(fovY / 2) * aspect)
+      // Для сферы охвата условие влезания: d >= r / sin(FOV/2)
+      const dV = r / Math.sin(fovY / 2)
+      const dH = r / Math.sin(fovX / 2)
+      const baseDistance = Math.max(dV, dH)
+      const distance = baseDistance * 1.2 // безопасный запас против краевых случаев и вращения
 
       centerRef.current.copy(center)
       radiusRef.current = distance

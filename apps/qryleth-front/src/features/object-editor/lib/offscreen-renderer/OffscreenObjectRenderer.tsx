@@ -36,13 +36,18 @@ export interface PreviewRenderResult {
 }
 
 /**
- * Компонент для автоматической установки оптимальной позиции камеры
+ * Компонент для автоматической установки оптимальной позиции камеры.
+ *
+ * Учитывает аспект offscreen-canvas и вертикальный FOV камеры, чтобы объект занимал больше кадра
+ * без лишних полей по бокам. Дистанция вычисляется как максимум из вертикального и горизонтального
+ * вписывания: dV = (H/2)/tan(FOVy/2), dH = (W/2)/(tan(FOVy/2)*aspect). Добавляется небольшой
+ * коэффициент (≈1.05) для безопасного отступа от краёв.
  */
 const AutoFitCamera: React.FC<{
   gfxObject: GfxObject
   onReady?: () => void
 }> = ({ gfxObject, onReady }) => {
-  const { camera, scene } = useThree()
+  const { camera, scene, size } = useThree()
   const [positioned, setPositioned] = React.useState(false)
 
   React.useLayoutEffect(() => {
@@ -83,12 +88,18 @@ const AutoFitCamera: React.FC<{
       }
 
       const center = boundingBox.getCenter(new THREE.Vector3())
-      const size = boundingBox.getSize(new THREE.Vector3())
+      const sphere = boundingBox.getBoundingSphere(new THREE.Sphere())
+      const r = sphere.radius > 0 ? sphere.radius : 1
 
-      // Вычисляем оптимальную дистанцию камеры
-      const maxDim = Math.max(size.x, size.y, size.z)
-      const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180)
-      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+      // Расчёт дистанции по сфере охвата: устойчив к вращению и различным пропорциям объекта
+      const perspective = camera as THREE.PerspectiveCamera
+      const fovY = perspective.fov * (Math.PI / 180)
+      const aspect = size.height > 0 ? size.width / size.height : 1
+      const fovX = 2 * Math.atan(Math.tan(fovY / 2) * aspect)
+      const dV = r / Math.sin(fovY / 2)
+      const dH = r / Math.sin(fovX / 2)
+      const baseDistance = Math.max(dV, dH)
+      const distance = baseDistance * 1.2 // одинаковый запас с hover, чтобы PNG не клипался
 
       // Изометрический угол для консистентного вида
       const angle = Math.PI / 4 // 45 degrees
