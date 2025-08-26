@@ -132,9 +132,9 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
               <Image
                 src={object.thumbnail}
                 alt={`Превью объекта ${object.name}`}
-                width={previewSize.width}
-                height={previewSize.height}
-                fit="contain"
+                width="100%"
+                height="100%"
+                fit="cover"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
                 className={classes.previewImage}

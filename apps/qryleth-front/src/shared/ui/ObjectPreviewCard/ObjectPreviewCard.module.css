@@ -29,6 +29,9 @@
 .previewImage {
   border-radius: var(--mantine-radius-sm);
   transition: opacity 0.2s ease;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
 }
 
 .previewSkeleton {

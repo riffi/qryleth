@@ -137,17 +137,17 @@ const PreviewScene: React.FC<{
 }> = ({ gfxObject, onReady, onRendererCapture }) => {
   return (
     <>
-      {/* Стандартное освещение для превью */}
-      <ambientLight color="#89c8cf" intensity={0.4} />
+      {/* Улучшенное освещение для превью с повышенной яркостью */}
+      <ambientLight color="#ffffff" intensity={0.8} />
       <directionalLight 
         position={[5, 10, 7]}
         color="#ffffff" 
-        intensity={0.8}
+        intensity={1.2}
       />
       <directionalLight 
         position={[-3, -5, -2]}
         color="#ffffff" 
-        intensity={0.3}
+        intensity={0.6}
       />
       
       {/* Сам объект, используя переиспользуемый компонент */}
@@ -185,8 +185,8 @@ export class OffscreenObjectRenderer {
    */
   constructor(config: PreviewRenderConfig = {}) {
     this.config = {
-      width: 256,
-      height: 256,
+      width: 512,
+      height: 512,
       transparent: true,
       backgroundColor: '#000000',
       pixelRatio: 1,
@@ -233,8 +233,8 @@ export class OffscreenObjectRenderer {
           }
         })
         
-        // Настройка цвета фона
-        const bgColor = this.config.transparent ? 0x000000 : this.config.backgroundColor
+        // Настройка цвета фона - светлый небесно-голубой цвет для лучшей видимости объектов
+        const bgColor = this.config.transparent ? 0x87CEEB : this.config.backgroundColor
         
         // Callback для захвата рендерера
         const handleRendererCapture = (renderer: THREE.WebGLRenderer) => {

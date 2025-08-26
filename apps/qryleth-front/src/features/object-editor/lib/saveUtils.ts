@@ -46,10 +46,10 @@ export const generateObjectPreview = async (
   let renderer: OffscreenObjectRenderer | null = null
   
   try {
-    // Создаем рендерер с оптимальными настройками для превью
+    // Создаем рендерер с высоким разрешением для качественного превью
     renderer = new OffscreenObjectRenderer({
-      width: 256,
-      height: 256,
+      width: 512,
+      height: 512,
       transparent: true,
       antialias: true,
       pixelRatio: 1
