@@ -2,13 +2,12 @@
 
 ## As Is
 
--   Геометрия слоя Landscape создаётся через `createPerlinGeometry`,
-    результатом является geometry + noiseData.
--   В `LandscapeLayer` noiseData сохраняется в слой при первом
-    рендере
+-   Геометрия слоя Landscape ранее создавалась через `createPerlinGeometry`;
+    устаревшее поле массивов высот удалено в новой архитектуре.
+-   Ранее в `LandscapeLayer` массивы высот сохранялись в слой при первом рендере — эта логика удалена.
 -   В `ObjectPlacementUtils` высота для размещения объектов вычисляется
     независимо, но похожим образом.
--   В `GfxLayer` хранится `noiseData?: number[]`.
+-   В `GfxLayer` больше не хранится `noiseData?: number[]` — используйте `terrain`.
 
 ## To Be
 
@@ -41,7 +40,6 @@ export interface HeightmapParams {
 export type TerrainSource =
 | { kind: 'perlin'; params: PerlinParams }
 | { kind: 'heightmap'; params: HeightmapParams }
-| { kind: 'legacy'; data: Float32Array; width: number; height: number }; // для миграции
 
 // Одна «добавка» (операция модификации рельефа)
 export interface TerrainOp {
@@ -80,7 +78,6 @@ createHeightSampler(cfg: TerrainConfig):
 1. База: берём высоту из source:
 - perlin: адаптер seed-friendly шума (simplex/open-simplex + свой PRNG).
 - heightmap: bilinear из ImageData (UV→px,py).
-- legacy: bilinear из сохранённого массива (для миграции).
 
 2. Применяем ops: для каждой TerrainOp вычисляем вклад:
 - расстояние r от center с учётом эллипса (и rotation), нормируем t = clamp(1 - r, 0, 1),
@@ -112,7 +109,7 @@ export function buildTerrainGeometry(cfg: TerrainConfig, sampler: HeightSampler)
   return geom
 }
 ```
-LandscapeLayer заменяет текущий createPerlinGeometry на пару sampler+buildTerrainGeometry. Сохранение noiseData убрать.
+LandscapeLayer заменяет текущий `createPerlinGeometry` на пару sampler+buildTerrainGeometry. Сохранение устаревших массивов высот удалено.
 
 ### Размещение объектов
 ObjectPlacementUtils использует только:
@@ -135,6 +132,3 @@ export interface GfxLayer {
 }
 ```
 - Новые слои: source.kind = 'perlin' | 'heightmap', ops?: TerrainOp[].
-- Миграция: старые — source.kind = 'legacy' + сохранённые размеры.
-
-

@@ -2,14 +2,14 @@
 id: 22
 epic: null
 title: "Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps"
-status: planned
+status: in_progress
 created: 2025-08-26
 updated: 2025-08-26
 owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 0
+  completed: 1
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -90,7 +90,7 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Полное удаление legacy
+### ✅ Фаза 1: Полное удаление legacy
 - Типы: удалить ветку `'legacy'` из `GfxTerrainSource` и связанные интерфейсы.
 - Слои/сцена: удалить поле `noiseData` отовсюду (типы, использование, сохранение/загрузка).
 - `GfxHeightSampler.ts`: удалить `createLegacySource` и все ветки `source.kind === 'legacy'`.
@@ -99,6 +99,8 @@ phases:
 - Тесты: удалить/обновить тесты, завязанные на legacy.
 - Документация: убрать упоминания legacy/`noiseData`.
 Результат: по коду/докам нет ссылок на `legacy` и `noiseData`; сборка зелёная.
+
+Отчёт: [phases/phase_1_summary.md](./phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Вынесение построения геометрии
 - Создать `apps/qryleth-front/src/features/scene/lib/terrain/GeometryBuilder.ts`:

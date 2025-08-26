@@ -60,36 +60,7 @@ describe('GfxHeightSampler', () => {
     });
   });
 
-  describe('Legacy source', () => {
-    it('should create sampler with legacy source and return valid heights', () => {
-      // Создаем простые тестовые данные
-      const testData = new Float32Array([0, 1, 2, 3]);
-      
-      const config: GfxTerrainConfig = {
-        worldWidth: 10,
-        worldHeight: 10,
-        source: {
-          kind: 'legacy',
-          data: testData,
-          width: 2,
-          height: 2
-        }
-      };
-
-      const sampler = createGfxHeightSampler(config);
-      
-      // Проверяем, что можем получить высоту
-      const height = sampler.getHeight(0, 0);
-      expect(typeof height).toBe('number');
-      expect(isFinite(height)).toBe(true);
-      
-      // Проверяем нормали
-      const normal = sampler.getNormal(0, 0);
-      expect(Array.isArray(normal)).toBe(true);
-      expect(normal).toHaveLength(3);
-      expect(normal.every(n => typeof n === 'number' && isFinite(n))).toBe(true);
-    });
-  });
+  // legacy-режим удалён
 
   describe('Edge fade', () => {
     it('should apply edge fade correctly', () => {
@@ -245,10 +216,16 @@ describe('GfxHeightSampler', () => {
         worldWidth: 10,
         worldHeight: 10,
         source: {
-          kind: 'legacy',
-          data: new Float32Array([0, 0, 0, 0]), // плоская поверхность
-          width: 2,
-          height: 2
+          // Используем perlin с нулевой амплитудой как плоскую поверхность
+          kind: 'perlin',
+          params: {
+            seed: 1,
+            octaveCount: 1,
+            amplitude: 0,
+            persistence: 0.5,
+            width: 4,
+            height: 4
+          }
         },
         ops: [
           {
@@ -300,10 +277,15 @@ describe('GfxHeightSampler', () => {
         worldWidth: 10,
         worldHeight: 10,
         source: {
-          kind: 'legacy',
-          data: new Float32Array([0, 0, 0, 0]), // плоская поверхность
-          width: 2,
-          height: 2
+          kind: 'perlin',
+          params: {
+            seed: 1,
+            octaveCount: 1,
+            amplitude: 0,
+            persistence: 0.5,
+            width: 4,
+            height: 4
+          }
         },
         ops: [
           {
@@ -355,10 +337,15 @@ describe('GfxHeightSampler', () => {
         worldWidth: 100,
         worldHeight: 100,
         source: {
-          kind: 'legacy',
-          data: new Float32Array([0, 0, 0, 0]),
-          width: 2,
-          height: 2
+          kind: 'perlin',
+          params: {
+            seed: 1,
+            octaveCount: 1,
+            amplitude: 0,
+            persistence: 0.5,
+            width: 4,
+            height: 4
+          }
         },
         ops: manyOps
       };

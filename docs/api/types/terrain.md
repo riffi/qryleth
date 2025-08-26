@@ -8,7 +8,7 @@
 
 - **Цель:** устранить дублирование логики высот между рендерингом и размещением объектов.
 - **Ключевая идея:** любые операции с высотой (рендер, физика, размещение) идут через единый `GfxHeightSampler`.
-- **Источники:** Perlin (детерминированный шум), PNG heightmap (Dexie), Legacy (миграция старых `noiseData`).
+- **Источники:** Perlin (детерминированный шум), PNG heightmap (Dexie).
 - **Модификации:** `TerrainOps` — локальные добавки рельефа (add/sub/set, falloff, эллипсы, поворот).
 
 ---
@@ -40,7 +40,6 @@ export interface GfxHeightmapParams {
 export type GfxTerrainSource =
   | { kind: 'perlin'; params: GfxPerlinParams }
   | { kind: 'heightmap'; params: GfxHeightmapParams }
-  | { kind: 'legacy'; data: Float32Array; width: number; height: number }
 
 // Операции модификации рельефа
 export interface GfxTerrainOp {
@@ -101,7 +100,7 @@ export interface GfxHeightSampler {
 ```ts
 import { createGfxHeightSampler, buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GfxHeightSampler'
 
-// 1) получить конфигурацию конфигурацию террейна (новую или legacy-конверсию)
+// 1) получить конфигурацию террейна
 const sampler = createGfxHeightSampler(layer.terrain)
 const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
 ```
@@ -109,7 +108,6 @@ const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
 - Компонент: `src/features/scene/ui/renderer/landscape/LandscapeLayer.tsx`
 - Поведение:
   - при наличии `layer.terrain` используется напрямую;
-  - для старых слоёв `noiseData` создаётся временная конфигурация `source.kind = 'legacy'`;
   - для пустых слоёв создаётся новая `perlin` конфигурация, сохраняемая в store.
 
 ---
@@ -166,8 +164,8 @@ const terrainConfig: GfxTerrainConfig = {
 
 ## Замечания по совместимости
 
-- Поле `GfxLayer.noiseData` помечено как deprecated; для старых сцен создаётся `terrain.source.kind = 'legacy'`.
-- Scene API `adjustInstancesForPerlinTerrain` сохраняет имя для обратной совместимости, но под капотом использует единый сэмплер и работает для всех видов террейна.
+- Поддержка `GfxLayer.noiseData` и режима `legacy` удалена. Используйте `terrain: GfxTerrainConfig`.
+- Scene API `adjustInstancesForPerlinTerrain` сохраняет имя, но работает с новой архитектурой.
 
 ---
 

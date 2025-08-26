@@ -11,7 +11,7 @@ import type { GfxTerrainConfig } from '@/entities/terrain'
 const canLayerAdjustInstances = (layer: SceneLayer): boolean => {
   return layer.type === GfxLayerType.Landscape &&
          layer.shape === GfxLayerShape.Terrain &&
-         (Boolean(layer.terrain) || Boolean(layer.noiseData))
+         Boolean(layer.terrain)
 }
 
 describe('Terrain Layer Detection for Object Adjustment', () => {
@@ -43,18 +43,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
     expect(canLayerAdjustInstances(newTerrainLayer)).toBe(true)
   })
 
-  it('должен обнаруживать legacy слои с noiseData', () => {
-    const legacyLayer: SceneLayer = {
-      id: 'legacy-terrain',
-      name: 'Legacy Terrain Layer',
-      type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Terrain,
-      noiseData: [0.1, 0.2, 0.3, 0.4],
-      visible: true
-    }
-
-    expect(canLayerAdjustInstances(legacyLayer)).toBe(true)
-  })
+  // legacy/noiseData поддержка удалена
 
   it('должен отклонять Plane слои', () => {
     const planeLayer: SceneLayer = {
@@ -68,13 +57,13 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
     expect(canLayerAdjustInstances(planeLayer)).toBe(false)
   })
 
-  it('должен отклонять Perlin слои без данных', () => {
+  it('должен отклонять Terrain слои без данных', () => {
     const emptyPerlinLayer: SceneLayer = {
       id: 'empty-perlin',
       name: 'Empty Perlin Layer',
       type: GfxLayerType.Landscape,
       shape: GfxLayerShape.Terrain,
-      // нет ни terrain, ни noiseData
+      // нет terrain
       visible: true
     }
 
@@ -102,15 +91,6 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       visible: true
     }
 
-    const layerWithNoiseData: SceneLayer = {
-      id: 'legacy-layer',
-      name: 'Legacy Layer',
-      type: GfxLayerType.Landscape,
-      shape: GfxLayerShape.Terrain,
-      noiseData: [1, 2, 3],
-      visible: true
-    }
-
     const emptyLayer: SceneLayer = {
       id: 'empty-layer',
       name: 'Empty Layer',
@@ -120,8 +100,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
     }
 
     // Симулируем логику из SceneObjectManager
-    expect(Boolean(layerWithTerrain.terrain || layerWithTerrain.noiseData)).toBe(true)
-    expect(Boolean(layerWithNoiseData.terrain || layerWithNoiseData.noiseData)).toBe(true)
-    expect(Boolean(emptyLayer.terrain || emptyLayer.noiseData)).toBe(false)
+    expect(Boolean(layerWithTerrain.terrain)).toBe(true)
+    expect(Boolean(emptyLayer.terrain)).toBe(false)
   })
 })

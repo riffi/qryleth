@@ -206,7 +206,7 @@ const res2 = SceneAPI.createObject(
 Корректирует положение всех экземпляров объектов под ландшафтный слой, используя единый `GfxHeightSampler`.
 
 Примечания:
-- Название метода сохранено для обратной совместимости, но под капотом применяется к любому рельефному слою (`terrain.source.kind = 'perlin' | 'heightmap' | 'legacy'`).
+- Название метода сохранено для обратной совместимости, применяется к рельефным слоям новой архитектуры (`terrain.source.kind = 'perlin' | 'heightmap').
 - Высоты и нормали вычисляются через `GfxHeightSampler` (без дублирования логики). 
 
 ### `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>`

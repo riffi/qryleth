@@ -39,11 +39,6 @@ export interface GfxLayer {
   height?: number;
   /** Форма поверхности слоя, заданная перечислением GfxLayerShape */
   shape?: GfxLayerShape;
-  /** 
-   * @deprecated Использовать terrain вместо noiseData
-   * Данное поле оставлено для обратной совместимости со старыми сценами
-   */
-  noiseData?: number[];
   /** Конфигурация террейна (новая архитектура) */
   terrain?: GfxTerrainConfig;
   color?: string;

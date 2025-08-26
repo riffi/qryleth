@@ -2,32 +2,9 @@ import type {Vector3} from '@/shared/types/vector3'
 import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
-import type { GfxTerrainConfig } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
 import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
-
-/**
- * Создать terrain конфигурацию из legacy данных слоя для обратной совместимости
- * @param layer - слой сцены с legacy данными
- * @returns конфигурация террейна для GfxHeightSampler или null если не применимо
- */
-const createLegacyTerrainConfig = (layer: SceneLayer): GfxTerrainConfig | null => {
-  if (layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain && layer.noiseData) {
-    return {
-      worldWidth: layer.width || 1,
-      worldHeight: layer.height || 1,
-      edgeFade: 0.15,
-      source: {
-        kind: 'legacy',
-        data: new Float32Array(layer.noiseData),
-        width: layer.width && layer.width > 200 ? 200 : layer.width || 1,
-        height: layer.height && layer.height > 200 ? 200 : layer.height || 1
-      }
-    }
-  }
-  return null
-}
 
 /**
  * Получить GfxHeightSampler для работы с высотами террейна слоя
@@ -39,14 +16,9 @@ const getHeightSamplerForLayer = (layer: SceneLayer) => {
     return null
   }
 
-  // Приоритет: новая архитектура (terrain) > legacy (noiseData)
+  // Используем только новую архитектуру (terrain). Legacy удалён.
   if (layer.terrain) {
     return createGfxHeightSampler(layer.terrain)
-  }
-
-  const legacyConfig = createLegacyTerrainConfig(layer)
-  if (legacyConfig) {
-    return createGfxHeightSampler(legacyConfig)
   }
 
   return null

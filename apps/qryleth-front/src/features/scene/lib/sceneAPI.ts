@@ -9,7 +9,7 @@ import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, placeInstanceLegacy, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
+import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
   type PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { Vector3 } from '@/shared/types'
@@ -380,19 +380,19 @@ export class SceneAPI {
 
   /**
    * Adjust all object instances for terrain when a terrain layer is added
-   * Supports both new terrain architecture and legacy noiseData
+   * Работает только с новой архитектурой (legacy удалён)
    */
   static adjustInstancesForPerlinTerrain(terrainLayerId: string): { success: boolean; adjustedCount?: number; error?: string } {
     try {
       const state = useSceneStore.getState()
       const { objectInstances, layers, setObjectInstances } = state
 
-      // Find the terrain layer (supports both new and legacy formats)
+      // Find the terrain layer (new architecture only)
       const terrainLayer = layers.find(layer =>
         layer.id === terrainLayerId &&
         layer.type === GfxLayerType.Landscape &&
         layer.shape === GfxLayerShape.Terrain &&
-        (layer.terrain || layer.noiseData) // Поддерживаем как новую архитектуру, так и legacy
+        layer.terrain
       )
 
       if (!terrainLayer) {
@@ -443,12 +443,12 @@ export class SceneAPI {
       const state = useSceneStore.getState()
       const { objectInstances, layers, setObjectInstances } = state
 
-      // Find the terrain layer (supports both new and legacy formats)
+      // Find the terrain layer (new architecture only)
       const terrainLayer = layers.find(layer =>
         layer.id === terrainLayerId &&
         layer.type === GfxLayerType.Landscape &&
         layer.shape === GfxLayerShape.Terrain &&
-        (layer.terrain || layer.noiseData) // Поддерживаем как новую архитектуру, так и legacy
+        layer.terrain
       )
 
       if (!terrainLayer) {
@@ -541,7 +541,7 @@ export class SceneAPI {
       const shouldAdjust = forceAdjustment ||
         (createdLayer.type === GfxLayerType.Landscape &&
          createdLayer.shape === GfxLayerShape.Terrain &&
-         (createdLayer.terrain || createdLayer.noiseData))
+         createdLayer.terrain)
 
       if (shouldAdjust) {
         // Используем универсальную функцию выравнивания

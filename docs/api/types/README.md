@@ -48,7 +48,7 @@ import type {
   GfxObjectInstance, // GfxObject инстансы
   GfxLayer,          // Scene layers
   // 🆕 Террейн: конфигурация и сэмплер высот
-  GfxTerrainConfig,  // Конфигурация террейна слоя (perlin, heightmap, legacy, ops)
+  GfxTerrainConfig,  // Конфигурация террейна слоя (perlin, heightmap, ops)
   GfxHeightSampler,  // Единый интерфейс получения высот/нормалей для рендера и размещения
   GfxMaterial,       // Material definitions
   LightingSettings,   // Lighting configuration

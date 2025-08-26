@@ -77,7 +77,6 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
       prevProps.layer.width === nextProps.layer.width &&
       prevProps.layer.height === nextProps.layer.height &&
       prevProps.layer.shape === nextProps.layer.shape &&
-      prevProps.layer.noiseData === nextProps.layer.noiseData &&
       prevProps.layer.color === nextProps.layer.color && // учитывать изменение цвета слоя
       // Важно: учитывать изменения конфигурации террейна (в т.ч. heightmap)
       prevProps.layer.terrain === nextProps.layer.terrain

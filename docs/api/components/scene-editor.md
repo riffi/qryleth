@@ -28,6 +28,6 @@
 
 - Компоненты: `src/features/scene/ui/renderer/landscape/LandscapeLayers.tsx`, `LandscapeLayer.tsx`
 - Генерация геометрии выполняется через `GfxHeightSampler` и `buildGfxTerrainGeometry`, что обеспечивает единый источник высот для рендера и логики размещения.
-- Поддерживаются источники: Perlin, PNG heightmap (через Dexie), Legacy (миграция старых `noiseData`).
+- Поддерживаются источники: Perlin, PNG heightmap (через Dexie).
 - UI создания слоя поддерживает загрузку PNG и настройки (min/max, wrap) — см. `SceneLayerModals.tsx`.
 - При загрузке PNG выполняется дедупликация по хэшу высот: повторная загрузка идентичной карты переиспользует уже существующий ассет в Dexie.

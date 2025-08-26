@@ -34,7 +34,7 @@ const HEIGHTS_FIELD_LOAD_PROMISES: Map<string, Promise<{ heights: Float32Array; 
 
 /**
  * Реализация интерфейса GfxHeightSampler для получения высот из различных источников террейна.
- * Поддерживает Perlin noise, PNG heightmaps и legacy-данные с системой модификаций через TerrainOps.
+ * Поддерживает Perlin noise и PNG heightmaps с системой модификаций через TerrainOps.
  */
 export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private config: GfxTerrainConfig;
@@ -204,10 +204,6 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     switch (source.kind) {
       case 'perlin':
         return this.createPerlinSource(source.params);
-      
-      case 'legacy':
-        return this.createLegacySource(source);
-      
       case 'heightmap':
         if (DEBUG) console.log('🗻 Creating HeightmapSource with params:', source.params);
         return this.createHeightmapSource(source.params);
@@ -261,38 +257,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     };
   }
 
-  /**
-   * Создать функцию получения высот из legacy данных
-   * @param legacySource - legacy источник с Float32Array данными
-   * @returns функция для получения высоты из legacy данных  
-   */
-  private createLegacySource(legacySource: { data: Float32Array; width: number; height: number }) {
-    const { data, width, height } = legacySource;
-    
-    return (x: number, z: number): number => {
-      // Аналогично логике из ObjectPlacementUtils.queryHeightAtCoordinate
-      const halfWidth = this.config.worldWidth / 2;
-      const halfHeight = this.config.worldHeight / 2;
-      
-      // Преобразуем мировые координаты в индексы массива
-      const normalizedX = (x + halfWidth) / this.config.worldWidth;
-      const normalizedZ = (z + halfHeight) / this.config.worldHeight;
-      
-      const noiseX = Math.floor(normalizedX * width);
-      const noiseZ = Math.floor(normalizedZ * height);
-      
-      // Ограничиваем в допустимых пределах
-      const clampedX = Math.max(0, Math.min(width - 1, noiseX));
-      const clampedZ = Math.max(0, Math.min(height - 1, noiseZ));
-      
-      // Получаем значение из legacy данных
-      const noiseIndex = clampedZ * width + clampedX;
-      const noiseValue = data[noiseIndex] || 0;
-      
-      // Применяем тот же масштаб что в старой реализации
-      return noiseValue * 4;
-    };
-  }
+  // legacy-источник удалён (см. 022-terrain-architecture-refactor, фаза 1)
 
   /**
    * Создать функцию получения высот из PNG heightmap с bilinear интерполяцией

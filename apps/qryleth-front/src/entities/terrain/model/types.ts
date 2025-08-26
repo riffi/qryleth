@@ -48,8 +48,7 @@ export interface GfxHeightmapParams {
  */
 export type GfxTerrainSource =
   | { kind: 'perlin'; params: GfxPerlinParams }
-  | { kind: 'heightmap'; params: GfxHeightmapParams }
-  | { kind: 'legacy'; data: Float32Array; width: number; height: number }; // для миграции
+  | { kind: 'heightmap'; params: GfxHeightmapParams };
 
 /**
  * Одна операция модификации рельефа

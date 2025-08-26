@@ -61,10 +61,10 @@ export async function adjustObjectsForCreatedTerrain(
     try {
       const currentLayer = useSceneStore.getState().layers.find(l => l.id === layerId)
       
-      if (DEBUG) console.log(`🗻 Adjustment attempt ${attempt}/${maxAttempts} for layer:`, currentLayer?.terrain?.source.kind || 'legacy')
+      if (DEBUG) console.log(`🗻 Adjustment attempt ${attempt}/${maxAttempts} for layer:`, currentLayer?.terrain?.source.kind)
 
-      // Проверяем наличие terrain данных (новая архитектура) или noiseData (legacy)
-      const hasTerrainData = currentLayer?.terrain || currentLayer?.noiseData
+      // Проверяем наличие terrain данных (только новая архитектура)
+      const hasTerrainData = currentLayer?.terrain
       
       if (hasTerrainData) {
         try {
@@ -76,7 +76,7 @@ export async function adjustObjectsForCreatedTerrain(
             // Для heightmap используем асинхронную версию
             result = await SceneAPI.adjustInstancesForTerrainAsync(layerId)
           } else {
-            // Для Perlin Noise и legacy используем синхронную версию
+            // Для Perlin Noise используем синхронную версию
             result = SceneAPI.adjustInstancesForPerlinTerrain(layerId)
           }
           
