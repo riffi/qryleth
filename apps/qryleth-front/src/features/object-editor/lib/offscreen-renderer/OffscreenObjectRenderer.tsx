@@ -234,7 +234,7 @@ export class OffscreenObjectRenderer {
         })
 
         // Настройка цвета фона - светлый небесно-голубой цвет для лучшей видимости объектов
-        const bgColor = this.config.transparent ? 0xC9D7E3 : this.config.backgroundColor
+        const bgColor = this.config.transparent ? 0xEAF4FF : this.config.backgroundColor
 
         // Callback для захвата рендерера
         const handleRendererCapture = (renderer: THREE.WebGLRenderer) => {

@@ -15,10 +15,24 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  background-color: var(--mantine-color-gray-0);
+  background-color: #C9D7E3; /* мягче, чем #DDE8F5 */
+  border-color: var(--mantine-color-gray-3);
   border-radius: var(--mantine-radius-sm);
-  border: 1px solid var(--mantine-color-gray-2);
   overflow: hidden;
+}
+
+/* виньетка поверх содержимого (градиент к краям) */
+
+.previewContainer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+  background: radial-gradient(80% 80% at 50% 45%,
+  rgba(0,0,0,0) 60%,
+  rgba(0,0,0,0.12) 100%);
 }
 
 [data-mantine-color-scheme="dark"] .previewContainer {
@@ -26,12 +40,15 @@
   border-color: var(--mantine-color-dark-4);
 }
 
+[data-mantine-color-scheme="dark"] .previewContainer::after {
+  background: radial-gradient(80% 80% at 50% 45%,
+  rgba(0,0,0,0) 60%,
+  rgba(0,0,0,0.12) 100%);
+}
+
 .previewImage {
-  border-radius: var(--mantine-radius-sm);
-  transition: opacity 0.2s ease;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
+  position: relative;
+  z-index: 0;
 }
 
 .previewSkeleton {
@@ -82,12 +99,12 @@
   .previewContainer {
     height: 80px;
   }
-  
+
   .previewImage {
     max-width: 80px;
     max-height: 80px;
   }
-  
+
   .placeholderContainer {
     width: 80px;
     height: 80px;
