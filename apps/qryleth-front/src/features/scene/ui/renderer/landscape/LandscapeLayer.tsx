@@ -25,11 +25,8 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   const finishTerrainApplying = useSceneStore(state => state.finishTerrainApplying)
   const DEBUG = (import.meta as any)?.env?.MODE !== 'production'
 
-  // Состояние для принудительного обновления геометрии после загрузки heightmap
-  const [heightmapLoaded, setHeightmapLoaded] = useState(false)
-
-  // Отслеживаем assetId, для которого уже запускали прелоадер (чтобы не дублировать)
-  const startedForAssetRef = useRef<string | null>(null)
+  // Версия геометрии: увеличивается, когда sampler сообщает о готовности
+  const [geometryVersion, setGeometryVersion] = useState(0)
 
   // Создаём sampler отдельно, чтобы можно было навесить onHeightmapLoaded в эффекте
   const sampler = useMemo(() => {
@@ -40,44 +37,28 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     return null
   }, [layer.id, layer.shape, layer.terrain])
 
-  // Подписка на завершение загрузки данных heightmap и управление прелоадером
+  // Ожидание готовности источника высот и управление прелоадером без таймеров
   useEffect(() => {
     if (!sampler || layer.shape !== GfxLayerShape.Terrain || !layer.terrain) return
-    if (layer.terrain.source.kind !== 'heightmap') return
 
-    const assetId = layer.terrain.source.params.assetId
+    // Прелоадер показываем только для heightmap-источника и только когда есть ожидание
+    const needsWait = layer.terrain.source.kind === 'heightmap' && !sampler.isReady?.()
+    if (needsWait) startTerrainApplying()
 
-    // Стартуем прелоадер один раз на assetId
-    if (startedForAssetRef.current !== assetId) {
-      startedForAssetRef.current = assetId
-      startTerrainApplying()
-    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        await sampler.ready?.()
+        if (cancelled) return
+        if (DEBUG) console.log('🗻 Terrain sampler ready — rebuilding geometry')
+        setGeometryVersion(v => v + 1)
+      } finally {
+        if (needsWait) finishTerrainApplying()
+      }
+    })()
 
-    // Таймаут-защита: гарантированно закрыть прелоадер, даже если событие не придёт
-    const safetyTimer = setTimeout(() => {
-      if (DEBUG) console.warn('⏳ Heightmap apply timeout reached — closing preloader safeguard')
-      finishTerrainApplying()
-    }, 10000)
-
-    // Флаг, чтобы обработать загрузку единожды для текущего assetId
-    let handled = false
-
-    sampler.onHeightmapLoaded?.(() => {
-      if (handled) return
-      handled = true
-      if (DEBUG) console.log('🗻 Heightmap data loaded, triggering geometry rebuild')
-      // Триггерим пересоздание геометрии
-      setHeightmapLoaded(prev => !prev)
-      // Важное изменение: больше не дергаем updateLayer, чтобы не пересоздавать sampler
-      // и не запускать эффект заново. Локального триггера через state достаточно.
-      finishTerrainApplying()
-      clearTimeout(safetyTimer)
-    })
-
-    return () => {
-      clearTimeout(safetyTimer)
-    }
-  }, [sampler, layer.shape, layer.terrain, updateLayer, startTerrainApplying, finishTerrainApplying])
+    return () => { cancelled = true }
+  }, [sampler, layer.shape, layer.terrain, startTerrainApplying, finishTerrainApplying])
 
   const geometry = useMemo(() => {
     if (layer.shape === GfxLayerShape.Terrain) {
@@ -87,35 +68,19 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         if (DEBUG) console.log('🗻 LandscapeLayer: Generated geometry with vertices:', geometry.attributes.position.count)
         return geometry
       }
-
-      // Создание новой terrain конфигурации для слоев без данных
-      const newTerrainConfig: GfxTerrainConfig = {
-        worldWidth: layer.width || 1,
-        worldHeight: layer.height || 1,
-        edgeFade: 0.15,
-        source: {
-          kind: 'perlin',
-          params: {
-            seed: 1234,
-            octaveCount: 4,
-            amplitude: 0.1,
-            persistence: 0.5,
-            width: (layer.width && layer.width > 200) ? 200 : (layer.width || 1),
-            height: (layer.height && layer.height > 200) ? 200 : (layer.height || 1)
-          }
-        }
-      }
-      
-      // Сохраняем новую terrain конфигурацию в store
-      updateLayer(layer.id, { terrain: newTerrainConfig })
-      
-      // Создаем геометрию с новой конфигурацией
-      const newSampler = createGfxHeightSampler(newTerrainConfig)
-      return buildGfxTerrainGeometry(newTerrainConfig, newSampler)
+      // Нет конфигурации террейна — возвращаем простую плоскость для безопасности
+      return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
     } else {
       return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
     }
-  }, [layer.width, layer.height, layer.shape, layer.terrain, layer.id, sampler, updateLayer, heightmapLoaded])
+  }, [layer.width, layer.height, layer.shape, layer.terrain, layer.id, sampler, geometryVersion])
+
+  // Освобождение геометрии при размонтировании/пересоздании
+  useEffect(() => {
+    return () => {
+      geometry?.dispose()
+    }
+  }, [geometry])
 
   const materialColor = useMemo(() => {
     if (layer.color) {
@@ -138,8 +103,6 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
   return (
     <mesh
-      // Ключ зависит от heightmapLoaded и цвета чтобы гарантированно пересоздать Mesh при изменениях
-      key={`${layer.id}-${heightmapLoaded ? 'hm1' : 'hm0'}-${layer.color || 'default'}`}
       geometry={geometry}
       visible={layer.visible}
       rotation={rotation}

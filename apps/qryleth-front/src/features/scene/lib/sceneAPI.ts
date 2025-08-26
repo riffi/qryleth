@@ -517,11 +517,37 @@ export class SceneAPI {
         showNotifications = true
       } = options || {}
 
-      // Создаем данные слоя с terrain конфигурацией если есть
-      const finalLayerData = terrainConfig ? {
-        ...layerData,
-        terrain: terrainConfig
-      } : layerData
+      // Если создаётся Terrain-слой без конфигурации — задаём перлин по умолчанию
+      let finalLayerData: Omit<SceneLayer, 'id'> = layerData
+      const isTerrainLayer =
+        (layerData as any).shape === GfxLayerShape.Terrain &&
+        (layerData as any).type === GfxLayerType.Landscape
+
+      if (terrainConfig) {
+        finalLayerData = { ...layerData, terrain: terrainConfig }
+      } else if (isTerrainLayer && !(layerData as any).terrain) {
+        const w = (layerData as any).width || 1
+        const h = (layerData as any).height || 1
+        const gridW = w > 200 ? 200 : w
+        const gridH = h > 200 ? 200 : h
+        const defaultTerrain: import('@/entities/terrain').GfxTerrainConfig = {
+          worldWidth: w,
+          worldHeight: h,
+          edgeFade: 0.15,
+          source: {
+            kind: 'perlin',
+            params: {
+              seed: 1234,
+              octaveCount: 4,
+              amplitude: 0.1,
+              persistence: 0.5,
+              width: gridW,
+              height: gridH
+            }
+          }
+        }
+        finalLayerData = { ...layerData, terrain: defaultTerrain }
+      }
 
       // Создаем слой через существующий механизм store
       useSceneStore.getState().createLayer(finalLayerData)

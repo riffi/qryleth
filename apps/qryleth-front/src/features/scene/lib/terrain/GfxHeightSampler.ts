@@ -42,6 +42,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   private imageLoadInitiated = false;
   private heightsLoadInitiated = false;
 
+  // Управление готовностью источника
+  private readyPromise?: Promise<void>
+  private readyResolve?: () => void
+
   /**
    * Создать сэмплер высот для заданной конфигурации террейна
    * @param config - конфигурация террейна с источником данных и параметрами
@@ -68,6 +72,13 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     this.sourceHeight = this.createSourceFunction();
     this.updateSampleStepBasedOnSource();
     this.buildSpatialIndex();
+
+    // Инициализируем промис готовности
+    if (this.config.source.kind === 'perlin' || this.heightsField || this.heightmapImageData) {
+      this.readyPromise = Promise.resolve()
+    } else {
+      this.readyPromise = new Promise<void>((resolve) => { this.readyResolve = resolve })
+    }
   }
 
   /**
@@ -243,6 +254,31 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     return createPerlinSource(params, { worldWidth: this.config.worldWidth, worldHeight: this.config.worldHeight })
   }
 
+  /** Возвращает true, если источник высот готов для корректных выборок. */
+  isReady(): boolean {
+    if (this.config.source.kind === 'perlin') return true
+    return Boolean(this.heightsField || this.heightmapImageData)
+  }
+
+  /** Дожидается готовности источника. Для heightmap инициирует загрузку. */
+  async ready(): Promise<void> {
+    if (this.isReady()) return
+    if (this.config.source.kind === 'heightmap') {
+      const assetId = this.config.source.params.assetId
+      this.loadHeightsFieldIfNeeded(assetId)
+      this.loadHeightmapImageDataIfNeeded(assetId)
+    }
+    if (!this.readyPromise) {
+      this.readyPromise = new Promise<void>((resolve) => { this.readyResolve = resolve })
+    }
+    return this.readyPromise
+  }
+
+  /** Очистка подписок/ссылок. */
+  dispose(): void {
+    this.onHeightmapLoadedCallback = undefined
+  }
+
   // legacy-источник удалён (см. 022-terrain-architecture-refactor, фаза 1)
 
   /**
@@ -329,6 +365,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         this.heightCache.clear();
         this.updateSampleStepBasedOnSource();
         if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+        if (this.readyResolve) { this.readyResolve(); this.readyResolve = undefined; this.readyPromise = undefined }
         return imageData;
       })
       .finally(() => {
@@ -361,6 +398,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
           this.heightCache.clear();
           this.updateSampleStepBasedOnSource();
           if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
+          if (this.readyResolve) { this.readyResolve(); this.readyResolve = undefined; this.readyPromise = undefined }
         }
         return res;
       })

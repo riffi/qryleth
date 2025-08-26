@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 4
+  completed: 5
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -141,7 +141,7 @@ phases:
 
 Отчёт: [phases/phase_4_summary.md](./phases/phase_4_summary.md)
 
-### ⏳ Фаза 5: UI/Store — чистый LandscapeLayer и ready()
+### ✅ Фаза 5: UI/Store — чистый LandscapeLayer и ready()
 - `LandscapeLayer`:
   - Удалить логику создания default terrain и любые вызовы `updateLayer` из рендера.
   - В эффекте инициализации использовать `await sampler.ready()` вместо таймаутов; скрывать прелоадер по факту готовности.
@@ -149,6 +149,8 @@ phases:
 - `SceneLayerModals`/`SceneAPI`:
   - При создании Terrain-слоя всегда сохранять валидный `terrain` (перлин по умолчанию, если иной не выбран).
 Результат: UI без побочных эффектов при рендере; предсказуемая загрузка.
+
+Отчёт: [phases/phase_5_summary.md](./phases/phase_5_summary.md)
 
 ### ⏳ Фаза 6: Кэши и инвалидация ассетов
 - В `assets/heightmapCache.ts` реализовать:
