@@ -2,14 +2,14 @@
 id: 020
 epic: null
 title: "Реализация стратегии размещения PlaceAround"
-status: in-progress
+status: done
 created: 2025-08-25
 updated: 2025-08-26
 owner: agent
 tags: [placement-strategy, scene-api, object-placement]
 phases:
   total: 6
-  completed: 5
+  completed: 6
 ---
 
 # Реализация стратегии размещения PlaceAround
@@ -211,16 +211,18 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
 
 **Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: Тестирование и обновление документации
-- Обновление основной проектной документации
-- Создание примеров использования стратегии
+### ✅ Фаза 6: Тестирование и обновление документации
+- [x] Обновление основной проектной документации (Scene API и руководство)
+- [x] Добавление примеров использования стратегии PlaceAround
+
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 ## Критерии завершения
-- [ ] PlaceAround стратегия полностью интегрирована в существующую архитектуру
-- [ ] Корректно работает расчет расстояния от грани до грани с учетом transform
-- [ ] Поддерживается избежание коллизий со всеми объектами
-- [ ] Работает как с targetInstanceUuid, так и с targetObjectUuid
-- [ ] Поддерживается 2D и 3D размещение
+- [x] PlaceAround стратегия полностью интегрирована в существующую архитектуру
+- [x] Корректно работает расчет расстояния от грани до грани с учетом transform
+- [x] Поддерживается избежание коллизий со всеми объектами
+- [x] Работает как с targetInstanceUuid, так и с targetObjectUuid
+- [x] Поддерживается 2D и 3D размещение
 - [ ] AI tools чата в sceneEditor поддерживают PlaceAround:
   - [x] objectTools.ts и instanceTools.ts обновлены с zod валидацией
   - [x] Чат-бот корректно обрабатывает PlaceAround команды
@@ -228,5 +230,5 @@ SceneAPI.addInstances('asteroid-uuid', 'space-layer', 12, {
   - [x] Автодополнение работает для всех параметров PlaceAround
   - [x] Анализ кода распознает PlaceAround синтаксис
   - [x] Примеры шаблонов включают PlaceAround сценарии
-- [ ] Проект успешно собирается и проходит линтинг
-- [ ] Документация обновлена
+- [x] Проект успешно собирается и проходит линтинг
+- [x] Документация обновлена (см. docs/api/scene-api.md и docs/features/scene-management/object-placement.md)

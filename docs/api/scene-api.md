@@ -67,7 +67,8 @@ interface LayerInfo {
 ```typescript
 enum PlacementStrategy {
   Random = 'Random',
-  RandomNoCollision = 'RandomNoCollision'
+  RandomNoCollision = 'RandomNoCollision',
+  PlaceAround = 'PlaceAround'
 }
 ```
 
@@ -76,12 +77,34 @@ enum PlacementStrategy {
 type PlacementStrategyConfig = 
   | { strategy: PlacementStrategy.Random; metadata?: RandomMetadata }
   | { strategy: PlacementStrategy.RandomNoCollision; metadata?: RandomNoCollisionMetadata }
+  | { strategy: PlacementStrategy.PlaceAround; metadata: PlaceAroundMetadata }
+```
+
+### `PlaceAroundMetadata`
+Метаданные для стратегии размещения вокруг целевых инстансов объекта.
+
+```typescript
+interface PlaceAroundMetadata {
+  // Целевые объекты (взаимоисключающие параметры, обязателен один из них)
+  targetInstanceUuid?: string   // UUID конкретного инстанса (приоритет 1)
+  targetObjectUuid?: string     // UUID объекта — вокруг всех его инстансов (приоритет 2)
+
+  // Расстояния (обязательные параметры)
+  minDistance: number           // минимальное расстояние от грани target до грани нового объекта
+  maxDistance: number           // максимальное расстояние от грани target до грани нового объекта
+
+  // Параметры распределения (опционально)
+  angleOffset?: number          // начальный угол в радианах (по умолчанию 0)
+  distributeEvenly?: boolean    // равномерно по кругу или случайно (по умолчанию true)
+  onlyHorizontal?: boolean      // только по горизонтали (Y фиксирован) или 3D (по умолчанию true)
+}
 ```
 
 **Доступные стратегии:**
 
 - **`Random`** - случайное размещение без проверки коллизий
 - **`RandomNoCollision`** - случайное размещение с избеганием пересечений существующих объектов
+- **`PlaceAround`** - размещение экземпляров вокруг целевого инстанса или всех инстансов указанного объекта с учётом габаритов (bounding box) и коллизий.
 
 ### Result Types / Типы результатов
 
@@ -140,6 +163,42 @@ const result = SceneAPI.createObject(
   'buildings',
   3,
   { strategy: PlacementStrategy.Random }
+)
+```
+
+```typescript
+// Пример: разместить 8 экземпляров вокруг ВСЕХ инстансов объекта-дерева
+const res1 = SceneAPI.addInstances(
+  'tree-object-uuid',
+  'nature-layer',
+  8,
+  {
+    strategy: PlacementStrategy.PlaceAround,
+    metadata: {
+      targetObjectUuid: 'house-object-uuid',
+      minDistance: 2.0,
+      maxDistance: 5.0,
+      distributeEvenly: true,
+      onlyHorizontal: true
+    }
+  }
+)
+
+// Пример: создать новый объект и расположить его вокруг конкретного инстанса
+const res2 = SceneAPI.createObject(
+  newObjectData,
+  'objects',
+  6,
+  {
+    strategy: PlacementStrategy.PlaceAround,
+    metadata: {
+      targetInstanceUuid: 'some-instance-uuid',
+      minDistance: 1.5,
+      maxDistance: 3.0,
+      distributeEvenly: false,
+      angleOffset: 0
+    }
+  }
 )
 ```
 
