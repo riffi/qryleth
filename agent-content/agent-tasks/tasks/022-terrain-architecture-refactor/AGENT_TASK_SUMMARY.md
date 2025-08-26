@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 6
+  completed: 7
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -162,7 +162,7 @@ phases:
 
 Отчёт: [phases/phase_6_summary.md](./phases/phase_6_summary.md)
 
-### ⏳ Фаза 7: Тестирование
+### ✅ Фаза 7: Тестирование
 - Unit-тесты:
   - `sampling/bilinear.test.ts`: корректность интерполяции по контрольной матрице.
   - `sampling/uv.test.ts`: wrap `clamp|repeat` на краевых значениях.
@@ -172,6 +172,8 @@ phases:
   - `LandscapeLayer` не изменяет стор на маунте.
   - Прелоадер закрывается по `ready()` без таймеров.
 Результат: зелёные тесты, базовое покрытие ключевой логики.
+
+Отчёт: [phases/phase_7_summary.md](./phases/phase_7_summary.md)
 
 ### ⏳ Фаза 8: Обновить документацию
 - Обновить `docs/features/scene-management/terrain-system.md`: новая структура модулей, кэши, `ready()`.
