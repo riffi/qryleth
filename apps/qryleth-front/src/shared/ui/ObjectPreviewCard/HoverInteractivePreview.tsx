@@ -37,6 +37,11 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void 
   const elevationRef = React.useRef(0.6) // радианы, ~34° над горизонтом
   const angleRef = React.useRef(0)
   const readyRef = React.useRef(false)
+  // Время анимации, в секундах. Нужное для согласованного изменения нескольких углов.
+  const timeRef = React.useRef(0)
+  // Переиспользуемые объекты для избежания аллокаций на каждый кадр
+  const tmpVecRef = React.useRef(new THREE.Vector3())
+  const tmpQuatRef = React.useRef(new THREE.Quaternion())
 
   /**
    * Вычисляет геометрию охвата (AABB + bounding sphere), центр и оптимальную дистанцию камеры.
@@ -106,22 +111,47 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void 
   }, [gfxObject, camera, scene])
 
   /**
-   * Плавное вращение камеры вокруг центра объекта.
-   * Скорость выбрана небольшой, чтобы не отвлекать и не утомлять.
+   * Плавный 3D‑облёт камеры вокруг центра объекта.
+   *
+   * Помимо азимута (вращение вокруг оси Y), медленно меняем высоту (elevation)
+   * и добавляем лёгкую прецессию вокруг осей X/Z. Это создаёт ощущение вращения
+   * даже для осесимметричных моделей (например, дерево), не наклоняя горизонт.
    */
   useFrame((_, delta) => {
     if (!readyRef.current) return
     const center = centerRef.current
     const R = radiusRef.current
-    const elev = elevationRef.current
+    const baseElev = elevationRef.current
 
-    angleRef.current += delta * 0.3 // рад/с
-    const a = angleRef.current
-    camera.position.set(
-      center.x + R * Math.cos(elev) * Math.cos(a),
-      center.y + R * Math.sin(elev),
-      center.z + R * Math.cos(elev) * Math.sin(a),
+    // Общее «время» анимации
+    timeRef.current += delta
+    const t = timeRef.current
+
+    // Азимутальная скорость вокруг Y (медленная и стабильная)
+    angleRef.current += delta * 0.35 // рад/с
+    const az = angleRef.current
+
+    // Небольшая модуляция высоты
+    const elev = baseElev + 0.22 * Math.sin(t * 0.5)
+
+    // Лёгкая прецессия орбиты вокруг осей X и Z
+    const preX = 0.12 * Math.sin(t * 0.23)
+    const preZ = 0.10 * Math.cos(t * 0.17)
+
+    // Базовый вектор позиции камеры в сферических координатах
+    const v = tmpVecRef.current
+    v.set(
+      R * Math.cos(elev) * Math.cos(az),
+      R * Math.sin(elev),
+      R * Math.cos(elev) * Math.sin(az),
     )
+
+    // Применяем небольшие повороты вокруг X/Z для объёмного облёта
+    const q = tmpQuatRef.current
+    q.setFromEuler(new THREE.Euler(preX, 0, preZ, 'XYZ'))
+    v.applyQuaternion(q)
+
+    camera.position.set(center.x + v.x, center.y + v.y, center.z + v.z)
     camera.lookAt(center)
   })
 
