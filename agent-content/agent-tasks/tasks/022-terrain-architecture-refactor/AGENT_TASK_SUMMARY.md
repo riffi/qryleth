@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 2
+  completed: 3
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -115,7 +115,7 @@ phases:
 
 Отчёт: [phases/phase_2_summary.md](./phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Распил GfxHeightSampler на модули
+### ✅ Фаза 3: Распил GfxHeightSampler на модули
 - Структура каталогов `apps/qryleth-front/src/features/scene/lib/terrain/`:
   - `heightSources/PerlinSource.ts` — `createPerlinSource(params, world) => (x,z)=>y`.
   - `heightSources/HeightmapSource.ts` — `createHeightmapSource(params, world, assets)` с приоритетом массива высот.
@@ -128,6 +128,8 @@ phases:
 - Упростить `GfxHeightSampler.ts` до композиции модулей + публичные методы: `getHeight`, `getNormal`, `onHeightmapLoaded`.
 - Обеспечить отсутствие циклических зависимостей; обновить barrel-экспорты.
 Результат: читаемая модульная архитектура; поведение эквивалентно.
+
+Отчёт: [phases/phase_3_summary.md](./phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: Нормали и шаг выборки
 - Динамический `sampleStep`:

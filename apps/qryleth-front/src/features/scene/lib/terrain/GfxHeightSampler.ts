@@ -1,35 +1,15 @@
 import type { GfxTerrainConfig, GfxHeightSampler, GfxTerrainOp, GfxPerlinParams, GfxHeightmapParams } from '@/entities/terrain';
-import { generatePerlinNoise } from '@/shared/lib/noise/perlin';
-import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from './HeightmapUtils';
+import { createPerlinSource } from './heightSources/PerlinSource';
+import { sampleHeightFromHeightsField, sampleHeightFromImageData } from './heightSources/HeightmapSource';
+import { buildSpatialIndex, getRelevantOps } from './ops/spatialIndex';
+import { applyTerrainOpsOptimized } from './ops/applyOps';
+import { calculateEdgeFade } from './effects/edgeFade';
+import { getCachedImageData, getCachedHeightsField, loadHeightsField, loadImageData } from './assets/heightmapCache';
 // Константы геометрии теперь используются в GeometryBuilder
 // Флаг отладки: в продакшене подавляем подробные логи
 const DEBUG = (import.meta as any)?.env?.MODE !== 'production';
 
-/**
- * Глобальный кэш ImageData для heightmap по assetId.
- * Нужен, чтобы повторные инстансы сэмплера (после ререндера React) не ждали повторную
- * асинхронную загрузку и могли немедленно применять корректные высоты.
- */
-const HEIGHTMAP_IMAGE_CACHE: Map<string, ImageData> = new Map();
-/**
- * Глобальный кэш активных промисов загрузки по assetId.
- * Позволяет нескольким инстансам сэмплера дожидаться одной и той же загрузки,
- * не создавая дубликаты запросов к Dexie.
- */
-const HEIGHTMAP_LOAD_PROMISES: Map<string, Promise<ImageData>> = new Map();
-
-/**
- * Глобальный кэш числовых высот по assetId.
- * Используется, когда heights уже сохранены в Dexie (предпочтительный путь).
- */
-const HEIGHTS_FIELD_CACHE: Map<string, { heights: Float32Array; width: number; height: number }> = new Map();
-
-/**
- * Глобальный реестр активных промисов загрузки числовых высот по assetId.
- * Нужен, чтобы несколько инстансов сэмплера не дублировали запросы к Dexie,
- * а ожидали один и тот же результат (включая «ленивую миграцию» из PNG).
- */
-const HEIGHTS_FIELD_LOAD_PROMISES: Map<string, Promise<{ heights: Float32Array; width: number; height: number }>> = new Map();
+// Кэши и загрузчики вынесены в assets/heightmapCache.ts
 
 /**
  * Реализация интерфейса GfxHeightSampler для получения высот из различных источников террейна.
@@ -76,15 +56,13 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     // 1) сначала числовое поле высот (heights),
     // 2) если нет — ImageData как фоллбэк.
     if (this.config.source.kind === 'heightmap') {
-      const assetId = this.config.source.params.assetId;
-      const cachedHeights = HEIGHTS_FIELD_CACHE.get(assetId);
+      const assetId = this.config.source.params.assetId
+      const cachedHeights = getCachedHeightsField(assetId)
       if (cachedHeights) {
-        this.heightsField = cachedHeights;
+        this.heightsField = cachedHeights
       } else {
-        const cachedImg = HEIGHTMAP_IMAGE_CACHE.get(assetId);
-        if (cachedImg) {
-          this.heightmapImageData = cachedImg;
-        }
+        const cachedImg = getCachedImageData(assetId)
+        if (cachedImg) this.heightmapImageData = cachedImg
       }
     }
     this.sourceHeight = this.createSourceFunction();
@@ -117,8 +95,14 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
 
     // 3. Применяем edgeFade для плавного спада к краям
     if (this.config.edgeFade && this.config.edgeFade > 0) {
-      const fadeMultiplier = this.calculateEdgeFade(x, z);
-      height *= fadeMultiplier;
+      const fadeMultiplier = calculateEdgeFade(
+        x,
+        z,
+        this.config.worldWidth,
+        this.config.worldHeight,
+        this.config.edgeFade
+      )
+      height *= fadeMultiplier
     }
 
     // Сохраняем в кэш
@@ -219,41 +203,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns функция для получения высоты из Perlin noise
    */
   private createPerlinSource(params: GfxPerlinParams) {
-
-    // Генерируем данные шума один раз при создании
-    const noiseData = generatePerlinNoise(params.width + 1, params.height + 1, {
-      octaveCount: params.octaveCount,
-      amplitude: params.amplitude,
-      persistence: params.persistence,
-      seed: params.seed
-    });
-
-    // Используем ту же логику расчёта сегментов, что и в старой реализации
-    
-    return (x: number, z: number): number => {
-      // Преобразуем мировые координаты в индексы массива шума
-      const halfWidth = this.config.worldWidth / 2;
-      const halfHeight = this.config.worldHeight / 2;
-      
-      // Нормализуем координаты в диапазон [0, 1]
-      const normalizedX = (x + halfWidth) / this.config.worldWidth;
-      const normalizedZ = (z + halfHeight) / this.config.worldHeight;
-      
-      // Преобразуем в индексы массива шума
-      const noiseX = Math.floor(normalizedX * params.width);
-      const noiseZ = Math.floor(normalizedZ * params.height);
-      
-      // Ограничиваем в допустимых пределах
-      const clampedX = Math.max(0, Math.min(params.width, noiseX));
-      const clampedZ = Math.max(0, Math.min(params.height, noiseZ));
-      
-      // Получаем значение из массива шума
-      const noiseIndex = clampedZ * (params.width + 1) + clampedX;
-      const noiseValue = noiseData[noiseIndex] || 0;
-      
-      // Масштабируем высоту (используем тот же коэффициент что в старой реализации)
-      return noiseValue * 4;
-    };
+    return createPerlinSource(params, { worldWidth: this.config.worldWidth, worldHeight: this.config.worldHeight })
   }
 
   // legacy-источник удалён (см. 022-terrain-architecture-refactor, фаза 1)
@@ -268,47 +218,33 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     return (x: number, z: number): number => {
       // 1) Предпочитаем числовое поле высот (если доступно). Если нет — инициируем загрузку/миграцию.
       if (!this.heightsField) {
-        const cached = HEIGHTS_FIELD_CACHE.get(params.assetId);
+        const cached = getCachedHeightsField(params.assetId)
         if (cached) {
-          this.heightsField = cached;
-          // При переключении источника на более точный — сбрасываем локальный кэш высот
-          this.heightCache.clear();
+          this.heightsField = cached
+          this.heightCache.clear()
         } else {
-          // Запускаем (или присоединяемся к) загрузку числовых высот
-          this.loadHeightsFieldIfNeeded(params.assetId);
+          this.loadHeightsFieldIfNeeded(params.assetId)
         }
       }
 
       // 2) Если heights уже доступны — используем их для семплинга
       if (this.heightsField) {
         // Преобразование мировых координат → UV [0..1]
-        const halfWidth = this.config.worldWidth / 2;
-        const halfHeight = this.config.worldHeight / 2;
-        let u = (x + halfWidth) / this.config.worldWidth;
-        let v = (z + halfHeight) / this.config.worldHeight;
-        const wrap = params.wrap || 'clamp';
-        switch (wrap) {
-          case 'repeat':
-            u = u - Math.floor(u);
-            v = v - Math.floor(v);
-            if (u < 0) u += 1;
-            if (v < 0) v += 1;
-            break;
-          case 'clamp':
-          default:
-            u = Math.max(0, Math.min(1, u));
-            v = Math.max(0, Math.min(1, v));
-            break;
-        }
-        // Перевод UV → координаты в сетке высот
-        const pixelX = u * (this.heightsField.width - 1);
-        const pixelY = v * (this.heightsField.height - 1);
-        return this.sampleHeightsFieldBilinear(pixelX, pixelY, this.heightsField.heights, this.heightsField.width, this.heightsField.height, params);
+        return sampleHeightFromHeightsField(
+          x,
+          z,
+          this.config.worldWidth,
+          this.config.worldHeight,
+          params,
+          this.heightsField.heights,
+          this.heightsField.width,
+          this.heightsField.height
+        )
       }
 
       // 3) Фоллбэк: если нет heights — работаем по старому пути через ImageData
       if (!this.heightmapImageData) {
-        const cached = HEIGHTMAP_IMAGE_CACHE.get(params.assetId);
+        const cached = getCachedImageData(params.assetId);
         if (cached) {
           this.heightmapImageData = cached;
         } else {
@@ -326,36 +262,14 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       // Подробный лог выборок по каждому сэмплу убран во избежание спама
 
       // Преобразуем мировые координаты в UV координаты [0, 1]
-      const halfWidth = this.config.worldWidth / 2;
-      const halfHeight = this.config.worldHeight / 2;
-      
-      let u = (x + halfWidth) / this.config.worldWidth;
-      let v = (z + halfHeight) / this.config.worldHeight;
-
-      // Применяем UV wrapping
-      const wrap = params.wrap || 'clamp';
-      switch (wrap) {
-        case 'repeat':
-          u = u - Math.floor(u); // оставляем только дробную часть
-          v = v - Math.floor(v);
-          if (u < 0) u += 1; // для отрицательных значений
-          if (v < 0) v += 1;
-          break;
-        case 'clamp':
-        default:
-          u = Math.max(0, Math.min(1, u));
-          v = Math.max(0, Math.min(1, v));
-          break;
-      }
-
-      // Преобразуем UV в пиксельные координаты
-      const pixelX = u * (params.imgWidth - 1);
-      const pixelY = v * (params.imgHeight - 1);
-
-      // Биlinear интерполяция
-      const height = this.sampleHeightmapBilinear(pixelX, pixelY, params);
-      
-      return height;
+      return sampleHeightFromImageData(
+        x,
+        z,
+        this.config.worldWidth,
+        this.config.worldHeight,
+        params,
+        this.heightmapImageData!
+      );
     };
   }
 
@@ -370,51 +284,22 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     if (this.imageLoadInitiated || this.heightmapLoadPromise) return;
 
     // Если уже есть активный промис загрузки для этого assetId — используем его
-    const ongoing = HEIGHTMAP_LOAD_PROMISES.get(assetId);
-    if (ongoing) {
-      this.imageLoadInitiated = true;
-      // Присоединяемся один раз к завершению для установки данных в текущем инстансе
-      this.heightmapLoadPromise = ongoing.then(imageData => {
-        if (!this.heightmapImageData) {
-          this.heightmapImageData = imageData;
-          this.heightCache.clear();
-          if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
-        }
-        return imageData;
-      });
-      return;
-    }
-
-    // Иначе инициируем новую загрузку и положим её в общий кэш промисов
-    const promise = loadTerrainAssetImageData(assetId)
+    // Инициируем загрузку через общий кэш загрузок
+    const promise = loadImageData(assetId)
       .then(imageData => {
         if (DEBUG) console.log('🗻 Heightmap ImageData loaded successfully:', imageData.width, 'x', imageData.height);
-        // Сохраняем в глобальный кэш для всех будущих инстансов
-        HEIGHTMAP_IMAGE_CACHE.set(assetId, imageData);
-        // Привязываем к текущему инстансу
         this.heightmapImageData = imageData;
-        // Очищаем кэш высот, чтобы пересчитать с новыми данными heightmap
         this.heightCache.clear();
-        // Уведомляем о том, что данные загружены
-        if (this.onHeightmapLoadedCallback) {
-          if (DEBUG) console.log('🗻 Calling onHeightmapLoaded callback');
-          this.onHeightmapLoadedCallback();
-        }
+        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
         return imageData;
       })
-      .catch(error => {
-        console.error('Ошибка загрузки heightmap:', error);
-        throw error;
-      })
       .finally(() => {
-        // Убираем промис из общего реестра после завершения (успешного или с ошибкой)
-        HEIGHTMAP_LOAD_PROMISES.delete(assetId);
         this.heightmapLoadPromise = undefined;
         this.imageLoadInitiated = false;
       });
 
-    HEIGHTMAP_LOAD_PROMISES.set(assetId, promise);
     this.heightmapLoadPromise = promise;
+    this.imageLoadInitiated = true;
   }
 
   /**
@@ -422,7 +307,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * 
    * Использует общий реестр промисов, чтобы несколько инстансов сэмплера ожидали один и тот же
    * запрос. При успешной загрузке:
-   * - сохраняет результат в глобальном кэше HEIGHTS_FIELD_CACHE,
+   * - сохраняет результат в глобальном кэше (см. assets/heightmapCache),
    * - привязывает поле высот к текущему инстансу,
    * - очищает локальный кэш высот this.heightCache, чтобы пересчитать значения с новым источником,
    * - вызывает onHeightmapLoadedCallback для триггера перегенерации геометрии в UI.
@@ -431,96 +316,25 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     if (this.heightsField) return;
     if (this.heightsLoadInitiated || this.heightsLoadPromise) return;
 
-    const ongoing = HEIGHTS_FIELD_LOAD_PROMISES.get(assetId);
-    if (ongoing) {
-      this.heightsLoadInitiated = true;
-      this.heightsLoadPromise = ongoing.then((res) => {
-        this.heightsField = res;
-        this.heightCache.clear();
-        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
-        return res;
-      });
-      return;
-    }
-
-    const promise = loadTerrainHeightsFromAsset(assetId)
+    const promise = loadHeightsField(assetId)
       .then((res) => {
-        if (!res) {
-          // heights ещё нет — ничего не делаем; фоллбэк продолжит работать по ImageData
-          return Promise.reject(new Error('Heights not available yet'));
+        if (res) {
+          this.heightsField = res;
+          this.heightCache.clear();
+          if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
         }
-        // Кладём в глобальный кэш и привязываем к инстансу
-        HEIGHTS_FIELD_CACHE.set(assetId, res);
-        this.heightsField = res;
-        // Сбрасываем локальные кэши высот — переключились на новый источник данных
-        this.heightCache.clear();
-        if (this.onHeightmapLoadedCallback) this.onHeightmapLoadedCallback();
         return res;
-      })
-      .catch((err) => {
-        // Не фейлим пайплайн семплинга — оставляем фоллбэк через ImageData
-        console.warn('Не удалось загрузить числовые высоты (heights). Будет использован ImageData fallback.', err);
-        return Promise.reject(err);
       })
       .finally(() => {
-        HEIGHTS_FIELD_LOAD_PROMISES.delete(assetId);
         this.heightsLoadPromise = undefined;
         this.heightsLoadInitiated = false;
       });
 
-    HEIGHTS_FIELD_LOAD_PROMISES.set(assetId, promise);
     this.heightsLoadPromise = promise;
+    this.heightsLoadInitiated = true;
   }
 
-  /**
-   * Выполняет bilinear интерполяцию высоты из heightmap ImageData
-   * @param pixelX - X координата в пикселях (может быть дробной)
-   * @param pixelY - Y координата в пикселях (может быть дробной)
-   * @param params - параметры heightmap для нормализации высоты
-   * @returns интерполированная высота в мировых единицах
-   */
-  private sampleHeightmapBilinear(pixelX: number, pixelY: number, params: GfxHeightmapParams): number {
-    if (!this.heightmapImageData) {
-      return 0;
-    }
-
-    const { data, width, height } = this.heightmapImageData;
-    
-    // Находим 4 соседних пикселя для интерполяции
-    const x0 = Math.floor(pixelX);
-    const y0 = Math.floor(pixelY);
-    const x1 = Math.min(x0 + 1, width - 1);
-    const y1 = Math.min(y0 + 1, height - 1);
-
-    // Вычисляем веса для интерполяции
-    const wx = pixelX - x0;
-    const wy = pixelY - y0;
-
-    // Получаем яркость 4 соседних пикселей (используем формулу luminance)
-    const getPixelLuminance = (x: number, y: number): number => {
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      // Стандартная формула luminance
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-
-    const h00 = getPixelLuminance(x0, y0); // левый верхний
-    const h10 = getPixelLuminance(x1, y0); // правый верхний  
-    const h01 = getPixelLuminance(x0, y1); // левый нижний
-    const h11 = getPixelLuminance(x1, y1); // правый нижний
-
-    // Bilinear интерполяция
-    const h0 = h00 * (1 - wx) + h10 * wx; // интерполяция по верхней стороне
-    const h1 = h01 * (1 - wx) + h11 * wx; // интерполяция по нижней стороне
-    const interpolatedHeight = h0 * (1 - wy) + h1 * wy; // финальная интерполяция
-
-    // Нормализуем значение из диапазона [0, 255] в [min, max]
-    const normalizedHeight = (interpolatedHeight / 255) * (params.max - params.min) + params.min;
-    
-    return normalizedHeight;
-  }
+  // Билинейная интерполяция ImageData вынесена в sampling/bilinear.ts
 
   /**
    * Выполняет билинейную интерполяцию по «полю высот» (числовому массиву),
@@ -546,41 +360,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param params - параметры нормализации высоты (min/max)
    * @returns интерполированная высота в мировых единицах
    */
-  private sampleHeightsFieldBilinear(
-    pixelX: number,
-    pixelY: number,
-    heights: Float32Array,
-    width: number,
-    height: number,
-    params: GfxHeightmapParams
-  ): number {
-    // Индексы ближайших целочисленных узлов
-    const x0 = Math.floor(pixelX);
-    const y0 = Math.floor(pixelY);
-    const x1 = Math.min(x0 + 1, width - 1);
-    const y1 = Math.min(y0 + 1, height - 1);
-
-    // Весовые коэффициенты для интерполяции
-    const wx = pixelX - x0;
-    const wy = pixelY - y0;
-
-    // Доступ к значениям высот в узлах
-    const idx = (xx: number, yy: number) => yy * width + xx;
-    const h00 = heights[idx(x0, y0)];
-    const h10 = heights[idx(x1, y0)];
-    const h01 = heights[idx(x0, y1)];
-    const h11 = heights[idx(x1, y1)];
-
-    // Билинейная интерполяция
-    const h0 = h00 * (1 - wx) + h10 * wx;
-    const h1 = h01 * (1 - wx) + h11 * wx;
-    const interpolated = h0 * (1 - wy) + h1 * wy;
-
-    // Нормализация в диапазон [min..max]
-    const min = params.min;
-    const max = params.max;
-    return min + (max - min) * interpolated; // предполагаем, что heights уже [0..1]
-  }
+  // Билинейная интерполяция числового поля вынесена в sampling/bilinear.ts
 
   /**
    * Вычислить коэффициент затухания для плавного спада к краям
@@ -588,66 +368,15 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param z - мировая координата Z  
    * @returns коэффициент затухания от 0 (на краю) до 1 (в центре)
    */
-  private calculateEdgeFade(x: number, z: number): number {
-    const halfWidth = this.config.worldWidth / 2;
-    const halfHeight = this.config.worldHeight / 2;
-    
-    // Вычисляем расстояние от каждого края (0 на краю, 1 в центре)
-    const distFromLeftEdge = (x + halfWidth) / this.config.worldWidth;
-    const distFromRightEdge = (halfWidth - x) / this.config.worldWidth;
-    const distFromTopEdge = (z + halfHeight) / this.config.worldHeight;
-    const distFromBottomEdge = (halfHeight - z) / this.config.worldHeight;
-    
-    // Находим минимальное расстояние до любого края
-    const edgeDistance = Math.min(
-      distFromLeftEdge, 
-      distFromRightEdge, 
-      distFromTopEdge, 
-      distFromBottomEdge
-    );
-    
-    // Применяем настройку edgeFade - доля области от края, где происходит затухание
-    const fadeDistance = this.config.edgeFade!;
-    const fadeFactor = Math.max(0, Math.min(1, edgeDistance / fadeDistance));
-    
-    return fadeFactor;
-  }
+  // EdgeFade вынесен в effects/edgeFade.ts
 
   /**
    * Построить пространственный индекс для быстрого поиска операций террейна
    * Разбивает все операции по ячейкам сетки для оптимизированного поиска
    */
   private buildSpatialIndex(): void {
-    if (!this.config.ops || this.config.ops.length === 0) {
-      return;
-    }
-
-    this.spatialIndex = new Map();
-
-    for (const op of this.config.ops) {
-      // Определяем область влияния операции
-      const maxRadius = Math.max(op.radius, op.radiusZ || op.radius);
-      const minX = op.center[0] - maxRadius;
-      const maxX = op.center[0] + maxRadius;
-      const minZ = op.center[1] - maxRadius;
-      const maxZ = op.center[1] + maxRadius;
-
-      // Добавляем операцию во все затрагиваемые ячейки индекса
-      const startCellX = Math.floor(minX / this.spatialCellSize);
-      const endCellX = Math.floor(maxX / this.spatialCellSize);
-      const startCellZ = Math.floor(minZ / this.spatialCellSize);
-      const endCellZ = Math.floor(maxZ / this.spatialCellSize);
-
-      for (let cellX = startCellX; cellX <= endCellX; cellX++) {
-        for (let cellZ = startCellZ; cellZ <= endCellZ; cellZ++) {
-          const cellKey = `${cellX},${cellZ}`;
-          if (!this.spatialIndex.has(cellKey)) {
-            this.spatialIndex.set(cellKey, []);
-          }
-          this.spatialIndex.get(cellKey)!.push(op);
-        }
-      }
-    }
+    if (!this.config.ops || this.config.ops.length === 0) return
+    this.spatialIndex = buildSpatialIndex(this.config.ops, this.spatialCellSize)
   }
 
   /**
@@ -689,17 +418,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param z - координата Z в мировых координатах
    * @returns массив потенциально релевантных операций
    */
-  private getRelevantOps(x: number, z: number): GfxTerrainOp[] {
-    if (!this.spatialIndex) {
-      return this.config.ops || [];
-    }
-
-    const cellX = Math.floor(x / this.spatialCellSize);
-    const cellZ = Math.floor(z / this.spatialCellSize);
-    const cellKey = `${cellX},${cellZ}`;
-
-    return this.spatialIndex.get(cellKey) || [];
-  }
+  // Получение релевантных операций вынесено в ops/spatialIndex.ts
 
   /**
    * Оптимизированное применение операций террейна с использованием пространственного индекса
@@ -710,30 +429,8 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    */
   private applyTerrainOpsOptimized(baseHeight: number, x: number, z: number): number {
     let height = baseHeight;
-    const relevantOps = this.getRelevantOps(x, z);
-
-    for (const op of relevantOps) {
-      const contribution = this.calculateOpContribution(op, x, z);
-      
-      // Пропускаем операции с нулевым вкладом (оптимизация)
-      if (contribution === 0) {
-        continue;
-      }
-      
-      switch (op.mode) {
-        case 'add':
-          height += contribution;
-          break;
-        case 'sub':
-          height -= contribution;
-          break;
-        case 'set':
-          height = baseHeight + contribution;
-          break;
-      }
-    }
-
-    return height;
+    const relevantOps = this.spatialIndex ? getRelevantOps(this.spatialIndex, this.spatialCellSize, x, z) : (this.config.ops || [])
+    return applyTerrainOpsOptimized(height, x, z, relevantOps);
   }
 
   /**
@@ -744,27 +441,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns модифицированная высота после применения всех операций
    * @deprecated Используйте applyTerrainOpsOptimized для лучшей производительности
    */
-  private applyTerrainOps(baseHeight: number, x: number, z: number): number {
-    let height = baseHeight;
-
-    for (const op of this.config.ops!) {
-      const contribution = this.calculateOpContribution(op, x, z);
-      
-      switch (op.mode) {
-        case 'add':
-          height += contribution;
-          break;
-        case 'sub':
-          height -= contribution;
-          break;
-        case 'set':
-          height = baseHeight + contribution;
-          break;
-      }
-    }
-
-    return height;
-  }
+  // Базовый вариант применения операций перенесён в ops/applyOps.ts
 
   /**
    * Вычислить вклад одной операции модификации террейна в точке
@@ -773,21 +450,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param z - координата Z в мировых координатах
    * @returns значение вклада операции (может быть 0 если точка вне радиуса влияния)
    */
-  private calculateOpContribution(op: GfxTerrainOp, x: number, z: number): number {
-    // 1. Вычисляем расстояние от центра операции с учетом эллипса и поворота
-    const distance = this.calculateOpDistance(op, x, z);
-    
-    // 2. Если расстояние больше 1, точка вне зоны влияния
-    if (distance >= 1) {
-      return 0;
-    }
-    
-    // 3. Применяем функцию затухания
-    const falloffValue = this.applyFalloffFunction(distance, op.falloff || 'smoothstep');
-    
-    // 4. Масштабируем на интенсивность операции
-    return op.intensity * falloffValue;
-  }
+  // Расчёт вклада операции вынесен в ops/applyOps.ts
 
   /**
    * Вычислить нормализованное расстояние от центра операции с учетом эллипса и поворота
@@ -796,32 +459,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param z - координата Z в мировых координатах
    * @returns нормализованное расстояние (0 в центре, 1+ за пределами влияния)
    */
-  private calculateOpDistance(op: GfxTerrainOp, x: number, z: number): number {
-    // Относительные координаты от центра операции
-    let dx = x - op.center[0];
-    let dz = z - op.center[1];
-
-    // Если есть поворот, применяем его
-    if (op.rotation && op.rotation !== 0) {
-      const cos = Math.cos(-op.rotation);
-      const sin = Math.sin(-op.rotation);
-      const rotatedDx = dx * cos - dz * sin;
-      const rotatedDz = dx * sin + dz * cos;
-      dx = rotatedDx;
-      dz = rotatedDz;
-    }
-
-    // Радиусы для эллипса (если radiusZ не указан, используем сферу)
-    const rx = op.radius;
-    const rz = op.radiusZ || op.radius;
-
-    // Нормализуем координаты относительно радиусов эллипса
-    const normalizedDx = dx / rx;
-    const normalizedDz = dz / rz;
-
-    // Эллиптическое расстояние
-    return Math.sqrt(normalizedDx * normalizedDx + normalizedDz * normalizedDz);
-  }
+  // Расстояние до центра операции вынесено в ops/applyOps.ts
 
   /**
    * Применить функцию затухания к нормализованному расстоянию
@@ -829,31 +467,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @param falloff - тип функции затухания
    * @returns значение затухания (1 в центре, 0+ на краях и за пределами)
    */
-  private applyFalloffFunction(t: number, falloff: 'smoothstep' | 'gauss' | 'linear'): number {
-    // Ограничиваем t в диапазоне [0, 1]
-    if (t >= 1) return 0;
-    
-    const normalizedT = Math.max(0, Math.min(1, 1 - t));
-
-    switch (falloff) {
-      case 'linear':
-        return normalizedT;
-      
-      case 'smoothstep':
-        // Классическая smoothstep функция для плавного перехода
-        return normalizedT * normalizedT * (3 - 2 * normalizedT);
-      
-      case 'gauss':
-        // Гауссово затухание с экспоненциальным спадом
-        // Используем формулу exp(-3 * t^2) для резкого спада к краям
-        const gaussT = 1 - normalizedT; // инвертируем для правильного направления
-        return Math.exp(-3 * gaussT * gaussT);
-      
-      default:
-        console.warn(`Unknown falloff type: ${falloff}, using smoothstep`);
-        return normalizedT * normalizedT * (3 - 2 * normalizedT);
-    }
-  }
+  // Функции затухания вынесены в ops/applyOps.ts
 }
 
 /**
