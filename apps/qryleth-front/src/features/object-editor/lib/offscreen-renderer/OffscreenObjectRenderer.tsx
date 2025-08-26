@@ -38,13 +38,13 @@ export interface PreviewRenderResult {
 /**
  * Компонент для автоматической установки оптимальной позиции камеры
  */
-const AutoFitCamera: React.FC<{ 
+const AutoFitCamera: React.FC<{
   gfxObject: GfxObject
-  onReady?: () => void 
+  onReady?: () => void
 }> = ({ gfxObject, onReady }) => {
   const { camera, scene } = useThree()
   const [positioned, setPositioned] = React.useState(false)
-  
+
   React.useLayoutEffect(() => {
     // Небольшая задержка чтобы дать объектам отрендериться
     const timeout = setTimeout(() => {
@@ -55,7 +55,7 @@ const AutoFitCamera: React.FC<{
           meshes.push(child)
         }
       })
-      
+
       if (meshes.length === 0) {
         // Если нет мешей, устанавливаем камеру по умолчанию
         camera.position.set(2, 2, 2)
@@ -65,14 +65,14 @@ const AutoFitCamera: React.FC<{
         onReady?.()
         return
       }
-      
+
       // Вычисляем общий bounding box всех мешей
       const boundingBox = new THREE.Box3()
       meshes.forEach(mesh => {
         const box = new THREE.Box3().setFromObject(mesh)
         boundingBox.union(box)
       })
-      
+
       if (boundingBox.isEmpty()) {
         camera.position.set(2, 2, 2)
         camera.lookAt(0, 0, 0)
@@ -81,56 +81,56 @@ const AutoFitCamera: React.FC<{
         onReady?.()
         return
       }
-      
+
       const center = boundingBox.getCenter(new THREE.Vector3())
       const size = boundingBox.getSize(new THREE.Vector3())
-      
+
       // Вычисляем оптимальную дистанцию камеры
       const maxDim = Math.max(size.x, size.y, size.z)
       const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180)
       const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
-      
+
       // Изометрический угол для консистентного вида
       const angle = Math.PI / 4 // 45 degrees
       const elevation = Math.PI / 6 // 30 degrees
-      
+
       camera.position.set(
         center.x + distance * Math.cos(elevation) * Math.cos(angle),
         center.y + distance * Math.sin(elevation),
         center.z + distance * Math.cos(elevation) * Math.sin(angle)
       )
-      
+
       camera.lookAt(center)
       camera.updateProjectionMatrix()
       setPositioned(true)
       onReady?.()
     }, 100) // Задержка для рендеринга объектов
-    
+
     return () => clearTimeout(timeout)
   }, [gfxObject, camera, scene, onReady])
-  
+
   return null
 }
 
 /**
  * Компонент для сохранения ссылки на renderer
  */
-const RendererCapture: React.FC<{ 
-  onCapture: (renderer: THREE.WebGLRenderer) => void 
+const RendererCapture: React.FC<{
+  onCapture: (renderer: THREE.WebGLRenderer) => void
 }> = ({ onCapture }) => {
   const { gl } = useThree()
-  
+
   React.useEffect(() => {
     onCapture(gl)
   }, [gl, onCapture])
-  
+
   return null
 }
 
 /**
  * Компонент для рендеринга превью объекта с освещением и камерой
  */
-const PreviewScene: React.FC<{ 
+const PreviewScene: React.FC<{
   gfxObject: GfxObject
   onReady?: () => void
   onRendererCapture?: (renderer: THREE.WebGLRenderer) => void
@@ -139,26 +139,26 @@ const PreviewScene: React.FC<{
     <>
       {/* Улучшенное освещение для превью с повышенной яркостью */}
       <ambientLight color="#ffffff" intensity={0.8} />
-      <directionalLight 
+      <directionalLight
         position={[5, 10, 7]}
-        color="#ffffff" 
+        color="#ffffff"
         intensity={1.2}
       />
-      <directionalLight 
+      <directionalLight
         position={[-3, -5, -2]}
-        color="#ffffff" 
+        color="#ffffff"
         intensity={0.6}
       />
-      
+
       {/* Сам объект, используя переиспользуемый компонент */}
-      <ObjectRendererR3F 
+      <ObjectRendererR3F
         gfxObject={gfxObject}
         renderMode="solid"
       />
-      
+
       {/* Захват ссылки на рендерер */}
       {onRendererCapture && <RendererCapture onCapture={onRendererCapture} />}
-      
+
       {/* Автоматическая установка камеры */}
       <AutoFitCamera gfxObject={gfxObject} onReady={onReady} />
     </>
@@ -168,7 +168,7 @@ const PreviewScene: React.FC<{
 /**
  * Утилита для offscreen рендеринга 3D объектов в превью изображения
  * с использованием React Three Fiber и переиспользования существующих компонентов.
- * 
+ *
  * Это решает проблемы:
  * - Дублирования логики рендеринга (переиспользуем R3F компоненты)
  * - Поддержки групп примитивов с их трансформациями
@@ -179,7 +179,7 @@ export class OffscreenObjectRenderer {
   private root: ReturnType<typeof createRoot> | null = null
   private renderer: THREE.WebGLRenderer | null = null
   private readonly config: Required<PreviewRenderConfig>
-  
+
   /**
    * Инициализирует offscreen рендерер с заданными параметрами
    */
@@ -193,7 +193,7 @@ export class OffscreenObjectRenderer {
       antialias: true,
       ...config
     }
-    
+
     // Создаем offscreen canvas
     this.canvas = document.createElement('canvas')
     this.canvas.width = this.config.width * this.config.pixelRatio
@@ -201,7 +201,7 @@ export class OffscreenObjectRenderer {
     this.canvas.style.width = `${this.config.width}px`
     this.canvas.style.height = `${this.config.height}px`
   }
-  
+
   /**
    * Рендерит превью объекта в base64 PNG изображение используя R3F
    */
@@ -210,7 +210,7 @@ export class OffscreenObjectRenderer {
       try {
         // Создаем R3F root для offscreen canvas
         this.root = createRoot(this.canvas)
-        
+
         // Настраиваем рендерер
         this.root.configure({
           gl: {
@@ -232,10 +232,10 @@ export class OffscreenObjectRenderer {
             far: 1000
           }
         })
-        
+
         // Настройка цвета фона - светлый небесно-голубой цвет для лучшей видимости объектов
-        const bgColor = this.config.transparent ? 0x87CEEB : this.config.backgroundColor
-        
+        const bgColor = this.config.transparent ? 0xC9D7E3 : this.config.backgroundColor
+
         // Callback для захвата рендерера
         const handleRendererCapture = (renderer: THREE.WebGLRenderer) => {
           this.renderer = renderer
@@ -246,11 +246,11 @@ export class OffscreenObjectRenderer {
           try {
             // Даем дополнительное время для финального рендеринга
             await new Promise(resolve => setTimeout(resolve, 100))
-            
+
             // Получаем результат как data URL и blob
             const dataUrl = this.canvas.toDataURL('image/png')
             const blob = await this.canvasToBlob()
-            
+
             resolve({
               dataUrl,
               blob,
@@ -263,24 +263,24 @@ export class OffscreenObjectRenderer {
             this.cleanup()
           }
         }
-        
+
         // Рендерим сцену
         this.root.render(
           React.createElement(React.Fragment, {}, [
-            React.createElement('color', { 
+            React.createElement('color', {
               key: 'bg',
-              attach: 'background', 
-              args: [bgColor] 
+              attach: 'background',
+              args: [bgColor]
             }),
-            React.createElement(PreviewScene, { 
+            React.createElement(PreviewScene, {
               key: 'scene',
-              gfxObject, 
+              gfxObject,
               onReady: handleReady,
               onRendererCapture: handleRendererCapture
             })
           ])
         )
-        
+
       } catch (error) {
         this.cleanup()
         console.error('Ошибка при рендеринге превью объекта:', error)
@@ -288,7 +288,7 @@ export class OffscreenObjectRenderer {
       }
     })
   }
-  
+
   /**
    * Конвертирует canvas в Blob асинхронно
    */
@@ -303,7 +303,7 @@ export class OffscreenObjectRenderer {
       }, 'image/png')
     })
   }
-  
+
   /**
    * Очистка ресурсов
    */
@@ -313,20 +313,20 @@ export class OffscreenObjectRenderer {
       this.root.unmount()
       this.root = null
     }
-    
+
     // Очищаем WebGL ресурсы если у нас есть ссылка на renderer
     if (this.renderer) {
       this.renderer.dispose()
       this.renderer = null
     }
   }
-  
+
   /**
    * Освобождает ресурсы рендерера
    */
   dispose(): void {
     this.cleanup()
-    
+
     // Удаляем canvas из DOM если он был добавлен
     if (this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas)
