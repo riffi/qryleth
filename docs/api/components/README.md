@@ -13,6 +13,11 @@ src/features/object-editor/ui/ # Компоненты редактора объ�
 
 Каждый компонент оформлен в виде отдельного файла с типами и экспортируется через `index.ts` своего каталога.
 
+## Превью объектов (библиотека)
+
+- **ObjectPreviewCard** (`src/shared/ui/ObjectPreviewCard/ObjectPreviewCard.tsx`) — карточка объекта с PNG превью и интерактивным hover‑препросмотром. См. подробности: `docs/api/components/object-preview-card.md`.
+- **HoverInteractivePreview** (`src/shared/ui/ObjectPreviewCard/HoverInteractivePreview.tsx`) — сцена R3F для облёта камеры вокруг объекта при наведении.
+
 ## Новые компоненты Chat системы
 
 ### Shared Chat Components (`src/shared/entities/chat/ui/`)

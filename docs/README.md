@@ -61,6 +61,8 @@
 - **[Component Library](api/components/README.md)** - Переиспользуемые компоненты
 - **[Chat Components](api/components/chat-components.md)** - Компоненты чата и системы панелей (новое)
 - **[Scene Editor](api/components/scene-editor.md)** - Компоненты редактора сцены
+ - 🆕 **[Object Preview Card](api/components/object-preview-card.md)** - Карточка с превью и hover‑препросмотром
+ - 🆕 **[OffscreenObjectRenderer](api/libs/offscreen-object-renderer.md)** - Утилита генерации PNG превью
 
 ---
 
@@ -78,6 +80,9 @@
 ### Редактирование объектов
 - **[Overview](features/object-editing/README.md)** - общая информация
 - **[Keyboard Shortcuts](features/object-editing/keyboard-shortcuts.md)** - Горячие клавиши редактора объектов
+
+### Библиотека объектов
+- 🆕 **[Превью и препросмотр](features/object-library/README.md)** — offscreen PNG и интерактивный hover‑облёт камеры
 
 ### Интеграция ИИ
 - **[LLM Integration](features/ai-integration/llm-integration.md)** - Настройка языковой модели
