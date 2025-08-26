@@ -9,7 +9,7 @@ owner: platform-graphics
 tags: [terrain, rendering, placement, architecture, refactoring]
 phases:
   total: 8
-  completed: 1
+  completed: 2
 ---
 
 # Рефакторинг архитектуры террейна: GfxHeightSampler, LandscapeLayer, TerrainOps
@@ -102,7 +102,7 @@ phases:
 
 Отчёт: [phases/phase_1_summary.md](./phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Вынесение построения геометрии
+### ✅ Фаза 2: Вынесение построения геометрии
 - Создать `apps/qryleth-front/src/features/scene/lib/terrain/GeometryBuilder.ts`:
   - Перенести `buildGfxTerrainGeometry(cfg, sampler)` из `GfxHeightSampler.ts`.
   - Перенести `decideSegments(worldW, worldH, sourceResolution)` с учётом источника:
@@ -112,6 +112,8 @@ phases:
   - Подробные русские комментарии к методам.
 - Обновить импорты в `LandscapeLayer.tsx` и тестах.
 Результат: геометрия строится прежним образом; сегменты ближе к реальному разрешению источника.
+
+Отчёт: [phases/phase_2_summary.md](./phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: Распил GfxHeightSampler на модули
 - Структура каталогов `apps/qryleth-front/src/features/scene/lib/terrain/`:
