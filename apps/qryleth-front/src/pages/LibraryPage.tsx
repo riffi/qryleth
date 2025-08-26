@@ -183,7 +183,7 @@ const LibraryPage: React.FC = () => {
                 ) : (
                   <Grid>
                     {filteredScenes.map((scene) => (
-                      <Grid.Col key={scene.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
+                      <Grid.Col key={scene.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
                         <Card shadow="sm" padding="md" radius="md" withBorder>
                           <Stack gap="sm">
                             <Group justify="space-between" align="flex-start">
@@ -252,14 +252,14 @@ const LibraryPage: React.FC = () => {
                 ) : (
                   <Grid>
                     {filteredObjects.map((object) => (
-                      <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
+                      <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
                         <ObjectPreviewCard
                           object={object}
                           onEdit={handleEditObject}
                           onDelete={handleDeleteObject}
                           showDeleteButton={true}
                           showDate={true}
-                          size="md"
+                          size="sm"
                           loading={isLoading}
                         />
                       </Grid.Col>
