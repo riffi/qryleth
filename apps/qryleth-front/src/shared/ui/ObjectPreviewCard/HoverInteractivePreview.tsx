@@ -110,8 +110,13 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) =
  * - Включает автоустановку и автоворот камеры AutoFitOrbitCamera
  */
 const HoverPreviewScene: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) => {
+  // Цвет фона как в offscreen превью PNG (см. OffscreenObjectRenderer)
+  const background = '#EAF4FF'
   return (
     <>
+      {/* Фон сцены совпадает с PNG превью, чтобы не было отличий */}
+      {/* @ts-ignore three-fiber intrinsic */}
+      <color attach="background" args={[background]} />
       <ambientLight color="#ffffff" intensity={0.7} />
       <directionalLight position={[5, 8, 6]} color="#ffffff" intensity={1.0} />
       <directionalLight position={[-4, -6, -3]} color="#ffffff" intensity={0.5} />
@@ -134,7 +139,7 @@ export const HoverInteractivePreview: React.FC<HoverInteractivePreviewProps> = (
   return (
     <Canvas
       style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, pointerEvents: 'none' }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', outputColorSpace: THREE.SRGBColorSpace }}
       dpr={1}
       camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 2000 }}
     >
@@ -142,4 +147,3 @@ export const HoverInteractivePreview: React.FC<HoverInteractivePreviewProps> = (
     </Canvas>
   )
 }
-
