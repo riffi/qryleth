@@ -63,6 +63,7 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
   const [hovered, setHovered] = useState(false)
+  const [hoverPreviewReady, setHoverPreviewReady] = useState(false)
 
   /**
    * Форматирует дату в читаемый формат
@@ -122,8 +123,8 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
         {/* Превью изображение */}
         <Box
           className={classes.previewContainer}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseEnter={() => { setHovered(true); setHoverPreviewReady(false) }}
+          onMouseLeave={() => { setHovered(false); setHoverPreviewReady(false) }}
         >
           {hasThumbnail && !imageError ? (
             <>
@@ -145,15 +146,18 @@ export const ObjectPreviewCard = memo<ObjectPreviewCardProps>(({
                 onError={handleImageError}
                 className={classes.previewImage}
                 style={{
-                  // Скрываем PNG превью при hover без потери места в раскладке
-                  visibility: hovered ? 'hidden' : 'visible',
+                  // PNG показывается под оверлеем до готовности 3D; скрываем только когда hover+ready
+                  visibility: hovered && hoverPreviewReady ? 'hidden' : 'visible',
                   display: imageLoading ? 'none' : 'block',
                   opacity: loading ? 0.5 : 1
                 }}
               />
               {/* Интерактивный рендер поверх превью при hover */}
               {hovered && !loading && (
-                <HoverInteractivePreview gfxObject={object.objectData} />
+                <HoverInteractivePreview
+                  gfxObject={object.objectData}
+                  onReadyChange={setHoverPreviewReady}
+                />
               )}
             </>
           ) : (

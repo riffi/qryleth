@@ -3,10 +3,13 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { GfxObject } from '@/entities/object'
 import { ObjectRendererR3F } from '@/features/object-editor/lib/offscreen-renderer/ObjectRendererR3F'
+import { LoadingOverlay } from '@mantine/core'
 
 export interface HoverInteractivePreviewProps {
   /** Объект для рендеринга в интерактивном превью */
   gfxObject: GfxObject
+  /** Колбэк изменения готовности рендера: true — можно показывать Canvas */
+  onReadyChange?: (ready: boolean) => void
 }
 
 /**
@@ -14,7 +17,7 @@ export interface HoverInteractivePreviewProps {
  * Камера выставляется так, чтобы весь объект гарантированно попадал в кадр, затем
  * выполняется плавное вращение по окружности вокруг вертикальной оси (Y) с постоянной угловой скоростью.
  */
-const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) => {
+const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject, onReady?: () => void }> = ({ gfxObject, onReady }) => {
   const { camera, scene } = useThree()
   const centerRef = React.useRef(new THREE.Vector3(0, 0, 0))
   const radiusRef = React.useRef(3)
@@ -75,6 +78,7 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) =
       camera.updateProjectionMatrix()
 
       readyRef.current = true
+      onReady?.()
     }, 60)
 
     return () => clearTimeout(t)
@@ -109,7 +113,7 @@ const AutoFitOrbitCamera: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) =
  * - Добавляет нейтральное освещение (ambient + два directional)
  * - Включает автоустановку и автоворот камеры AutoFitOrbitCamera
  */
-const HoverPreviewScene: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) => {
+const HoverPreviewScene: React.FC<{ gfxObject: GfxObject, onReady?: () => void }> = ({ gfxObject, onReady }) => {
   // Цвет фона как в offscreen превью PNG (см. OffscreenObjectRenderer)
   const background = '#EAF4FF'
   return (
@@ -123,7 +127,7 @@ const HoverPreviewScene: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) =>
 
       <ObjectRendererR3F gfxObject={gfxObject} renderMode="solid" />
 
-      <AutoFitOrbitCamera gfxObject={gfxObject} />
+      <AutoFitOrbitCamera gfxObject={gfxObject} onReady={onReady} />
     </>
   )
 }
@@ -135,15 +139,39 @@ const HoverPreviewScene: React.FC<{ gfxObject: GfxObject }> = ({ gfxObject }) =>
  * Важно: Canvas создаётся только когда компонент смонтирован (т.е. при hover),
  * чтобы не расходовать ресурсы вне наведения.
  */
-export const HoverInteractivePreview: React.FC<HoverInteractivePreviewProps> = ({ gfxObject }) => {
+export const HoverInteractivePreview: React.FC<HoverInteractivePreviewProps> = ({ gfxObject, onReadyChange }) => {
+  // Локальное состояние готовности сцены: true, когда камера подстроена и можно показывать рендер
+  const [ready, setReady] = React.useState(false)
+
+  // Сообщаем наружу о готовности, чтобы родитель мог синхронизировать видимость PNG
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [ready, onReadyChange])
+
   return (
-    <Canvas
-      style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, pointerEvents: 'none' }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', outputColorSpace: THREE.SRGBColorSpace }}
-      dpr={1}
-      camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 2000 }}
-    >
-      <HoverPreviewScene gfxObject={gfxObject} />
-    </Canvas>
+    <div style={{ position: 'absolute', inset: 0 }}>
+      {/* Оверлей загрузки до готовности сцены */}
+      <LoadingOverlay
+        visible={!ready}
+        zIndex={1}
+        // Делаем фон оверлея таким же, как у PNG превью (#EAF4FF)
+        overlayProps={{ radius: 'sm', blur: 0, color: '#EAF4FF', opacity: 1 }}
+        loaderProps={{ type: 'oval' }}
+        transitionProps={{ duration: 80 }}
+        // Не блокируем события, чтобы hover не пропал
+        style={{ pointerEvents: 'none' }}
+      />
+
+      <Canvas
+        style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, pointerEvents: 'none', opacity: ready ? 1 : 0 }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', outputColorSpace: THREE.SRGBColorSpace }}
+        dpr={1}
+        camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 2000 }}
+        onCreated={() => setReady(false)}
+      >
+        {/* Для сигнализации о готовности передаём колбэк готовности сцены */}
+        <HoverPreviewScene gfxObject={gfxObject} onReady={() => setReady(true)} />
+      </Canvas>
+    </div>
   )
 }
