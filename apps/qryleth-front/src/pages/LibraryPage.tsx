@@ -29,6 +29,7 @@ import { db, type SceneRecord, type ObjectRecord } from '@/shared/lib/database'
 import { ObjectPreviewCard } from '@/shared/ui'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { useNavigate } from 'react-router-dom'
+import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
 
 const LibraryPage: React.FC = () => {
   const navigate = useNavigate()
@@ -36,7 +37,10 @@ const LibraryPage: React.FC = () => {
   const [objects, setObjects] = useState<ObjectRecord[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>('scenes')
+  // Читаем и сохраняем активную вкладку через глобальный визуальный стор
+  const activeTab = useVisualSettingsStore(s => s.libraryTab)
+  const setActiveTabRaw = useVisualSettingsStore(s => s.setLibraryTab)
+  const setActiveTab = (value: string | null) => setActiveTabRaw((value as 'scenes' | 'objects') ?? 'scenes')
 
   const loadScenes = async () => {
     try {
