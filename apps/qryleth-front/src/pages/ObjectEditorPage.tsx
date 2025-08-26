@@ -8,7 +8,7 @@ import { db } from '@/shared/lib/database'
 import type { ObjectRecord } from '@/shared/api/types'
 import type { GfxObject } from '@/entities/object'
 import { useGlobalPanelState } from '@/features/object-editor/lib/hooks/useGlobalPanelState'
-import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
+import { buildUpdatedObject, generateObjectPreview } from '@/features/object-editor/lib/saveUtils'
 
 const ObjectEditorPage: React.FC = () => {
   const { id } = useParams()
@@ -46,7 +46,7 @@ const ObjectEditorPage: React.FC = () => {
   }, [id])
 
   /**
-   * Сохраняет изменения текущего объекта в базе данных.
+   * Сохраняет изменения текущего объекта в базе данных с автоматической генерацией превью.
    * Используем UUID записи библиотеки, иначе объект не обновится.
    */
   const handleSave = async (object: GfxObject) => {
@@ -58,17 +58,37 @@ const ObjectEditorPage: React.FC = () => {
       }
       
       if (objectRecord) {
-        // Обновляем существующий объект
+        // Генерируем превью для обновляемого объекта
+        let thumbnail: string | undefined
+        try {
+          const previewDataUrl = await generateObjectPreview(object, true)
+          thumbnail = previewDataUrl || undefined
+        } catch (error) {
+          console.warn('Не удалось сгенерировать превью при обновлении:', error)
+        }
+        
+        // Обновляем существующий объект с превью
         await db.updateObject(objectRecord.uuid, {
-          objectData: object
+          objectData: object,
+          thumbnail
         })
       } else {
-        // Создаем новый объект
-        const uuid = await db.saveObject(object.name, object)
+        // Генерируем превью для нового объекта
+        let thumbnail: string | undefined
+        try {
+          const previewDataUrl = await generateObjectPreview(object, true)
+          thumbnail = previewDataUrl || undefined
+        } catch (error) {
+          console.warn('Не удалось сгенерировать превью при создании:', error)
+        }
+        
+        // Создаем новый объект с превью
+        const uuid = await db.saveObject(object.name, object, undefined, thumbnail)
         setObjectRecord({
           uuid,
           name: object.name,
           objectData: object,
+          thumbnail,
           createdAt: new Date(),
           updatedAt: new Date()
         })
@@ -83,7 +103,7 @@ const ObjectEditorPage: React.FC = () => {
   }
 
   /**
-   * Обработчик для сохранения нового объекта с введенным именем
+   * Обработчик для сохранения нового объекта с введенным именем и автоматической генерацией превью
    */
   const handleSaveNewObject = async () => {
     if (!pendingObject) return
@@ -103,12 +123,22 @@ const ObjectEditorPage: React.FC = () => {
         throw new Error('База данных не готова к работе')
       }
 
-      // Создаем новый объект
-      const uuid = await db.saveObject(trimmedName, objectWithName)
+      // Генерируем превью для нового объекта
+      let thumbnail: string | undefined
+      try {
+        const previewDataUrl = await generateObjectPreview(objectWithName, true)
+        thumbnail = previewDataUrl || undefined
+      } catch (error) {
+        console.warn('Не удалось сгенерировать превью для нового объекта:', error)
+      }
+
+      // Создаем новый объект с превью
+      const uuid = await db.saveObject(trimmedName, objectWithName, undefined, thumbnail)
       setObjectRecord({
         uuid,
         name: trimmedName,
         objectData: objectWithName,
+        thumbnail,
         createdAt: new Date(),
         updatedAt: new Date()
       })
