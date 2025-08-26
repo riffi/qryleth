@@ -1,3 +1,5 @@
+import { createRng } from '@/shared/lib/utils/prng'
+
 /**
  * Опции генерации Перлин-шума.
  * - octaveCount: количество октав (уровней детализации), по умолчанию 4
@@ -144,33 +146,5 @@ function interpolate(x0: number, x1: number, alpha: number): number {
  * Создает генератор псевдослучайных чисел в диапазоне [0, 1).
  * Если seed не задан, возвращает стандартный Math.random.
  * Для детерминизма используется простая, быстрая схема mulberry32.
+ * (Импортируется из '@/shared/lib/utils/prng')
  */
-function createRng(seed?: number | string): () => number {
-  if (seed === undefined) return Math.random
-  const s = typeof seed === 'number' ? seed >>> 0 : xfnv1a(seed)
-  return mulberry32(s)
-}
-
-/**
- * Быстрый PRNG: mulberry32. Возвращает функцию генерации чисел в [0, 1).
- */
-function mulberry32(a: number): () => number {
-  return function () {
-    let t = (a += 0x6d2b79f5)
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-/**
- * Хеширует строковый seed в 32-битное беззнаковое число (xfnv1a).
- */
-function xfnv1a(str: string): number {
-  let h = 2166136261 >>> 0
-  for (let i = 0; i < str.length; i += 1) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return h >>> 0
-}

@@ -12,3 +12,15 @@ export type {
   GfxTerrainConfig,
   GfxHeightSampler
 } from './model/types';
+
+// Экспорт типов процедурной генерации террейна
+export type {
+  GfxProceduralPerlinParams,
+  GfxProceduralTerrainSpec,
+  GfxTerrainOpPool,
+  GfxTerrainOpRecipe,
+  GfxPlacementSpec,
+  GfxBiasSpec,
+  GfxPlacementArea,
+  GfxOpsGenerationOptions
+} from './model/proceduralTypes'

@@ -9,7 +9,7 @@ owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 0
+  completed: 1
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -46,19 +46,19 @@ phases:
 ### Размещение в архитектуре проекта
 
 **Новые типы данных:**
-- `src/entities/terrain/model/proceduralTypes.ts` - все типы процедурной генерации
-- `src/entities/spline/model/types.ts` - типы системы сплайнов (заглушки)
+- `apps/qryleth-front/src/entities/terrain/model/proceduralTypes.ts` - все типы процедурной генерации
+- `apps/qryleth-front/src/entities/spline/model/types.ts` - типы системы сплайнов (заглушки)
 
 **Основной движок и алгоритмы:**
-- `src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts` - главный класс генератора
-- `src/features/scene/lib/terrain/placement/` - алгоритмы размещения объектов
-- `src/features/scene/lib/terrain/recipes/` - шаблоны операций и их обработка
-- `src/features/scene/lib/terrain/utils/` - утилиты PRNG и математические функции
+- `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts` - главный класс генератора
+- `apps/qryleth-front/src/features/scene/lib/terrain/placement/` - алгоритмы размещения объектов
+- `apps/qryleth-front/src/features/scene/lib/terrain/recipes/` - шаблоны операций и их обработка
+- `apps/qryleth-front/src/features/scene/lib/terrain/utils/` - утилиты PRNG и математические функции
 
 **Интеграция и фабрики:**
-- `src/features/scene/lib/terrain/TerrainFactory.ts` - готовые конфигурации ландшафтов
-- `src/features/scene/lib/sceneAPI.ts` - новые методы в SceneAPI
-- `src/entities/spline/lib/SplineManager.ts` - менеджер сплайнов (заглушка)
+- `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts` - готовые конфигурации ландшафтов
+- `apps/qryleth-front/src/features/scene/lib/sceneAPI.ts` - новые методы в SceneAPI
+- `apps/qryleth-front/src/entities/spline/lib/SplineManager.ts` - менеджер сплайнов (заглушка)
 
 **Вспомогательные модули:**
 - `apps/qryleth-front/src/shared/lib/utils/prng.ts` - перенесенный mulberry32
@@ -132,6 +132,36 @@ interface GfxBiasSpec {
   avoidOverlap?: boolean  // избегать пересечений с существующими операциями
 }
 ```
+
+#### Дополнительные служебные типы (область и опции генерации)
+
+```typescript
+// Область, внутри которой разрешено размещение операций
+type GfxPlacementArea =
+  | { kind: 'rect', x: number, y: number, width: number, height: number }
+  | { kind: 'circle', x: number, y: number, radius: number }
+
+// Дополнительные опции для генерации пула операций
+interface GfxOpsGenerationOptions {
+  area?: GfxPlacementArea               // ограничение по области генерации
+  sampler?: import('@/entities/terrain').GfxHeightSampler // внешний сэмплер высот для bias/avoidOverlap
+}
+```
+
+### Единицы измерения и координаты
+
+- Координаты центра операций и размеры (`radius`, `minDistance`, `cell`) задаются в мировых единицах (метрах).
+- Угол `rotation` задаётся в радианах. `aspect` — отношение `radiusZ/radiusX` (по умолчанию 1).
+- Фильтры `preferHeight` измеряются в метрах (высота), `preferSlope` — в радианах уклона. `weight` — коэффициент влияния на вероятностную выборку (не жёсткий отсев).
+- `avoidOverlap: true` — проверка пересечений учитывает как уже сгенерированные новые операции текущей сессии, так и существующие операции в конфигурации, с использованием пространственного индекса.
+
+### Правила маппинга рецептов в операции
+
+- Один рецепт (`GfxTerrainOpRecipe`) может порождать несколько `GfxTerrainOp` (например, `crater` = центральная выемка + вал; `ridge/valley` = серия эллипсов вдоль линии; `terrace` = концентрические «ступени»).
+- Значение `mode: 'auto'` интерпретируется по умолчанию так:
+  - hill → add; basin → sub; valley → sub; ridge → add; dune → add;
+  - plateau → set (или add с малым falloff); crater → комбинированно (sub + add);
+  - terrace → set/add сериями.
 
 ### Примеры использования
 
@@ -217,24 +247,28 @@ const result = await sceneApi.createProceduralLayer(
 
 ## Список фаз
 
-### ⏳ Фаза 1: Перенос PRNG и создание базовых типов
-- Перенести `mulberry32` и связанные функции из `/apps/qryleth-front/src/shared/lib/noise/perlin.ts` в `shared/lib/utils/prng.ts`
+### ✅ Фаза 1: Перенос PRNG и создание базовых типов
+- Перенести `mulberry32` и связанные функции из `/apps/qryleth-front/src/shared/lib/noise/perlin.ts` в `apps/qryleth-front/src/shared/lib/utils/prng.ts`
 - Обновить импорт в `perlin.ts`
-- Создать типы для процедурной генерации в `src/entities/terrain/model/proceduralTypes.ts`:
+- Создать типы для процедурной генерации в `apps/qryleth-front/src/entities/terrain/model/proceduralTypes.ts`:
   - `GfxProceduralTerrainSpec` - полная спецификация процедурного террейна
   - `GfxProceduralPerlinParams` - расширение GfxPerlinParams с полем offset
   - `GfxTerrainOpPool` - пул операций с глобальными настройками
   - `GfxTerrainOpRecipe` - рецепт для генерации операций определенного типа
   - `GfxPlacementSpec` - алгоритмы размещения (uniform, poisson, gridJitter, ring)
   - `GfxBiasSpec` - фильтрация по высоте и уклону
-- Обновить экспорт в `src/entities/terrain/index.ts`
+  - `GfxPlacementArea` - ограничение области генерации (rect/circle)
+  - `GfxOpsGenerationOptions` - дополнительные опции генерации пула
+- Обновить экспорт в `apps/qryleth-front/src/entities/terrain/index.ts`
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Система сплайнов (заглушки) и алгоритмы размещения
-- Создать базовую систему сплайнов в `src/entities/spline/`:
+- Создать базовую систему сплайнов в `apps/qryleth-front/src/entities/spline/`:
   - `model/types.ts` - типы `SplinePoint`, `Spline`, `SplineConfig` 
-  - `lib/SplineManager.ts` - заглушка с методами `getSpline()`, `createSpline()`, `deleteSpline()`
+  - `lib/SplineManager.ts` - заглушка с методами `getSpline()`, `createSpline()`, `deleteSpline()` (памятка: in-memory реестр; интеграция с Zustand — отдельно)
   - `index.ts` - экспорт интерфейсов (пока без UI)
-- Создать алгоритмы размещения в `src/features/scene/lib/terrain/placement/`:
+- Создать алгоритмы размещения в `apps/qryleth-front/src/features/scene/lib/terrain/placement/`:
   - `PlacementAlgorithms.ts` - реализация uniform, poisson, gridJitter, ring, alongSpline
   - `PlacementUtils.ts` - вспомогательные функции для работы с координатами
   - `index.ts` - экспорт функций размещения
@@ -250,21 +284,27 @@ const result = await sceneApi.createProceduralLayer(
   - `PRNGUtils.ts` - разделение seed на подпотоки, hash-функции
   - `TerrainUtils.ts` - вспомогательные математические функции
 - Unit-тесты для всех процессоров и шаблонов
+  
+Дополнительно:
+- Явно документировать: «один рецепт может порождать несколько GfxTerrainOp» (crater/terrace/ridge).
+- Зафиксировать дефолты `mode: 'auto'` для каждого `kind` (см. раздел выше).
 
-### ⏳ Фаза 4: Основной движок ProceduralTerrainGenerator
-- Создать основной движок в `src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts`:
+### ⏳ Фаза 4.1: Движок ProceduralTerrainGenerator (основа)
+- Создать основной движок в `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts`:
   - Класс `ProceduralTerrainGenerator` с методами:
     - `generateTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
     - `generateOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
   - Интеграция всех алгоритмов размещения, рецептов и bias-фильтров
   - Поддержка ограничений по области размещения и максимальному количеству операций
-- Создать фабричные методы в `src/features/scene/lib/terrain/TerrainFactory.ts`:
+
+### ⏳ Фаза 4.2: Фабрики и интеграционные тесты
+- Создать фабричные методы в `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts`:
   - `createMountainTerrain()`, `createHillsTerrain()`, `createDunesTerrain()` и др.
   - Готовые конфигурации для разных типов ландшафтов
-- Comprehensive unit-тесты и integration-тесты для движка
+- Comprehensive unit-тесты и integration-тесты для движка и фабрик
 
 ### ⏳ Фаза 5: Интеграция с SceneAPI
-- Добавить новые методы в SceneAPI (`src/features/scene/lib/sceneAPI.ts`):
+- Добавить новые методы в SceneAPI (`apps/qryleth-front/src/features/scene/lib/sceneAPI.ts`):
   - `generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
   - `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
   - `createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{success: boolean, layerId?: string, error?: string}>`
@@ -272,9 +312,12 @@ const result = await sceneApi.createProceduralLayer(
 - Обеспечить корректную обработку ошибок и валидацию входных параметров
 - Проверить производительность и соответствие техническим ограничениям
 
+Примечание:
+- `createProceduralLayer(...)` должен использовать `generateProceduralTerrain(...)`, а затем вызывать существующий `createLayerWithAdjustment(...)` для корректной и унифицированной интеграции с текущей логикой выравнивания инстансов.
+
 ### ⏳ Фаза 6: Обновление ScriptingPanel и AI подсказок
 - Обновить подсказки для AI в ScriptingPanel:
-  - Дополнить системный промпт в `useAIScriptGenerator.ts` (строки 35-200) информацией о новых методах
+  - Дополнить системный промпт в `useAIScriptGenerator.ts` (внутри функции `buildSystemPrompt`) информацией о новых методах
   - Добавить примеры использования процедурной генерации террейна
   - Обновить описания доступных методов SceneAPI с новыми параметрами
 - Добавить готовые шаблоны скриптов для процедурной генерации в `scriptTemplates.ts`
@@ -304,3 +347,8 @@ const result = await sceneApi.createProceduralLayer(
 - Покрытие unit-тестами 85%+ для всех новых компонентов
 - Детерминированность генерации (одинаковый seed = идентичный результат)
 - Производительность: генерация террейна 200x200 с 50 операциями за < 500ms
+
+### Дополнительные технические уточнения
+- PRNG: использовать `mulberry32` из `apps/qryleth-front/src/shared/lib/utils/prng.ts`. Все случайности должны зависеть только от seed/под-seed (никакого `Math.random`).
+- Под-seed: формировать через хэширование составных частей: `deriveSeed(globalSeed, recipeIndex, opIndex, stage?)`.
+- `gridJitter.jitter` — доля от размера ячейки (0..1), где 1 означает возможное смещение до ±0.5 cell по каждой оси.
