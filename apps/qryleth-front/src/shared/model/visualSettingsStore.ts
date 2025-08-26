@@ -15,11 +15,61 @@ interface VisualSettingsState {
   libraryTab: LibraryTab
 
   /**
+   * SceneEditor: состояние видимости и компоновки боковых панелей.
+   * Левая панель может отображать чат или скриптинг, или быть свёрнутой целиком.
+   */
+  /** true — левая панель (чат/скриптинг) свернута */
+  sceneChatCollapsed: boolean
+  /** true — вместо чата в левой панели показан скриптинг */
+  sceneScriptingVisible: boolean
+  /** true — правая панель (менеджер объектов) свёрнута */
+  sceneObjectPanelCollapsed: boolean
+  /** Текущая ширина левой панели в пикселях */
+  sceneLeftPanelWidthPx: number
+  /** Текущая ширина правой панели в пикселях */
+  sceneRightPanelWidthPx: number
+  /** Однократная инициализация стартовой раскладки SceneEditor на устройстве */
+  sceneEditorLayoutInitialized: boolean
+
+  /**
    * Устанавливает активную вкладку на странице библиотеки.
    * Полезно для сохранения выбора пользователя между визитами благодаря persist‑мидлваре.
    * @param tab - значение вкладки: 'scenes' | 'objects'
    */
   setLibraryTab: (tab: LibraryTab) => void
+
+  /**
+   * Устанавливает свёрнутость левой панели (чат/скриптинг) в SceneEditor.
+   * @param collapsed - true, чтобы скрыть левую панель; false — показать её.
+   */
+  setSceneChatCollapsed: (collapsed: boolean) => void
+
+  /**
+   * Управляет видимостью панели скриптинга в левой панели SceneEditor.
+   * При true — показывается скриптинг, при false — показывается чат (если левая панель не свёрнута).
+   */
+  setSceneScriptingVisible: (visible: boolean) => void
+
+  /**
+   * Устанавливает свёрнутость правой панели (менеджера объектов) в SceneEditor.
+   */
+  setSceneObjectPanelCollapsed: (collapsed: boolean) => void
+
+  /**
+   * Устанавливает ширину левой панели SceneEditor в пикселях.
+   */
+  setSceneLeftPanelWidthPx: (px: number) => void
+
+  /**
+   * Устанавливает ширину правой панели SceneEditor в пикселях.
+   */
+  setSceneRightPanelWidthPx: (px: number) => void
+
+  /**
+   * Помечает, что стартовая раскладка SceneEditor была установлена с учётом устройства/экрана,
+   * чтобы последующие монтирования не переопределяли пользовательские настройки.
+   */
+  markSceneEditorLayoutInitialized: () => void
 
   /**
    * Сбрасывает визуальные настройки к значениям по умолчанию.
@@ -31,8 +81,24 @@ interface VisualSettingsState {
 /**
  * Значения по умолчанию для визуальных настроек.
  */
-const DEFAULT_VISUAL_SETTINGS: Pick<VisualSettingsState, 'libraryTab'> = {
+const DEFAULT_VISUAL_SETTINGS: Pick<
+  VisualSettingsState,
+  | 'libraryTab'
+  | 'sceneChatCollapsed'
+  | 'sceneScriptingVisible'
+  | 'sceneObjectPanelCollapsed'
+  | 'sceneLeftPanelWidthPx'
+  | 'sceneRightPanelWidthPx'
+  | 'sceneEditorLayoutInitialized'
+> = {
   libraryTab: 'scenes',
+  // SceneEditor defaults: аккуратные значения по умолчанию; точная первичная адаптация выполняется в компоненте при первом монтировании
+  sceneChatCollapsed: false,
+  sceneScriptingVisible: false,
+  sceneObjectPanelCollapsed: false,
+  sceneLeftPanelWidthPx: 360,
+  sceneRightPanelWidthPx: 320,
+  sceneEditorLayoutInitialized: false,
 }
 
 /**
@@ -55,6 +121,49 @@ export const useVisualSettingsStore = create<VisualSettingsState>()(
       },
 
       /**
+       * Управление состоянием левой панели SceneEditor (чат/скриптинг).
+       */
+      setSceneChatCollapsed: (collapsed: boolean) => {
+        set({ sceneChatCollapsed: collapsed })
+      },
+
+      /**
+       * Включает/выключает видимость панели скриптинга.
+       * Если скриптинг включается, предполагается, что левая панель отображается.
+       */
+      setSceneScriptingVisible: (visible: boolean) => {
+        set({ sceneScriptingVisible: visible })
+      },
+
+      /**
+       * Сворачивает/разворачивает правую панель (менеджер объектов).
+       */
+      setSceneObjectPanelCollapsed: (collapsed: boolean) => {
+        set({ sceneObjectPanelCollapsed: collapsed })
+      },
+
+      /**
+       * Устанавливает ширину левой панели SceneEditor в пикселях.
+       */
+      setSceneLeftPanelWidthPx: (px: number) => {
+        set({ sceneLeftPanelWidthPx: Math.max(0, Math.round(px)) })
+      },
+
+      /**
+       * Устанавливает ширину правой панели SceneEditor в пикселях.
+       */
+      setSceneRightPanelWidthPx: (px: number) => {
+        set({ sceneRightPanelWidthPx: Math.max(0, Math.round(px)) })
+      },
+
+      /**
+       * Отмечает, что первоначальная инициализация раскладки SceneEditor выполнена.
+       */
+      markSceneEditorLayoutInitialized: () => {
+        set({ sceneEditorLayoutInitialized: true })
+      },
+
+      /**
        * Полный сброс визуальных настроек к значениям по умолчанию.
        * Включает возврат активной вкладки библиотеки к 'scenes'.
        */
@@ -66,4 +175,3 @@ export const useVisualSettingsStore = create<VisualSettingsState>()(
     }
   )
 )
-

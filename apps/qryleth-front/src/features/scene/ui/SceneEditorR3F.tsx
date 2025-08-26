@@ -48,6 +48,7 @@ import {
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
+import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
 import { SceneEditorToolBar } from './SceneEditorToolBar'
 import { LeftToolbar } from './LeftToolbar'
 import { RightToolbar } from './RightToolbar'
@@ -103,9 +104,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
-  const [chatCollapsed, setChatCollapsed] = useState(false)
-  const [scriptingPanelVisible, setScriptingPanelVisible] = useState(false)
-  const [objectPanelCollapsed, setObjectPanelCollapsed] = useState(false)
+  // Видимость панелей и ширины берём из глобального визуального стора (persist)
+  const chatCollapsed = useVisualSettingsStore(s => s.sceneChatCollapsed)
+  const setChatCollapsed = useVisualSettingsStore(s => s.setSceneChatCollapsed)
+  const scriptingPanelVisible = useVisualSettingsStore(s => s.sceneScriptingVisible)
+  const setScriptingPanelVisible = useVisualSettingsStore(s => s.setSceneScriptingVisible)
+  const objectPanelCollapsed = useVisualSettingsStore(s => s.sceneObjectPanelCollapsed)
+  const setObjectPanelCollapsed = useVisualSettingsStore(s => s.setSceneObjectPanelCollapsed)
   // Состояние подтверждения удаления инстанса
   const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{ globalIndex: number; title: string } | null>(null)
@@ -117,8 +122,10 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   // Ресайз панелей: более современный UX с drag-handles
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [leftPanelWidthPx, setLeftPanelWidthPx] = useState<number>(360)
-  const [rightPanelWidthPx, setRightPanelWidthPx] = useState<number>(320)
+  const leftPanelWidthPx = useVisualSettingsStore(s => s.sceneLeftPanelWidthPx)
+  const rightPanelWidthPx = useVisualSettingsStore(s => s.sceneRightPanelWidthPx)
+  const setLeftPanelWidthPx = useVisualSettingsStore(s => s.setSceneLeftPanelWidthPx)
+  const setRightPanelWidthPx = useVisualSettingsStore(s => s.setSceneRightPanelWidthPx)
   const [resizingSide, setResizingSide] = useState<'left' | 'right' | null>(null)
   const [containerBounds, setContainerBounds] = useState<{ left: number; right: number } | null>(null)
 
@@ -169,7 +176,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
-  }, [resizingSide, containerBounds, scriptingPanelVisible])
+  }, [resizingSide, containerBounds, scriptingPanelVisible, objectPanelCollapsed])
 
   /**
    * Инициализирует стартовые ширины и состояние панелей в зависимости от
@@ -181,7 +188,11 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
    * - <= 1440px: обе панели уже (левая ≈300px, правая ≈260px)
    * - > 1440px: дефолтные ширины (360px и 320px)
    */
+  // Первичная адаптация размеров панелей — выполняется один раз на устройстве,
+  // если ранее не была выполнена (персистентный стор хранит флаг).
   useEffect(() => {
+    const isInitialized = useVisualSettingsStore.getState().sceneEditorLayoutInitialized
+    if (isInitialized) return
     try {
       const width = window.innerWidth
 
@@ -202,6 +213,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     } catch (e) {
       // В не-браузерных окружениях безопасно игнорируем
     }
+    // Помечаем как инициализированный layout, чтобы не перетирать пользовательские настройки
+    useVisualSettingsStore.getState().markSceneEditorLayoutInitialized()
     // Один раз на маунт: стартовая адаптация
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -558,19 +571,15 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const toggleRightPanel = () => {
-    setObjectPanelCollapsed(prev => {
-      const newCollapsed = !prev
-
-      // Если открываем правую панель и левая слишком широкая - уменьшаем её
-      if (!newCollapsed && leftPanelWidthPx > window.innerWidth * 0.32) {
-        const newMaxLeft = scriptingPanelVisible
-          ? Math.min(window.innerWidth * 0.48, 820)
-          : Math.min(window.innerWidth * 0.32, 480)
-        setLeftPanelWidthPx(Math.min(leftPanelWidthPx, newMaxLeft))
-      }
-
-      return newCollapsed
-    })
+    const newCollapsed = !objectPanelCollapsed
+    // Если открываем правую панель и левая слишком широкая - уменьшаем её
+    if (!newCollapsed && leftPanelWidthPx > window.innerWidth * 0.32) {
+      const newMaxLeft = scriptingPanelVisible
+        ? Math.min(window.innerWidth * 0.48, 820)
+        : Math.min(window.innerWidth * 0.32, 480)
+      setLeftPanelWidthPx(Math.min(leftPanelWidthPx, newMaxLeft))
+    }
+    setObjectPanelCollapsed(newCollapsed)
   }
 
 
