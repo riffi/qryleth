@@ -32,12 +32,92 @@ export class TerrainHelpers {
     world: WorldSize,
     edgeFade?: number
   ): FitResult {
-    // Скелет реализации Фазы 1: возвращаем заглушку, чтобы не нарушать сборку.
-    // Полная логика автоподбора будет реализована в следующих фазах.
+    const warnings: string[] = []
+
+    // Определяем ориентацию
+    const orientation = TerrainHelpers.resolveAutoDirection(rect, options.direction)
+
+    // Геометрические характеристики
+    const centerX = rect.x + rect.width / 2
+    const centerZ = rect.z + rect.depth / 2
+    const alongX = Math.abs(Math.cos(orientation)) >= Math.SQRT1_2 // ~ ближе к X
+    const L = alongX ? rect.width : rect.depth // длина вдоль линии
+
+    // Отступ от краёв прямоугольника/мира (защита от edgeFade и выходов)
+    const worldEdgeMargin = (edgeFade ?? 0) * (alongX ? world.width : world.depth) * 0.5
+    const rectMargin = Math.min(rect.width, rect.depth) * 0.05
+    const margin = Math.max(options.edgeMargin ?? 0, rectMargin, worldEdgeMargin)
+
+    // Базовые коэффициенты покрытия штриха для ridge/valley (5 центров)
+    const overlapK = 0.7 // доля перекрытия: r ≈ k * step
+    const effectiveHalf = Math.max(0, L / 2 - margin)
+    const step = Math.max(1, Math.floor(0.95 * (effectiveHalf / (2 + overlapK))))
+    let radius = Math.max(1, overlapK * step)
+
+    // Толщина долины по Z
+    const desiredThickness = options.thickness ?? Math.min(rect.depth, Math.max(10, L * 0.15))
+    const radiusZ = Math.max(1, desiredThickness / 2)
+    let aspect = TerrainHelpers.clamp(radiusZ / radius, 0.3, 2.0)
+
+    // Если радиус слишком мал относительно толщины — подправим r в разумных пределах
+    if (aspect > 2.0) {
+      radius = TerrainHelpers.clamp(radiusZ / 2.0, 5, effectiveHalf / 2)
+      aspect = TerrainHelpers.clamp(radiusZ / radius, 0.3, 2.0)
+    }
+
+    // Интенсивность (глубина долины), по метрам или эвристика
+    let intensity = options.depth ?? (options.prominencePct != null ? 8 * options.prominencePct : 8)
+    if (options.prominencePct != null && options.depth == null) {
+      warnings.push('ValleyFit: intensity рассчитана эвристически по prominencePct (база=8)')
+    }
+
+    // Способ размещения: сплошной штрих или сегменты
     const recipes: GfxTerrainOpRecipe[] = []
-    const estimateOps = 0
-    const orientation = typeof options.direction === 'number' ? options.direction : 0
-    const warnings: string[] = ['valleyFitToRecipes: логика автоподбора будет реализована в следующих фазах']
+    if ((options.continuity ?? 'continuous') === 'continuous') {
+      // Один «штрих» из 5 эллипсов по step
+      // Центр: середина rect; rotation — фиксированный угол
+      const recipe: GfxTerrainOpRecipe = {
+        kind: 'valley',
+        mode: 'auto',
+        count: 1,
+        placement: { type: 'ring', center: [centerX, centerZ], rMin: 0, rMax: 0 },
+        radius: Math.round(radius),
+        aspect: [aspect, aspect],
+        intensity: Math.abs(intensity),
+        rotation: [orientation, orientation],
+        step: Math.round(step),
+        falloff: 'smoothstep',
+        randomRotationEnabled: options.randomRotationEnabled
+      }
+      recipes.push(recipe)
+    } else {
+      // Сегментированная цепь: набор одиночных эллипсов внутри узкой полосы
+      // Оцениваем требуемое число центров вдоль длины L
+      const segOverlap = 0.5
+      const per = Math.max(1, Math.round((2 * radius) * (1 - segOverlap)))
+      const count = Math.max(3, Math.round(L / Math.max(1, per)))
+      const recipe: GfxTerrainOpRecipe = {
+        kind: 'valley',
+        mode: 'auto',
+        count,
+        placement: { type: 'uniform', area: { kind: 'rect', x: rect.x, z: rect.z, width: rect.width, depth: rect.depth } },
+        radius: Math.round(radius * 0.9),
+        aspect: [aspect, aspect],
+        intensity: Math.abs(intensity),
+        rotation: [orientation, orientation],
+        falloff: 'smoothstep',
+        randomRotationEnabled: options.randomRotationEnabled
+      }
+      recipes.push(recipe)
+    }
+
+    // Итоговая оценка бюджета
+    const estimateOps = TerrainHelpers.estimateOpsForRecipes(recipes)
+    // Предупреждение, если штрих потенциально выходит за рамки прямоугольника
+    if ((2 * step + radius) > effectiveHalf) {
+      warnings.push('ValleyFit: крайние точки штриха близки к границам области — возможно, стоит уменьшить step или radius')
+    }
+
     return { recipes, estimateOps, orientation, warnings }
   }
 
@@ -57,10 +137,77 @@ export class TerrainHelpers {
     world: WorldSize,
     edgeFade?: number
   ): FitResult {
-    const recipes: GfxTerrainOpRecipe[] = []
+    const warnings: string[] = []
     const orientation = TerrainHelpers.resolveAutoDirection(rect, options.direction)
-    const warnings: string[] = ['ridgeBandFitToRecipes: логика автоподбора будет реализована в следующих фазах']
-    return { recipes, estimateOps: 0, orientation, warnings }
+
+    const centerX = rect.x + rect.width / 2
+    const centerZ = rect.z + rect.depth / 2
+    const alongX = Math.abs(Math.cos(orientation)) >= Math.SQRT1_2
+    const L = alongX ? rect.width : rect.depth
+
+    const worldEdgeMargin = (edgeFade ?? 0) * (alongX ? world.width : world.depth) * 0.5
+    const rectMargin = Math.min(rect.width, rect.depth) * 0.05
+    const margin = Math.max(options.edgeMargin ?? 0, rectMargin, worldEdgeMargin)
+
+    const overlapK = 0.7
+    const effectiveHalf = Math.max(0, L / 2 - margin)
+    const step = Math.max(1, Math.floor(0.95 * (effectiveHalf / (2 + overlapK))))
+    let radius = Math.max(1, overlapK * step)
+
+    const desiredThickness = options.thickness ?? Math.min(rect.depth, Math.max(10, L * 0.15))
+    const radiusZ = Math.max(1, desiredThickness / 2)
+    let aspect = TerrainHelpers.clamp(radiusZ / radius, 0.3, 2.0)
+    if (aspect > 2.0) {
+      radius = TerrainHelpers.clamp(radiusZ / 2.0, 5, effectiveHalf / 2)
+      aspect = TerrainHelpers.clamp(radiusZ / radius, 0.3, 2.0)
+    }
+
+    let intensity = options.height ?? (options.prominencePct != null ? 10 * options.prominencePct : 10)
+    if (options.prominencePct != null && options.height == null) {
+      warnings.push('RidgeBandFit: intensity рассчитана эвристически по prominencePct (база=10)')
+    }
+
+    const recipes: GfxTerrainOpRecipe[] = []
+    if ((options.continuity ?? 'continuous') === 'continuous') {
+      const recipe: GfxTerrainOpRecipe = {
+        kind: 'ridge',
+        mode: 'auto',
+        count: 1,
+        placement: { type: 'ring', center: [centerX, centerZ], rMin: 0, rMax: 0 },
+        radius: Math.round(radius),
+        aspect: [aspect, aspect],
+        intensity: Math.abs(intensity),
+        rotation: [orientation, orientation],
+        step: Math.round(step),
+        falloff: 'smoothstep',
+        randomRotationEnabled: options.randomRotationEnabled
+      }
+      recipes.push(recipe)
+    } else {
+      const segOverlap = 0.5
+      const per = Math.max(1, Math.round((2 * radius) * (1 - segOverlap)))
+      const count = Math.max(3, Math.round(L / Math.max(1, per)))
+      const recipe: GfxTerrainOpRecipe = {
+        kind: 'ridge',
+        mode: 'auto',
+        count,
+        placement: { type: 'uniform', area: { kind: 'rect', x: rect.x, z: rect.z, width: rect.width, depth: rect.depth } },
+        radius: Math.round(radius * 0.9),
+        aspect: [aspect, aspect],
+        intensity: Math.abs(intensity),
+        rotation: [orientation, orientation],
+        falloff: 'smoothstep',
+        randomRotationEnabled: options.randomRotationEnabled
+      }
+      recipes.push(recipe)
+    }
+
+    const estimateOps = TerrainHelpers.estimateOpsForRecipes(recipes)
+    if ((2 * step + radius) > effectiveHalf) {
+      warnings.push('RidgeBandFit: крайние точки штриха близки к границам области — возможно, стоит уменьшить step или radius')
+    }
+
+    return { recipes, estimateOps, orientation, warnings }
   }
 
   /**
@@ -126,5 +273,9 @@ export class TerrainHelpers {
     // auto или undefined
     return rect.width >= rect.depth ? 0 : Math.PI / 2
   }
-}
 
+  /** Ограничить значение в пределах [min..max] */
+  private static clamp(v: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, v))
+  }
+}
