@@ -2,14 +2,14 @@
 id: 24
 epic: null
 title: "Рефакторинг координатной системы террейна"
-status: planned
+status: in_progress
 created: 2025-08-27
 updated: 2025-08-27
 owner: team-ui
 tags: [refactoring, types, coordinates, terrain, documentation, breaking-change]
 phases:
   total: 6
-  completed: 0
+  completed: 2
 ---
 
 # Рефакторинг координатной системы террейна
@@ -40,19 +40,34 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Рефакторинг типов с обратной совместимостью
+### ✅ Фаза 1: Рефакторинг типов с обратной совместимостью
 - Переименовать `world.height` → `world.depth` в `GfxProceduralTerrainSpec`
 - Переименовать `area.height` → `area.depth` в `GfxPlacementArea`
 - Добавить deprecated поля `height` с маркировкой `@deprecated`
 - Обновить комментарии для ясности координатной системы
 - Добавить JSDoc с примерами правильных координат
 
-### ⏳ Фаза 2: Обновление кода обработки
+Выполнено:
+- Обновлены типы: `apps/qryleth-front/src/entities/terrain/model/proceduralTypes.ts` (добавлено поле `world.depth`, `area.rect.depth`, помечены `height` как `@deprecated`).
+- Добавлены подробные JSDoc с описанием осей, центра мира и диапазонов координат.
+- Сохранена обратная совместимость: поддержка `height` оставлена на переходный период.
+
+### ✅ Фаза 2: Обновление кода обработки
 - Обновить `ProceduralTerrainGenerator.ts` для поддержки новых полей
 - Модифицировать функции размещения `PlacementUtils.ts` и `PlacementAlgorithms.ts`
 - Заменить все использования `worldHeight` → `worldDepth` в коде
 - Добавить fallback логику для deprecated полей
 - Обеспечить работу тестов с новой логикой
+
+Выполнено:
+- `ProceduralTerrainGenerator.ts` принимает `worldDepth` (с fallback на `worldHeight`), читает `spec.world.depth ?? spec.world.height`, прокидывает глубину в генерацию и сохраняет совместимость с `GfxTerrainConfig` (используется поле `worldHeight` как «глубина Z»).
+- `PlacementAlgorithms.ts`: обновлены сигнатуры и внутренняя логика всех алгоритмов (`uniform`, `poisson`, `gridJitter`, `ring`) — используется `worldDepth ?? worldHeight`.
+- `PlacementUtils.ts`: функции построения/проверки границ теперь работают с глубиной Z; для прямоугольной области учитывается `area.depth ?? area.height`.
+- Добавлены и уточнены JSDoc‑комментарии по терминологии (глубина Z) и fallback.
+
+Примечания:
+- Обратная совместимость сохранена: существующие вызовы с `worldHeight` и `area.height` продолжают работать.
+- Глобальное переименование поля `worldHeight` в `GfxTerrainConfig` не выполнялось (вне текущего scope). Миграция примеров и документации — в следующих фазах.
 
 ### ⏳ Фаза 3: Исправление примеров в scriptingPanel
 - Найти все файлы с примерами процедурной генерации террейна

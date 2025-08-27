@@ -107,17 +107,19 @@ export class ProceduralTerrainGenerator {
    * @param pool — пул рецептов генерации
    * @param seed — глобальный сид генерации
    * @param opts — параметры окружения
-   *  - worldWidth/worldHeight: размеры мира (обязательны для размещения)
+   *  - worldWidth/worldDepth: размеры мира (обязательны для размещения). Для совместимости
+   *    допускается передача worldHeight, но рекомендуется использовать worldDepth.
    *  - area: ограничение области размещения
    *  - sampler: сэмплер высот для bias‑фильтрации
    */
   async generateOpsFromPool(
     pool: GfxTerrainOpPool,
     seed: number,
-    opts: { worldWidth: number; worldHeight: number; area?: GfxPlacementArea; sampler?: GfxHeightSampler }
+    opts: { worldWidth: number; worldDepth?: number; worldHeight?: number; area?: GfxPlacementArea; sampler?: GfxHeightSampler }
   ): Promise<GfxTerrainOp[]> {
-    const { worldWidth, worldHeight } = opts
-    if (!worldWidth || !worldHeight) throw new Error('generateOpsFromPool: worldWidth/worldHeight обязательны')
+    const worldWidth = opts.worldWidth
+    const worldDepth = (opts as any).worldDepth ?? (opts as any).worldHeight
+    if (!worldWidth || !worldDepth) throw new Error('generateOpsFromPool: worldWidth/worldDepth обязательны')
 
     const intensityScale = pool.global?.intensityScale ?? 1
     const maxOps = pool.global?.maxOps ?? Infinity
@@ -134,7 +136,7 @@ export class ProceduralTerrainGenerator {
       const count = selectRecipeCount(recipe, countRng)
 
       const placeRng = deriveRng(seed, `recipe_${rIdx}_place`)
-      const centers = placePoints(recipe.placement, count, placeRng, { worldWidth, worldHeight, area: recipe.placement.area })
+      const centers = placePoints(recipe.placement, count, placeRng, { worldWidth, worldDepth, area: recipe.placement.area })
 
       // Применяем jitter центра при необходимости
       const jittered: Array<[number, number]> = []
@@ -175,7 +177,7 @@ export class ProceduralTerrainGenerator {
    */
   async generateTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig> {
     const worldWidth = spec.world.width
-    const worldHeight = spec.world.height
+    const worldDepth = (spec.world as any).depth ?? (spec.world as any).height
 
     // Автогенерация сидов: если общий seed или base.seed не заданы, генерируем их.
     // Логика:
@@ -201,12 +203,12 @@ export class ProceduralTerrainGenerator {
 
     const ops = await this.generateOpsFromPool(spec.pool, overallSeed, {
       worldWidth,
-      worldHeight,
+      worldDepth,
     })
 
     const config: GfxTerrainConfig = {
       worldWidth,
-      worldHeight,
+      worldHeight: worldDepth,
       edgeFade: spec.world.edgeFade,
       source,
       ops

@@ -12,8 +12,10 @@ export type PlacementPoint = { x: number; z: number }
 export interface PlacementOptions {
   /** Ширина мира (X) в мировых единицах */
   worldWidth: number
-  /** Высота мира (Z) в мировых единицах */
-  worldHeight: number
+  /** Глубина мира (Z) в мировых единицах */
+  worldDepth?: number
+  /** @deprecated Используйте worldDepth */
+  worldHeight?: number
   /** Дополнительное ограничение области (прямоугольник/круг) */
   area?: GfxPlacementArea
 }
@@ -60,19 +62,20 @@ export function placePoints(
  * @param opts — габариты мира и область
  */
 export function placeUniform(count: number, rng: () => number, opts: PlacementOptions): PlacementPoint[] {
-  const rect = areaToWorldRect(opts.worldWidth, opts.worldHeight, opts.area)
+  const worldDepth = opts.worldDepth ?? opts.worldHeight!
+  const rect = areaToWorldRect(opts.worldWidth, worldDepth, opts.area)
   const out: PlacementPoint[] = []
   for (let i = 0; i < count; i++) {
     const [x, z] = randomPointInRect(rect, rng)
     // Если area — круг, прямоугольник уже охватывающий; проверим точное попадание
-    if (!opts.area || isInsideArea(opts.worldWidth, opts.worldHeight, x, z, opts.area)) {
+    if (!opts.area || isInsideArea(opts.worldWidth, worldDepth, x, z, opts.area)) {
       out.push({ x, z })
     } else {
       // Пробуем несколько раз найти точку внутри фактической области
       let tries = 0
       while (tries < 10) {
         const [xx, zz] = randomPointInRect(rect, rng)
-        if (isInsideArea(opts.worldWidth, opts.worldHeight, xx, zz, opts.area)) {
+        if (isInsideArea(opts.worldWidth, worldDepth, xx, zz, opts.area)) {
           out.push({ x: xx, z: zz })
           break
         }
@@ -108,7 +111,8 @@ export function placeGridJitter(
   rng: () => number,
   opts: PlacementOptions
 ): PlacementPoint[] {
-  const rect = areaToWorldRect(opts.worldWidth, opts.worldHeight, opts.area)
+  const worldDepth = opts.worldDepth ?? opts.worldHeight!
+  const rect = areaToWorldRect(opts.worldWidth, worldDepth, opts.area)
   const out: PlacementPoint[] = []
 
   const jitterAmp = Math.max(0, Math.min(1, jitter)) * (cell / 2)
@@ -129,7 +133,7 @@ export function placeGridJitter(
       pz += (rng() * 2 - 1) * jitterAmp
 
       // Проверка попадания (для круглой области и краёв)
-      if (!opts.area || isInsideArea(opts.worldWidth, opts.worldHeight, px, pz, opts.area)) {
+      if (!opts.area || isInsideArea(opts.worldWidth, worldDepth, px, pz, opts.area)) {
         out.push({ x: px, z: pz })
         if (out.length >= count) return out
       }
@@ -156,7 +160,8 @@ export function placePoisson(
   rng: () => number,
   opts: PlacementOptions
 ): PlacementPoint[] {
-  const rect = areaToWorldRect(opts.worldWidth, opts.worldHeight, opts.area)
+  const worldDepth = opts.worldDepth ?? opts.worldHeight!
+  const rect = areaToWorldRect(opts.worldWidth, worldDepth, opts.area)
   const out: PlacementPoint[] = []
   const minD2 = Math.max(0, minDistance) * Math.max(0, minDistance)
 
@@ -172,7 +177,7 @@ export function placePoisson(
     }
     tries++
 
-    if (opts.area && !isInsideArea(opts.worldWidth, opts.worldHeight, x, z, opts.area)) continue
+    if (opts.area && !isInsideArea(opts.worldWidth, worldDepth, x, z, opts.area)) continue
 
     let ok = true
     for (const p of out) {
@@ -212,7 +217,8 @@ export function placeRing(
   rng: () => number,
   opts: PlacementOptions
 ): PlacementPoint[] {
-  const worldRect = makeWorldRect(opts.worldWidth, opts.worldHeight)
+  const worldDepth = opts.worldDepth ?? opts.worldHeight!
+  const worldRect = makeWorldRect(opts.worldWidth, worldDepth)
   const out: PlacementPoint[] = []
   const baseStep = (2 * Math.PI) / Math.max(1, count)
 
@@ -223,7 +229,7 @@ export function placeRing(
     const x = cx + r * Math.cos(ang)
     const z = cz + r * Math.sin(ang)
     if (!isInsideRect(x, z, worldRect)) continue
-    if (opts.area && !isInsideArea(opts.worldWidth, opts.worldHeight, x, z, opts.area)) continue
+    if (opts.area && !isInsideArea(opts.worldWidth, worldDepth, x, z, opts.area)) continue
     out.push({ x, z })
   }
 
@@ -237,7 +243,7 @@ export function placeRing(
     const z = cz + r * Math.sin(ang)
     tries++
     if (!isInsideRect(x, z, worldRect)) continue
-    if (opts.area && !isInsideArea(opts.worldWidth, opts.worldHeight, x, z, opts.area)) continue
+    if (opts.area && !isInsideArea(opts.worldWidth, worldDepth, x, z, opts.area)) continue
     out.push({ x, z })
   }
 
