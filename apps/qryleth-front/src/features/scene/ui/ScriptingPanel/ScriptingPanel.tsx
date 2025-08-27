@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Box, Group, Textarea, Button, Tooltip } from '@mantine/core'
-import { SceneAPI } from '../../lib/sceneAPI.ts'
+import { sceneApi } from '../../lib/sceneAPI.ts'
 import { ToolbarPanel } from './components/ToolbarPanel.tsx'
 import { ScriptEditor } from './components/ScriptEditor.tsx'
 import { SaveScriptModal } from './components/SaveScriptModal.tsx'
@@ -8,7 +8,7 @@ import { useScriptManager } from './hooks/useScriptManager.ts'
 import { useCodeCompletion } from './hooks/useCodeCompletion.ts'
 import { useTooltipCreation } from './hooks/useTooltipCreation.ts'
 import { analyzeCurrentContext } from './utils/codeAnalysis.ts'
-import { getDefaultScript, getProceduralTerrainTemplates } from './constants/scriptTemplates.ts'
+import { getDefaultScript, getTerrainTemplateGroups } from './constants/scriptTemplates.ts'
 import { useAIScriptGenerator } from './hooks/useAIScriptGenerator.ts'
 
 interface ScriptingPanelProps {
@@ -83,7 +83,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
       `
 
       const func = new Function('sceneApi', 'console', asyncScript)
-      const result = await func(SceneAPI, window.console)
+      const result = await func(sceneApi, window.console)
 
       if (result !== undefined) {
         console.log('Результат выполнения скрипта:', result)
@@ -120,10 +120,15 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     setCurrentMethodInfo(methodInfo)
   }, [])
 
-  const templates = React.useMemo(() => getProceduralTerrainTemplates(), [])
+  const templates = React.useMemo(() => getTerrainTemplateGroups(), [])
   const handleApplyTemplate = useCallback((name: string) => {
-    const tpl = templates?.[name]
-    if (tpl) setScript(tpl)
+    // Поиск шаблона по имени во всех группах
+    for (const group of Object.values(templates)) {
+      if (group[name]) {
+        setScript(group[name])
+        return
+      }
+    }
   }, [templates])
 
   return (

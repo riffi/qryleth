@@ -95,31 +95,36 @@ export const getSceneApiCompletions = () => [
   {
     label: 'generateProceduralTerrain',
     type: 'function',
-    info: createStyledTooltip(`generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>
-Параметры:
-  spec: { world: {width, height, edgeFade?}, base: {seed, octaveCount, amplitude, persistence, width, height}, pool: {global?, recipes: []}, seed }
-Возвращает: Promise<GfxTerrainConfig>
-Описание: Сгенерировать конфигурацию террейна по спецификации процедурной генерации`)
+    info: createStyledTooltip(`generateProceduralTerrain(spec): Promise<GfxTerrainConfig>
+Пример: await sceneApi.generateProceduralTerrain({
+  world: { width: 200, height: 200, edgeFade: 0.1 },
+  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64 },
+  pool: { recipes: [] },
+  seed: 42
+})
+Описание: Создает конфигурацию террейна без создания слоя`)
   },
   {
     label: 'generateTerrainOpsFromPool',
     type: 'function',
-    info: createStyledTooltip(`generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>
-Параметры:
-  pool: пул рецептов, seed: число
-  opts?: { worldWidth: number, worldHeight: number, area?: {kind: 'rect'|'circle', ...}, sampler?: GfxHeightSampler }
-Возвращает: Promise<GfxTerrainOp[]>
-Описание: Сгенерировать операции рельефа из пула рецептов`)
+    info: createStyledTooltip(`generateTerrainOpsFromPool(pool, seed, options?): Promise<GfxTerrainOp[]>
+Пример: await sceneApi.generateTerrainOpsFromPool({
+  recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }]
+}, 123, { worldWidth: 200, worldHeight: 200 })
+Описание: Генерирует только операции модификации рельефа`)
   },
   {
     label: 'createProceduralLayer',
     type: 'function',
-    info: createStyledTooltip(`createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success, layerId?, error? }>
-Параметры:
-  spec: спецификация процедурной генерации
-  layerData?: { name?, visible?, position? }
-Возвращает: Promise<{ success: boolean, layerId?: string, error?: string }>
-Описание: Создать слой Landscape/Terrain по спецификации и скорректировать инстансы`)
+    info: createStyledTooltip(`createProceduralLayer(spec, layerData?): Promise<{ success, layerId?, error? }>
+🌟 ГЛАВНЫЙ МЕТОД для создания террейнов!
+Пример: await sceneApi.createProceduralLayer({
+  world: { width: 200, height: 200 },
+  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64 },
+  pool: { recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }] },
+  seed: 42
+}, { name: 'Мой террейн', visible: true })
+Описание: Создает террейн в сцене и выравнивает объекты`)
   },
   {
     label: 'getSceneStats',
@@ -234,7 +239,40 @@ export const getBaseCompletions = () => [
   { label: 'maxDistance', type: 'property', info: 'Максимальное расстояние от грани до грани (> minDistance)' },
   { label: 'angleOffset', type: 'property', info: 'Начальный угол (радианы), по умолчанию 0' },
   { label: 'distributeEvenly', type: 'property', info: 'Равномерное распределение по кругу (boolean, по умолчанию true)' },
-  { label: 'onlyHorizontal', type: 'property', info: 'Горизонтальное размещение по Y (boolean, по умолчанию true)' }
+  { label: 'onlyHorizontal', type: 'property', info: 'Горизонтальное размещение по Y (boolean, по умолчанию true)' },
+  
+  // Параметры террейнов
+  { label: 'world', type: 'property', info: 'Размеры и настройки мира: { width, height, edgeFade? }' },
+  { label: 'base', type: 'property', info: 'Базовый шум Perlin: { seed, octaveCount, amplitude, persistence, width, height }' },
+  { label: 'pool', type: 'property', info: 'Пул операций рельефа: { global?: {intensityScale?, maxOps?}, recipes: [] }' },
+  { label: 'recipes', type: 'property', info: 'Массив рецептов рельефа (hill, valley, crater, plateau, ridge, basin, dune, terrace)' },
+  { label: 'kind', type: 'property', info: 'Тип рельефа: hill | valley | crater | plateau | ridge | basin | dune | terrace' },
+  { label: 'placement', type: 'property', info: 'Размещение: { type: uniform|poisson|ring|gridJitter, ...параметры }' },
+  { label: 'falloff', type: 'property', info: 'Затухание к краям: smoothstep | gauss | linear' },
+  { label: 'bias', type: 'property', info: 'Умные фильтры: { preferHeight?, preferSlope?, avoidOverlap? }' },
+  { label: 'intensity', type: 'property', info: 'Амплитуда изменения высоты (число или [min, max])' },
+  { label: 'radius', type: 'property', info: 'Базовый радиус по X (число или [min, max])' },
+  { label: 'aspect', type: 'property', info: 'Отношение радиусов Z/X (число или [min, max]), 1.0 = круглый' },
+  { label: 'count', type: 'property', info: 'Количество объектов (число или [min, max])' },
+  { label: 'rotation', type: 'property', info: 'Поворот в радианах (число или [min, max])' },
+  { label: 'step', type: 'property', info: 'Расстояние между штрихами для ridge/valley' },
+  { label: 'seed', type: 'property', info: 'Зерно для детерминированной генерации' },
+  { label: 'octaveCount', type: 'property', info: 'Количество слоев шума (1-8, рекомендуется 3-5)' },
+  { label: 'amplitude', type: 'property', info: 'Максимальная высота базового рельефа' },
+  { label: 'persistence', type: 'property', info: 'Затухание между слоями шума (0.1-0.8)' },
+  { label: 'edgeFade', type: 'property', info: 'Затухание к краям мира (0.0-0.3)' },
+  { label: 'intensityScale', type: 'property', info: 'Глобальный множитель интенсивности операций' },
+  { label: 'maxOps', type: 'property', info: 'Максимальное количество операций' },
+  { label: 'preferHeight', type: 'property', info: 'Предпочтение по высоте: { min?, max?, weight? }' },
+  { label: 'preferSlope', type: 'property', info: 'Предпочтение по уклону: { min?, max?, weight? }' },
+  { label: 'avoidOverlap', type: 'property', info: 'Избегать пересечений (boolean)' },
+  { label: 'minDistance', type: 'property', info: 'Минимальная дистанция для poisson размещения' },
+  { label: 'cell', type: 'property', info: 'Размер ячейки для gridJitter размещения' },
+  { label: 'jitter', type: 'property', info: 'Дрожание для gridJitter (0.0-1.0)' },
+  { label: 'rMin', type: 'property', info: 'Минимальный радиус для ring размещения' },
+  { label: 'rMax', type: 'property', info: 'Максимальный радиус для ring размещения' },
+  { label: 'center', type: 'property', info: 'Центр для ring размещения: [x, z]' },
+  { label: 'area', type: 'property', info: 'Ограничение области: { kind: rect|circle, ...параметры }' }
 ]
 
 // Подсказки TS-типов исключены: панель поддерживает только JavaScript

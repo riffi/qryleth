@@ -13,9 +13,9 @@ interface ToolbarPanelProps {
   onDeleteScript: (uuid: string) => void
   onExecuteScript: () => void
   /**
-   * Набор доступных шаблонов: ключ — название, значение — текст скрипта
+   * Набор доступных шаблонов: группы с названиями и скриптами
    */
-  templates?: Record<string, string>
+  templates?: Record<string, Record<string, string>>
   /** Применить шаблон по названию */
   onApplyTemplate?: (name: string) => void
 }
@@ -44,15 +44,24 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
         </Button>
 
         {templates && Object.keys(templates).length > 0 && (
-          <Menu shadow="md" width={260}>
+          <Menu shadow="md" width={300}>
             <Menu.Target>
               <Button size="xs" variant="light">Шаблоны</Button>
             </Menu.Target>
             <Menu.Dropdown>
-              {Object.keys(templates).map(name => (
-                <Menu.Item key={name} onClick={() => onApplyTemplate && onApplyTemplate(name)}>
-                  {name}
-                </Menu.Item>
+              {Object.entries(templates).map(([groupName, groupTemplates]) => (
+                <React.Fragment key={groupName}>
+                  <Menu.Label>{groupName}</Menu.Label>
+                  {Object.keys(groupTemplates).map(templateName => (
+                    <Menu.Item 
+                      key={templateName} 
+                      onClick={() => onApplyTemplate && onApplyTemplate(templateName)}
+                    >
+                      {templateName}
+                    </Menu.Item>
+                  ))}
+                  <Menu.Divider />
+                </React.Fragment>
               ))}
             </Menu.Dropdown>
           </Menu>

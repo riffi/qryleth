@@ -184,7 +184,7 @@ export class SceneAPI {
     let worldHeight = opts?.worldHeight
 
     if (!worldWidth || !worldHeight) {
-      const layer = this.pickLandscapeLayer()
+      const layer = SceneAPI.pickLandscapeLayer()
       if (layer?.terrain?.worldWidth && layer?.terrain?.worldHeight) {
         worldWidth = layer.terrain.worldWidth
         worldHeight = layer.terrain.worldHeight
@@ -218,7 +218,7 @@ export class SceneAPI {
     layerData?: Partial<SceneLayer>
   ): Promise<{ success: boolean; layerId?: string; error?: string }> {
     try {
-      const terrain = await this.generateProceduralTerrain(spec)
+      const terrain = await SceneAPI.generateProceduralTerrain(spec)
 
       const base: Omit<SceneLayer, 'id'> = {
         name: layerData?.name ?? 'Процедурный ландшафт',
@@ -234,7 +234,7 @@ export class SceneAPI {
       const merged: Omit<SceneLayer, 'id'> = { ...base, ...layerData, terrain }
 
       // Создание слоя с автоматической корректировкой инстансов; уведомления отключаем для тестов/скриптов
-      const result = await this.createLayerWithAdjustment(merged, terrain, { showNotifications: false })
+      const result = await SceneAPI.createLayerWithAdjustment(merged, terrain, { showNotifications: false })
       return { success: result.success, layerId: result.layerId, error: result.error }
     } catch (error) {
       return {
@@ -332,14 +332,14 @@ export class SceneAPI {
    * Получить список всех объектов сцены
    */
   static getSceneObjects(): SceneObjectInfo[] {
-    return this.getSceneOverview().objects
+    return SceneAPI.getSceneOverview().objects
   }
 
   /**
    * Получить список всех экземпляров объектов
    */
   static getSceneInstances(): SceneInstanceInfo[] {
-    return this.getSceneOverview().instances
+    return SceneAPI.getSceneOverview().instances
   }
 
   /**
@@ -385,7 +385,7 @@ export class SceneAPI {
    * Получить статистику сцены
    */
   static getSceneStats() {
-    const overview = this.getSceneOverview()
+    const overview = SceneAPI.getSceneOverview()
     const visibleObjects = overview.objects.filter(obj => obj.visible !== false).length
     const visibleInstances = overview.instances.filter(inst => inst.visible !== false).length
     const visibleLayers = overview.layers.filter(layer => layer.visible).length
@@ -970,3 +970,6 @@ export class SceneAPI {
     }
   }
 }
+
+// Экспорт класса для использования в ScriptingPanel
+export const sceneApi = SceneAPI
