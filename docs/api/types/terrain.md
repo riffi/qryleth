@@ -230,8 +230,8 @@ const perlinTerrainConfig: GfxTerrainConfig = {
       octaveCount: 4,        // количество слоёв шума (детализация)
       amplitude: 8.0,        // максимальная высота рельефа
       persistence: 0.5,      // затухание амплитуды между октавами
-      width: 64,             // размер сетки по ширине (в сегментах)
-      height: 64,            // размер сетки по высоте (в сегментах)
+      width: 128,            // размер сетки по ширине (в сегментах)
+      height: 128,           // размер сетки по высоте (в сегментах)
       heightOffset: 0        // смещение базового уровня; может быть < 0
     }
   },
@@ -301,8 +301,8 @@ const hillsTerrain: GfxTerrainConfig = {
       octaveCount: 3,      // мало слоёв для плавности
       amplitude: 4.0,      // невысокие холмы
       persistence: 0.3,    // быстрое затухание деталей
-      width: 32,           // крупная сетка = плавные формы
-      height: 32
+      width: 128,          // более детальная сетка
+      height: 128
     }
   }
 }
@@ -320,8 +320,8 @@ const dunesTerrain: GfxTerrainConfig = {
       octaveCount: 4,
       amplitude: 8.0,
       persistence: 0.4,    // умеренное затухание
-      width: 48,
-      height: 48
+      width: 128,
+      height: 128
     }
   }
 }
@@ -429,7 +429,7 @@ export interface GfxBiasSpec {
 ```ts
 const spec: GfxProceduralTerrainSpec = {
   world: { width: 240, height: 240, edgeFade: 0.1 },
-  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 128, height: 128 },
   pool: {
     global: { intensityScale: 1.0, maxOps: 80 },
     recipes: [

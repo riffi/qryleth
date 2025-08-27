@@ -56,8 +56,8 @@ const result = await sceneApi.createProceduralLayer({
     amplitude: 8, 
     octaveCount: 3, 
     persistence: 0.4, 
-    width: 64, 
-    height: 64,
+    width: 128, 
+    height: 128,
     heightOffset: 0 // смещение базы; для подводной базы укажите отрицательное значение
   },
   pool: { recipes: [] }, // пока без дополнительных деталей
@@ -168,8 +168,8 @@ const islandSpec = {
     octaveCount: 5, 
     amplitude: 4, 
     persistence: 0.6, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.0, maxOps: 25 },
@@ -338,8 +338,8 @@ const terrainSpec = {
     octaveCount: 4,    // слои шума (больше = сложнее)
     amplitude: 8,      // максимальная высота
     persistence: 0.5,  // затухание между слоями
-    width: 64,         // разрешение по X
-    height: 64         // разрешение по Z
+    width: 128,        // разрешение по X
+    height: 128        // разрешение по Z
   },
   
   // Операции поверх базы

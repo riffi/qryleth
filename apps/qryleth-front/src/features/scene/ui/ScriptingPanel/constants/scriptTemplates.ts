@@ -70,8 +70,8 @@ const result = await sceneApi.createProceduralLayer({
     amplitude: 8, 
     octaveCount: 3, 
     persistence: 0.4, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: { recipes: [] }, // без дополнительных операций
   seed: 42
@@ -90,8 +90,8 @@ const testSpec = {
     octaveCount: 2, 
     amplitude: 3, 
     persistence: 0.3, 
-    width: 32, 
-    height: 32 
+    width: 128, 
+    height: 128 
   },
   pool: { 
     global: { maxOps: 10 },
@@ -120,8 +120,8 @@ const valleySpec = {
     octaveCount: 4, 
     amplitude: 6, 
     persistence: 0.5, 
-    width: 80, 
-    height: 60 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.2, maxOps: 40 },
@@ -183,8 +183,8 @@ const islandSpec = {
     octaveCount: 5, 
     amplitude: 4, 
     persistence: 0.6, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.0, maxOps: 25 },
@@ -239,8 +239,8 @@ const archipelagoSpec = {
     octaveCount: 3, 
     amplitude: 2, 
     persistence: 0.3, 
-    width: 32, 
-    height: 32,
+    width: 128, 
+    height: 128,
     // КЛЮЧЕВОЕ: опускаем базовый уровень рельефа ниже 0, чтобы вода перекрывала «низину»
     heightOffset: -1.5
   },
@@ -299,8 +299,8 @@ const hillsSpec = {
     octaveCount: 4, 
     amplitude: 5, 
     persistence: 0.4, 
-    width: 60, 
-    height: 60 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 0.8, maxOps: 50 },
@@ -349,8 +349,8 @@ const dunesSpec = {
     octaveCount: 3, 
     amplitude: 4, 
     persistence: 0.4, 
-    width: 48, 
-    height: 48 
+    width: 128, 
+    height: 128 
   },
   pool: {
     recipes: [
@@ -392,8 +392,8 @@ const craterSpec = {
     octaveCount: 2, 
     amplitude: 2, 
     persistence: 0.3, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.5, maxOps: 40 },
@@ -446,8 +446,8 @@ const canyonSpec = {
     octaveCount: 4, 
     amplitude: 8, 
     persistence: 0.5, 
-    width: 100, 
-    height: 60 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.1, maxOps: 50 },
@@ -498,7 +498,7 @@ const mountainRangeSpec = {
     amplitude: 12, 
     persistence: 0.65, 
     width: 128, 
-    height: 80 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.3, maxOps: 70 },

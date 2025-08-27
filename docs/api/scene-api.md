@@ -150,7 +150,7 @@ interface CreatedInstanceInfo {
 ```javascript
 const spec = {
   world: { width: 240, height: 240, edgeFade: 0.1 },
-  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 128, height: 128 },
   pool: {
     global: { intensityScale: 1.0, maxOps: 80 },
     recipes: [

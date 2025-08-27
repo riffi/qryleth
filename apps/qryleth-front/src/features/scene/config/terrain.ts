@@ -21,4 +21,4 @@ export const HEIGHTMAP_MAX_DIMENSION = 200;
  * Используется при построении геометрии (PlaneGeometry) для ограничения количества
  * сегментов, исходя из размеров мира. Значение по умолчанию — 200.
  */
-export const TERRAIN_MAX_SEGMENTS = 200;
+export const TERRAIN_MAX_SEGMENTS = 400;

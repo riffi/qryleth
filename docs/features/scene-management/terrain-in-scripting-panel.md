@@ -46,8 +46,8 @@ const result = await sceneApi.createProceduralLayer({
     amplitude: 8, 
     octaveCount: 3, 
     persistence: 0.4, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: { recipes: [] }, // без дополнительных операций
   seed: 42
@@ -77,8 +77,8 @@ const valleySpec = {
     octaveCount: 4, 
     amplitude: 6, 
     persistence: 0.5, 
-    width: 80, 
-    height: 60 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.2, maxOps: 40 },
@@ -145,8 +145,8 @@ const islandSpec = {
     octaveCount: 5, 
     amplitude: 4, 
     persistence: 0.6, 
-    width: 64, 
-    height: 64 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.0, maxOps: 25 },
@@ -206,8 +206,8 @@ const archipelagoSpec = {
     octaveCount: 3, 
     amplitude: 2, 
     persistence: 0.3, 
-    width: 32, 
-    height: 32,
+    width: 128, 
+    height: 128,
     // Ключ: опускаем базовый уровень ниже 0,
     // чтобы над водой оставались только острова.
     heightOffset: -1.5
@@ -272,8 +272,8 @@ const hillsSpec = {
     octaveCount: 4, 
     amplitude: 5, 
     persistence: 0.4, 
-    width: 60, 
-    height: 60 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 0.8, maxOps: 50 },
@@ -375,8 +375,8 @@ const spec = {
     octaveCount: 4,    // слои шума: больше = сложнее рельеф
     amplitude: 8,      // максимальная высота базы
     persistence: 0.5,  // затухание между слоями: меньше = глаже
-    width: 64,         // разрешение сетки шума
-    height: 64,
+    width: 128,        // разрешение сетки шума
+    height: 128,
     heightOffset: 0    // смещение базового уровня (может быть отрицательным)
   },
   
@@ -510,13 +510,13 @@ bias: {
 ```javascript
 const mountainRangeSpec = {
   world: { width: 500, height: 300, edgeFade: 0.2 },
-  base: { 
+  base: {
     seed: 7777, 
     octaveCount: 6, 
     amplitude: 12, 
     persistence: 0.65, 
     width: 128, 
-    height: 80 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.3, maxOps: 70 },
@@ -582,8 +582,8 @@ const coastalSpec = {
     octaveCount: 3, 
     amplitude: 3, 
     persistence: 0.4, 
-    width: 64, 
-    height: 32 
+    width: 128, 
+    height: 128 
   },
   pool: {
     global: { intensityScale: 1.1, maxOps: 45 },
@@ -729,7 +729,7 @@ console.log('Новая статистика:', newStats)
 const testSpec = {
   world: { width: 100, height: 100 },  // маленький мир
   base: { 
-    width: 32, height: 32,             // низкое разрешение
+    width: 128, height: 128,           // детальное разрешение
     octaveCount: 3                     // меньше слоев
   },
   pool: { global: { maxOps: 20 } }     // меньше операций
@@ -744,7 +744,7 @@ const testSpec = {
 // Этап 1: Создать базовый ландшафт
 const baseResult = await sceneApi.createProceduralLayer({
   world: { width: 300, height: 300 },
-  base: { seed: 1000, octaveCount: 4, amplitude: 5, persistence: 0.4, width: 64, height: 64 },
+  base: { seed: 1000, octaveCount: 4, amplitude: 5, persistence: 0.4, width: 128, height: 128 },
   pool: { recipes: [] },
   seed: 1000
 }, { name: 'Базовый ландшафт' })
@@ -773,7 +773,7 @@ if (objects.length > 0) {
 // Сохранить удачную конфигурацию в переменной для повторного использования
 const myFavoriteSpec = {
   world: { width: 250, height: 250, edgeFade: 0.15 },
-  base: { seed: 5555, octaveCount: 5, amplitude: 8, persistence: 0.5, width: 80, height: 80 },
+  base: { seed: 5555, octaveCount: 5, amplitude: 8, persistence: 0.5, width: 128, height: 128 },
   pool: {
     global: { intensityScale: 1.2, maxOps: 60 },
     recipes: [
