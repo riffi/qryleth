@@ -9,7 +9,7 @@ owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 2
+  completed: 3
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -267,7 +267,7 @@ const result = await sceneApi.createProceduralLayer(
   - `index.ts` - экспорт функций размещения
 - Unit-тесты для алгоритмов размещения в `PlacementAlgorithms.test.ts`
 
-### ⏳ Фаза 3: Шаблоны операций и bias функции
+### ✅ Фаза 3: Шаблоны операций и bias функции
 - Создать систему шаблонов операций в `src/features/scene/lib/terrain/recipes/`:
   - `OperationTemplates.ts` - готовые рецепты для 8 типов операций (hill, basin, ridge, valley, crater, plateau, terrace, dune)
   - `RecipeProcessor.ts` - генерация GfxTerrainOp из рецептов с учетом параметров
