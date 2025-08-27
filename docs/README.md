@@ -109,3 +109,10 @@
 
 ---
 
+## 📎 Дополнительные материалы
+
+- 🧭 Координатная система террейна: features/scene-management/terrain-coordinates.md
+
+## 🔄 Миграции
+
+- 024 — terrain-coordinates-refactor: migrations/024-terrain-coordinates-refactor.md

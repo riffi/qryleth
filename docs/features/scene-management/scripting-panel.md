@@ -178,7 +178,7 @@ const islandSpec = {
       {
         kind: 'crater',
         count: 1,
-        placement: { type: 'ring', center: [100, 100], rMin: 0, rMax: 5 },
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 5 },
         radius: [25, 30],
         intensity: [15, 20],
         falloff: 'gauss'
@@ -187,7 +187,7 @@ const islandSpec = {
       {
         kind: 'hill',
         count: [8, 12],
-        placement: { type: 'ring', center: [100, 100], rMin: 40, rMax: 70 },
+        placement: { type: 'ring', center: [0, 0], rMin: 40, rMax: 70 },
         radius: [8, 15],
         intensity: [4, 8],
         falloff: 'smoothstep',

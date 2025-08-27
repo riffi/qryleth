@@ -166,7 +166,7 @@ const cfg = await SceneAPI.generateProceduralTerrain(spec)
 ### `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed?: number, opts?): Promise<GfxTerrainOp[]>`
 Генерирует массив операций рельефа (`GfxTerrainOp[]`) из пула рецептов без сборки полного `GfxTerrainConfig`.
 
-- Вход: `pool`, `seed`, опции окружения (обязательны `worldWidth/worldHeight`, можно передать `area` и `sampler`).
+- Вход: `pool`, `seed`, опции окружения (обязательны `worldWidth/worldDepth`, можно передать `area` и `sampler`). Для совместимости допускается `worldHeight`.
 - Выход: `Promise<GfxTerrainOp[]>` — готовый набор операций, учитывающий bias и лимиты.
 
 Пример (JavaScript):
@@ -174,13 +174,13 @@ const cfg = await SceneAPI.generateProceduralTerrain(spec)
 // С фиксированным сидом (детерминированно)
 const ops = await SceneAPI.generateTerrainOpsFromPool(spec.pool, spec.seed, {
   worldWidth: spec.world.width,
-  worldHeight: spec.world.height
+  worldDepth: spec.world.depth // fallback на worldHeight поддерживается
 })
 
 // Без передачи seed (будет сгенерирован автоматически)
 const opsAuto = await SceneAPI.generateTerrainOpsFromPool(spec.pool, undefined, {
   worldWidth: spec.world.width,
-  worldHeight: spec.world.height
+  worldDepth: spec.world.depth
 })
 ```
 

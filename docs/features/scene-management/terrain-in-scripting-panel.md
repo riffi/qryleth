@@ -358,8 +358,8 @@ const ops = await sceneApi.generateTerrainOpsFromPool({
   recipes: [/* рецепты */]
 }, 12345, {
   worldWidth: 200,
-  worldHeight: 200,
-  area: { kind: 'circle', center: [100, 100], radius: 80 }
+  worldDepth: 200,
+  area: { kind: 'circle', x: 100, z: 100, radius: 80 }
 })
 
 console.log(`Создано ${ops.length} операций:`, ops)
@@ -370,7 +370,7 @@ const opsAuto = await sceneApi.generateTerrainOpsFromPool({
   recipes: [/* рецепты */]
 }, undefined, {
   worldWidth: 200,
-  worldHeight: 200
+  worldDepth: 200
 })
 ```
 
@@ -381,7 +381,7 @@ const spec = {
   // Мир - размеры и общие настройки
   world: {
     width: 200,        // ширина в мировых единицах (метрах)
-    height: 200,       // высота в мировых единицах
+    depth: 200,        // глубина по оси Z (мировые единицы)
     edgeFade: 0.1      // затухание к краям (0-1), создает мягкую рамку
   },
   
@@ -541,7 +541,8 @@ const mountainRangeSpec = {
       {
         kind: 'ridge',
         count: 1,
-        placement: { type: 'uniform', center: [250, 150] },
+        // Главный хребет в центре мира
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 2 },
         radius: 120,
         aspect: 0.25,
         intensity: 20,
@@ -553,7 +554,7 @@ const mountainRangeSpec = {
       {
         kind: 'ridge',
         count: [6, 10],
-        placement: { type: 'ring', center: [250, 150], rMin: 80, rMax: 150 },
+        placement: { type: 'ring', center: [0, 0], rMin: 80, rMax: 150 },
         radius: [25, 50],
         aspect: [0.2, 0.4],
         intensity: [8, 15],
