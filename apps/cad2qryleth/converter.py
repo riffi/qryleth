@@ -10,7 +10,7 @@ lacks a dedicated cone, simply create a cylinder with `radiusTop = 0`.
 Quick start
 -----------
 ```bash
-python cad_to_three_json.py Logo.py -o logo.json --name Logo
+python converter.py Logo.py -o logo.json --name Logo
 ```
 
 Highlights
