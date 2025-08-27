@@ -9,7 +9,7 @@ owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 4
+  completed: 5
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -297,11 +297,16 @@ const result = await sceneApi.createProceduralLayer(
   
   **Отчёт**: [phases/phase_4_1_summary.md](phases/phase_4_1_summary.md)
 
-### ⏳ Фаза 4.2: Фабрики и интеграционные тесты
+### ✅ Фаза 4.2: Фабрики и интеграционные тесты
 - Создать фабричные методы в `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts`:
   - `createMountainTerrain()`, `createHillsTerrain()`, `createDunesTerrain()` и др.
   - Готовые конфигурации для разных типов ландшафтов
 - Comprehensive unit-тесты и integration-тесты для движка и фабрик
+  
+  Статус: реализовано в рамках фазы 4.2
+  - Файл: `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts`
+  - Тест: `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.test.ts`
+  - **Отчёт**: [phases/phase_4_2_summary.md](phases/phase_4_2_summary.md)
 
 ### ⏳ Фаза 5: Интеграция с SceneAPI
 - Добавить новые методы в SceneAPI (`apps/qryleth-front/src/features/scene/lib/sceneAPI.ts`):
