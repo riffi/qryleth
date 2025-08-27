@@ -15,6 +15,12 @@ interface ToolbarPanelProps {
   onEditScript: () => void
   onDeleteScript: (uuid: string) => void
   onExecuteScript: () => void
+  /**
+   * Набор доступных шаблонов: ключ — название, значение — текст скрипта
+   */
+  templates?: Record<string, string>
+  /** Применить шаблон по названию */
+  onApplyTemplate?: (name: string) => void
 }
 
 export const ToolbarPanel = memo<ToolbarPanelProps>(({
@@ -27,7 +33,9 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
   onSaveScript,
   onEditScript,
   onDeleteScript,
-  onExecuteScript
+  onExecuteScript,
+  templates,
+  onApplyTemplate
 }) => {
   return (
     <Group justify="space-between" p="sm" bg="gray.9">
@@ -51,6 +59,21 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
           leftSection={<IconCode size={14} />}
           style={{ minWidth: 120 }}
         />
+
+        {templates && Object.keys(templates).length > 0 && (
+          <Menu shadow="md" width={260}>
+            <Menu.Target>
+              <Button size="xs" variant="light">Шаблоны</Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {Object.keys(templates).map(name => (
+                <Menu.Item key={name} onClick={() => onApplyTemplate && onApplyTemplate(name)}>
+                  {name}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
+        )}
 
         <Select
           placeholder="Загрузить скрипт"

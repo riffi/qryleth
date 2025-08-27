@@ -1,5 +1,5 @@
 import type { GfxPlacementArea, GfxPlacementSpec } from '@/entities/terrain'
-import { areaToWorldRect, dist2, isInsideArea, makeWorldRect, randomPointInCircle, randomPointInRect } from './PlacementUtils'
+import { areaToWorldRect, dist2, isInsideArea, isInsideRect, makeWorldRect, randomPointInCircle, randomPointInRect } from './PlacementUtils'
 
 /**
  * Результат размещения — набор мировых координат центров операций.
@@ -237,4 +237,3 @@ export function placeRing(
 
   return out
 }
-

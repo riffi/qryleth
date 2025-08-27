@@ -8,7 +8,7 @@ import { useScriptManager } from './hooks/useScriptManager.ts'
 import { useCodeCompletion } from './hooks/useCodeCompletion.ts'
 import { useTooltipCreation } from './hooks/useTooltipCreation.ts'
 import { analyzeCurrentContext } from './utils/codeAnalysis.ts'
-import { getDefaultScript, type LanguageMode } from './constants/scriptTemplates.ts'
+import { getDefaultScript, getProceduralTerrainTemplates, type LanguageMode } from './constants/scriptTemplates.ts'
 import { useAIScriptGenerator } from './hooks/useAIScriptGenerator.ts'
 
 interface ScriptingPanelProps {
@@ -131,6 +131,12 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     }
   }, [script])
 
+  const templates = React.useMemo(() => getProceduralTerrainTemplates(languageMode), [languageMode])
+  const handleApplyTemplate = useCallback((name: string) => {
+    const tpl = templates?.[name]
+    if (tpl) setScript(tpl)
+  }, [templates])
+
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column', width: '100%' }}>
       <ToolbarPanel
@@ -144,6 +150,8 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
         onEditScript={openSaveModal}
         onDeleteScript={handleDeleteScript}
         onExecuteScript={executeScript}
+        templates={templates}
+        onApplyTemplate={handleApplyTemplate}
       />
 
       {/* Панель генерации скрипта ИИ */}

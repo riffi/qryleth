@@ -322,13 +322,15 @@ const result = await sceneApi.createProceduralLayer(
 
 **Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
-### ⏳ Фаза 6: Обновление ScriptingPanel и AI подсказок
+### ✅ Фаза 6: Обновление ScriptingPanel и AI подсказок
 - Обновить подсказки для AI в ScriptingPanel:
   - Дополнить системный промпт в `useAIScriptGenerator.ts` (внутри функции `buildSystemPrompt`) информацией о новых методах
   - Добавить примеры использования процедурной генерации террейна
   - Обновить описания доступных методов SceneAPI с новыми параметрами
 - Добавить готовые шаблоны скриптов для процедурной генерации в `scriptTemplates.ts`
 - Протестировать AI генерацию скриптов с новыми возможностями
+
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 ### ⏳ Фаза 7: Обновление документации
 - Обновить API документацию:

@@ -94,6 +94,35 @@ export const getSceneApiCompletions = () => [
 Описание: Создать экземпляры существующего объекта с унифицированным размещением`)
   },
   {
+    label: 'generateProceduralTerrain',
+    type: 'function',
+    info: createStyledTooltip(`generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>
+Параметры:
+  spec: { world: {width, height, edgeFade?}, base: {seed, octaveCount, amplitude, persistence, width, height}, pool: {global?, recipes: []}, seed }
+Возвращает: Promise<GfxTerrainConfig>
+Описание: Сгенерировать конфигурацию террейна по спецификации процедурной генерации`)
+  },
+  {
+    label: 'generateTerrainOpsFromPool',
+    type: 'function',
+    info: createStyledTooltip(`generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>
+Параметры:
+  pool: пул рецептов, seed: число
+  opts?: { worldWidth: number, worldHeight: number, area?: {kind: 'rect'|'circle', ...}, sampler?: GfxHeightSampler }
+Возвращает: Promise<GfxTerrainOp[]>
+Описание: Сгенерировать операции рельефа из пула рецептов`)
+  },
+  {
+    label: 'createProceduralLayer',
+    type: 'function',
+    info: createStyledTooltip(`createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success, layerId?, error? }>
+Параметры:
+  spec: спецификация процедурной генерации
+  layerData?: { name?, visible?, position? }
+Возвращает: Promise<{ success: boolean, layerId?: string, error?: string }>
+Описание: Создать слой Landscape/Terrain по спецификации и скорректировать инстансы`)
+  },
+  {
     label: 'getSceneStats',
     type: 'function',
     info: createStyledTooltip(`getSceneStats(): SceneStats
