@@ -36,15 +36,18 @@ export function placePoints(
   rng: () => number,
   opts: PlacementOptions
 ): PlacementPoint[] {
+  // Учитываем область из спецификации размещения, если она задана,
+  // с приоритетом над внешним opts.area
+  const mergedOpts: PlacementOptions = { ...opts, area: (spec as any).area ?? opts.area }
   switch (spec.type) {
     case 'uniform':
-      return placeUniform(count, rng, opts)
+      return placeUniform(count, rng, mergedOpts)
     case 'poisson':
-      return placePoisson(count, spec.minDistance, rng, opts)
+      return placePoisson(count, spec.minDistance, rng, mergedOpts)
     case 'gridJitter':
-      return placeGridJitter(count, spec.cell, spec.jitter ?? 0.5, rng, opts)
+      return placeGridJitter(count, spec.cell, spec.jitter ?? 0.5, rng, mergedOpts)
     case 'ring':
-      return placeRing(count, spec.center[0], spec.center[1], spec.rMin, spec.rMax, rng, opts)
+      return placeRing(count, spec.center[0], spec.center[1], spec.rMin, spec.rMax, rng, mergedOpts)
     default:
       const allowed = ['uniform', 'poisson', 'gridJitter', 'ring']
       const value = (spec as any)?.type

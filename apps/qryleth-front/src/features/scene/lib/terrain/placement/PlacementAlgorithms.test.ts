@@ -73,5 +73,52 @@ describe('PlacementAlgorithms', () => {
     const poissonPts = placePoints({ type: 'poisson', minDistance: 4 }, 8, rng2, { worldWidth, worldHeight })
     expect(poissonPts.length).toBeGreaterThan(0)
   })
-})
 
+  it('area.rect: поддержка нового поля depth и fallback на height', () => {
+    const rng = createRng(123)
+    // Полоса на севере мира: Z в [30..40] при глубине 80 → halfDepth = 40
+    const ptsDepth = placePoints(
+      { type: 'uniform', area: { kind: 'rect', x: -50, z: 30, width: 100, depth: 10 } },
+      20,
+      rng,
+      { worldWidth, worldHeight }
+    )
+    expect(ptsDepth.length).toBe(20)
+    for (const p of ptsDepth) {
+      expect(p.z).toBeGreaterThanOrEqual(30 - 1e-6)
+      expect(p.z).toBeLessThanOrEqual(40 + 1e-6)
+    }
+
+    const rng2 = createRng(123)
+    // Тот же прямоугольник с устаревшим ключом height должен работать так же
+    const ptsHeight = placePoints(
+      { type: 'uniform', area: { kind: 'rect', x: -50, z: 30, width: 100, height: 10 } as any },
+      20,
+      rng2,
+      { worldWidth, worldHeight }
+    )
+    expect(ptsHeight).toEqual(ptsDepth)
+  })
+
+  it('uniform + center band: координаты центрированы по миру (X/Z в допустимых диапазонах)', () => {
+    const rng = createRng(2025)
+    const W = 100
+    const H = 80
+    // Узкая центральная полоса вокруг (0,0): X ∈ [-10..+10], Z ∈ [-5..+5]
+    const pts = placePoints(
+      { type: 'uniform', area: { kind: 'rect', x: -10, z: -5, width: 20, depth: 10 } },
+      30,
+      rng,
+      { worldWidth: W, worldHeight: H }
+    )
+    expect(pts.length).toBe(30)
+    for (const p of pts) {
+      expect(Math.abs(p.x)).toBeLessThanOrEqual(W / 2 + 1e-6)
+      expect(Math.abs(p.z)).toBeLessThanOrEqual(H / 2 + 1e-6)
+      expect(p.x).toBeGreaterThanOrEqual(-10 - 1e-6)
+      expect(p.x).toBeLessThanOrEqual(10 + 1e-6)
+      expect(p.z).toBeGreaterThanOrEqual(-5 - 1e-6)
+      expect(p.z).toBeLessThanOrEqual(5 + 1e-6)
+    }
+  })
+})

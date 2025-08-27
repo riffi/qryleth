@@ -56,5 +56,47 @@ describe('ProceduralTerrainGenerator', () => {
     const h = sampler.getHeight(0, 0)
     expect(Number.isFinite(h)).toBe(true)
   })
-})
 
+  it('generateTerrain: поддерживает world.depth и fallback на world.height', async () => {
+    const gen = new ProceduralTerrainGenerator()
+
+    const specDepth: GfxProceduralTerrainSpec = {
+      world: { width: 120, depth: 80, edgeFade: 0.05 } as any,
+      base,
+      pool: { recipes: [{ kind: 'hill', count: 1, placement: { type: 'uniform' }, radius: 4, intensity: 2 }] },
+      seed: 111
+    } as any
+    const cfgDepth = await gen.generateTerrain(specDepth)
+    expect(cfgDepth.worldWidth).toBe(120)
+    // worldHeight хранит глубину Z (совместимость)
+    expect(cfgDepth.worldHeight).toBe(80)
+
+    const specHeight: GfxProceduralTerrainSpec = {
+      world: { width: 120, height: 80, edgeFade: 0.05 } as any,
+      base,
+      pool: { recipes: [{ kind: 'hill', count: 1, placement: { type: 'uniform' }, radius: 4, intensity: 2 }] },
+      seed: 111
+    } as any
+    const cfgHeight = await gen.generateTerrain(specHeight)
+    expect(cfgHeight.worldWidth).toBe(120)
+    expect(cfgHeight.worldHeight).toBe(80)
+  })
+
+  it('generateOpsFromPool: принимает worldDepth и работает с fallback на worldHeight', async () => {
+    const pool: GfxTerrainOpPool = {
+      recipes: [
+        { kind: 'hill', count: 5, placement: { type: 'uniform' }, radius: [4, 6], intensity: [2, 3] }
+      ]
+    }
+    const gen = new ProceduralTerrainGenerator()
+    const seed = 4242
+    const opsDepth = await gen.generateOpsFromPool(pool, seed, { worldWidth: 100, worldDepth: 80 })
+    const opsHeight = await gen.generateOpsFromPool(pool, seed, { worldWidth: 100, worldHeight: 80 } as any)
+    // Детерминированный результат должен совпадать
+    expect(opsDepth.length).toBe(opsHeight.length)
+    for (let i = 0; i < opsDepth.length; i++) {
+      expect(opsDepth[i].id).toEqual(opsHeight[i].id)
+      expect(opsDepth[i].center).toEqual(opsHeight[i].center)
+    }
+  })
+})
