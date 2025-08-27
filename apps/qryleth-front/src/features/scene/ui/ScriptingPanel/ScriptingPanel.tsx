@@ -8,7 +8,7 @@ import { useScriptManager } from './hooks/useScriptManager.ts'
 import { useCodeCompletion } from './hooks/useCodeCompletion.ts'
 import { useTooltipCreation } from './hooks/useTooltipCreation.ts'
 import { analyzeCurrentContext } from './utils/codeAnalysis.ts'
-import { getDefaultScript, getProceduralTerrainTemplates, type LanguageMode } from './constants/scriptTemplates.ts'
+import { getDefaultScript, getProceduralTerrainTemplates } from './constants/scriptTemplates.ts'
 import { useAIScriptGenerator } from './hooks/useAIScriptGenerator.ts'
 
 interface ScriptingPanelProps {
@@ -16,8 +16,8 @@ interface ScriptingPanelProps {
 }
 
 export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ height = 800 }) => {
-  const [script, setScript] = useState(() => getDefaultScript('javascript'))
-  const [languageMode, setLanguageMode] = useState<LanguageMode>('javascript')
+  // Храним только JS-скрипт, выбор языка удалён
+  const [script, setScript] = useState(() => getDefaultScript())
   const [currentMethodInfo, setCurrentMethodInfo] = useState<string | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [saveScriptName, setSaveScriptName] = useState('')
@@ -25,7 +25,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   const [aiPrompt, setAiPrompt] = useState('')
 
   const scriptManager = useScriptManager()
-  const { enhancedCompletions } = useCodeCompletion(languageMode)
+  const { enhancedCompletions } = useCodeCompletion()
   const { createHoverTooltipExtension } = useTooltipCreation()
   const { loading: aiLoading, error: aiError, generateScript } = useAIScriptGenerator()
 
@@ -56,9 +56,9 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   }, [scriptManager])
 
   const handleNewScript = useCallback(() => {
-    setScript(getDefaultScript(languageMode))
+    setScript(getDefaultScript())
     scriptManager.createNewScript()
-  }, [languageMode, scriptManager])
+  }, [scriptManager])
 
   const openSaveModal = useCallback(() => {
     const currentScript = scriptManager.getCurrentScriptInfo()
@@ -96,11 +96,10 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   }, [script])
 
   /**
-   * Обработчик генерации скрипта через ИИ:
-   * - берёт текущий промпт из состояния
-   * - отправляет запрос к активной модели (через fetch)
-   * - по получении ответа извлекает код и подменяет содержимое редактора
-   * - при наличии подсказки по языку — переключает режим редактора
+   * Обработчик генерации скрипта через ИИ (только JS):
+   * - берёт текущий промпт и отправляет в модель
+   * - извлекает из ответа код и подменяет содержимое редактора
+   * - язык не переключается: панель поддерживает только JavaScript
    */
   const handleGenerateByAI = useCallback(async () => {
     if (!aiPrompt.trim() || aiLoading) return
@@ -108,9 +107,6 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     const result = await generateScript(aiPrompt)
     if (result && result.code) {
       setScript(result.code)
-      if (result.language && (result.language === 'javascript' || result.language === 'typescript')) {
-        setLanguageMode(result.language)
-      }
     }
   }, [aiPrompt, aiLoading, generateScript])
 
@@ -124,14 +120,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     setCurrentMethodInfo(methodInfo)
   }, [])
 
-  const handleLanguageModeChange = useCallback((mode: LanguageMode) => {
-    setLanguageMode(mode)
-    if (!script.trim() || script === getDefaultScript('javascript') || script === getDefaultScript('typescript')) {
-      setScript(getDefaultScript(mode))
-    }
-  }, [script])
-
-  const templates = React.useMemo(() => getProceduralTerrainTemplates(languageMode), [languageMode])
+  const templates = React.useMemo(() => getProceduralTerrainTemplates(), [])
   const handleApplyTemplate = useCallback((name: string) => {
     const tpl = templates?.[name]
     if (tpl) setScript(tpl)
@@ -140,8 +129,6 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column', width: '100%' }}>
       <ToolbarPanel
-        languageMode={languageMode}
-        onLanguageModeChange={handleLanguageModeChange}
         onNewScript={handleNewScript}
         savedScripts={scriptManager.savedScripts}
         selectedScriptUuid={scriptManager.selectedScriptUuid}
@@ -178,7 +165,6 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
       <ScriptEditor
         script={script}
         onChange={handleEditorChange}
-        languageMode={languageMode}
         completionExtension={enhancedCompletions}
         hoverTooltipExtension={createHoverTooltipExtension}
         currentMethodInfo={currentMethodInfo}

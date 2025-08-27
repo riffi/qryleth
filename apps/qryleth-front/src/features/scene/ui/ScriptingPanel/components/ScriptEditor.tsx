@@ -5,21 +5,24 @@ import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 import { autocompletion } from '@codemirror/autocomplete'
 import { oneDark } from '@codemirror/theme-one-dark'
-import type { LanguageMode } from '../constants/scriptTemplates'
+ 
 
 interface ScriptEditorProps {
+  /** Текущий текст скрипта (JavaScript) */
   script: string
+  /** Обработчик изменений текста редактора */
   onChange: (value: string, viewUpdate: any) => void
-  languageMode: LanguageMode
+  /** Расширение автодополнения */
   completionExtension: any
+  /** Расширение для hover‑подсказок */
   hoverTooltipExtension: any
+  /** Информация о методе под курсором (tooltip) */
   currentMethodInfo: string | null
 }
 
-export const ScriptEditor = memo<ScriptEditorProps>(({
+export const ScriptEditor = memo<ScriptEditorProps>(({ 
   script,
   onChange,
-  languageMode,
   completionExtension,
   hoverTooltipExtension,
   currentMethodInfo
@@ -62,7 +65,7 @@ export const ScriptEditor = memo<ScriptEditorProps>(({
         value={script}
         onChange={onChange}
         extensions={[
-          javascript({ typescript: languageMode === 'typescript' }),
+          javascript({ typescript: false }),
           autocompletion({ override: [completionExtension] }),
           hoverTooltipExtension
         ]}

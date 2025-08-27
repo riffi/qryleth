@@ -1,11 +1,8 @@
-export type LanguageMode = 'javascript' | 'typescript'
-
 /**
- * Возвращает дефолтный пример скрипта для панели скриптинга.
- * Строки не содержат шаблонных литералов с обратными кавычками, чтобы избежать экранирования.
+ * Вернуть дефолтный пример скрипта для панели скриптинга.
+ * Только JavaScript. Строки без обратных кавычек для устойчивого рендеринга.
  */
-export const getDefaultScript = (mode: LanguageMode): string => {
-  // Одинаковый JS‑совместимый шаблон для обоих режимов редактора
+export const getDefaultScript = (): string => {
   return `// Пример использования SceneAPI
 const overview = sceneApi.getSceneOverview()
 console.log('Объектов в сцене:', overview.totalObjects)
@@ -58,14 +55,14 @@ if (objects.length > 0) {
 }
 
 /**
- * Возвращает набор готовых шаблонов скриптов для процедурной генерации террейна.
- * Строки оформлены без обратных кавычек, чтобы избежать ошибок экранирования в UI.
+ * Вернуть набор готовых JS‑шаблонов для процедурной генерации террейна.
+ * Только JavaScript. Строки без обратных кавычек для стабильного рендеринга.
  */
-export const getProceduralTerrainTemplates = (mode: LanguageMode) => {
+export const getProceduralTerrainTemplates = () => {
   const jsHills = `// Создать холмистый процедурный ландшафт
 const spec = {
   world: { width: 240, height: 240, edgeFade: 0.1 },
-  base: { seed: (2468 ^ 0x777), octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
   pool: {
     global: { intensityScale: 1.0, maxOps: 80 },
     recipes: [
@@ -83,7 +80,7 @@ console.log(res)
   const jsDunes = `// Создать ландшафт песчаных дюн
 const spec = {
   world: { width: 200, height: 200, edgeFade: 0.15 },
-  base: { seed: (7777 ^ 0xaaaa), octaveCount: 3, amplitude: 4, persistence: 0.4, width: 48, height: 48 },
+  base: { seed: 46283, octaveCount: 3, amplitude: 4, persistence: 0.4, width: 48, height: 48 },
   pool: {
     recipes: [
       { kind: 'dune', count: [20, 30], placement: { type: 'gridJitter', cell: 16, jitter: 0.6 }, radius: [8, 14], aspect: [0.2, 0.5], rotation: [-0.3, 0.3], intensity: [1, 3], falloff: 'smoothstep' },
@@ -104,7 +101,7 @@ const center = [worldW / 2, worldH / 2]
 const spec = {
   world: { width: worldW, height: worldH, edgeFade: 0.12 },
   // Более «грубый» базовый шум, чтобы подчеркнуть хребты
-  base: { seed: (9876 ^ 0x5a5a), octaveCount: 5, amplitude: 10, persistence: 0.55, width: 128, height: 128 },
+  base: { seed: 31950, octaveCount: 5, amplitude: 10, persistence: 0.55, width: 128, height: 128 },
   pool: {
     global: { intensityScale: 1.15, maxOps: 140 },
     recipes: [
@@ -125,15 +122,6 @@ const spec = {
 const res = await sceneApi.createProceduralLayer(spec, { name: 'Горная долина', visible: true })
 console.log(res)
 `
-
-  if (mode === 'typescript') {
-    // Для простоты возвращаем JS-строки, совместимые с TS в панели
-    return {
-      'Процедурный террейн: Холмы': jsHills,
-      'Процедурный террейн: Дюны': jsDunes,
-      'Процедурный террейн: Горная долина': jsValley
-    }
-  }
 
   return {
     'Процедурный террейн: Холмы': jsHills,

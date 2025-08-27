@@ -1,22 +1,15 @@
 import { useCallback } from 'react'
 import { CompletionContext } from '@codemirror/autocomplete'
 import { SceneAPI } from '../../../lib/sceneAPI'
-import { 
-  analyzeVariableTypes, 
-  extractVariablesFromScript 
-} from '../utils/codeAnalysis'
+import { analyzeVariableTypes, extractVariablesFromScript } from '../utils/codeAnalysis'
 import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
-import { 
-  getSceneApiCompletions,
-  getConsoleCompletions,
-  getBaseCompletions,
-  getTypeScriptTypes,
-  getKeywords
-} from '../constants/completionData'
+import { getSceneApiCompletions, getConsoleCompletions, getBaseCompletions, getKeywords } from '../constants/completionData'
 import { createStyledTooltip } from '../utils/tooltipUtils'
-import type { LanguageMode } from '../constants/scriptTemplates'
-
-export const useCodeCompletion = (languageMode: LanguageMode) => {
+/**
+ * Хук автодополнения для редактора скриптов.
+ * Поддержка только JavaScript: ключевые слова JS, переменные, методы SceneAPI и их свойства.
+ */
+export const useCodeCompletion = () => {
   const getApiVariables = useCallback(() => {
     try {
       const overview = SceneAPI.getSceneOverview()
@@ -102,8 +95,7 @@ export const useCodeCompletion = (languageMode: LanguageMode) => {
     } else if (!isAfterDot) {
       completions = [
         ...getBaseCompletions(),
-        ...(languageMode === 'typescript' ? getTypeScriptTypes() : []),
-        ...getKeywords(languageMode)
+        ...getKeywords()
       ]
       
       const scriptVariables = extractVariablesFromScript(currentScript)
@@ -130,7 +122,7 @@ export const useCodeCompletion = (languageMode: LanguageMode) => {
         item.label.toLowerCase().includes(word.text.toLowerCase())
       )
     }
-  }, [languageMode, getApiVariables])
+  }, [getApiVariables])
 
   return { enhancedCompletions }
 }

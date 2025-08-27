@@ -1,12 +1,9 @@
 import React, { memo } from 'react'
 import { Group, Button, Select, Menu, ActionIcon, Tooltip } from '@mantine/core'
-import { IconPlayerPlay, IconCode, IconDeviceFloppy, IconFolderOpen, IconDotsVertical, IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconPlayerPlay, IconDeviceFloppy, IconFolderOpen, IconDotsVertical, IconEdit, IconTrash } from '@tabler/icons-react'
 import type { ScriptRecord } from '@/shared/lib/database'
-import type { LanguageMode } from '../constants/scriptTemplates'
 
 interface ToolbarPanelProps {
-  languageMode: LanguageMode
-  onLanguageModeChange: (mode: LanguageMode) => void
   onNewScript: () => void
   savedScripts: ScriptRecord[]
   selectedScriptUuid: string | null
@@ -23,9 +20,7 @@ interface ToolbarPanelProps {
   onApplyTemplate?: (name: string) => void
 }
 
-export const ToolbarPanel = memo<ToolbarPanelProps>(({
-  languageMode,
-  onLanguageModeChange,
+export const ToolbarPanel = memo<ToolbarPanelProps>(({ 
   onNewScript,
   savedScripts,
   selectedScriptUuid,
@@ -47,18 +42,6 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
         >
           Новый
         </Button>
-
-        <Select
-          size="xs"
-          value={languageMode}
-          onChange={(value) => onLanguageModeChange(value as LanguageMode)}
-          data={[
-            { value: 'javascript', label: 'JavaScript' },
-            { value: 'typescript', label: 'TypeScript' }
-          ]}
-          leftSection={<IconCode size={14} />}
-          style={{ minWidth: 120 }}
-        />
 
         {templates && Object.keys(templates).length > 0 && (
           <Menu shadow="md" width={260}>

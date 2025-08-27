@@ -8,7 +8,7 @@ import { getActiveConnection } from '@/shared/lib/openAISettings'
  * - Не использует LangChain: прямой HTTP-запрос к провайдеру по активному подключению из Dexie
  * - Формирует системный промпт с правилами написания кода для панели скриптинга и кратким описанием SceneAPI
  * - Принимает пользовательский промпт, отправляет в модель и извлекает код из ответа (в т.ч. из блока ```)
- * - Возвращает код и (по возможности) определяет язык ('javascript' | 'typescript') для переключения редактора
+ * - Возвращает готовый JS‑код для вставки в редактор
  */
 export function useAIScriptGenerator() {
   const [loading, setLoading] = useState(false)
@@ -329,7 +329,7 @@ export function useAIScriptGenerator() {
       '```javascript',
       'const spec = {',
       '  world: { width: 240, height: 240, edgeFade: 0.1 },',
-      '  base: { seed: 2468 ^ 0x777, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },',
+      '  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },',
       '  pool: {',
       '    global: { intensityScale: 1.0, maxOps: 80 },',
       '    recipes: [',
@@ -347,7 +347,7 @@ export function useAIScriptGenerator() {
       '```javascript',
       'const dunes = {',
       '  world: { width: 200, height: 200, edgeFade: 0.15 },',
-      '  base: { seed: 7777 ^ 0xaaaa, octaveCount: 3, amplitude: 4, persistence: 0.4, width: 48, height: 48 },',
+      '  base: { seed: 46283, octaveCount: 3, amplitude: 4, persistence: 0.4, width: 48, height: 48 },',
       '  pool: {',
       '    recipes: [',
       '      { kind: "dune", count: [20, 30], placement: { type: "gridJitter", cell: 16, jitter: 0.6 }, radius: [8, 14], aspect: [0.2, 0.5], rotation: [-0.3, 0.3], intensity: [1, 3], falloff: "smoothstep" },',
@@ -360,7 +360,7 @@ export function useAIScriptGenerator() {
       'console.log(duneLayer);',
       '```',
       '',
-      'Пиши на JavaScript или TypeScript (если явно не указано — по умолчанию JavaScript).'
+      'Пиши только на JavaScript.'
     ].join('\n')
   }, [])
 

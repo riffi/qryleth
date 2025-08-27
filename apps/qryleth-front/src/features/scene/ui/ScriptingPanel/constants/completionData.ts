@@ -1,5 +1,4 @@
 import { createStyledTooltip } from '../utils/tooltipUtils'
-import type { LanguageMode } from './scriptTemplates'
 
 export const getSceneApiCompletions = () => [
   {
@@ -238,20 +237,7 @@ export const getBaseCompletions = () => [
   { label: 'onlyHorizontal', type: 'property', info: 'Горизонтальное размещение по Y (boolean, по умолчанию true)' }
 ]
 
-export const getTypeScriptTypes = () => [
-  { label: 'Vector3', type: 'type', info: 'Тип для 3D вектора: [number, number, number]' },
-  { label: 'SceneOverview', type: 'type', info: 'Интерфейс обзора сцены' },
-  { label: 'SceneObjectInfo', type: 'type', info: 'Интерфейс информации об объекте сцены' },
-  { label: 'SceneInstanceInfo', type: 'type', info: 'Интерфейс информации об экземпляре' },
-  { label: 'AddInstanceResult', type: 'type', info: 'Результат добавления экземпляра' },
-  { label: 'LayerInfo', type: 'type', info: 'Информация о слое' },
-  { label: 'SceneStats', type: 'type', info: 'Статистика сцены' },
-  { label: 'Transform', type: 'type', info: 'Трансформация объекта' },
-  { label: 'BoundingBox', type: 'type', info: 'Ограничивающий бокс' },
-  { label: 'PlacementStrategy', type: 'type', info: "Перечисление стратегий размещения: Random | RandomNoCollision | PlaceAround" },
-  { label: 'PlacementStrategyConfig', type: 'type', info: 'Конфигурация стратегии размещения с метаданными' },
-  { label: 'PlaceAroundMetadata', type: 'type', info: `Метаданные стратегии PlaceAround:\n- targetInstanceUuid?: string (приоритет 1)\n- targetObjectUuid?: string (приоритет 2)\n- minDistance: number (>= 0)\n- maxDistance: number (> minDistance)\n- angleOffset?: number (радианы)\n- distributeEvenly?: boolean (по умолчанию true)\n- onlyHorizontal?: boolean (по умолчанию true)` }
-]
+// Подсказки TS-типов исключены: панель поддерживает только JavaScript
 
 export const getJavaScriptKeywords = () => [
   { label: 'const', type: 'keyword', info: 'Объявление константы' },
@@ -273,25 +259,4 @@ export const getJavaScriptKeywords = () => [
   { label: 'undefined', type: 'keyword', info: 'Значение undefined' }
 ]
 
-export const getTypeScriptKeywords = () => [
-  { label: 'interface', type: 'keyword', info: 'Объявление интерфейса' },
-  { label: 'type', type: 'keyword', info: 'Объявление типа' },
-  { label: 'enum', type: 'keyword', info: 'Объявление перечисления' },
-  { label: 'class', type: 'keyword', info: 'Объявление класса' },
-  { label: 'extends', type: 'keyword', info: 'Наследование класса/интерфейса' },
-  { label: 'implements', type: 'keyword', info: 'Реализация интерфейса' },
-  { label: 'public', type: 'keyword', info: 'Модификатор доступа public' },
-  { label: 'private', type: 'keyword', info: 'Модификатор доступа private' },
-  { label: 'protected', type: 'keyword', info: 'Модификатор доступа protected' },
-  { label: 'readonly', type: 'keyword', info: 'Модификатор readonly' },
-  { label: 'as', type: 'keyword', info: 'Приведение типа' },
-  { label: 'string', type: 'keyword', info: 'Тип string' },
-  { label: 'number', type: 'keyword', info: 'Тип number' },
-  { label: 'boolean', type: 'keyword', info: 'Тип boolean' }
-]
-
-export const getKeywords = (languageMode: LanguageMode) => {
-  const jsKeywords = getJavaScriptKeywords()
-  const tsKeywords = getTypeScriptKeywords()
-  return languageMode === 'typescript' ? [...jsKeywords, ...tsKeywords] : jsKeywords
-}
+export const getKeywords = () => getJavaScriptKeywords()
