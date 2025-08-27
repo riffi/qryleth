@@ -121,10 +121,10 @@ export interface GfxTerrainOpRecipe {
  * Координаты XZ — в мировых единицах; генерация детерминирована сидом генератора.
  */
 export type GfxPlacementSpec =
-  | { type: 'uniform' }
-  | { type: 'poisson', minDistance: number }
-  | { type: 'gridJitter', cell: number, jitter?: number }
-  | { type: 'ring', center: [number, number], rMin: number, rMax: number }
+  | { type: 'uniform', area?: GfxPlacementArea }
+  | { type: 'poisson', minDistance: number, area?: GfxPlacementArea }
+  | { type: 'gridJitter', cell: number, jitter?: number, area?: GfxPlacementArea }
+  | { type: 'ring', center: [number, number], rMin: number, rMax: number, area?: GfxPlacementArea }
 
 /**
  * Параметры «предпочтений» для отбора точек размещения.
@@ -141,10 +141,16 @@ export interface GfxBiasSpec {
 
 /**
  * Геометрическая область, внутри которой разрешено размещение операций.
+ * Описывает горизонтальную область на плоскости XZ (вид сверху).
+ * В Y-up системе координат (Three.js):
+ * - x: горизонтальная координата (лево-право)
+ * - z: глубина/дальность (ближе-дальше)
+ * - width: ширина области по оси X
+ * - height: размер области по оси Z (ВНИМАНИЕ: не вертикальная высота, а глубина!)
  */
 export type GfxPlacementArea =
-  | { kind: 'rect', x: number, y: number, width: number, height: number }
-  | { kind: 'circle', x: number, y: number, radius: number }
+  | { kind: 'rect', x: number, z: number, width: number, height: number }
+  | { kind: 'circle', x: number, z: number, radius: number }
 
 /**
  * Дополнительные опции для генерации пула операций.

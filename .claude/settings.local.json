@@ -24,7 +24,8 @@
       "Bash(pkill:*)",
       "Bash(npm start)",
       "Bash(dir \"C:\\work\\my\\qryleth\\src\\entities\" /b)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "additionalDirectories": [

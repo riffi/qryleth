@@ -134,7 +134,7 @@ export class ProceduralTerrainGenerator {
       const count = selectRecipeCount(recipe, countRng)
 
       const placeRng = deriveRng(seed, `recipe_${rIdx}_place`)
-      const centers = placePoints(recipe.placement, count, placeRng, { worldWidth, worldHeight, area: opts.area })
+      const centers = placePoints(recipe.placement, count, placeRng, { worldWidth, worldHeight, area: recipe.placement.area })
 
       // Применяем jitter центра при необходимости
       const jittered: Array<[number, number]> = []

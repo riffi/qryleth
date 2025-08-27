@@ -52,16 +52,16 @@ export function areaToWorldRect(
     return {
       minX: area.x,
       maxX: area.x + area.width,
-      minZ: area.y,
-      maxZ: area.y + area.height
+      minZ: area.z,
+      maxZ: area.z + area.height
     }
   }
   // circle → прямоугольник, охватывающий круг
   return {
     minX: area.x - area.radius,
     maxX: area.x + area.radius,
-    minZ: area.y - area.radius,
-    maxZ: area.y + area.radius
+    minZ: area.z - area.radius,
+    maxZ: area.z + area.radius
   }
 }
 
@@ -95,10 +95,10 @@ export function isInsideArea(
     return isInsideRect(pX, pZ, makeWorldRect(worldWidth, worldHeight))
   }
   if (area.kind === 'rect') {
-    return pX >= area.x && pX <= area.x + area.width && pZ >= area.y && pZ <= area.y + area.height
+    return pX >= area.x && pX <= area.x + area.width && pZ >= area.z && pZ <= area.z + area.height
   }
   const dx = pX - area.x
-  const dz = pZ - area.y
+  const dz = pZ - area.z
   return dx * dx + dz * dz <= area.radius * area.radius
 }
 

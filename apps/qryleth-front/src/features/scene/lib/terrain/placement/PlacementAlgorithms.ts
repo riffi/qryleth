@@ -166,7 +166,7 @@ export function placePoisson(
   while (out.length < count && tries < maxTries) {
     let x: number, z: number
     if (opts.area && opts.area.kind === 'circle') {
-      ;[x, z] = randomPointInCircle(opts.area.x, opts.area.y, opts.area.radius, rng)
+      ;[x, z] = randomPointInCircle(opts.area.x, opts.area.z, opts.area.radius, rng)
     } else {
       ;[x, z] = randomPointInRect(rect, rng)
     }
