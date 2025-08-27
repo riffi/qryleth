@@ -9,7 +9,7 @@ owner: team-ui
 tags: [terrain, scripting-panel, usability, generator, docs]
 phases:
   total: 7
-  completed: 1
+  completed: 3
 ---
 
 # Fit‑хелперы террейна (ValleyFit/RidgeBandFit), авто‑параметры и бюджет
@@ -144,7 +144,7 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 
 **Отчёт**: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Бюджет и приоритезация
+### ✅ Фаза 3: Бюджет и приоритезация
 - Добавить оценщик «стоимости» рецептов (ops‑count) и функцию распределения общего `maxOps`.
 - Поддержать `budgetShare` и режим `pool.global.maxOps = 'auto'`.
 - При нехватке — автоматом уменьшать `count`/плотность или разбирать stroke в сегменты.
@@ -153,8 +153,10 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 - В сцене со смешанными рецептами структурные элементы гарантированно попадают в результат, детализация подрезается прогнозируемо.
 - Док‑примеры показывают связь параметров и итогового числа операций.
 
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
 ### ⏳ Фаза 4: Интеграция в SceneAPI и ScriptingPanel
-- SceneAPI: методы верхнего уровня (создание слоя из fit‑описания) и/или генерация пула операций для встраивания в существующий сценарий.
+- SceneAPI: использовать хелперы ТОЛЬКО для генерации операций и встраивать их в существующий сценарий (формирование `pool` и вызов `createProceduralLayer(...)` остаются в текущем пайплайне).
 - ScriptingPanel: форма для ValleyFit/RidgeBandFit (area, thickness, depth/prominence, direction, continuity, variation, budgetShare); предпросмотр (ось/толщина/покрытие); подсказки по бюджету.
 - Обновить шаблоны и автокомплит (tooltips) под новые опции.
 

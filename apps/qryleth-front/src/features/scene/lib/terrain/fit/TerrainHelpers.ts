@@ -262,6 +262,86 @@ export class TerrainHelpers {
   }
 
   /**
+   * Автоматически подрезать набор рецептов под указанный бюджет maxOps.
+   * См. комментарии к алгоритму приоритезации внутри метода.
+   */
+  static autoBudget(
+    recipes: GfxTerrainOpRecipe[],
+    maxOps: number
+  ): { trimmedRecipes: GfxTerrainOpRecipe[]; usedOps: number; report: Array<{ index: number; kind: GfxTerrainOpRecipe['kind']; from: number; to: number; savedOps: number }> } {
+    type Work = {
+      index: number
+      recipe: GfxTerrainOpRecipe
+      count: number
+      opsPerCenter: number
+      priority: number
+      minCount: number
+    }
+
+    const work: Work[] = recipes.map((r, idx) => {
+      const count = Array.isArray(r.count) ? Math.round((r.count[0] + r.count[1]) / 2) : (r.count as number)
+      const opsPerCenter = TerrainHelpers.opsPerCenter(r)
+      const priority = TerrainHelpers.trimPriority(r)
+      const minCount = r.kind === 'valley' ? 1 : (r.kind === 'ridge' ? 0 : 0)
+      return { index: idx, recipe: r, count: Math.max(0, count), opsPerCenter, priority, minCount }
+    })
+
+    let usedOps = work.reduce((acc, w) => acc + w.count * w.opsPerCenter, 0)
+    if (usedOps <= maxOps) {
+      const trimmedRecipes = work.filter(w => w.count > 0).map(w => ({ ...w.recipe, count: w.count }))
+      return { trimmedRecipes, usedOps, report: [] }
+    }
+
+    const report: Array<{ index: number; kind: GfxTerrainOpRecipe['kind']; from: number; to: number; savedOps: number }> = []
+
+    const order = [...work].sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority
+      const costA = a.count * a.opsPerCenter
+      const costB = b.count * b.opsPerCenter
+      return costB - costA
+    })
+
+    let i = 0
+    while (usedOps > maxOps && i < order.length) {
+      const w = order[i]
+      if (w.count > w.minCount) {
+        const before = w.count
+        w.count -= 1
+        usedOps -= w.opsPerCenter
+        report.push({ index: w.index, kind: w.recipe.kind, from: before, to: w.count, savedOps: w.opsPerCenter })
+        i = 0
+        continue
+      }
+      i++
+    }
+
+    const trimmedRecipes = work.filter(w => w.count > 0).map(w => ({ ...w.recipe, count: w.count }))
+    return { trimmedRecipes, usedOps: Math.max(0, usedOps), report }
+  }
+
+  /** Оценка количества операций на один центр по типу рецепта */
+  private static opsPerCenter(r: GfxTerrainOpRecipe): number {
+    switch (r.kind) {
+      case 'ridge':
+      case 'valley':
+        return r.step && r.step > 0 ? 5 : 1
+      case 'crater':
+        return 2
+      case 'terrace':
+        return 4
+      default:
+        return 1
+    }
+  }
+
+  /** Приоритет подрезки: меньше — режем раньше */
+  private static trimPriority(r: GfxTerrainOpRecipe): number {
+    if (r.kind === 'valley') return 3 // структурная форма — сохраняем до последнего
+    if (r.kind === 'ridge') return 2   // бордюры — средний приоритет
+    return 1                            // детализация — режем в первую очередь
+  }
+
+  /**
    * Вычислить ориентацию для direction='auto': вдоль длинной стороны прямоугольника.
    * При равенстве сторон — вдоль оси X (0 радиан). Если direction задаётся числом,
    * возвращаем его как есть.
