@@ -2,14 +2,14 @@
 id: 23
 epic: null
 title: "Система процедурной генерации ландшафта с операциями TerrainOps"
-status: planned
+status: done
 created: 2025-08-26
 updated: 2025-08-27
 owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 5
+  completed: 7
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -332,7 +332,7 @@ const result = await sceneApi.createProceduralLayer(
 
 **Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
-### ⏳ Фаза 7: Обновление документации
+### ✅ Фаза 7: Обновление документации
 - Обновить API документацию:
   - `docs/api/scene-api.md` - добавить описание новых методов процедурной генерации
   - `docs/api/types/terrain.md` - дополнить новыми типами и их подробным описанием

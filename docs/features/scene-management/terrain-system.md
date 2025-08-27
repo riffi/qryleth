@@ -78,6 +78,48 @@
 
 ---
 
+## 🆕 Процедурная генерация ландшафта
+
+Система процедурной генерации строит террейн по спецификации (`GfxProceduralTerrainSpec`), используя:
+- базовый источник Perlin с параметрами шума;
+- пул рецептов (`GfxTerrainOpPool`) с алгоритмами размещения центров операций и bias-фильтрацией;
+- детерминированный PRNG (одинаковый seed → идентичный результат).
+
+Главный движок: `src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts`.
+
+Использование через SceneAPI:
+- `generateProceduralTerrain(spec)` — собрать `GfxTerrainConfig`;
+- `generateTerrainOpsFromPool(pool, seed, opts)` — только операции `ops[]`;
+- `createProceduralLayer(spec, layerData?)` — создать слой и выровнять инстансы.
+
+Поддерживаемые значения:
+- `recipe.kind`: hill | basin | ridge | valley | crater | plateau | terrace | dune
+- `placement.type`: uniform | poisson | gridJitter | ring
+- `falloff`: smoothstep | gauss | linear
+
+Валидация: при неверных значениях полей будет выброшена понятная ошибка с указанием проблемного поля (например, неизвестный `placement.type` или `recipe.kind`).
+
+Пример (JavaScript):
+```javascript
+const spec = {
+  world: { width: 240, height: 240, edgeFade: 0.1 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 80 },
+    recipes: [
+      { kind: 'hill', count: [20, 30], placement: { type: 'uniform' }, radius: [10, 18], intensity: [4, 9], falloff: 'smoothstep' },
+      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
+    ]
+  },
+  seed: 3795
+}
+const res = await SceneAPI.createProceduralLayer(spec, { name: 'Процедурный ландшафт', visible: true })
+```
+
+Подробнее о типах см. `docs/api/types/terrain.md` (раздел «Процедурная генерация»).
+
+---
+
 ## Примеры конфигураций террейнов
 
 ### Пример конфигурации Perlin

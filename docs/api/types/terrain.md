@@ -302,3 +302,79 @@ const heightmapTerrainConfig: GfxTerrainConfig = {
 - R3F-геометрия строится один раз и регенерируется при изменении источника/параметров/загрузке heightmap.
 - `assets/heightmapCache.ts` контролирует рост памяти за счёт TTL/LRU.
 
+---
+
+## 🆕 Процедурная генерация (spec/pool/recipes)
+
+Типы спецификации процедурной генерации и пула рецептов. Используются методами SceneAPI `generateProceduralTerrain(...)`, `generateTerrainOpsFromPool(...)` и `createProceduralLayer(...)`.
+
+```ts
+export interface GfxProceduralPerlinParams extends GfxPerlinParams {
+  /** Сдвиг шума по XZ для вариаций без смены seed: [dx, dz] */
+  offset?: [number, number]
+}
+
+export interface GfxProceduralTerrainSpec {
+  world: { width: number; height: number; edgeFade?: number }
+  base: GfxProceduralPerlinParams
+  pool: GfxTerrainOpPool
+  seed: number
+}
+
+export interface GfxTerrainOpPool {
+  global?: { intensityScale?: number; maxOps?: number }
+  recipes: GfxTerrainOpRecipe[]
+}
+
+export interface GfxTerrainOpRecipe {
+  kind: 'hill' | 'basin' | 'ridge' | 'valley' | 'crater' | 'plateau' | 'terrace' | 'dune'
+  mode?: 'auto' | 'add' | 'sub' | 'set'
+  count: number | [number, number]
+  placement: GfxPlacementSpec
+  radius: number | [number, number]
+  aspect?: [number, number]
+  intensity: number | [number, number]
+  rotation?: [number, number]
+  falloff?: 'smoothstep' | 'gauss' | 'linear'
+  bias?: GfxBiasSpec
+  jitter?: { center?: number }
+  step?: number
+}
+
+export type GfxPlacementSpec =
+  | { type: 'uniform' }
+  | { type: 'poisson', minDistance: number }
+  | { type: 'gridJitter', cell: number, jitter?: number }
+  | { type: 'ring', center: [number, number], rMin: number, rMax: number }
+
+export interface GfxBiasSpec {
+  preferHeight?: { min?: number, max?: number, weight?: number }
+  preferSlope?: { min?: number, max?: number, weight?: number }
+  avoidOverlap?: boolean
+}
+```
+
+### Правила и best practices
+- В `mode: 'auto'` режим выбирается по `kind` (hill/dune/ridge → add; basin/valley → sub; plateau → set; crater/terrace — составные).
+- Для `valley/basin` не указывайте отрицательную `intensity` — используйте положительные значения; знак задаётся режимом.
+- `gridJitter.jitter` — доля от половины ячейки (0..1), 1 соответствует возможному смещению до ±cell/2 по каждой оси.
+- Для «центрального» размещения используйте `ring` с `rMin≈0, rMax≈2` и центром `[world.width/2, world.height/2]`.
+- При ошибках в значениях (неизвестный `kind`, `placement.type`, `falloff` или лишние ключи в `bias`) генератор бросает понятные ошибки с указанием конкретного поля.
+
+### Примеры
+
+```ts
+const spec: GfxProceduralTerrainSpec = {
+  world: { width: 240, height: 240, edgeFade: 0.1 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 80 },
+    recipes: [
+      { kind: 'hill', count: [20, 30], placement: { type: 'uniform' }, radius: [10, 18], intensity: [4, 9], falloff: 'smoothstep' },
+      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
+    ]
+  },
+  seed: 3795
+}
+```
+

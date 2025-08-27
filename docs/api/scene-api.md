@@ -138,6 +138,61 @@ interface CreatedInstanceInfo {
 ### `getSceneStats()`
 Собирает статистику по количеству объектов, экземпляров и слоев, а также типам примитивов в сцене.
 
+## 🆕 Процедурная генерация ландшафта
+
+### `generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
+Собирает полный `GfxTerrainConfig` по спецификации процедурной генерации. Использует детерминированный PRNG и набор рецептов (`recipes`) для формирования массива локальных операций рельефа (`ops`).
+
+- Вход: `spec: GfxProceduralTerrainSpec` — размеры мира, параметры базового Perlin, пул рецептов и глобальный `seed`.
+- Выход: `Promise<GfxTerrainConfig>` — конфигурация террейна, готовая к использованию в слое.
+
+Пример (JavaScript):
+```javascript
+const spec = {
+  world: { width: 240, height: 240, edgeFade: 0.1 },
+  base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 80 },
+    recipes: [
+      { kind: 'hill', count: [20, 30], placement: { type: 'uniform' }, radius: [10, 18], intensity: [4, 9], falloff: 'smoothstep' },
+      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
+    ]
+  },
+  seed: 3795
+}
+const cfg = await SceneAPI.generateProceduralTerrain(spec)
+```
+
+### `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
+Генерирует массив операций рельефа (`GfxTerrainOp[]`) из пула рецептов без сборки полного `GfxTerrainConfig`.
+
+- Вход: `pool`, `seed`, опции окружения (обязательны `worldWidth/worldHeight`, можно передать `area` и `sampler`).
+- Выход: `Promise<GfxTerrainOp[]>` — готовый набор операций, учитывающий bias и лимиты.
+
+Пример (JavaScript):
+```javascript
+const ops = await SceneAPI.generateTerrainOpsFromPool(spec.pool, spec.seed, {
+  worldWidth: spec.world.width,
+  worldHeight: spec.world.height
+})
+```
+
+### `createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success: boolean, layerId?: string, error?: string }>`
+Создаёт ландшафтный слой типа Terrain на основе спецификации. Внутри вызывает `generateProceduralTerrain(spec)`, затем создаёт слой и выполняет корректировку существующих инстансов по рельефу.
+
+- Вход: `spec` и опциональные поля `layerData` (имя, видимость, позиция и т.п.).
+- Выход: `{ success, layerId?, error? }`.
+
+Пример (JavaScript):
+```javascript
+const res = await SceneAPI.createProceduralLayer(spec, { name: 'Песчаные дюны', visible: true })
+if (!res.success) console.error(res.error)
+```
+
+Примечания:
+- Валидируются значения `recipe.kind`, `placement.type`, `falloff` и ключи `bias`. При ошибке возвращается понятное сообщение с указанием неверного поля.
+- Поддерживаемые значения перечислены в `docs/api/types/terrain.md` (раздел «Процедурная генерация»).
+
 ### `createObject(objectData: GfxObject, layerId?: string, count: number = 1, placementStrategyConfig: PlacementStrategyConfig): AddObjectWithTransformResult`
 Унифицированный метод создания нового объекта и размещения его экземпляров в сцене. Объединяет создание объекта и размещение экземпляров в одном методе.
 
