@@ -140,17 +140,10 @@ export function buildOpsForPoint(
       return ops
     }
     default: {
-      // Fallback — одна операция add
-      return [{
-        mode: 'add',
-        center,
-        radius: radiusX,
-        radiusZ,
-        intensity: Math.abs(intensity),
-        falloff,
-        rotation,
-      }]
+      const allowed = ['hill','basin','ridge','valley','crater','plateau','terrace','dune']
+      throw new Error(
+        `Неподдерживаемый recipe.kind: '${(recipe as any)?.kind}'. Ожидалось одно из: ${allowed.join(', ')}.`
+      )
     }
   }
 }
-

@@ -22,6 +22,77 @@ import { processBias } from './recipes/BiasProcessor'
  */
 export class ProceduralTerrainGenerator {
   /**
+   * Валидация рецепта перед генерацией точек и операций.
+   * Бросает понятные ошибки при неподдерживаемых значениях.
+   */
+  private validateRecipe(recipe: GfxTerrainOpRecipe, index: number) {
+    const ctx = `recipe[${index}]`
+    const allowedKinds = ['hill','basin','ridge','valley','crater','plateau','terrace','dune']
+    if (!allowedKinds.includes((recipe as any).kind)) {
+      throw new Error(`${ctx}: неподдерживаемый kind='${(recipe as any)?.kind}'. Ожидалось: ${allowedKinds.join(', ')}`)
+    }
+
+    if (recipe.falloff && !['smoothstep','gauss','linear'].includes(recipe.falloff)) {
+      throw new Error(`${ctx}: неподдерживаемый falloff='${(recipe as any)?.falloff}'. Ожидалось: smoothstep | gauss | linear`)
+    }
+
+    // Валидация placement по типу
+    const p: any = recipe.placement
+    const allowedPlacements = ['uniform','poisson','gridJitter','ring']
+    if (!p || !allowedPlacements.includes(p.type)) {
+      throw new Error(`${ctx}: неподдерживаемый placement.type='${p?.type}'. Ожидалось: ${allowedPlacements.join(', ')}`)
+    }
+    if (p.type === 'poisson') {
+      if (typeof p.minDistance !== 'number' || !(p.minDistance >= 0)) {
+        throw new Error(`${ctx}: placement.poisson требует числовой minDistance ≥ 0`)
+      }
+    } else if (p.type === 'gridJitter') {
+      if (typeof p.cell !== 'number' || !(p.cell > 0)) {
+        throw new Error(`${ctx}: placement.gridJitter требует положительный cell > 0`)
+      }
+      if (p.jitter != null && typeof p.jitter !== 'number') {
+        throw new Error(`${ctx}: placement.gridJitter.jitter должен быть числом (0..1)`)
+      }
+    } else if (p.type === 'ring') {
+      const c = p.center
+      const okCenter = Array.isArray(c) && c.length === 2 && c.every((v: any) => typeof v === 'number')
+      if (!okCenter) {
+        throw new Error(`${ctx}: placement.ring.center должен быть массивом двух чисел [x, z]`)
+      }
+      if (typeof p.rMin !== 'number' || typeof p.rMax !== 'number' || !(p.rMax >= p.rMin) || !(p.rMin >= 0)) {
+        throw new Error(`${ctx}: placement.ring rMin/rMax должны быть числами, rMax ≥ rMin, rMin ≥ 0`)
+      }
+    }
+
+    // Валидация bias: только поддерживаемые ключи
+    if (recipe.bias && typeof recipe.bias === 'object') {
+      const keys = Object.keys(recipe.bias as any)
+      const allowedBias = ['preferHeight','preferSlope','avoidOverlap']
+      const unknown = keys.filter(k => !allowedBias.includes(k))
+      if (unknown.length) {
+        throw new Error(`${ctx}: bias содержит неподдерживаемые поля: ${unknown.join(', ')}. Ожидались: ${allowedBias.join(', ')}`)
+      }
+      const ph: any = (recipe.bias as any).preferHeight
+      if (ph) {
+        if (ph.weight != null && !(ph.weight >= 0 && ph.weight <= 1)) {
+          throw new Error(`${ctx}: bias.preferHeight.weight должен быть в диапазоне [0..1]`)
+        }
+        if (ph.min != null && ph.max != null && !(ph.max >= ph.min)) {
+          throw new Error(`${ctx}: bias.preferHeight.max должен быть ≥ min`)
+        }
+      }
+      const ps: any = (recipe.bias as any).preferSlope
+      if (ps) {
+        if (ps.weight != null && !(ps.weight >= 0 && ps.weight <= 1)) {
+          throw new Error(`${ctx}: bias.preferSlope.weight должен быть в диапазоне [0..1]`)
+        }
+        if (ps.min != null && ps.max != null && !(ps.max >= ps.min)) {
+          throw new Error(`${ctx}: bias.preferSlope.max должен быть ≥ min`)
+        }
+      }
+    }
+  }
+  /**
    * Сгенерировать массив операций террейна из пула рецептов.
    *
    * Алгоритм по шагам:
@@ -55,6 +126,8 @@ export class ProceduralTerrainGenerator {
 
     for (let rIdx = 0; rIdx < pool.recipes.length; rIdx++) {
       const recipe = pool.recipes[rIdx]
+      // Валидация рецепта перед обработкой
+      this.validateRecipe(recipe, rIdx)
       if (!isFinite(maxOps) && allOps.length >= maxOps) break
 
       const countRng = deriveRng(seed, `recipe_${rIdx}_count`)

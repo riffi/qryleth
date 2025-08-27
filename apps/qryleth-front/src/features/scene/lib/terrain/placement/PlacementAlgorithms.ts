@@ -43,6 +43,12 @@ export function placePoints(
       return placeGridJitter(count, spec.cell, spec.jitter ?? 0.5, rng, opts)
     case 'ring':
       return placeRing(count, spec.center[0], spec.center[1], spec.rMin, spec.rMax, rng, opts)
+    default:
+      const allowed = ['uniform', 'poisson', 'gridJitter', 'ring']
+      const value = (spec as any)?.type
+      throw new Error(
+        `Неподдерживаемый placement.type: '${value}'. Ожидалось одно из: ${allowed.join(', ')}.`
+      )
   }
 }
 
