@@ -60,6 +60,41 @@ export function createSceneApiBridge() {
     ) => SceneAPI.createProceduralLayer(spec, layerData),
     adjustInstancesForPerlinTerrain: (terrainLayerId: string) =>
       SceneAPI.adjustInstancesForPerlinTerrain(terrainLayerId),
+
+    // Fit‑хелперы: генерация только рецептов/оценок (без создания слоя)
+    terrainHelpers: {
+      /**
+       * Вписать долину в прямоугольник XZ и получить рецепты для pool.recipes.
+       * Слой не создаётся — хелпер только готовит операции для встраивания в сценарий.
+       */
+      valleyFitToRecipes: (
+        rect: import('@/entities/terrain').FitRect,
+        options: import('@/entities/terrain').ValleyFitOptions,
+        world: import('@/entities/terrain').WorldSize,
+        edgeFade?: number
+      ) => SceneAPI.terrainValleyFitToRecipes(rect, options, world, edgeFade),
+
+      /** Вписать гряду/хребет, получить рецепты и оценки */
+      ridgeBandFitToRecipes: (
+        rect: import('@/entities/terrain').FitRect,
+        options: import('@/entities/terrain').RidgeBandFitOptions,
+        world: import('@/entities/terrain').WorldSize,
+        edgeFade?: number
+      ) => SceneAPI.terrainRidgeBandFitToRecipes(rect, options, world, edgeFade),
+
+      /** Оценить бюджет (ops) по рецептам */
+      estimateOpsForRecipes: (recipes: import('@/entities/terrain').GfxTerrainOpRecipe[]) =>
+        SceneAPI.terrainEstimateOpsForRecipes(recipes),
+
+      /** Предложить pool.global.maxOps с запасом */
+      suggestGlobalBudget: (recipes: import('@/entities/terrain').GfxTerrainOpRecipe[], margin?: number) =>
+        SceneAPI.terrainSuggestGlobalBudget(recipes, margin),
+
+      /** Подрезать рецепты под бюджет */
+      autoBudget: (
+        recipes: import('@/entities/terrain').GfxTerrainOpRecipe[],
+        maxOps: number
+      ) => SceneAPI.terrainAutoBudget(recipes, maxOps)
+    }
   }
 }
-

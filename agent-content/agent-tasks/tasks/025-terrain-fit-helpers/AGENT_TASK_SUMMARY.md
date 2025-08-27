@@ -9,7 +9,7 @@ owner: team-ui
 tags: [terrain, scripting-panel, usability, generator, docs]
 phases:
   total: 7
-  completed: 3
+  completed: 4
 ---
 
 # Fit‑хелперы террейна (ValleyFit/RidgeBandFit), авто‑параметры и бюджет
@@ -152,17 +152,19 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 Критерии приёмки:
 - В сцене со смешанными рецептами структурные элементы гарантированно попадают в результат, детализация подрезается прогнозируемо.
 - Док‑примеры показывают связь параметров и итогового числа операций.
+**Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 **Отчёт**: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Интеграция в SceneAPI и ScriptingPanel
+### ✅ Фаза 4: Интеграция в SceneAPI и ScriptingPanel
 - SceneAPI: использовать хелперы ТОЛЬКО для генерации операций и встраивать их в существующий сценарий (формирование `pool` и вызов `createProceduralLayer(...)` остаются в текущем пайплайне).
-- ScriptingPanel: форма для ValleyFit/RidgeBandFit (area, thickness, depth/prominence, direction, continuity, variation, budgetShare); предпросмотр (ось/толщина/покрытие); подсказки по бюджету.
+- ScriptingPanel: экспонировать `sceneApi.terrainHelpers.*` (без создания слоя); далее пользователь сам собирает `spec.pool` и вызывает `createProceduralLayer`.
 - Обновить шаблоны и автокомплит (tooltips) под новые опции.
 
 Критерии приёмки:
 - Пользователь может сделать долину через прямоугольник без ручного подбора `step/radius/aspect`.
 - Превью адекватно отражает направление/толщину/покрытие.
+**Отчёт**: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: Тестирование и устойчивость
 - Юнит‑тесты для эвристик (детерминированность, невыход за мир, поведение на узких зонах).

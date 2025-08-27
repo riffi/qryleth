@@ -17,8 +17,11 @@ import type {
   GfxTerrainOpPool,
   GfxTerrainConfig,
   GfxTerrainOp,
+  GfxTerrainOpRecipe,
   GfxOpsGenerationOptions
 } from '@/entities/terrain'
+import type { FitRect, WorldSize, ValleyFitOptions, RidgeBandFitOptions, FitResult } from '@/entities/terrain'
+import { TerrainHelpers } from '@/features/scene/lib/terrain/fit/TerrainHelpers'
 import { ProceduralTerrainGenerator } from '@/features/scene/lib/terrain/ProceduralTerrainGenerator'
 import { generateRandomSeed } from '@/features/scene/lib/terrain/utils/PRNGUtils'
 import type { Vector3 } from '@/shared/types'
@@ -147,6 +150,57 @@ export interface AddInstancesResult {
  * Scene API class для предоставления методов агентам
  */
 export class SceneAPI {
+  /**
+   * Fit-хелперы: вписать долину (valley) в прямоугольник без создания слоя.
+   * Возвращает только набор рецептов и оценки, которые можно встроить
+   * в существующий сценарий генерации (pool.recipes).
+   */
+  static terrainValleyFitToRecipes(
+    rect: FitRect,
+    options: ValleyFitOptions,
+    world: WorldSize,
+    edgeFade?: number
+  ): FitResult {
+    return TerrainHelpers.valleyFitToRecipes(rect, options, world, edgeFade)
+  }
+
+  /**
+   * Fit-хелперы: вписать гряду/хребет (ridge) в прямоугольник без создания слоя.
+   * Возвращает только рецепты и оценки (для последующей сборки pool/spec).
+   */
+  static terrainRidgeBandFitToRecipes(
+    rect: FitRect,
+    options: RidgeBandFitOptions,
+    world: WorldSize,
+    edgeFade?: number
+  ): FitResult {
+    return TerrainHelpers.ridgeBandFitToRecipes(rect, options, world, edgeFade)
+  }
+
+  /**
+   * Оценить суммарное количество операций (ops) по рецептам для планирования бюджета.
+   */
+  static terrainEstimateOpsForRecipes(recipes: GfxTerrainOpRecipe[]): number {
+    return TerrainHelpers.estimateOpsForRecipes(recipes)
+  }
+
+  /**
+   * Предложить значение pool.global.maxOps с указанным запасом (по умолчанию +20%).
+   */
+  static terrainSuggestGlobalBudget(recipes: GfxTerrainOpRecipe[], margin: number = 0.2): number {
+    return TerrainHelpers.suggestGlobalBudget(recipes, margin)
+  }
+
+  /**
+   * Автоматически подрезать набор рецептов под заданный бюджет maxOps.
+   * Возвращает обрезанный массив рецептов, фактически используемый бюджет и отчёт.
+   */
+  static terrainAutoBudget(
+    recipes: GfxTerrainOpRecipe[],
+    maxOps: number
+  ): { trimmedRecipes: GfxTerrainOpRecipe[]; usedOps: number; report: Array<{ index: number; kind: GfxTerrainOpRecipe['kind']; from: number; to: number; savedOps: number }> } {
+    return TerrainHelpers.autoBudget(recipes, maxOps)
+  }
   /**
    * Сгенерировать конфигурацию террейна по спецификации процедурной генерации.
    *

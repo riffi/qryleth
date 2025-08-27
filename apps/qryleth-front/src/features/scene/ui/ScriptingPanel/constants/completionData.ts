@@ -130,6 +130,46 @@ export const getSceneApiCompletions = () => [
 Описание: Создает террейн в сцене и выравнивает объекты`)
   },
   {
+    label: 'terrainHelpers',
+    type: 'variable',
+    info: createStyledTooltip(`terrainHelpers: вспомогательные методы «fit» для генерации ОПЕРАЦИЙ без создания слоя\n
+Назначение: упростить задание сложных форм (долина/гряда), возвращая корректно настроенные рецепты (GfxTerrainOpRecipe[]) и оценки бюджета.\n
+Важно: хелперы НЕ создают слой — вы сами собираете spec.pool и вызываете createProceduralLayer.`)
+  },
+  {
+    label: 'terrainHelpers.valleyFitToRecipes',
+    type: 'function',
+    info: createStyledTooltip(`terrainHelpers.valleyFitToRecipes(rect, options, world, edgeFade?): FitResult\n
+Вписывает долину (valley) в прямоугольник XZ и возвращает:\n- recipes: GfxTerrainOpRecipe[]\n- estimateOps: число операций (для maxOps)\n- orientation: угол (если direction='auto')\n- warnings: предупреждения\n
+rect: { x, z, width, depth }\noptions: { thickness, depth?, prominencePct?, direction?: 'auto'|'x'|'z'|angle, continuity?: 'continuous'|'segmented', variation?, edgeMargin?, budgetShare?, randomRotationEnabled? }\nworld: { width, depth }\nedgeFade?: число 0..1\n
+Пример:\nconst world = { width: 300, depth: 200 }\nconst rect = { x: -140, z: -10, width: 280, depth: 20 }\nconst fit = sceneApi.terrainHelpers.valleyFitToRecipes(rect, { thickness: 40, depth: 8, direction: 'auto' }, world, 0.15)\nconst maxOps = sceneApi.terrainHelpers.suggestGlobalBudget(fit.recipes, 0.2)\nconst { trimmedRecipes } = sceneApi.terrainHelpers.autoBudget(fit.recipes, maxOps)\nawait sceneApi.createProceduralLayer({ world: { ...world, edgeFade: 0.15 }, base: {...}, pool: { global: { maxOps }, recipes: trimmedRecipes }, seed: 1 })`)
+  },
+  {
+    label: 'terrainHelpers.ridgeBandFitToRecipes',
+    type: 'function',
+    info: createStyledTooltip(`terrainHelpers.ridgeBandFitToRecipes(rect, options, world, edgeFade?): FitResult\n
+Вписывает гряду/хребет (ridge) в прямоугольник XZ. При direction='auto' ориентирует вдоль ДЛИННОЙ стороны rect.\nВозвращает FitResult (recipes, estimateOps, orientation, warnings).\n
+options: { thickness, height?, prominencePct?, direction?, continuity?, variation?, edgeMargin?, budgetShare?, randomRotationEnabled? }`)
+  },
+  {
+    label: 'terrainHelpers.estimateOpsForRecipes',
+    type: 'function',
+    info: createStyledTooltip(`terrainHelpers.estimateOpsForRecipes(recipes): number\n
+Оценить суммарное количество операций (ops) для пула.\nЭвристика: ridge/valley со step → 5/центр; crater → 2; terrace → 4; остальное → 1.`)
+  },
+  {
+    label: 'terrainHelpers.suggestGlobalBudget',
+    type: 'function',
+    info: createStyledTooltip(`terrainHelpers.suggestGlobalBudget(recipes, margin=0.2): number\n
+Рекомендованный pool.global.maxOps с запасом (по умолчанию +20%).`)
+  },
+  {
+    label: 'terrainHelpers.autoBudget',
+    type: 'function',
+    info: createStyledTooltip(`terrainHelpers.autoBudget(recipes, maxOps): { trimmedRecipes, usedOps, report }\n
+Подрезает «прожорливые» рецепты под бюджет. Приоритет: детализация → ridge → valley.\nРецепты с count=0 удаляются.`)
+  },
+  {
     label: 'getSceneStats',
     type: 'function',
     info: createStyledTooltip(`getSceneStats(): SceneStats
