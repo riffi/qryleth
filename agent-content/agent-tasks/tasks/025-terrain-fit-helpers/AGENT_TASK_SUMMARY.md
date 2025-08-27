@@ -9,7 +9,7 @@ owner: team-ui
 tags: [terrain, scripting-panel, usability, generator, docs]
 phases:
   total: 7
-  completed: 4
+  completed: 5
 ---
 
 # Fit‑хелперы террейна (ValleyFit/RidgeBandFit), авто‑параметры и бюджет
@@ -174,13 +174,14 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 Критерии приёмки:
 - Тесты зелёные; нет регрессий в существующих сценариях.
 
-### ⏳ Фаза 6: Документация и примеры
+### ✅ Фаза 6: Документация и примеры
 - Раздел «Fit‑инструменты» в `terrain-in-scripting-panel.md` с понятными примерами «до/после».
 - Обновить разделы про `step` и `budget` (ссылки на fit‑подход).
 - Обновить шаблоны ScriptingPanel.
 
 Критерии приёмки:
 - Документация само‑достаточна для пользователя без чтения исходников.
+**Отчёт**: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 ### ⏳ Фаза 7: Обновление шаблонов ScriptingPanel под fit‑хелперы
 - Обновить `ScriptingPanel` шаблоны (`constants/scriptTemplates.ts`):

@@ -151,6 +151,29 @@ export interface AddInstancesResult {
  */
 export class SceneAPI {
   /**
+   * Группа fit‑хелперов, доступных как sceneApi.terrainHelpers.* в ScriptingPanel.
+   * Эти методы ТОЛЬКО генерируют операции и оценки; слои не создают.
+   */
+  static terrainHelpers = {
+    valleyFitToRecipes: (
+      rect: FitRect,
+      options: ValleyFitOptions,
+      world: WorldSize,
+      edgeFade?: number
+    ): FitResult => SceneAPI.terrainValleyFitToRecipes(rect, options, world, edgeFade),
+
+    ridgeBandFitToRecipes: (
+      rect: FitRect,
+      options: RidgeBandFitOptions,
+      world: WorldSize,
+      edgeFade?: number
+    ): FitResult => SceneAPI.terrainRidgeBandFitToRecipes(rect, options, world, edgeFade),
+
+    estimateOpsForRecipes: (recipes: GfxTerrainOpRecipe[]) => SceneAPI.terrainEstimateOpsForRecipes(recipes),
+    suggestGlobalBudget: (recipes: GfxTerrainOpRecipe[], margin?: number) => SceneAPI.terrainSuggestGlobalBudget(recipes, margin),
+    autoBudget: (recipes: GfxTerrainOpRecipe[], maxOps: number) => SceneAPI.terrainAutoBudget(recipes, maxOps)
+  }
+  /**
    * Fit-хелперы: вписать долину (valley) в прямоугольник без создания слоя.
    * Возвращает только набор рецептов и оценки, которые можно встроить
    * в существующий сценарий генерации (pool.recipes).

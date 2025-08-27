@@ -528,6 +528,76 @@ bias: {
 
 ## 🎨 Продвинутые примеры для ScriptingPanel
 
+### Fit‑инструменты (упрощённая генерация рецептов)
+
+Иногда пользователю сложно «вручную» подбирать `step`, `radius`, `aspect`, `intensity` для желаемой формы (долина/гряда) и укладываться в бюджет `maxOps`. Для этого доступны fit‑хелперы в `sceneApi.terrainHelpers.*`, которые НЕ создают слой, а только генерируют корректно настроенные рецепты (`GfxTerrainOpRecipe[]`) и оценки. Далее вы сами собираете `spec.pool` и вызываете `createProceduralLayer` — текущий пайплайн остаётся неизменным.
+
+- `sceneApi.terrainHelpers.valleyFitToRecipes(rect, options, world, edgeFade?)`
+  - Вписывает долину (valley) в прямоугольник XZ.
+  - Возвращает: `{ recipes, estimateOps, orientation, warnings }`.
+  - `direction: 'auto'` — ориентирует вдоль ДЛИННОЙ стороны `rect`.
+- `sceneApi.terrainHelpers.ridgeBandFitToRecipes(rect, options, world, edgeFade?)`
+  - Вписывает гряду/хребет (ridge) в прямоугольник XZ.
+  - При `direction: 'auto'` — также ориентирует вдоль ДЛИННОЙ стороны `rect`.
+- `sceneApi.terrainHelpers.estimateOpsForRecipes(recipes)` — оценить бюджет (ops).
+- `sceneApi.terrainHelpers.suggestGlobalBudget(recipes, margin=0.2)` — рекомендовать `maxOps` с запасом.
+- `sceneApi.terrainHelpers.autoBudget(recipes, maxOps)` — подрезать «прожорливые» рецепты под лимит (приоритет: детализация → ridge → valley).
+
+Пример: долина через весь мир (fit‑подход)
+```javascript
+const world = { width: 300, depth: 200 }
+const rect = { x: -140, z: -10, width: 280, depth: 20 } // тонкая полоса по центру Z
+
+// 1) Генерация рецептов для долины
+const fit = sceneApi.terrainHelpers.valleyFitToRecipes(
+  rect,
+  { thickness: 40, depth: 8, direction: 'auto', continuity: 'continuous' },
+  world,
+  0.15 // edgeFade
+)
+
+// 2) Работа с бюджетом
+const maxOps = sceneApi.terrainHelpers.suggestGlobalBudget(fit.recipes, 0.2)
+const { trimmedRecipes, usedOps, report } = sceneApi.terrainHelpers.autoBudget(fit.recipes, maxOps)
+console.log('Бюджет:', { maxOps, usedOps, report }, fit.warnings)
+
+// 3) Сборка spec и создание слоя
+const spec = {
+  world: { ...world, edgeFade: 0.15 },
+  base: { seed: 1001, octaveCount: 4, amplitude: 6, persistence: 0.5, width: 128, height: 128 },
+  pool: { global: { intensityScale: 1.2, maxOps }, recipes: trimmedRecipes },
+  seed: 1001
+}
+await sceneApi.createProceduralLayer(spec, { name: 'ValleyFit Demo', visible: true })
+```
+
+Комбинация долина + северная гряда (fit‑подход)
+```javascript
+const world = { width: 300, depth: 200 }
+const centerRect = { x: -140, z: -10, width: 280, depth: 20 }
+const northRect = { x: -150, z: 60, width: 300, depth: 40 }
+
+const v = sceneApi.terrainHelpers.valleyFitToRecipes(centerRect, { thickness: 40, depth: 8 }, world, 0.15)
+const r = sceneApi.terrainHelpers.ridgeBandFitToRecipes(northRect, { thickness: 30, height: 10, direction: 'auto' }, world, 0.15)
+
+let recipes = [...v.recipes, ...r.recipes]
+let maxOps = sceneApi.terrainHelpers.suggestGlobalBudget(recipes, 0.2)
+const budgeted = sceneApi.terrainHelpers.autoBudget(recipes, maxOps)
+recipes = budgeted.trimmedRecipes
+
+const spec = {
+  world: { ...world, edgeFade: 0.15 },
+  base: { seed: 1001, octaveCount: 4, amplitude: 6, persistence: 0.5, width: 128, height: 128 },
+  pool: { global: { intensityScale: 1.2, maxOps }, recipes },
+  seed: 1001
+}
+await sceneApi.createProceduralLayer(spec, { name: 'Valley+Ridge Fit Demo', visible: true })
+```
+
+Связь со «Step» и «Бюджетом»
+- Внутри fit‑хелперов параметры `step/radius/aspect/intensity` подбираются автоматически (см. разделы выше «Параметр step…» и «Бюджет операций…»). В результате вам не нужно вручную рассчитывать длину штриха и перекрытие — достаточно указать `rect`, `thickness`, и желаемую глубину/высоту.
+- Fit‑подход не отменяет «ручной» сценарий; оба способа можно смешивать.
+
 ### Параметр step для ridge/valley (как тянуть гряды и долины)
 
 Параметр `step` используется ТОЛЬКО для типов `ridge` и `valley`. Если он задан (`> 0`), рецепт генерирует серию из пяти эллипсов вдоль линии через центр:
