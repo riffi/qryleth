@@ -31,7 +31,19 @@ export function buildOpsForPoint(
   const radiusX = baseRadius
   const radiusZ = baseRadius * aspect
   const intensity = pickFromNumberOrRange(rng, recipe.intensity) * intensityScale
-  const rotation = recipe.rotation ? randAngle(rng, recipe.rotation) : 0
+  // ВАЖНО: различаем «угол не задан» и «угол = 0».
+  // Если rotation в рецепте не указан — оставляем undefined (случайный угол выберем там, где нужно через ??),
+  // если задан — генерируем детерминированный угол из указанного диапазона, включая возможность ровно 0.
+  // Вычисляем угол поворота эллипса.
+  // Приоритеты:
+  // 1) Явно задан `rotation` → угол из указанного диапазона (включая 0).
+  // 2) Иначе, если включён `randomRotationEnabled` → случайный угол полного круга.
+  // 3) Иначе (по умолчанию) → 0 радиан (ориентация вдоль оси X).
+  const rotation: number = recipe.rotation
+    ? randAngle(rng, recipe.rotation)
+    : (recipe as any).randomRotationEnabled
+      ? randAngle(rng)
+      : 0
   const falloff = recipe.falloff || 'smoothstep'
 
   const resolvedMode = (recipe.mode && recipe.mode !== 'auto')
@@ -73,7 +85,8 @@ export function buildOpsForPoint(
         return ops
       }
       // Строим 5 точек вдоль направления rotation (или случайного, если rotation=0)
-      const dirAngle = rotation || randAngle(rng)
+      // Ранее 0 трактовался как ложь и заменялся случайным значением. Теперь 0 — валидный угол.
+      const dirAngle = rotation
       const halfCount = 2
       for (let i = -halfCount; i <= halfCount; i++) {
         const dx = Math.cos(dirAngle) * step * i
