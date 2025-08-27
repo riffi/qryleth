@@ -4,12 +4,12 @@ epic: null
 title: "Система процедурной генерации ландшафта с операциями TerrainOps"
 status: planned
 created: 2025-08-26
-updated: 2025-08-26
+updated: 2025-08-27
 owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 1
+  completed: 2
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -260,7 +260,7 @@ const result = await sceneApi.createProceduralLayer(
 
 **Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Алгоритмы размещения
+### ✅ Фаза 2: Алгоритмы размещения
 - Создать алгоритмы размещения в `apps/qryleth-front/src/features/scene/lib/terrain/placement/`:
   - `PlacementAlgorithms.ts` - реализация uniform, poisson, gridJitter, ring
   - `PlacementUtils.ts` - вспомогательные функции для работы с координатами
