@@ -64,7 +64,8 @@ export const getTerrainTemplateGroups = () => {
   const quickStart = {
     'Простые холмы': `// Создать базовые холмы за 30 секунд
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 200, height: 200, edgeFade: 0.1 },
+  // Координаты центрированы: X ∈ [-width/2..+width/2], Z ∈ [-depth/2..+depth/2]
+  world: { width: 200, depth: 200, edgeFade: 0.1 },
   base: { 
     seed: 42, 
     amplitude: 8, 
@@ -84,7 +85,8 @@ console.log('Результат:', result)`,
 
     'Тестовый террейн': `// Быстрый тест с низкими параметрами
 const testSpec = {
-  world: { width: 100, height: 100, edgeFade: 0.05 },
+  // Центр мира: [0,0,0]; Z — глубина
+  world: { width: 100, depth: 100, edgeFade: 0.05 },
   base: { 
     seed: 123, 
     octaveCount: 2, 
@@ -114,7 +116,8 @@ console.log('Тестовый террейн:', test)`
   const readySolutions = {
     'Долина с горами': `// Долина, окруженная горными цепями
 const valleySpec = {
-  world: { width: 300, height: 200, edgeFade: 0.15 },
+  // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]
+  world: { width: 300, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 1001, 
     octaveCount: 4, 
@@ -130,9 +133,10 @@ const valleySpec = {
       {
         kind: 'ridge',
         count: [8, 12],
+        // Северная кромка: полоса по Z от +60 до +100 на всю ширину
         placement: { 
           type: 'uniform',
-          area: { kind: 'rect', x: 0, z: 160, width: 300, height: 40 }
+          area: { kind: 'rect', x: -150, z: 60, width: 300, depth: 40 }
         },
         radius: [15, 25],
         aspect: [0.3, 0.5],
@@ -144,9 +148,10 @@ const valleySpec = {
       {
         kind: 'hill',
         count: [6, 10],
+        // Южная кромка: полоса по Z от -100 до -60 на всю ширину
         placement: { 
           type: 'uniform',
-          area: { kind: 'rect', x: 0, z: 0, width: 300, height: 40 }
+          area: { kind: 'rect', x: -150, z: -100, width: 300, depth: 40 }
         },
         radius: [12, 20],
         intensity: [6, 12],
@@ -156,8 +161,8 @@ const valleySpec = {
       {
         kind: 'valley',
         count: 1,
-        placement: { type: 'uniform' },
-        center: [150, 100],
+        // Одна долина в центре мира
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 2 },
         radius: 60,
         radiusZ: 40,
         intensity: 8,
@@ -177,7 +182,8 @@ console.log('Создана долина:', valley)`,
 
     'Вулканический остров': `// Круглый остров с кратером в центре
 const islandSpec = {
-  world: { width: 200, height: 200, edgeFade: 0.3 },
+  // Круглый остров, центр мира — [0,0]
+  world: { width: 200, depth: 200, edgeFade: 0.3 },
   base: { 
     seed: 2024, 
     octaveCount: 5, 
@@ -193,7 +199,7 @@ const islandSpec = {
       {
         kind: 'crater',
         count: 1,
-        placement: { type: 'ring', center: [100, 100], rMin: 0, rMax: 5 },
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 5 },
         radius: [25, 30],
         intensity: [15, 20],
         falloff: 'gauss'
@@ -202,7 +208,7 @@ const islandSpec = {
       {
         kind: 'hill',
         count: [8, 12],
-        placement: { type: 'ring', center: [100, 100], rMin: 40, rMax: 70 },
+        placement: { type: 'ring', center: [0, 0], rMin: 40, rMax: 70 },
         radius: [8, 15],
         intensity: [4, 8],
         falloff: 'smoothstep',
@@ -212,7 +218,7 @@ const islandSpec = {
       {
         kind: 'ridge',
         count: [4, 6],
-        placement: { type: 'ring', center: [100, 100], rMin: 80, rMax: 95 },
+        placement: { type: 'ring', center: [0, 0], rMin: 80, rMax: 95 },
         radius: [6, 12],
         aspect: [0.2, 0.4],
         intensity: [3, 6],
@@ -233,7 +239,8 @@ console.log('Создан остров:', island)`,
 
     'Архипелаг островов': `// Группа островов разного размера
 const archipelagoSpec = {
-  world: { width: 400, height: 300, edgeFade: 0.2 },
+  // Мир 400×300 (X×Z). Диапазоны: X [-200..200], Z [-150..150]
+  world: { width: 400, depth: 300, edgeFade: 0.2 },
   base: { 
     seed: 3333, 
     octaveCount: 3, 
@@ -251,7 +258,8 @@ const archipelagoSpec = {
       {
         kind: 'hill',
         count: 1,
-        placement: { type: 'uniform', area: { kind: 'rect', x: 150, z: 120, width: 100, height: 80 } },
+        // Прямоугольник в пределах Z: [70..150], X: [150..250]
+        placement: { type: 'uniform', area: { kind: 'rect', x: 150, z: 70, width: 100, depth: 80 } },
         radius: [40, 50],
         intensity: [12, 18],
         falloff: 'smoothstep'
@@ -293,7 +301,7 @@ console.log('Создан архипелаг:', archipelago)`,
 
     'Холмистая местность': `// Мягкие перекатывающиеся холмы
 const hillsSpec = {
-  world: { width: 250, height: 250, edgeFade: 0.1 },
+  world: { width: 250, depth: 250, edgeFade: 0.1 },
   base: { 
     seed: 4444, 
     octaveCount: 4, 
@@ -343,7 +351,7 @@ console.log('Созданы холмы:', hills)`
   const specialLandscapes = {
     'Песчаные дюны': `// Пустынный ландшафт с дюнами
 const dunesSpec = {
-  world: { width: 200, height: 200, edgeFade: 0.15 },
+  world: { width: 200, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 46283, 
     octaveCount: 3, 
@@ -386,7 +394,7 @@ console.log('Созданы дюны:', dunes)`,
 
     'Лунный кратер': `// Кратерный ландшафт как на Луне
 const craterSpec = {
-  world: { width: 300, height: 300, edgeFade: 0.1 },
+  world: { width: 300, depth: 300, edgeFade: 0.1 },
   base: { 
     seed: 8888, 
     octaveCount: 2, 
@@ -440,7 +448,7 @@ console.log('Создана лунная поверхность:', lunar)`,
 
     'Каньон с плато': `// Система каньонов с плоскими плато
 const canyonSpec = {
-  world: { width: 400, height: 250, edgeFade: 0.2 },
+  world: { width: 400, depth: 250, edgeFade: 0.2 },
   base: { 
     seed: 9001, 
     octaveCount: 4, 
@@ -491,7 +499,7 @@ console.log('Созданы каньоны:', canyon)`
   const advancedExamples = {
     'Горный массив': `// Реалистичный горный массив с хребтами
 const mountainRangeSpec = {
-  world: { width: 500, height: 300, edgeFade: 0.2 },
+  world: { width: 500, depth: 300, edgeFade: 0.2 },
   base: { 
     seed: 7777, 
     octaveCount: 6, 
@@ -507,7 +515,8 @@ const mountainRangeSpec = {
       {
         kind: 'ridge',
         count: 1,
-        placement: { type: 'uniform', center: [250, 150] },
+        // Главный хребет в центре
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 2 },
         radius: 120,
         aspect: 0.25,
         intensity: 20,
@@ -519,7 +528,7 @@ const mountainRangeSpec = {
       {
         kind: 'ridge',
         count: [6, 10],
-        placement: { type: 'ring', center: [250, 150], rMin: 80, rMax: 150 },
+        placement: { type: 'ring', center: [0, 0], rMin: 80, rMax: 150 },
         radius: [25, 50],
         aspect: [0.2, 0.4],
         intensity: [8, 15],
@@ -555,7 +564,7 @@ console.log('Горный массив создан:', mountains)`,
 
     'Прибрежная зона': `// Изрезанное побережье с бухтами
 const coastalSpec = {
-  world: { width: 400, height: 200, edgeFade: 0.25 },
+  world: { width: 400, depth: 200, edgeFade: 0.25 },
   base: { 
     seed: 9999, 
     octaveCount: 3, 
@@ -571,9 +580,10 @@ const coastalSpec = {
       {
         kind: 'plateau',
         count: [3, 5],
+        // Правая половина мира: X [0..200]
         placement: { 
           type: 'uniform',
-          area: { kind: 'rect', x: 200, z: 0, width: 200, height: 200 }
+          area: { kind: 'rect', x: 0, z: -100, width: 200, depth: 200 }
         },
         radius: [40, 70],
         aspect: [0.6, 1.4],
@@ -585,9 +595,10 @@ const coastalSpec = {
       {
         kind: 'basin',
         count: [4, 7],
+        // Центральная вертикальная полоса X [-50..50]
         placement: { 
           type: 'uniform',
-          area: { kind: 'rect', x: 150, z: 0, width: 100, height: 200 }
+          area: { kind: 'rect', x: -50, z: -100, width: 100, depth: 200 }
         },
         radius: [20, 35],
         aspect: [1.2, 2.0],
@@ -599,9 +610,10 @@ const coastalSpec = {
       {
         kind: 'ridge',
         count: [2, 4],
+        // Левая кромка: X [-200..-80]
         placement: { 
           type: 'uniform',
-          area: { kind: 'rect', x: 280, z: 0, width: 120, height: 200 }
+          area: { kind: 'rect', x: -200, z: -100, width: 120, depth: 200 }
         },
         radius: [15, 25],
         aspect: [0.1, 0.3],
@@ -626,7 +638,7 @@ console.log('Прибрежная зона создана:', coast)`,
 console.log('Этап 1: Создание базового ландшафта...')
 
 const baseResult = await sceneApi.createProceduralLayer({
-  world: { width: 300, height: 300, edgeFade: 0.1 },
+  world: { width: 300, depth: 300, edgeFade: 0.1 },
   base: { 
     seed: 1000, 
     octaveCount: 4, 
@@ -775,7 +787,7 @@ for (const test of testSizes) {
   const startTime = Date.now()
   
   const spec = {
-    world: { width: test.world[0], height: test.world[1], edgeFade: 0.1 },
+    world: { width: test.world[0], depth: test.world[1], edgeFade: 0.1 },
     base: { 
       seed: 555, 
       octaveCount: 3, 

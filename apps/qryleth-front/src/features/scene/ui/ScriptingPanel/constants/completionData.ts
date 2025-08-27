@@ -97,7 +97,7 @@ export const getSceneApiCompletions = () => [
     type: 'function',
     info: createStyledTooltip(`generateProceduralTerrain(spec): Promise<GfxTerrainConfig>
 Пример: await sceneApi.generateProceduralTerrain({
-  world: { width: 200, height: 200, edgeFade: 0.1 },
+  world: { width: 200, depth: 200, edgeFade: 0.1 },
   base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
   pool: { recipes: [] },
   seed: 42
@@ -110,10 +110,10 @@ export const getSceneApiCompletions = () => [
     info: createStyledTooltip(`generateTerrainOpsFromPool(pool, seed?, options?): Promise<GfxTerrainOp[]>
 Пример (c сидом): await sceneApi.generateTerrainOpsFromPool({
   recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }]
-}, 123, { worldWidth: 200, worldHeight: 200 })
+}, 123, { worldWidth: 200, worldDepth: 200 })
 Пример (без сида): await sceneApi.generateTerrainOpsFromPool({
   recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }]
-}, undefined, { worldWidth: 200, worldHeight: 200 }) // сид сгенерируется автоматически
+}, undefined, { worldWidth: 200, worldDepth: 200 }) // сид сгенерируется автоматически
 Описание: Генерирует только операции модификации рельефа; если seed не указан — создаётся автоматически`)
   },
   {
@@ -122,7 +122,7 @@ export const getSceneApiCompletions = () => [
     info: createStyledTooltip(`createProceduralLayer(spec, layerData?): Promise<{ success, layerId?, error? }>
 🌟 ГЛАВНЫЙ МЕТОД для создания террейнов!
 Пример: await sceneApi.createProceduralLayer({
-  world: { width: 200, height: 200 },
+  world: { width: 200, depth: 200 },
   base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
   pool: { recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }] },
   seed: 42
@@ -245,7 +245,7 @@ export const getBaseCompletions = () => [
   { label: 'onlyHorizontal', type: 'property', info: 'Горизонтальное размещение по Y (boolean, по умолчанию true)' },
   
   // Параметры террейнов
-  { label: 'world', type: 'property', info: 'Размеры и настройки мира: { width, height, edgeFade? }' },
+  { label: 'world', type: 'property', info: 'Размеры и настройки мира: { width, depth, edgeFade? }' },
   { label: 'base', type: 'property', info: 'Базовый шум Perlin: { seed, octaveCount, amplitude, persistence, width, height, heightOffset? }' },
   { label: 'pool', type: 'property', info: 'Пул операций рельефа: { global?: {intensityScale?, maxOps?}, recipes: [] }' },
   { label: 'recipes', type: 'property', info: 'Массив рецептов рельефа (hill, valley, crater, plateau, ridge, basin, dune, terrace)' },

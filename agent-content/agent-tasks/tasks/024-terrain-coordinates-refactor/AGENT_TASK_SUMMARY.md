@@ -9,7 +9,7 @@ owner: team-ui
 tags: [refactoring, types, coordinates, terrain, documentation, breaking-change]
 phases:
   total: 6
-  completed: 2
+  completed: 3
 ---
 
 # Рефакторинг координатной системы террейна
@@ -69,12 +69,28 @@ phases:
 - Обратная совместимость сохранена: существующие вызовы с `worldHeight` и `area.height` продолжают работать.
 - Глобальное переименование поля `worldHeight` в `GfxTerrainConfig` не выполнялось (вне текущего scope). Миграция примеров и документации — в следующих фазах.
 
-### ⏳ Фаза 3: Исправление примеров в scriptingPanel
+### ✅ Фаза 3: Исправление примеров в scriptingPanel
 - Найти все файлы с примерами процедурной генерации террейна
 - Исправить координаты областей размещения (относительно центра мира)
 - Заменить `height` на `depth` во всех примерах
 - Добавить комментарии с объяснением координатной системы
 - Создать набор готовых шаблонов для разных сценариев размещения
+
+Выполнено:
+- Обновлены шаблоны ScriptingPanel: `apps/qryleth-front/src/features/scene/ui/ScriptingPanel/constants/scriptTemplates.ts`
+  - В `world` заменено `height` → `depth` с пояснениями про центр мира и ось Z.
+  - Для `area.rect` заменено `height` → `depth` и исправлены координаты зон на центрированные (X [-W/2..+W/2], Z [-D/2..+D/2]).
+  - Неверные примеры `placement: { type: 'uniform', center: [...] }` заменены на корректные `ring` с `center` и малыми радиусами для «центрального» размещения.
+  - Исправлены выходящие за пределы мира координаты (например, север/юг/побережье/архипелаг).
+- Обновлены подсказки автодополнения:
+  - `apps/qryleth-front/src/features/scene/ui/ScriptingPanel/constants/completionData.ts` — примеры и описание `world` теперь с `depth`; опции `generateTerrainOpsFromPool` используют `worldDepth`.
+  - `apps/qryleth-front/src/features/scene/ui/ScriptingPanel/hooks/useAIScriptGenerator.ts` — примеры в системном промпте и сниппетах обновлены на `depth` и центрированные координаты.
+- Обновлена документация примеров ScriptingPanel:
+  - `docs/features/scene-management/terrain-in-scripting-panel.md` — примеры `world.depth`, корректные зоны `area.depth`, центрированные координаты и комментарии.
+  - Точечные правки примеров в `docs/api/scene-api.md` и `docs/api/types/terrain.md` (только специфика процедурной генерации) — замена `height` → `depth` в `world`.
+
+Примечания:
+- Базовая модель `GfxTerrainConfig` по‑прежнему использует `worldWidth/worldHeight` (задокументировано как «глубина Z»), её миграция вне текущей фазы.
 
 ### ⏳ Фаза 4: Создание новых тестов и валидация
 - Создать comprehensive тесты для проверки правильности координат

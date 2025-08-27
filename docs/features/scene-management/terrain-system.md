@@ -132,7 +132,7 @@
 ```javascript
 // Создание базового холмистого ландшафта
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 200, height: 200 },
+  world: { width: 200, depth: 200 },
   base: { seed: 42, amplitude: 8, octaveCount: 3, heightOffset: 0 },
   pool: { recipes: [] },
   seed: 42
