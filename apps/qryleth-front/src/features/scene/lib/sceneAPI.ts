@@ -12,6 +12,14 @@ import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGe
 import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
   type PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
+import type {
+  GfxProceduralTerrainSpec,
+  GfxTerrainOpPool,
+  GfxTerrainConfig,
+  GfxTerrainOp,
+  GfxOpsGenerationOptions
+} from '@/entities/terrain'
+import { ProceduralTerrainGenerator } from '@/features/scene/lib/terrain/ProceduralTerrainGenerator'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import {
@@ -138,6 +146,103 @@ export interface AddInstancesResult {
  * Scene API class для предоставления методов агентам
  */
 export class SceneAPI {
+  /**
+   * Сгенерировать конфигурацию террейна по спецификации процедурной генерации.
+   *
+   * Метод является тонкой обёрткой над ProceduralTerrainGenerator и предназначен
+   * для использования агентами и сценариями. На вход принимает полную спецификацию
+   * мира и пула операций, возвращает готовый `GfxTerrainConfig`, который можно
+   * напрямую применять в слоях сцены и сэмплерах высоты.
+   *
+   * Гарантируется детерминированность результата при одинаковом `spec.seed`.
+   */
+  static async generateProceduralTerrain(
+    spec: GfxProceduralTerrainSpec
+  ): Promise<GfxTerrainConfig> {
+    const gen = new ProceduralTerrainGenerator()
+    return gen.generateTerrain(spec)
+  }
+
+  /**
+   * Сгенерировать массив операций рельефа (`GfxTerrainOp[]`) из пула рецептов.
+   *
+   * Требуются размеры мира для алгоритмов размещения. Если они не переданы в opts,
+   * метод попытается взять их из подходящего Landscape/Terrain слоя текущей сцены.
+   *
+   * Параметр `opts.sampler` (необязателен) позволяет учитывать bias-фильтры
+   * по высоте/уклону и избегание пересечений с существующим рельефом.
+   */
+  static async generateTerrainOpsFromPool(
+    pool: GfxTerrainOpPool,
+    seed: number,
+    opts?: GfxOpsGenerationOptions & { worldWidth?: number; worldHeight?: number }
+  ): Promise<GfxTerrainOp[]> {
+    const gen = new ProceduralTerrainGenerator()
+
+    // Определяем размеры мира: из opts или из первого подходящего слоя
+    let worldWidth = opts?.worldWidth
+    let worldHeight = opts?.worldHeight
+
+    if (!worldWidth || !worldHeight) {
+      const layer = this.pickLandscapeLayer()
+      if (layer?.terrain?.worldWidth && layer?.terrain?.worldHeight) {
+        worldWidth = layer.terrain.worldWidth
+        worldHeight = layer.terrain.worldHeight
+      }
+    }
+
+    if (!worldWidth || !worldHeight) {
+      throw new Error('generateTerrainOpsFromPool: не заданы worldWidth/worldHeight и не найден Terrain-слой')
+    }
+
+    return gen.generateOpsFromPool(pool, seed, {
+      worldWidth,
+      worldHeight,
+      area: opts?.area,
+      sampler: opts?.sampler
+    })
+  }
+
+  /**
+   * Создать слой сцены с процедурно сгенерированным террейном.
+   *
+   * Выполняет генерацию `GfxTerrainConfig` по переданной спецификации и создаёт
+   * слой типа `Landscape` с формой `Terrain`. После создания слоя запускается
+   * универсальное выравнивание существующих инстансов по рельефу через
+   * `createLayerWithAdjustment`.
+   *
+   * Параметр `layerData` позволяет переопределить имя/видимость/позицию и др.
+   */
+  static async createProceduralLayer(
+    spec: GfxProceduralTerrainSpec,
+    layerData?: Partial<SceneLayer>
+  ): Promise<{ success: boolean; layerId?: string; error?: string }> {
+    try {
+      const terrain = await this.generateProceduralTerrain(spec)
+
+      const base: Omit<SceneLayer, 'id'> = {
+        name: layerData?.name ?? 'Процедурный ландшафт',
+        type: GfxLayerType.Landscape,
+        shape: GfxLayerShape.Terrain,
+        width: spec.world.width,
+        height: spec.world.height,
+        terrain,
+        visible: layerData?.visible ?? true,
+        position: layerData?.position ?? useSceneStore.getState().layers.length
+      }
+
+      const merged: Omit<SceneLayer, 'id'> = { ...base, ...layerData, terrain }
+
+      // Создание слоя с автоматической корректировкой инстансов; уведомления отключаем для тестов/скриптов
+      const result = await this.createLayerWithAdjustment(merged, terrain, { showNotifications: false })
+      return { success: result.success, layerId: result.layerId, error: result.error }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
   /**
    * Выбрать подходящий landscape-слой для размещения объектов.
    * В приоритете слой с формой `Terrain`, иначе будет выбран любой слой типа `Landscape`.

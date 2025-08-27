@@ -308,7 +308,7 @@ const result = await sceneApi.createProceduralLayer(
   - Тест: `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.test.ts`
   - **Отчёт**: [phases/phase_4_2_summary.md](phases/phase_4_2_summary.md)
 
-### ⏳ Фаза 5: Интеграция с SceneAPI
+### ✅ Фаза 5: Интеграция с SceneAPI
 - Добавить новые методы в SceneAPI (`apps/qryleth-front/src/features/scene/lib/sceneAPI.ts`):
   - `generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
   - `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
@@ -319,6 +319,8 @@ const result = await sceneApi.createProceduralLayer(
 
 Примечание:
 - `createProceduralLayer(...)` должен использовать `generateProceduralTerrain(...)`, а затем вызывать существующий `createLayerWithAdjustment(...)` для корректной и унифицированной интеграции с текущей логикой выравнивания инстансов.
+
+**Отчёт**: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 ### ⏳ Фаза 6: Обновление ScriptingPanel и AI подсказок
 - Обновить подсказки для AI в ScriptingPanel:
