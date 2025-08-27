@@ -114,73 +114,72 @@ console.log('Тестовый террейн:', test)`
 
   // 🎯 ГОТОВЫЕ РЕШЕНИЯ
   const readySolutions = {
-    'Долина с горами': `// Долина, окруженная горными цепями (с долиной на всю ширину)
-const valleySpec = {
-  // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]
-  world: { width: 300, depth: 200, edgeFade: 0.15 },
-  base: { 
-    seed: 1001, 
-    octaveCount: 4, 
-    amplitude: 6, 
-    persistence: 0.5, 
-    width: 128, 
-    height: 128 
+    'Долина с горами': `// Долина, окруженная горными цепями (fit-подход: генерация только рецептов)
+// 1) Параметры мира и области
+const world = { width: 300, depth: 200 }
+const edgeFade = 0.15
+const centerRect = { x: -140, z: -10, width: 280, depth: 20 }
+const southRect = { x: -150, z: -80, width: 300, depth: 40 }
+const northRect = { x: -150, z: 60, width: 300, depth: 40 }
+
+// 2) Генерация рецептов через fit-хелперы
+const v = sceneApi.terrainHelpers.valleyFitToRecipes(
+  centerRect,
+  { thickness: 40, depth: 8, direction: 'auto', continuity: 'continuous' },
+  world,
+  edgeFade
+)
+const r = sceneApi.terrainHelpers.ridgeBandFitToRecipes(
+  northRect,
+  {
+    thickness: 30,
+    height: 10,
+    direction: 'auto',
+    continuity: 'segmented',
+    pattern: {
+      count: [10, 14],
+      radius: [18, 26],
+      aspect: [0.9, 1.3],
+      intensity: [8, 15],
+      step: 25,
+      falloff: 'smoothstep'
+    }
   },
-  pool: {
-    // Увеличиваем бюджет операций, чтобы все рецепты попали в результат
-    global: { intensityScale: 1.2, maxOps: 150 },
-    recipes: [
-      // Центральная долина на всю ширину — сначала, чтобы гарантировать попадание в бюджет
-      {
-        kind: 'valley',
-        count: 1,
-        // Центр в (0,0), один длинный штрих вдоль X (rotation по умолчанию = 0)
-        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
-        radius: 50,                 // больше радиус — лучше перекрытие штрихов
-        aspect: [0.7, 0.9],         // толщина долины по Z
-        intensity: 8,
-        step: 50,                   // 5 центров: [-100, -50, 0, 50, 100]
-        falloff: 'smoothstep'
-      },
-      // Горы по южному краю — чуть дальше от края, чтобы edgeFade не гасил высоту
-      {
-        kind: 'hill',
-        count: [8, 12],
-        placement: { 
-          type: 'uniform',
-          area: { kind: 'rect', x: -150, z: -80, width: 300, depth: 40 }
-        },
-        radius: [14, 22],
-        intensity: [7, 14],
-        falloff: 'gauss'
-      },
-      // Горная цепь по северному краю — гряды толще по Z и длиннее
-      {
-        kind: 'ridge',
-        count: [10, 14],
-        placement: { 
-          type: 'uniform',
-          area: { kind: 'rect', x: -150, z: 60, width: 300, depth: 40 }
-        },
-        radius: [18, 26],
-        aspect: [0.9, 1.3],
-        intensity: [8, 15],
-        step: 25,
-        falloff: 'smoothstep'
-        // rotation: [-0.05, 0.05],
-        // randomRotationEnabled: true
-      }
-    ]
-  },
+  world,
+  edgeFade
+)
+
+// Южные холмы оставим простыми hill-рецептами (для разнообразия)
+const southHills = {
+  kind: 'hill',
+  count: [8, 12],
+  placement: { type: 'uniform', area: southRect },
+  radius: [14, 22],
+  intensity: [7, 14],
+  falloff: 'gauss'
+}
+
+let recipes = [ ...v.recipes, southHills, ...r.recipes ]
+
+// 3) Бюджет: оценка, предложение и подрезка при необходимости
+let maxOps = sceneApi.terrainHelpers.suggestGlobalBudget(recipes, 0.2)
+const trimmed = sceneApi.terrainHelpers.autoBudget(recipes, maxOps)
+recipes = trimmed.trimmedRecipes
+
+// 4) Сборка spec и создание слоя
+const spec = {
+  world: { ...world, edgeFade },
+  base: { seed: 1001, octaveCount: 4, amplitude: 6, persistence: 0.5, width: 128, height: 128 },
+  pool: { global: { intensityScale: 1.2, maxOps }, recipes },
   seed: 1001
 }
 
-const valley = await sceneApi.createProceduralLayer(valleySpec, { 
-  name: 'Долина Драконов', 
+const layer = await sceneApi.createProceduralLayer(spec, { 
+  name: 'Долина Драконов (fit)', 
   visible: true 
 })
 
-console.log('Создана долина:', valley)`,
+console.log('Создана долина (fit):', layer)`,
 
     'Вулканический остров': `// Круглый остров с кратером в центре
 const islandSpec = {
@@ -347,6 +346,41 @@ const hills = await sceneApi.createProceduralLayer(hillsSpec, {
 })
 
 console.log('Созданы холмы:', hills)`
+  }
+
+  // 🧩 FIT-ХЕЛПЕРЫ
+  const fitHelpers = {
+    'Долина (fit)': `// Простая долина через весь мир (fit)
+const world = { width: 300, depth: 200 }
+const edgeFade = 0.15
+const centerRect = { x: -140, z: -10, width: 280, depth: 20 }
+
+const v = sceneApi.terrainHelpers.valleyFitToRecipes(centerRect, { thickness: 40, depth: 8, direction: 'auto', continuity: 'continuous' }, world, edgeFade)
+const maxOps = sceneApi.terrainHelpers.suggestGlobalBudget(v.recipes, 0.2)
+const spec = {
+  world: { ...world, edgeFade },
+  base: { seed: 42, octaveCount: 4, amplitude: 6, persistence: 0.5, width: 128, height: 128 },
+  pool: { global: { intensityScale: 1.0, maxOps }, recipes: v.recipes },
+  seed: 42
+}
+const res = await sceneApi.createProceduralLayer(spec, { name: 'ValleyFit', visible: true })
+console.log('ValleyFit:', res, v.warnings)`,
+
+    'Северная гряда (fit)': `// Гряда по северной кромке (fit)
+const world = { width: 300, depth: 200 }
+const edgeFade = 0.15
+const northRect = { x: -150, z: 60, width: 300, depth: 40 }
+
+const r = sceneApi.terrainHelpers.ridgeBandFitToRecipes(northRect, { thickness: 30, height: 10, direction: 'auto', continuity: 'continuous' }, world, edgeFade)
+const maxOps2 = sceneApi.terrainHelpers.suggestGlobalBudget(r.recipes, 0.2)
+const spec2 = {
+  world: { ...world, edgeFade },
+  base: { seed: 777, octaveCount: 4, amplitude: 6, persistence: 0.5, width: 128, height: 128 },
+  pool: { global: { intensityScale: 1.0, maxOps: maxOps2 }, recipes: r.recipes },
+  seed: 777
+}
+const res2 = await sceneApi.createProceduralLayer(spec2, { name: 'RidgeFit North', visible: true })
+console.log('RidgeFit:', res2, r.warnings)`
   }
 
   // 🏔️ СПЕЦИАЛЬНЫЕ ЛАНДШАФТЫ
@@ -832,6 +866,7 @@ console.log('\\nТест производительности завершен!'
   return {
     'Быстрый старт': quickStart,
     'Готовые решения': readySolutions,
+    'Fit‑хелперы': fitHelpers,
     'Специальные ландшафты': specialLandscapes,
     'Продвинутые примеры': advancedExamples,
     'Инструменты и утилиты': utilities

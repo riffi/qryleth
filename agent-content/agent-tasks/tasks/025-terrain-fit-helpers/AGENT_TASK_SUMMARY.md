@@ -9,7 +9,7 @@ owner: team-ui
 tags: [terrain, scripting-panel, usability, generator, docs]
 phases:
   total: 7
-  completed: 5
+  completed: 6
 ---
 
 # Fit‑хелперы террейна (ValleyFit/RidgeBandFit), авто‑параметры и бюджет

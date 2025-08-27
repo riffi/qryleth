@@ -71,6 +71,24 @@ export interface RidgeBandFitOptions {
   edgeMargin?: number
   budgetShare?: number
   randomRotationEnabled?: boolean
+  /**
+   * Расширенная ручная настройка параметров ridge‑рецепта.
+   * Если указана, имеет приоритет над авто‑подбором в соответствующих полях.
+   */
+  pattern?: {
+    /** Количество центров (для segmented) или диапазон */
+    count?: number | [number, number]
+    /** Радиус (или диапазон) вдоль главной оси штриха */
+    radius?: number | [number, number]
+    /** Диапазон отношения Rz/Rx для поперечной толщины */
+    aspect?: [number, number]
+    /** Интенсивность (или диапазон) */
+    intensity?: number | [number, number]
+    /** Шаг между эллипсами в штрихе (для ridge/valley со step>0) */
+    step?: number
+    /** Функция затухания краёв */
+    falloff?: 'smoothstep' | 'gauss' | 'linear'
+  }
 }
 
 /**
@@ -86,4 +104,3 @@ export interface FitResult {
   /** Предупреждения о возможных проблемах (узкая зона, край мира, edgeFade и т.п.) */
   warnings: string[]
 }
-

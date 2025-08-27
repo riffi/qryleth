@@ -174,29 +174,47 @@ export class TerrainHelpers {
         mode: 'auto',
         count: 1,
         placement: { type: 'ring', center: [centerX, centerZ], rMin: 0, rMax: 0 },
-        radius: Math.round(radius),
-        aspect: [aspect, aspect],
-        intensity: Math.abs(intensity),
+        radius: (options.pattern?.radius as number) ?? Math.round(radius),
+        aspect: options.pattern?.aspect ?? [aspect, aspect],
+        intensity: (options.pattern?.intensity as number) ?? Math.abs(intensity),
         rotation: [orientation, orientation],
-        step: Math.round(step),
-        falloff: 'smoothstep',
+        step: options.pattern?.step ?? Math.round(step),
+        falloff: options.pattern?.falloff ?? 'smoothstep',
         randomRotationEnabled: options.randomRotationEnabled
       }
       recipes.push(recipe)
     } else {
-      const segOverlap = 0.5
+      // «Полоса» из нескольких штрихов (каждый штрих — ridge со step>0),
+      // распределённых равномерно по прямоугольнику. Для разнообразия используем диапазоны
+      // радиуса/интенсивности/aspect, а step оставляем фиксированным.
+      const segOverlap = 0.35
       const per = Math.max(1, Math.round((2 * radius) * (1 - segOverlap)))
-      const count = Math.max(3, Math.round(L / Math.max(1, per)))
+      const autoCount = Math.max(4, Math.round(L / Math.max(1, per)))
+      const rMinAuto = Math.max(2, Math.floor(radius * 0.85))
+      const rMaxAuto = Math.max(rMinAuto + 1, Math.ceil(radius * 1.15))
+      const iMinAuto = Math.max(1, Math.floor(Math.abs(intensity) * 0.8))
+      const iMaxAuto = Math.max(iMinAuto + 1, Math.ceil(Math.abs(intensity) * 1.2))
+      const aMinAuto = Math.max(0.3, +(aspect * 0.8).toFixed(2))
+      const aMaxAuto = Math.min(2.0, +(aspect * 1.2).toFixed(2))
+
+      const count = options.pattern?.count ?? autoCount
+      const radiusField: number | [number, number] = options.pattern?.radius ?? [rMinAuto, rMaxAuto]
+      const aspectField: [number, number] = options.pattern?.aspect ?? [aMinAuto, aMaxAuto]
+      const intensityField: number | [number, number] = options.pattern?.intensity ?? [iMinAuto, iMaxAuto]
+      const stepField = options.pattern?.step ?? Math.round(step)
+      const falloffField = options.pattern?.falloff ?? 'smoothstep'
+
       const recipe: GfxTerrainOpRecipe = {
         kind: 'ridge',
         mode: 'auto',
         count,
         placement: { type: 'uniform', area: { kind: 'rect', x: rect.x, z: rect.z, width: rect.width, depth: rect.depth } },
-        radius: Math.round(radius * 0.9),
-        aspect: [aspect, aspect],
-        intensity: Math.abs(intensity),
+        radius: radiusField as any,
+        aspect: aspectField,
+        intensity: intensityField as any,
         rotation: [orientation, orientation],
-        falloff: 'smoothstep',
+        step: stepField,
+        falloff: falloffField,
         randomRotationEnabled: options.randomRotationEnabled
       }
       recipes.push(recipe)

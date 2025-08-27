@@ -149,7 +149,8 @@ rect: { x, z, width, depth }\noptions: { thickness, depth?, prominencePct?, dire
     type: 'function',
     info: createStyledTooltip(`terrainHelpers.ridgeBandFitToRecipes(rect, options, world, edgeFade?): FitResult\n
 Вписывает гряду/хребет (ridge) в прямоугольник XZ. При direction='auto' ориентирует вдоль ДЛИННОЙ стороны rect.\nВозвращает FitResult (recipes, estimateOps, orientation, warnings).\n
-options: { thickness, height?, prominencePct?, direction?, continuity?, variation?, edgeMargin?, budgetShare?, randomRotationEnabled? }`)
+options: { thickness, height?, prominencePct?, direction?, continuity?, variation?, edgeMargin?, budgetShare?, randomRotationEnabled?,\n  pattern?: { count?, radius?, aspect?, intensity?, step?, falloff? } }\n
+Пример (ручной шаблон, как в доке):\nconst r = sceneApi.terrainHelpers.ridgeBandFitToRecipes(rect, {\n  continuity: 'segmented', direction: 'auto', thickness: 30, height: 10,\n  pattern: {\n    count: [10, 14],\n    radius: [18, 26],\n    aspect: [0.9, 1.3],\n    intensity: [8, 15],\n    step: 25,\n    falloff: 'smoothstep'\n  }\n}, world, 0.15)`)
   },
   {
     label: 'terrainHelpers.estimateOpsForRecipes',
