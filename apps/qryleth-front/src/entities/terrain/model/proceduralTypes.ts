@@ -107,7 +107,7 @@ export interface GfxTerrainOpRecipe {
   /** Случайный сдвиг центров (дрожание) */
   jitter?: { center?: number }
 
-  /** Шаг вдоль линии (для stroke/вдоль сплайна), в метрах */
+  /** Шаг вдоль линии (для "stroke"‑размещения), в метрах */
   step?: number
 }
 
@@ -119,7 +119,6 @@ export type GfxPlacementSpec =
   | { type: 'uniform' }
   | { type: 'poisson', minDistance: number }
   | { type: 'gridJitter', cell: number, jitter?: number }
-  | { type: 'alongSpline', splineId: string, span?: [number, number] }
   | { type: 'ring', center: [number, number], rMin: number, rMax: number }
 
 /**
@@ -155,4 +154,3 @@ export interface GfxOpsGenerationOptions {
 
 // Пустые экспорты, чтобы облегчить импорт потребителям API и подсветку IDE
 export type { GfxTerrainOp, GfxTerrainConfig }
-

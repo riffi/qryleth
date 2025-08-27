@@ -33,7 +33,7 @@ phases:
 ### Потребность
 Существующие методы создают базовый террейн без сложных операций. Нужна система процедурной генерации для создания разнообразных ландшафтов с:
 - Различными типами рельефа (холмы, котловины, хребты, долины, кратеры, плато)
-- Алгоритмами размещения (uniform, poisson, grid, spline, ring)
+– Алгоритмами размещения (uniform, poisson, grid, ring)
 - Bias-фильтрацией по высоте и уклону
 - Детерминированной генерацией через PRNG
 
@@ -47,7 +47,6 @@ phases:
 
 **Новые типы данных:**
 - `apps/qryleth-front/src/entities/terrain/model/proceduralTypes.ts` - все типы процедурной генерации
-- `apps/qryleth-front/src/entities/spline/model/types.ts` - типы системы сплайнов (заглушки)
 
 **Основной движок и алгоритмы:**
 - `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts` - главный класс генератора
@@ -58,7 +57,6 @@ phases:
 **Интеграция и фабрики:**
 - `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts` - готовые конфигурации ландшафтов
 - `apps/qryleth-front/src/features/scene/lib/sceneAPI.ts` - новые методы в SceneAPI
-- `apps/qryleth-front/src/entities/spline/lib/SplineManager.ts` - менеджер сплайнов (заглушка)
 
 **Вспомогательные модули:**
 - `apps/qryleth-front/src/shared/lib/utils/prng.ts` - перенесенный mulberry32
@@ -123,7 +121,6 @@ type GfxPlacementSpec =
   | { type: 'uniform' }                    // равномерный случайный
   | { type: 'poisson', minDistance: number }  // разреженное размещение
   | { type: 'gridJitter', cell: number, jitter?: number }  // сетка с дрожью
-  | { type: 'alongSpline', splineId: string, span?: [number,number] }  // вдоль кривой
   | { type: 'ring', center: [number,number], rMin: number, rMax: number }  // по кольцу
 
 interface GfxBiasSpec {
@@ -184,7 +181,7 @@ const mountainTerrain: GfxProceduralTerrainSpec = {
       },
       {
         kind: 'ridge', count: 3,
-        placement: { type: 'alongSpline', splineId: 'mainRidge' },
+        placement: { type: 'gridJitter', cell: 120, jitter: 0.35 },
         radius: [8, 12], aspect: [0.2, 0.4], step: 10,
         intensity: [6, 10], falloff: 'smoothstep'
       }
@@ -263,13 +260,9 @@ const result = await sceneApi.createProceduralLayer(
 
 **Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Система сплайнов (заглушки) и алгоритмы размещения
-- Создать базовую систему сплайнов в `apps/qryleth-front/src/entities/spline/`:
-  - `model/types.ts` - типы `SplinePoint`, `Spline`, `SplineConfig` 
-  - `lib/SplineManager.ts` - заглушка с методами `getSpline()`, `createSpline()`, `deleteSpline()` (памятка: in-memory реестр; интеграция с Zustand — отдельно)
-  - `index.ts` - экспорт интерфейсов (пока без UI)
+### ⏳ Фаза 2: Алгоритмы размещения
 - Создать алгоритмы размещения в `apps/qryleth-front/src/features/scene/lib/terrain/placement/`:
-  - `PlacementAlgorithms.ts` - реализация uniform, poisson, gridJitter, ring, alongSpline
+  - `PlacementAlgorithms.ts` - реализация uniform, poisson, gridJitter, ring
   - `PlacementUtils.ts` - вспомогательные функции для работы с координатами
   - `index.ts` - экспорт функций размещения
 - Unit-тесты для алгоритмов размещения в `PlacementAlgorithms.test.ts`
