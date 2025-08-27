@@ -9,7 +9,7 @@ owner: agent
 tags: [terrain, procedural-generation, scene-api, landscaping]
 phases:
   total: 7
-  completed: 3
+  completed: 4
 ---
 
 # Система процедурной генерации ландшафта с операциями TerrainOps
@@ -282,13 +282,20 @@ const result = await sceneApi.createProceduralLayer(
 - Явно документировать: «один рецепт может порождать несколько GfxTerrainOp» (crater/terrace/ridge).
 - Зафиксировать дефолты `mode: 'auto'` для каждого `kind` (см. раздел выше).
 
-### ⏳ Фаза 4.1: Движок ProceduralTerrainGenerator (основа)
+### ✅ Фаза 4.1: Движок ProceduralTerrainGenerator (основа)
 - Создать основной движок в `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts`:
   - Класс `ProceduralTerrainGenerator` с методами:
     - `generateTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
     - `generateOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
   - Интеграция всех алгоритмов размещения, рецептов и bias-фильтров
   - Поддержка ограничений по области размещения и максимальному количеству операций
+  
+  Статус: реализовано в рамках фазы 4.1
+  - Файл: `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.ts`
+  - Тест: `apps/qryleth-front/src/features/scene/lib/terrain/ProceduralTerrainGenerator.test.ts`
+  - Примечание: `opts` у `generateOpsFromPool` расширен параметрами `worldWidth/worldHeight` для коррекции алгоритмов размещения. Bias-фильтрация учитывает `avoidOverlap` и работает с опциональным внешним `sampler`.
+  
+  **Отчёт**: [phases/phase_4_1_summary.md](phases/phase_4_1_summary.md)
 
 ### ⏳ Фаза 4.2: Фабрики и интеграционные тесты
 - Создать фабричные методы в `apps/qryleth-front/src/features/scene/lib/terrain/TerrainFactory.ts`:
