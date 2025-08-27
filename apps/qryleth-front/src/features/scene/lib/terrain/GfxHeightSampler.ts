@@ -82,7 +82,18 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   }
 
   /**
-   * Получить высоту в указанной точке мировых координат
+   * Получить высоту в указанной точке мировых координат.
+   *
+   * Алгоритм:
+   * 1) Семплируем базовую высоту из источника (Perlin/Heightmap).
+   * 2) Применяем модификации рельефа (ops), если они заданы.
+   * 3) Применяем edge fade: интерполируем высоту к «базовому уровню источника»,
+   *    а не к жёсткому нулю. Для Perlin это `heightOffset` (или 0), для heightmap — `min`.
+   * 4) Кэшируем результат.
+   *
+   * Важно: метод НЕ клампит высоты к 0 — отрицательные высоты поддерживаются
+   * для сценариев с подводным рельефом (архипелаги и т.п.).
+   *
    * @param x - координата X в мировой системе координат
    * @param z - координата Z в мировой системе координат
    * @returns высота Y в мировых единицах
@@ -105,7 +116,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       height = this.applyTerrainOpsOptimized(height, x, z);
     }
 
-    // 3. Применяем edgeFade для плавного спада к краям
+    // 3. Применяем edgeFade: ведём к базовому уровню источника, а не к нулю
     if (this.config.edgeFade && this.config.edgeFade > 0) {
       const fadeMultiplier = calculateEdgeFade(
         x,
@@ -114,7 +125,8 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         this.config.worldHeight,
         this.config.edgeFade
       )
-      height *= fadeMultiplier
+      const baseLevel = this.getSourceBaseLevel()
+      height = baseLevel + (height - baseLevel) * fadeMultiplier
     }
 
     // Сохраняем в кэш
@@ -157,6 +169,29 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     const length = Math.hypot(normal[0], normal[1], normal[2])
     if (length <= 1e-8) return [0, 1, 0]
     return [normal[0] / length, normal[1] / length, normal[2] / length]
+  }
+
+  /**
+   * Возвращает «базовый уровень» текущего источника высот.
+   *
+   * Логика:
+   * - Perlin: используется `params.heightOffset` (если не задан — 0).
+   * - Heightmap: используется `params.min` (нижняя граница нормализации).
+   * - Иные источники: 0.
+   *
+   * Это значение применяется как цель для edge fade (затухание к краям мира),
+   * чтобы при наличии смещения базы (например, ниже уровня моря) затухание
+   * происходило корректно, без «подтягивания» к жёсткому нулю.
+   */
+  private getSourceBaseLevel(): number {
+    const { source } = this.config
+    if (source.kind === 'perlin') {
+      return source.params.heightOffset ?? 0
+    }
+    if (source.kind === 'heightmap') {
+      return source.params.min
+    }
+    return 0
   }
 
   /**

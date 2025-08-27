@@ -186,7 +186,9 @@ export class ProceduralTerrainGenerator {
         amplitude: spec.base.amplitude,
         persistence: spec.base.persistence,
         width: spec.base.width,
-        height: spec.base.height
+        height: spec.base.height,
+        // DC-смещение базового уровня (если указано в спецификации)
+        heightOffset: spec.base.heightOffset
       }
     }
 

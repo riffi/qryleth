@@ -14,6 +14,19 @@ import type { GfxPerlinParams } from '@/entities/terrain'
  * @param world — размеры мира { worldWidth, worldHeight }
  * @returns функция (x,z)=>y, выдающая высоту по мировым координатам
  */
+/**
+ * Создаёт функцию-источник высот на базе Перлин-шума.
+ *
+ * Особенности реализации:
+ * - Значения шума, сгенерированные `generatePerlinNoise`, находятся примерно в диапазоне [0..1].
+ * - Для совместимости с прежними настройками высота масштабируется на коэффициент 4.
+ * - Поддерживается «DC-смещение» базового уровня через `params.heightOffset` —
+ *   это позволяет опускать/поднимать базу рельефа относительно Y=0.
+ *
+ * @param params — параметры генерации Перлин-шума (seed, octaveCount, amplitude, persistence, width, height, heightOffset?)
+ * @param world — размеры мира { worldWidth, worldHeight }
+ * @returns функция (x,z)=>y, выдающая высоту по мировым координатам
+ */
 export function createPerlinSource(
   params: GfxPerlinParams,
   world: { worldWidth: number; worldHeight: number }
@@ -34,7 +47,8 @@ export function createPerlinSource(
     const iz = Math.max(0, Math.min(params.height, Math.floor(v * params.height)))
     const idx = iz * (params.width + 1) + ix
     const value = noise[idx] || 0
-    return value * 4 // масштаб совместимости
+    const base = (params.heightOffset ?? 0)
+    // Масштабируем шум и применяем базовое смещение (DC-смещение)
+    return value * 4 + base
   }
 }
-

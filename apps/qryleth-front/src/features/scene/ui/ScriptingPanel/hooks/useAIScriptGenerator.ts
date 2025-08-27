@@ -120,7 +120,7 @@ export function useAIScriptGenerator() {
       '    - Назначение: собрать конфигурацию террейна по спецификации процедурной генерации.',
       '    - spec = {',
       '        world: { width: number, height: number, edgeFade?: number },',
-      '        base: { seed: number, octaveCount: number, amplitude: number, persistence: number, width: number, height: number },',
+      '        base: { seed: number, octaveCount: number, amplitude: number, persistence: number, width: number, height: number, heightOffset?: number },',
       '        pool: { global?: { intensityScale?: number, maxOps?: number }, recipes: GfxTerrainOpRecipe[] },',
       '        seed: number',
       '      }',

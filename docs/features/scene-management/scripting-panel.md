@@ -57,7 +57,8 @@ const result = await sceneApi.createProceduralLayer({
     octaveCount: 3, 
     persistence: 0.4, 
     width: 64, 
-    height: 64 
+    height: 64,
+    heightOffset: 0 // смещение базы; для подводной базы укажите отрицательное значение
   },
   pool: { recipes: [] }, // пока без дополнительных деталей
   seed: 42

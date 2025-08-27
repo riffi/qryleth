@@ -240,7 +240,9 @@ const archipelagoSpec = {
     amplitude: 2, 
     persistence: 0.3, 
     width: 32, 
-    height: 32 
+    height: 32,
+    // КЛЮЧЕВОЕ: опускаем базовый уровень рельефа ниже 0, чтобы вода перекрывала «низину»
+    heightOffset: -1.5
   },
   pool: {
     global: { intensityScale: 1.5, maxOps: 60 },

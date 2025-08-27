@@ -18,6 +18,11 @@ import type { GfxPerlinParams, GfxHeightSampler, GfxTerrainOp, GfxTerrainConfig 
 export interface GfxProceduralPerlinParams extends GfxPerlinParams {
   /** Сдвиг шума по XZ для вариаций без смены seed: [dx, dz] */
   offset?: [number, number]
+  /**
+   * Базовое смещение высоты (DC-смещение) в метрах для всей перлин-базы.
+   * Позволяет опускать/поднимать рельеф относительно Y=0. По умолчанию 0.
+   */
+  heightOffset?: number
 }
 
 /**

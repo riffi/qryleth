@@ -98,7 +98,7 @@ export const getSceneApiCompletions = () => [
     info: createStyledTooltip(`generateProceduralTerrain(spec): Promise<GfxTerrainConfig>
 Пример: await sceneApi.generateProceduralTerrain({
   world: { width: 200, height: 200, edgeFade: 0.1 },
-  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64 },
+  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
   pool: { recipes: [] },
   seed: 42
 })
@@ -120,7 +120,7 @@ export const getSceneApiCompletions = () => [
 🌟 ГЛАВНЫЙ МЕТОД для создания террейнов!
 Пример: await sceneApi.createProceduralLayer({
   world: { width: 200, height: 200 },
-  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64 },
+  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
   pool: { recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }] },
   seed: 42
 }, { name: 'Мой террейн', visible: true })
@@ -243,7 +243,7 @@ export const getBaseCompletions = () => [
   
   // Параметры террейнов
   { label: 'world', type: 'property', info: 'Размеры и настройки мира: { width, height, edgeFade? }' },
-  { label: 'base', type: 'property', info: 'Базовый шум Perlin: { seed, octaveCount, amplitude, persistence, width, height }' },
+  { label: 'base', type: 'property', info: 'Базовый шум Perlin: { seed, octaveCount, amplitude, persistence, width, height, heightOffset? }' },
   { label: 'pool', type: 'property', info: 'Пул операций рельефа: { global?: {intensityScale?, maxOps?}, recipes: [] }' },
   { label: 'recipes', type: 'property', info: 'Массив рецептов рельефа (hill, valley, crater, plateau, ridge, basin, dune, terrace)' },
   { label: 'kind', type: 'property', info: 'Тип рельефа: hill | valley | crater | plateau | ridge | basin | dune | terrace' },
@@ -260,6 +260,7 @@ export const getBaseCompletions = () => [
   { label: 'octaveCount', type: 'property', info: 'Количество слоев шума (1-8, рекомендуется 3-5)' },
   { label: 'amplitude', type: 'property', info: 'Максимальная высота базового рельефа' },
   { label: 'persistence', type: 'property', info: 'Затухание между слоями шума (0.1-0.8)' },
+  { label: 'heightOffset', type: 'property', info: 'Смещение базового уровня (может быть отрицательным)' },
   { label: 'edgeFade', type: 'property', info: 'Затухание к краям мира (0.0-0.3)' },
   { label: 'intensityScale', type: 'property', info: 'Глобальный множитель интенсивности операций' },
   { label: 'maxOps', type: 'property', info: 'Максимальное количество операций' },
