@@ -24,3 +24,12 @@ export type {
   GfxPlacementArea,
   GfxOpsGenerationOptions
 } from './model/proceduralTypes'
+
+// Экспорт типов Fit-хелперов
+export type {
+  FitRect,
+  WorldSize,
+  ValleyFitOptions,
+  RidgeBandFitOptions,
+  FitResult
+} from './model/fitTypes'

@@ -9,7 +9,7 @@ owner: team-ui
 tags: [terrain, scripting-panel, usability, generator, docs]
 phases:
   total: 7
-  completed: 0
+  completed: 1
 ---
 
 # Fit‑хелперы террейна (ValleyFit/RidgeBandFit), авто‑параметры и бюджет
@@ -119,7 +119,7 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 
 ## Список фаз
 
-### ⏳ Фаза 1: Спецификация типов и каркас хелперов
+### ✅ Фаза 1: Спецификация типов и каркас хелперов
 - Добавить типы Fit‑опций: `ValleyFitOptions`, `RidgeBandFitOptions`, `FitRect` (XZ‑прямоугольник).
 - Определить контракты: вход (rect+options) → выход (набор `GfxTerrainOpRecipe` или готовый `GfxTerrainConfig`‑фрагмент).
 - Сохранить полную обратную совместимость текущего API.
@@ -128,6 +128,8 @@ const maxOps = Math.ceil((v.estimateOps + r.estimateOps) * 1.2)
 Критерии приёмки:
 - Типы экспортируются из `@/entities/terrain`.
 - Сборка зелёная, линт/тесты без регрессий.
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Ядро вычислений (эвристики step/radius/aspect/intensity)
 - Реализовать расчёт направления (auto|x|z|angle) и безопасную рабочую зону (edgeMargin).
