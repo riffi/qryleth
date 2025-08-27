@@ -23,7 +23,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 ## Основные компоненты
 
 ### 🎬 SceneEditorR3F
-**Location**: `src/pages/SceneEditor/SceneEditorR3F.tsx`
+**Location**: `src/features/scene/ui/SceneEditorR3F.tsx`
 
 Основной компонент редактора сцен, который координирует всю функциональность редактирования сцен.
 
@@ -35,7 +35,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Предоставляет функциональность отмены/повтора
 
 ### 🎨 Scene3D
-**Location**: `src/features/scene/ui/Scene3D.tsx`
+**Location**: `src/features/scene/ui/renderer/Scene3D.tsx`
 
 Компонент канваса Three.js, ответственный за 3D рендеринг и визуализацию.
 
