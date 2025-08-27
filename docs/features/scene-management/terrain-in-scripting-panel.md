@@ -342,7 +342,7 @@ const config = await sceneApi.generateProceduralTerrain(spec)
 console.log('Конфигурация террейна:', config)
 ```
 
-#### `sceneApi.generateTerrainOpsFromPool(pool, seed, options?)`
+#### `sceneApi.generateTerrainOpsFromPool(pool, seed?, options?)`
 Генерирует только операции модификации рельефа.
 
 ```javascript
@@ -356,6 +356,15 @@ const ops = await sceneApi.generateTerrainOpsFromPool({
 })
 
 console.log(`Создано ${ops.length} операций:`, ops)
+
+// Можно не указывать seed — он будет сгенерирован автоматически:
+const opsAuto = await sceneApi.generateTerrainOpsFromPool({
+  global: { maxOps: 30 },
+  recipes: [/* рецепты */]
+}, undefined, {
+  worldWidth: 200,
+  worldHeight: 200
+})
 ```
 
 ### Структура спецификации террейна
@@ -389,7 +398,7 @@ const spec = {
     recipes: [/* массив рецептов ниже */]
   },
   
-  seed: 42  // общий seed для воспроизводимости
+  seed: 42  // общий seed для воспроизводимости (опционально)
 }
 ```
 

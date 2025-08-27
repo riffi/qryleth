@@ -125,7 +125,7 @@ export function useAIScriptGenerator() {
       '        seed: number',
       '      }',
       '',
-      '13) generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>',
+      '13) generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed?: number, opts?): Promise<GfxTerrainOp[]>',
       '    - Назначение: сгенерировать массив операций рельефа по пулу рецептов.',
       '    - opts: { worldWidth: number, worldHeight: number, area?: {kind: "rect"|"circle", ...}, sampler?: GfxHeightSampler }',
       '',

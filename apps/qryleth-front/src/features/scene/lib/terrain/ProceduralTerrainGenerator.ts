@@ -9,7 +9,7 @@ import type {
   GfxTerrainOpRecipe
 } from '@/entities/terrain'
 import { placePoints } from './placement'
-import { deriveRng, randAngle, randIntRange } from './utils/PRNGUtils'
+import { deriveRng, randAngle, randIntRange, generateRandomSeed, splitSeed } from './utils/PRNGUtils'
 import { generateOpsForRecipeAtPoints } from './recipes/RecipeProcessor'
 import { processBias } from './recipes/BiasProcessor'
 
@@ -177,11 +177,18 @@ export class ProceduralTerrainGenerator {
     const worldWidth = spec.world.width
     const worldHeight = spec.world.height
 
-    // Базовый источник — Perlin, переносим параметры 1:1 (offset игнорируется на этом уровне)
+    // Автогенерация сидов: если общий seed или base.seed не заданы, генерируем их.
+    // Логика:
+    // - overallSeed: spec.seed или случайный, если не указан
+    // - baseSeed: spec.base.seed или детерминированное разветвление от overallSeed
+    const overallSeed = (spec as any).seed ?? generateRandomSeed()
+    const baseSeed = (spec.base as any).seed ?? splitSeed(overallSeed, 'perlin_base')
+
+    // Базовый источник — Perlin, переносим параметры; сид берём из baseSeed
     const source: GfxTerrainConfig['source'] = {
       kind: 'perlin',
       params: {
-        seed: spec.base.seed,
+        seed: baseSeed,
         octaveCount: spec.base.octaveCount,
         amplitude: spec.base.amplitude,
         persistence: spec.base.persistence,
@@ -192,7 +199,7 @@ export class ProceduralTerrainGenerator {
       }
     }
 
-    const ops = await this.generateOpsFromPool(spec.pool, spec.seed, {
+    const ops = await this.generateOpsFromPool(spec.pool, overallSeed, {
       worldWidth,
       worldHeight,
     })

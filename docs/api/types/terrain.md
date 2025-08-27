@@ -381,7 +381,11 @@ export interface GfxProceduralTerrainSpec {
   world: { width: number; height: number; edgeFade?: number }
   base: GfxProceduralPerlinParams
   pool: GfxTerrainOpPool
-  seed: number
+  /**
+   * Глобальный seed (опционально). Если не указан, генерируется автоматически.
+   * При отсутствии base.seed он будет разветвлён и использован как сид перлин-базы.
+   */
+  seed?: number
 }
 
 export interface GfxTerrainOpPool {
@@ -429,6 +433,7 @@ export interface GfxBiasSpec {
 ```ts
 const spec: GfxProceduralTerrainSpec = {
   world: { width: 240, height: 240, edgeFade: 0.1 },
+  // base.seed опционален: если не указан, он вычислится от общего seed
   base: { seed: 3795, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 128, height: 128 },
   pool: {
     global: { intensityScale: 1.0, maxOps: 80 },
@@ -437,6 +442,7 @@ const spec: GfxProceduralTerrainSpec = {
       { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
     ]
   },
+  // Глобальный seed опционален: если не указан, будет сгенерирован автоматически
   seed: 3795
 }
 ```

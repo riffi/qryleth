@@ -143,7 +143,7 @@ interface CreatedInstanceInfo {
 ### `generateProceduralTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig>`
 Собирает полный `GfxTerrainConfig` по спецификации процедурной генерации. Использует детерминированный PRNG и набор рецептов (`recipes`) для формирования массива локальных операций рельефа (`ops`).
 
-- Вход: `spec: GfxProceduralTerrainSpec` — размеры мира, параметры базового Perlin, пул рецептов и глобальный `seed`.
+- Вход: `spec: GfxProceduralTerrainSpec` — размеры мира, параметры базового Perlin, пул рецептов и опциональный глобальный `seed`.
 - Выход: `Promise<GfxTerrainConfig>` — конфигурация террейна, готовая к использованию в слое.
 
 Пример (JavaScript):
@@ -163,7 +163,7 @@ const spec = {
 const cfg = await SceneAPI.generateProceduralTerrain(spec)
 ```
 
-### `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed: number, opts?): Promise<GfxTerrainOp[]>`
+### `generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed?: number, opts?): Promise<GfxTerrainOp[]>`
 Генерирует массив операций рельефа (`GfxTerrainOp[]`) из пула рецептов без сборки полного `GfxTerrainConfig`.
 
 - Вход: `pool`, `seed`, опции окружения (обязательны `worldWidth/worldHeight`, можно передать `area` и `sampler`).
@@ -171,7 +171,14 @@ const cfg = await SceneAPI.generateProceduralTerrain(spec)
 
 Пример (JavaScript):
 ```javascript
+// С фиксированным сидом (детерминированно)
 const ops = await SceneAPI.generateTerrainOpsFromPool(spec.pool, spec.seed, {
+  worldWidth: spec.world.width,
+  worldHeight: spec.world.height
+})
+
+// Без передачи seed (будет сгенерирован автоматически)
+const opsAuto = await SceneAPI.generateTerrainOpsFromPool(spec.pool, undefined, {
   worldWidth: spec.world.width,
   worldHeight: spec.world.height
 })

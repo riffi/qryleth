@@ -107,11 +107,14 @@ export const getSceneApiCompletions = () => [
   {
     label: 'generateTerrainOpsFromPool',
     type: 'function',
-    info: createStyledTooltip(`generateTerrainOpsFromPool(pool, seed, options?): Promise<GfxTerrainOp[]>
-Пример: await sceneApi.generateTerrainOpsFromPool({
+    info: createStyledTooltip(`generateTerrainOpsFromPool(pool, seed?, options?): Promise<GfxTerrainOp[]>
+Пример (c сидом): await sceneApi.generateTerrainOpsFromPool({
   recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }]
 }, 123, { worldWidth: 200, worldHeight: 200 })
-Описание: Генерирует только операции модификации рельефа`)
+Пример (без сида): await sceneApi.generateTerrainOpsFromPool({
+  recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }]
+}, undefined, { worldWidth: 200, worldHeight: 200 }) // сид сгенерируется автоматически
+Описание: Генерирует только операции модификации рельефа; если seed не указан — создаётся автоматически`)
   },
   {
     label: 'createProceduralLayer',

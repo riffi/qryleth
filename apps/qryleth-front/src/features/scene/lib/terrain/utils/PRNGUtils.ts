@@ -84,3 +84,15 @@ export function randAngle(rng: () => number, range?: [number, number]): number {
   return randRange(rng, range[0], range[1])
 }
 
+/**
+ * Сгенерировать случайный 32-битный seed.
+ * Возвращает беззнаковое целое в диапазоне [0..2^32-1].
+ * Используется как автоматический сид, если он не указан в спецификации.
+ */
+export function generateRandomSeed(): number {
+  // Используем два вызова Math.random для лучшего распределения и Date.now как соль
+  const a = (Math.random() * 0xffffffff) >>> 0
+  const b = (Math.random() * 0xffffffff) >>> 0
+  const mix = ((a ^ (b << 1)) + (Date.now() & 0xffffffff)) >>> 0
+  return mix >>> 0
+}

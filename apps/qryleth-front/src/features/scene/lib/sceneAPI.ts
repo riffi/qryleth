@@ -20,6 +20,7 @@ import type {
   GfxOpsGenerationOptions
 } from '@/entities/terrain'
 import { ProceduralTerrainGenerator } from '@/features/scene/lib/terrain/ProceduralTerrainGenerator'
+import { generateRandomSeed } from '@/features/scene/lib/terrain/utils/PRNGUtils'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import {
@@ -174,7 +175,7 @@ export class SceneAPI {
    */
   static async generateTerrainOpsFromPool(
     pool: GfxTerrainOpPool,
-    seed: number,
+    seed?: number,
     opts?: GfxOpsGenerationOptions & { worldWidth?: number; worldHeight?: number }
   ): Promise<GfxTerrainOp[]> {
     const gen = new ProceduralTerrainGenerator()
@@ -195,7 +196,9 @@ export class SceneAPI {
       throw new Error('generateTerrainOpsFromPool: не заданы worldWidth/worldHeight и не найден Terrain-слой')
     }
 
-    return gen.generateOpsFromPool(pool, seed, {
+    // Если seed не передан — генерируем автоматически для недетерминированного сценария
+    const actualSeed = seed ?? generateRandomSeed()
+    return gen.generateOpsFromPool(pool, actualSeed, {
       worldWidth,
       worldHeight,
       area: opts?.area,
