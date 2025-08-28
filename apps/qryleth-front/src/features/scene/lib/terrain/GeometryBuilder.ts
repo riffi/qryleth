@@ -20,12 +20,12 @@ import { TERRAIN_MAX_SEGMENTS } from '../../config/terrain'
  * @param sampler — сэмплер высот, предоставляющий доступ к высоте в любой точке
  * @returns THREE.BufferGeometry, готовая для использования в Mesh
  */
-export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeightSampler): THREE.BufferGeometry {
+export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeightSampler, sampleStep: number): THREE.BufferGeometry {
   // Подбираем число сегментов с учётом реального разрешения источника
   const segments = decideSegments(cfg)
 
   // Создаём плоскость с одинаковым числом сегментов по X/Z
-  const geom = new THREE.PlaneGeometry(cfg.worldWidth, cfg.worldHeight, segments, segments)
+  const geom = new THREE.PlaneGeometry(cfg.worldWidth, cfg.worldHeight, segments / sampleStep,  segments/ sampleStep)
   geom.rotateX(-Math.PI / 2) // горизонтальная ориентация (XZ-плоскость)
 
   const positionArray = geom.attributes.position.array as Float32Array
