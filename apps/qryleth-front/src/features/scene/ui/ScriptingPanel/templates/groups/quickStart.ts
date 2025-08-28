@@ -8,6 +8,7 @@ import { testTerrainTemplate } from '../items/quickStart/test-terrain'
  */
 export const quickStartGroup: TemplateGroup = {
   id: 'quick-start',
+  emoji: '⚡️',
   title: 'Быстрый старт',
   templates: [simpleHillsTemplate, testTerrainTemplate]
 }

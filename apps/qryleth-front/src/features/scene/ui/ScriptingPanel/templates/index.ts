@@ -1,7 +1,6 @@
 import type { TemplateGroup, TemplateData } from './types'
 import { quickStartGroup } from './groups/quickStart'
-import { readySolutionsGroup } from './groups/readySolutions'
-import { specialLandscapesGroup } from './groups/specialLandscapes'
+import { landscapesGroup } from './groups/landscapes'
 import { advancedExamplesGroup } from './groups/advancedExamples'
 import { utilitiesGroup } from './groups/utilities'
 export { getDefaultScript } from './defaultScript'
@@ -10,10 +9,15 @@ export { getDefaultScript } from './defaultScript'
  * Вернуть набор групп шаблонов для панели скриптинга.
  * Слева в навигации отображаются группы, справа — их содержимое.
  */
+/**
+ * Возвращает перечень групп для навигации в панели шаблонов.
+ * Обновлено: введена единая группа «Ландшафты», в которую перенесены
+ * все шаблоны из «Готовые решения» и «Специальные ландшафты», а также
+ * «Горный массив» и «Прибрежная зона» из продвинутых примеров.
+ */
 export const getTemplateGroups = (): TemplateGroup[] => [
   quickStartGroup,
-  readySolutionsGroup,
-  specialLandscapesGroup,
+  landscapesGroup,
   advancedExamplesGroup,
   utilitiesGroup
 ]

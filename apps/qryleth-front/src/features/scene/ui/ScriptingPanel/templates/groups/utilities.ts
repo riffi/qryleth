@@ -9,7 +9,7 @@ import { perfTestTemplate } from '../items/utilities/perf-test'
  */
 export const utilitiesGroup: TemplateGroup = {
   id: 'utilities',
+  emoji: '🛠️',
   title: 'Инструменты и утилиты',
   templates: [sceneAnalyzerTemplate, instancesAdjustTemplate, perfTestTemplate]
 }
-

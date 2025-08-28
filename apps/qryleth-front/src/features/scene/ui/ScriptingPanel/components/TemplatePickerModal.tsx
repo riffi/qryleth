@@ -41,7 +41,14 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({ opened
             {groups.map(group => (
               <NavLink
                 key={group.id}
-                label={group.title}
+                // В левой навигации отображаем эмодзи группы и её название,
+                // чтобы ускорить визуальный поиск нужного раздела.
+                label={
+                  <Group gap={8} wrap="nowrap">
+                    <Text component="span" style={{ lineHeight: 1 }}>{group.emoji}</Text>
+                    <Text component="span">{group.title}</Text>
+                  </Group>
+                }
                 active={group.id === activeGroupId}
                 onClick={() => setActiveGroupId(group.id)}
               />
