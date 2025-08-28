@@ -1,35 +1,30 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
-import type { GfxTerrainConfig } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler.ts'
 import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder.ts'
-import { MultiColorProcessor } from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
+import { MultiColorProcessor, type MultiColorConfig } from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
 }
 
-
 /**
- * Компонент отрисовки ландшафтного слоя.
- * Принимает слой сцены и создаёт соответствующую геометрию и материал.
- * Поддерживает архитектуру GfxHeightSampler (legacy режим удалён).
- * Цвет материала берётся из свойства `color` слоя, вне зависимости от его формы.
+ * Рендер ландшафтного слоя с поддержкой:
+ *  - покраски по вершинам (как было)
+ *  - покраски по треугольникам (новое), если layer.multiColor.mode === 'triangle'
  */
 export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
-  const updateLayer = useSceneStore(state => state.updateLayer)
   const startTerrainApplying = useSceneStore(state => state.startTerrainApplying)
   const finishTerrainApplying = useSceneStore(state => state.finishTerrainApplying)
   const DEBUG = (import.meta as any)?.env?.MODE !== 'production'
 
-  // Версия геометрии: увеличивается, когда sampler сообщает о готовности
   const [geometryVersion, setGeometryVersion] = useState(0)
 
-  // Создаём sampler отдельно, чтобы можно было навесить onHeightmapLoaded в эффекте
+  // sampler
   const sampler = useMemo(() => {
     if (layer.shape === GfxLayerShape.Terrain && layer.terrain) {
       if (DEBUG) console.log('🗻 LandscapeLayer: Using terrain config for layer', layer.id, layer.terrain)
@@ -38,11 +33,10 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     return null
   }, [layer.id, layer.shape, layer.terrain])
 
-  // Ожидание готовности источника высот и управление прелоадером без таймеров
+  // ожидание готовности heightmap (если есть)
   useEffect(() => {
     if (!sampler || layer.shape !== GfxLayerShape.Terrain || !layer.terrain) return
 
-    // Прелоадер показываем только для heightmap-источника и только когда есть ожидание
     const needsWait = layer.terrain.source.kind === 'heightmap' && !sampler.isReady?.()
     if (needsWait) startTerrainApplying()
 
@@ -61,105 +55,103 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     return () => { cancelled = true }
   }, [sampler, layer.shape, layer.terrain, startTerrainApplying, finishTerrainApplying])
 
-  const geometry = useMemo(() => {
-    // Размеры слоя: ширина (X) и глубина (Z). Для совместимости поддерживаем legacy height.
+  // базовая геометрия (индексированная, как строит билдер)
+  const baseGeometry = useMemo(() => {
     const w = layer.width || 1
     const d = (layer as any).depth ?? (layer as any).height ?? 1
 
+    let geom: THREE.BufferGeometry
     if (layer.shape === GfxLayerShape.Terrain) {
-      // Новая архитектура: используем GfxHeightSampler если есть terrain конфигурация
       if (layer.terrain && sampler) {
-        const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
-        if (DEBUG) console.log('🗻 LandscapeLayer: Generated geometry with vertices:', geometry.attributes.position.count)
-        return geometry
+        geom = buildGfxTerrainGeometry(layer.terrain, sampler)
+        if (DEBUG) console.log('🗻 LandscapeLayer: Generated geometry with vertices:', geom.attributes.position.count)
+      } else {
+        geom = new THREE.PlaneGeometry(w, d)
       }
-      // Нет конфигурации террейна — возвращаем простую плоскость для безопасности
-      return new THREE.PlaneGeometry(w, d)
     } else {
-      return new THREE.PlaneGeometry(w, d)
+      geom = new THREE.PlaneGeometry(w, d)
+      // плоскость повернём позже через rotation
     }
+    return geom
   }, [layer.width, (layer as any).depth, (layer as any).height, layer.shape, layer.terrain, layer.id, sampler, geometryVersion])
 
-  // Освобождение геометрии при размонтировании/пересоздании
-  useEffect(() => {
-    return () => {
-      geometry?.dispose()
-    }
-  }, [geometry])
+  // освобождение базовой геометрии
+  useEffect(() => () => { baseGeometry?.dispose() }, [baseGeometry])
 
-  // Процессор многоцветной окраски (создается только при наличии multiColor конфигурации)
+  // процессор многоцветной окраски
   const multiColorProcessor = useMemo(() => {
     if (layer.multiColor && sampler) {
       if (DEBUG) console.log('🎨 LandscapeLayer: Creating MultiColorProcessor for layer', layer.id)
-      return new MultiColorProcessor(layer.multiColor)
+      // пробросим конфиг как есть — он совместим (mode/palette/slopeBoost)
+      return new MultiColorProcessor(layer.multiColor as unknown as MultiColorConfig)
     }
     return null
   }, [layer.multiColor, sampler])
 
-  // Вычисляем цвета вершин для многоцветной окраски
-  const vertexColors = useMemo(() => {
-    if (multiColorProcessor && sampler && geometry) {
-      if (DEBUG) console.log('🎨 LandscapeLayer: Generating vertex colors')
-      return multiColorProcessor.generateVertexColors(sampler, geometry)
-    }
-    return null
-  }, [multiColorProcessor, sampler, geometry, geometryVersion])
+  // итоговая геометрия под mesh:
+  //  - если multiColor off -> используем baseGeometry
+  //  - если multiColor.mode === 'triangle' -> создаём новую face-geometry
+  //  - иначе -> красим вершины на месте
+  const finalGeometry = useMemo(() => {
+    if (!multiColorProcessor || !sampler || !baseGeometry) return baseGeometry
 
-  // Применяем цвета вершин к геометрии
-  useEffect(() => {
-    if (vertexColors && geometry) {
-      geometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 3))
-      geometry.attributes.color.needsUpdate = true
-      if (DEBUG) console.log('🎨 LandscapeLayer: Applied vertex colors to geometry')
-    }
-  }, [vertexColors, geometry])
+    const mode = (layer.multiColor as any)?.mode as ('vertex' | 'triangle' | undefined)
 
-  // Цвет материала (используется только для одноцветных слоев)
-  const materialColor = useMemo(() => {
-    // Если используется многоцветная окраска, цвет материала не важен
-    if (layer.multiColor) {
-      return new THREE.Color('#ffffff') // белый для корректного умножения с vertex colors
-    }
-    
-    if (layer.color) {
-      return new THREE.Color(layer.color)
-    }
-    if (layer.shape === GfxLayerShape.Terrain) {
-      return new THREE.Color('#4a7c59')
+    if (mode === 'triangle') {
+      const faceGeom = multiColorProcessor.generateFaceColoredGeometry(sampler, baseGeometry)
+      if (DEBUG) console.log('🎨 LandscapeLayer: built face-colored geometry, vertices:', faceGeom.attributes.position.count)
+      return faceGeom
     } else {
-      return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
+      const vertexColors = multiColorProcessor.generateVertexColors(sampler, baseGeometry)
+      baseGeometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 3))
+      ;(baseGeometry.attributes.color as THREE.BufferAttribute).needsUpdate = true
+      return baseGeometry
     }
+  }, [multiColorProcessor, sampler, baseGeometry, layer.multiColor, DEBUG])
+
+  // освобождение face-геометрии (если создавали новую)
+  useEffect(() => {
+    // если finalGeometry !== baseGeometry — это новый объект, его нужно чистить
+    if (finalGeometry && finalGeometry !== baseGeometry) {
+      return () => { finalGeometry.dispose() }
+    }
+  }, [finalGeometry, baseGeometry])
+
+  const materialColor = useMemo(() => {
+    if (layer.multiColor) return new THREE.Color('#ffffff') // умножение на vertex colors
+    if (layer.color) return new THREE.Color(layer.color)
+    if (layer.shape === GfxLayerShape.Terrain) return new THREE.Color('#4a7c59')
+    return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
   }, [layer.shape, layer.color, layer.multiColor])
 
   const rotation = useMemo(() => {
-    if (layer.shape === GfxLayerShape.Terrain) {
-      return [0, 0, 0] // Terrain geometries are already horizontal (rotated in buildGfxTerrainGeometry)
-    } else {
-      return [-Math.PI / 2, 0, 0] // Rotate plane to be horizontal
-    }
+    if (layer.shape === GfxLayerShape.Terrain) return [0, 0, 0] as const
+    return [-Math.PI / 2, 0, 0] as const
   }, [layer.shape])
 
+  const useVertexColors = Boolean(layer.multiColor)
+
   return (
-    <mesh
-      geometry={geometry}
-      visible={layer.visible}
-      rotation={rotation}
-      position={[0, 0.1, 0]} // Slightly above grid for better visibility
-      receiveShadow
-      userData={{
-        generated: true,
-        layerId: layer.id,
-        layerType: GfxLayerType.Landscape
-      }}
-    >
-      <meshLambertMaterial
-        color={materialColor}
-        side={THREE.DoubleSide}
-        wireframe={false}
-        transparent={false}
-        opacity={1.0}
-        vertexColors={layer.multiColor ? true : false}
-      />
-    </mesh>
+      <mesh
+          geometry={finalGeometry}
+          visible={layer.visible}
+          rotation={rotation}
+          position={[0, 0.1, 0]}
+          receiveShadow
+          userData={{
+            generated: true,
+            layerId: layer.id,
+            layerType: GfxLayerType.Landscape
+          }}
+      >
+        <meshLambertMaterial
+            color={materialColor}
+            side={THREE.DoubleSide}
+            wireframe={false}
+            transparent={false}
+            opacity={1.0}
+            vertexColors={useVertexColors}
+        />
+      </mesh>
   )
 }
