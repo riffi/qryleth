@@ -114,6 +114,75 @@ console.log('Тестовый террейн:', test)`
 
   // 🎯 ГОТОВЫЕ РЕШЕНИЯ
   const readySolutions = {
+    'Центральное плато (дефолт)': `// Большое плато по центру мира (без явных falloff/flatInner)
+const plateauDefaultSpec = {
+  world: { width: 300, depth: 300, edgeFade: 0.1 },
+  base: {
+    seed: 4201,
+    octaveCount: 4,
+    amplitude: 6,
+    persistence: 0.5,
+    width: 128,
+    height: 128
+  },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 10 },
+    recipes: [
+      {
+        kind: 'plateau',
+        count: 1,
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+        radius: 70,
+        intensity: 8
+        // falloff и flatInner НЕ указаны — применятся автозначения:
+        // falloff: 'plateau', flatInner: 0.7
+      }
+    ]
+  },
+  seed: 4201
+}
+
+const plateauDefault = await sceneApi.createProceduralLayer(plateauDefaultSpec, {
+  name: 'Центральное плато (дефолт)',
+  visible: true
+})
+
+console.log('Создано плато (дефолт):', plateauDefault)`,
+
+    'Центральное плато (явный flatInner)': `// Большое плато по центру мира (явные falloff и flatInner)
+const plateauExplicitSpec = {
+  world: { width: 300, depth: 300, edgeFade: 0.1 },
+  base: {
+    seed: 4202,
+    octaveCount: 4,
+    amplitude: 6,
+    persistence: 0.5,
+    width: 128,
+    height: 128
+  },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 10 },
+    recipes: [
+      {
+        kind: 'plateau',
+        count: 1,
+        placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+        radius: 70,
+        intensity: 8,
+        falloff: 'plateau',
+        flatInner: 0.9 // плоская часть до 90% радиуса
+      }
+    ]
+  },
+  seed: 4202
+}
+
+const plateauExplicit = await sceneApi.createProceduralLayer(plateauExplicitSpec, {
+  name: 'Центральное плато (явный flatInner)',
+  visible: true
+})
+
+console.log('Создано плато (explicit):', plateauExplicit)`,
     'Долина с горами': `// Долина, окруженная горными цепями (с долиной на всю ширину)
 const valleySpec = {
   // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]
@@ -273,7 +342,7 @@ const archipelagoSpec = {
         placement: { type: 'poisson', minDistance: 80 },
         radius: [20, 35],
         intensity: [6, 10],
-        falloff: 'linear',
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
         bias: { preferHeight: { min: -1, max: 2, weight: 0.7 } }
       },
       // Мелкие островки
@@ -469,7 +538,7 @@ const canyonSpec = {
         placement: { type: 'poisson', minDistance: 50 },
         radius: [25, 40],
         intensity: [10, 18],
-        falloff: 'linear',
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
         aspect: [0.7, 1.3]
       },
       // Каньоны между плато
@@ -590,7 +659,6 @@ const coastalSpec = {
         radius: [40, 70],
         aspect: [0.6, 1.4],
         intensity: [5, 8],
-        falloff: 'linear',
         rotation: [Math.PI * 0.4, Math.PI * 0.6]
       },
       // Бухты (углубления)

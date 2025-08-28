@@ -155,7 +155,7 @@ const spec = {
     global: { intensityScale: 1.0, maxOps: 80 },
     recipes: [
       { kind: 'hill', count: [20, 30], placement: { type: 'uniform' }, radius: [10, 18], intensity: [4, 9], falloff: 'smoothstep' },
-      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
+      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4] }
     ]
   },
   seed: 3795

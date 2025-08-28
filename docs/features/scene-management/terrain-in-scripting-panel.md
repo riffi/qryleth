@@ -240,7 +240,7 @@ const archipelagoSpec = {
         placement: { type: 'poisson', minDistance: 80 },
         radius: [20, 35],
         intensity: [6, 10],
-        falloff: 'linear',
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
         bias: { preferHeight: { min: -1, max: 2, weight: 0.7 } }
       },
       // Мелкие островки
@@ -462,6 +462,33 @@ const spec = {
 }
 ```
 
+Примеры использования плато:
+
+1) Без указания falloff/flatInner (сработают автоподстановки):
+```javascript
+{
+  kind: 'plateau',
+  count: 1,
+  placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+  radius: 70,
+  intensity: 8
+  // Автоподстановка: falloff='plateau', flatInner=0.7
+}
+```
+
+2) С явным плоским ядром почти до края:
+```javascript
+{
+  kind: 'plateau',
+  count: 1,
+  placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+  radius: 70,
+  intensity: 8,
+  falloff: 'plateau',
+  flatInner: 0.9
+}
+```
+
 **ridge, basin, dune, terrace** - другие доступные типы рельефа.
 
 ### Размещение: где создавать рельеф
@@ -674,7 +701,7 @@ const coastalSpec = {
         radius: [40, 70],
         aspect: [0.6, 1.4],
         intensity: [5, 8],
-        falloff: 'linear',
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
         rotation: [Math.PI * 0.4, Math.PI * 0.6]
       },
       // Бухты (углубления)

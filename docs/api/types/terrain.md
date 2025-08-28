@@ -77,7 +77,7 @@ export interface GfxTerrainOp {
   center: [number, number] // мировые координаты (x, z)
   radius: number            // радиус влияния (мировые единицы)
   intensity: number         // амплитуда
-  falloff?: 'smoothstep' | 'gauss' | 'linear'
+  falloff?: 'smoothstep' | 'gauss' | 'linear' | 'plateau'
   radiusZ?: number          // эллипс по Z (если указан)
   rotation?: number         // поворот эллипса в радианах
 }
@@ -440,7 +440,7 @@ const spec: GfxProceduralTerrainSpec = {
     global: { intensityScale: 1.0, maxOps: 80 },
     recipes: [
       { kind: 'hill', count: [20, 30], placement: { type: 'uniform' }, radius: [10, 18], intensity: [4, 9], falloff: 'smoothstep' },
-      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4], falloff: 'linear' }
+      { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4] }
     ]
   },
   // Глобальный seed опционален: если не указан, будет сгенерирован автоматически
