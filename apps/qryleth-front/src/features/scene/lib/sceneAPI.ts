@@ -756,7 +756,7 @@ export class SceneAPI {
         {
           landscapeLayer,
           alignToTerrainHeight: true,
-          alignToTerrainRotation: false,
+          alignToTerrainRotation: true,
           objectBoundingBox,
           existingInstances
         },
@@ -858,7 +858,7 @@ export class SceneAPI {
         {
           landscapeLayer,
           alignToTerrainHeight: true,
-          alignToTerrainRotation: false,
+          alignToTerrainRotation: true,
           objectBoundingBox: boundingBox,
           existingInstances
         },

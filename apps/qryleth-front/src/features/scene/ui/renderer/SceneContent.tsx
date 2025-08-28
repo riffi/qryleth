@@ -12,6 +12,7 @@ import { UiMode, RenderProfile } from '@/shared/types/ui'
 import { useKeyboardShortcuts } from '../../lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
 import {EffectComposer, FXAA, SMAA} from "@react-three/postprocessing";
+import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 
 /**
  * Свойства компонента SceneContent.
@@ -48,6 +49,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <SceneLighting />
       <CameraControls />
       <Environment gridVisible={gridVisible} />
+      {/* Фиксированный экранный индикатор осей X/Y/Z */}
+      {uiMode === UiMode.Edit && <ViewportAxesHelper />}
 
       {/* Scene objects and landscapes */}
       <InstancedTransformProvider>
@@ -59,7 +62,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <LandscapeLayers />
       <WaterLayers />
       <Sky distance={450000}  sunPosition={[500, 150, -1000]} inclination={0} azimuth={0.25} turbidity={0.1}/>
-      
+
       <EffectComposer>
         <SMAA />
       </EffectComposer>
