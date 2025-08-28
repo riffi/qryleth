@@ -183,6 +183,63 @@ const plateauExplicit = await sceneApi.createProceduralLayer(plateauExplicitSpec
 })
 
 console.log('Создано плато (explicit):', plateauExplicit)`,
+
+    'Полоса плато (coverArea)': `// Ровная узкая полоса плато, заполняющая area целиком (без «кусочков»)
+const stripePlateauSpec = {
+  world: { width: 300, depth: 200, edgeFade: 0.1 },
+  base: { seed: 4203, octaveCount: 4, amplitude: 5, persistence: 0.5, width: 128, height: 128 },
+  pool: {
+    recipes: [
+      {
+        kind: 'plateau',
+        coverArea: true, // ключ: одна операция прямоугольной формы на всю область
+        placement: {
+          type: 'uniform',
+          area: { kind: 'rect', x: -150, z: 30, width: 300, depth: 20 }
+        },
+        intensity: 8,
+        // falloff/flatInner можно не указывать (auto: 'plateau' + 0.7)
+        // при желании: flatInner: 0.9
+      }
+    ]
+  },
+  seed: 4203
+}
+
+const stripePlateau = await sceneApi.createProceduralLayer(stripePlateauSpec, {
+  name: 'Полоса плато (coverArea)',
+  visible: true
+})
+
+console.log('Создана полоса плато:', stripePlateau)`,
+
+    'Полоса долины (coverArea)': `// Ровная узкая полоса долины (впадина) на всю area с плоским дном
+const stripeValleySpec = {
+  world: { width: 300, depth: 200, edgeFade: 0.1 },
+  base: { seed: 4204, octaveCount: 3, amplitude: 5, persistence: 0.4, width: 128, height: 128 },
+  pool: {
+    recipes: [
+      {
+        kind: 'valley',
+        coverArea: true, // одна прямоугольная операция, равномерно заполняющая область
+        placement: {
+          type: 'uniform',
+          area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 24 }
+        },
+        intensity: 6,
+        // auto: falloff='plateau', flatInner=0.7 → плоское дно; можно указать flatInner: 0.85
+      }
+    ]
+  },
+  seed: 4204
+}
+
+const stripeValley = await sceneApi.createProceduralLayer(stripeValleySpec, {
+  name: 'Полоса долины (coverArea)',
+  visible: true
+})
+
+console.log('Создана полоса долины:', stripeValley)`,
     'Долина с горами': `// Долина, окруженная горными цепями (с долиной на всю ширину)
 const valleySpec = {
   // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]

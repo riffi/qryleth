@@ -9,6 +9,7 @@ import type {
   GfxTerrainOpRecipe
 } from '@/entities/terrain'
 import { placePoints } from './placement'
+import { areaToWorldRect } from './placement/PlacementUtils'
 import { deriveRng, randAngle, randIntRange, generateRandomSeed, splitSeed } from './utils/PRNGUtils'
 import { generateOpsForRecipeAtPoints } from './recipes/RecipeProcessor'
 import { processBias } from './recipes/BiasProcessor'
@@ -34,6 +35,17 @@ export class ProceduralTerrainGenerator {
 
     if (recipe.falloff && !['smoothstep','gauss','linear','plateau'].includes(recipe.falloff as any)) {
       throw new Error(`${ctx}: неподдерживаемый falloff='${(recipe as any)?.falloff}'. Ожидалось: smoothstep | gauss | linear | plateau`)
+    }
+    // coverArea поддерживается только для plateau/valley и прямоугольной области
+    if ((recipe as any).coverArea) {
+      const k = (recipe as any).kind
+      const p: any = recipe.placement
+      if (!(k === 'plateau' || k === 'valley')) {
+        throw new Error(`${ctx}: coverArea поддерживается только для kind: plateau | valley`)
+      }
+      if (!p?.area || p.area.kind !== 'rect') {
+        throw new Error(`${ctx}: coverArea требует placement.area прямоугольника { kind: 'rect', ... }`)
+      }
     }
     // Валидация параметра flatInner для plateau
     if ((recipe as any).flatInner != null) {
@@ -138,6 +150,42 @@ export class ProceduralTerrainGenerator {
       // Валидация рецепта перед обработкой
       this.validateRecipe(recipe, rIdx)
       if (!isFinite(maxOps) && allOps.length >= maxOps) break
+
+      // Специальный режим: coverArea для plateau/valley с прямоугольной областью
+      const pAny: any = recipe.placement
+      const coverArea = (recipe as any).coverArea === true
+      const kind = (recipe as any).kind
+      if (coverArea && pAny?.area && pAny.area.kind === 'rect' && (kind === 'plateau' || kind === 'valley')) {
+        const rect = areaToWorldRect(worldWidth, worldDepth, pAny.area)
+        const cx = (rect.minX + rect.maxX) / 2
+        const cz = (rect.minZ + rect.maxZ) / 2
+        const rx = (rect.maxX - rect.minX) / 2
+        const rz = (rect.maxZ - rect.minZ) / 2
+        const falloff = (recipe.falloff as any) || 'plateau'
+        const flatInner = (recipe as any).flatInner ?? 0.7
+        const mode = (recipe.mode && recipe.mode !== 'auto') ? recipe.mode : (kind === 'valley' ? 'sub' : 'set')
+        const intensityVal = Array.isArray(recipe.intensity)
+          ? (recipe.intensity[0] + recipe.intensity[1]) / 2
+          : recipe.intensity
+        const intensity = Math.abs(intensityVal) * intensityScale
+        allOps.push({
+          id: `op_${rIdx.toString(36)}_${allOps.length.toString(36)}`,
+          mode,
+          shape: 'rect',
+          center: [cx, cz],
+          radius: rx,
+          radiusZ: rz,
+          intensity,
+          falloff: falloff as any,
+          flatInner,
+          rotation: 0,
+        })
+        if (!isFinite(maxOps) || allOps.length < maxOps) {
+          continue
+        } else {
+          break
+        }
+      }
 
       const countRng = deriveRng(seed, `recipe_${rIdx}_count`)
       const count = selectRecipeCount(recipe, countRng)

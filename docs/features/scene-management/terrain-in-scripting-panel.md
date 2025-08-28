@@ -437,8 +437,34 @@ const spec = {
 ```javascript
 {
   kind: 'valley',
-  step: 25,                 // если указан - создает серию "штрихов"
-  // остальные параметры как у hill
+  // По умолчанию (без step) — одна эллиптическая впадина.
+  // Для плоского дна используйте falloff: 'plateau' и, при необходимости, flatInner.
+  // step: 25,              // если указать — создаст серию «штрихов» вдоль линии
+  // остальные параметры как у hill/plateau: radius/aspect/intensity/rotation/falloff
+}
+```
+\nПримеры долины:
+\n1) Плоское дно, без step (дефолтный falloff для valley без step теперь — 'plateau'):
+```javascript
+{
+  kind: 'valley',
+  count: 1,
+  placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+  radius: 60,
+  intensity: 8
+  // Автоподстановка: falloff='plateau', flatInner=0.7
+}
+```
+\n2) Явно более широкое плоское дно:
+```javascript
+{
+  kind: 'valley',
+  count: 1,
+  placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
+  radius: 60,
+  intensity: 10,
+  falloff: 'plateau',
+  flatInner: 0.9
 }
 ```
 
@@ -485,7 +511,24 @@ const spec = {
   radius: 70,
   intensity: 8,
   falloff: 'plateau',
-  flatInner: 0.9
+ flatInner: 0.9
+}
+```
+
+3) Заполнение прямоугольной области одной операцией (без «кусочков»):
+```javascript
+{
+  kind: 'plateau',
+  // Покрыть всю область одной прямоугольной операцией (shape='rect' под капотом)
+  coverArea: true,
+  placement: {
+    type: 'uniform',
+    area: { kind: 'rect', x: -100, z: 40, width: 200, depth: 20 }
+  },
+  // Минимум параметров: равномерная высота по всей area
+  intensity: 8,
+  // falloff/flatInner можно не указывать: дефолт 'plateau' + 0.7
+  // при желании: flatInner: 0.9
 }
 ```
 
@@ -528,6 +571,13 @@ placement: {
 }
 ```
 
+Совет для ровных узких «полос» плато/впадин:
+- Задайте `area: { kind: 'rect', ... }` узкой по Z и широкой по X.
+- Выберите `cell` как шаг по X; для визуально ровной полосы используйте правило: `radius ≈ 0.6 * cell`,
+  а `aspect ≈ (stripDepth/2) / radius`. У `plateau/valley` по умолчанию действует `falloff: 'plateau'` + `flatInner=0.7`.
+- Чтобы исключить перепады между соседними «таблетками», добавьте в рецепт `lockParams: true` —
+  это зафиксирует одинаковые radius/aspect/intensity/rotation для всех точек рецепта.
+
 ### Умные фильтры (bias) в ScriptingPanel
 
 ```javascript
@@ -552,6 +602,44 @@ bias: {
 
 Примечание: если `kind: 'plateau'` и `falloff` не указан, автоматически берётся `falloff: 'plateau'` с
 дефолтным `flatInner = 0.7` (можно переопределить в рецепте).
+Для `valley` без `step` по умолчанию также используется `falloff: 'plateau'`, чтобы формировать
+впадины с плоским дном. При наличии `step` дефолт остаётся «мягким» (`smoothstep`).
+Аналогично можно использовать `coverArea: true` для долины — вся прямоугольная область будет
+заполнена одной операцией с плоским дном (без «штрихов»).
+
+### Целевые варианты (coverArea)
+
+Ниже — два целевых шаблона для быстрого получения ровных полос без «бугров». Достаточно указать прямоугольную `area`, `intensity` и, при желании, `flatInner`.
+
+1) Полоса плато (равномерная, одна операция на всю область):
+```javascript
+{
+  kind: 'plateau',
+  coverArea: true, // целевой режим: одна прямоугольная операция на всю area
+  placement: {
+    type: 'uniform',
+    area: { kind: 'rect', x: -150, z: 30, width: 300, depth: 20 }
+  },
+  intensity: 8,
+  // falloff/flatInner можно не указывать: auto 'plateau' + 0.7
+  // при необходимости: flatInner: 0.9
+}
+```
+
+2) Полоса долины (равномерная впадина на всю область):
+```javascript
+{
+  kind: 'valley',
+  coverArea: true, // целевой режим: прямоугольная впадина без «штрихов»
+  placement: {
+    type: 'uniform',
+    area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 24 }
+  },
+  intensity: 6,
+  // auto: falloff='plateau', flatInner=0.7 → плоское дно
+  // при необходимости: flatInner: 0.85
+}
+```
 
 Примечание: затухание по краям мира (`edgeFade`) интерполирует высоту к
 базовому уровню источника (для Perlin это `base.heightOffset`, если задан, иначе 0),

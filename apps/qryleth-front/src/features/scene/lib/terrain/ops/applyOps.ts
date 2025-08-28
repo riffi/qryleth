@@ -63,9 +63,17 @@ export function calculateOpDistance(op: GfxTerrainOp, x: number, z: number): num
   }
   const rx = op.radius
   const rz = op.radiusZ || op.radius
-  const nx = dx / rx
-  const nz = dz / rz
-  return Math.sqrt(nx * nx + nz * nz)
+  if (op.shape === 'rect') {
+    // Прямоугольник: нормализованная дистанция — максимум из проекций по осям
+    const nx = Math.abs(dx) / rx
+    const nz = Math.abs(dz) / rz
+    return Math.max(nx, nz)
+  } else {
+    // Эллипс по умолчанию
+    const nx = dx / rx
+    const nz = dz / rz
+    return Math.sqrt(nx * nx + nz * nz)
+  }
 }
 
 /**

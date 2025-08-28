@@ -10,6 +10,19 @@ import { autoModeForKind, autoFalloffForKind } from '../utils/TerrainUtils'
 export type GfxTerrainOpDraft = Omit<GfxTerrainOp, 'id'>
 
 /**
+ * «Замороженные» параметры рецепта — позволяют зафиксировать одинаковые
+ * значения радиуса/аспекта/интенсивности/поворота/затухания для всех точек.
+ */
+export type FrozenRecipeParams = Partial<{
+  radius: number
+  aspect: number
+  intensity: number
+  rotation: number
+  falloff: 'smoothstep' | 'gauss' | 'linear' | 'plateau'
+  flatInner: number
+}>
+
+/**
  * Сгенерировать массив операций для одной «центральной» точки по рецепту.
  *
  * В зависимости от вида (kind) рецепт может порождать одну или несколько
@@ -25,12 +38,17 @@ export function buildOpsForPoint(
   center: [number, number],
   rng: () => number,
   intensityScale = 1,
+  frozen?: FrozenRecipeParams,
 ): GfxTerrainOpDraft[] {
-  const baseRadius = pickFromNumberOrRange(rng, recipe.radius)
-  const aspect = recipe.aspect ? pickFromNumberOrRange(rng, recipe.aspect) : 1
+  const baseRadius = (frozen?.radius != null) ? frozen.radius : pickFromNumberOrRange(rng, recipe.radius)
+  const aspect = (frozen?.aspect != null)
+    ? frozen.aspect
+    : (recipe.aspect ? pickFromNumberOrRange(rng, recipe.aspect) : 1)
   const radiusX = baseRadius
   const radiusZ = baseRadius * aspect
-  const intensity = pickFromNumberOrRange(rng, recipe.intensity) * intensityScale
+  const intensity = ((frozen?.intensity != null)
+    ? frozen.intensity
+    : pickFromNumberOrRange(rng, recipe.intensity)) * intensityScale
   // ВАЖНО: различаем «угол не задан» и «угол = 0».
   // Если rotation в рецепте не указан — оставляем undefined (случайный угол выберем там, где нужно через ??),
   // если задан — генерируем детерминированный угол из указанного диапазона, включая возможность ровно 0.
@@ -39,15 +57,26 @@ export function buildOpsForPoint(
   // 1) Явно задан `rotation` → угол из указанного диапазона (включая 0).
   // 2) Иначе, если включён `randomRotationEnabled` → случайный угол полного круга.
   // 3) Иначе (по умолчанию) → 0 радиан (ориентация вдоль оси X).
-  const rotation: number = recipe.rotation
-    ? randAngle(rng, recipe.rotation)
-    : (recipe as any).randomRotationEnabled
-      ? randAngle(rng)
-      : 0
-  // По умолчанию: для plateau → 'plateau', для прочих → 'smoothstep'
-  const falloff = recipe.falloff || autoFalloffForKind(recipe.kind)
+  const rotation: number = (frozen?.rotation != null)
+    ? frozen.rotation
+    : (
+      recipe.rotation
+        ? randAngle(rng, recipe.rotation)
+        : (recipe as any).randomRotationEnabled
+          ? randAngle(rng)
+          : 0
+    )
+  // По умолчанию: для plateau → 'plateau'. Для valley без step → тоже 'plateau' (плоское дно).
+  // Для остальных типов — 'smoothstep'. Явно заданный falloff имеет приоритет.
+  const defaultFalloff: 'smoothstep' | 'gauss' | 'linear' | 'plateau' =
+    recipe.kind === 'plateau'
+      ? 'plateau'
+      : (recipe.kind === 'valley' && !(recipe.step && recipe.step > 0))
+        ? 'plateau'
+        : autoFalloffForKind(recipe.kind)
+  const falloff = frozen?.falloff || recipe.falloff || defaultFalloff
   // Параметр «плоского ядра» для falloff='plateau' (игнорируется для других видов)
-  const flatInner = (recipe as any).flatInner as number | undefined
+  const flatInner = (frozen?.flatInner ?? (recipe as any).flatInner) as number | undefined
   // Автоподстановка: если выбран режим 'plateau' и flatInner не задан — используем дефолт 0.7
   const flatInnerForOp = falloff === 'plateau' ? (flatInner ?? 0.7) : undefined
 

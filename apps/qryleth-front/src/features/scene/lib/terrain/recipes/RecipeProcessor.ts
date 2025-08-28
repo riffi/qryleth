@@ -1,6 +1,7 @@
 import type { GfxTerrainOp, GfxTerrainOpRecipe } from '@/entities/terrain'
-import { buildOpsForPoint, type GfxTerrainOpDraft } from './OperationTemplates'
+import { buildOpsForPoint, type GfxTerrainOpDraft, type FrozenRecipeParams } from './OperationTemplates'
 import { deriveRng, randIntRange } from '../utils/PRNGUtils'
+import { pickFromNumberOrRange, randAngle } from '../utils/PRNGUtils'
 import { makeDeterministicOpId } from '../utils/TerrainUtils'
 
 /**
@@ -28,7 +29,23 @@ export function generateOpsForRecipeAtPoints(
   const result: GfxTerrainOp[] = []
   for (let i = 0; i < points.length; i++) {
     const rng = deriveRng(seed, `pt_${i}`)
-    const drafts: GfxTerrainOpDraft[] = buildOpsForPoint(recipe, points[i], rng, intensityScale)
+    // При lockParams фиксируем параметры один раз на рецепт и применяем ко всем точкам
+    let frozen: FrozenRecipeParams | undefined
+    if ((recipe as any).lockParams) {
+      const frng = deriveRng(seed, 'frozen_recipe_params')
+      const radius = pickFromNumberOrRange(frng, recipe.radius)
+      const aspect = recipe.aspect ? pickFromNumberOrRange(frng, recipe.aspect) : 1
+      const intensity = pickFromNumberOrRange(frng, recipe.intensity)
+      const rotation = recipe.rotation
+        ? randAngle(frng, recipe.rotation)
+        : (recipe as any).randomRotationEnabled
+          ? randAngle(frng)
+          : 0
+      const falloff = recipe.falloff
+      const flatInner = (recipe as any).flatInner
+      frozen = { radius, aspect, intensity, rotation, falloff, flatInner }
+    }
+    const drafts: GfxTerrainOpDraft[] = buildOpsForPoint(recipe, points[i], rng, intensityScale, frozen)
     for (const d of drafts) {
       const nextInt = randIntRange(idRng, 0, 0x7fffffff) ^ (idCounter++ << 1)
       result.push({
@@ -39,4 +56,3 @@ export function generateOpsForRecipeAtPoints(
   }
   return result
 }
-
