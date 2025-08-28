@@ -49,12 +49,11 @@ export function areaToWorldRect(
 ): WorldRect {
   if (!area) return makeWorldRect(worldWidth, worldDepth)
   if (area.kind === 'rect') {
-    const rectDepth = (area as any).depth ?? (area as any).height
     return {
       minX: area.x,
       maxX: area.x + area.width,
       minZ: area.z,
-      maxZ: area.z + rectDepth
+      maxZ: area.z + area.depth
     }
   }
   // circle → прямоугольник, охватывающий круг
@@ -96,8 +95,7 @@ export function isInsideArea(
     return isInsideRect(pX, pZ, makeWorldRect(worldWidth, worldDepth))
   }
   if (area.kind === 'rect') {
-    const rectDepth = (area as any).depth ?? (area as any).height
-    return pX >= area.x && pX <= area.x + area.width && pZ >= area.z && pZ <= area.z + rectDepth
+    return pX >= area.x && pX <= area.x + area.width && pZ >= area.z && pZ <= area.z + area.depth
   }
   const dx = pX - area.x
   const dz = pZ - area.z

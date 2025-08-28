@@ -18,9 +18,9 @@ const stripeValleySpec = {
         coverArea: true, // одна прямоугольная операция, равномерно заполняющая область
         placement: {
           type: 'uniform',
-          area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 24 }
+          area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 45 }
         },
-        intensity: 6,
+        intensity: 9,
         // auto: falloff='plateau', flatInner=0.3 → плоское дно; можно указать flatInner: 0.85
       }
     ]

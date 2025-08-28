@@ -74,7 +74,7 @@ describe('PlacementAlgorithms', () => {
     expect(poissonPts.length).toBeGreaterThan(0)
   })
 
-  it('area.rect: поддержка нового поля depth и fallback на height', () => {
+  it('area.rect: поддержка поля depth', () => {
     const rng = createRng(123)
     // Полоса на севере мира: Z в [30..40] при глубине 80 → halfDepth = 40
     const ptsDepth = placePoints(
@@ -88,16 +88,6 @@ describe('PlacementAlgorithms', () => {
       expect(p.z).toBeGreaterThanOrEqual(30 - 1e-6)
       expect(p.z).toBeLessThanOrEqual(40 + 1e-6)
     }
-
-    const rng2 = createRng(123)
-    // Тот же прямоугольник с устаревшим ключом height должен работать так же
-    const ptsHeight = placePoints(
-      { type: 'uniform', area: { kind: 'rect', x: -50, z: 30, width: 100, height: 10 } as any },
-      20,
-      rng2,
-      { worldWidth, worldHeight }
-    )
-    expect(ptsHeight).toEqual(ptsDepth)
   })
 
   it('uniform + center band: координаты центрированы по миру (X/Z в допустимых диапазонах)', () => {

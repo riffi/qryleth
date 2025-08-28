@@ -207,18 +207,14 @@ export interface GfxBiasSpec {
  * - x: горизонтальная координата (лево-право)
  * - z: глубина/дальность (ближе-дальше)
  * - width: ширина области по оси X
- * - depth: размер области по оси Z (ВНИМАНИЕ: не вертикальная высота, а глубина!)
+ * - depth: размер области по оси Z (не вертикальная высота!)
  *
  * Пример корректного прямоугольника при мире `{ width: 300, depth: 200 }`:
  * `{ kind: 'rect', x: 0, z: 0, width: 100, depth: 80 }`
  * — центрированная область 100×80 в границах X [-50..+50], Z [-40..+40].
- *
- * @deprecated Вариант с полем `height` сохранён для обратной совместимости,
- * используйте `depth`. Если заданы оба поля, потребители должны отдавать
- * приоритет `depth`.
  */
 export type GfxPlacementArea =
-  | { kind: 'rect', x: number, z: number, width: number, depth?: number, /** @deprecated используйте depth */ height: number }
+  | { kind: 'rect', x: number, z: number, width: number, depth: number }
   | { kind: 'circle', x: number, z: number, radius: number }
 
 /**
