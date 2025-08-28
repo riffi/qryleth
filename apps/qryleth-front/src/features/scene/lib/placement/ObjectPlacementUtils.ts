@@ -34,6 +34,56 @@ export enum PlacementStrategy {
 }
 
 /**
+ * Максимальный наклон (в градусах), к которому линеарно масштабируется
+ * реальный наклон нормали. То есть:
+ *  - угол нормали 0°  → поворот 0°,
+ *  - угол нормали 90° → поворот MAX_TERRAIN_TILT_DEG.
+ * Это сохраняет разнообразие наклонов и исключает эффект «упора в максимум».
+ */
+const MAX_TERRAIN_TILT_DEG = 30;
+const MAX_TERRAIN_TILT_RAD = (Math.PI / 180) * MAX_TERRAIN_TILT_DEG;
+
+/**
+ * Пересчитывает наклон нормали относительно вертикали (оси Y) в пропорции, чтобы
+ * 90° соответствовало maxTiltRad, а 0° — 0. Сохраняет направление наклона (по XZ)
+ * и «полушарие» (знак Y) исходной нормали.
+ */
+const limitNormalByMaxTilt = (normal: Vector3, maxTiltRad: number): Vector3 => {
+  const [nx0, ny0, nz0] = normal
+  const len0 = Math.hypot(nx0, ny0, nz0)
+  if (len0 <= 1e-8) return [0, 1, 0]
+  const nx = nx0 / len0
+  const ny = ny0 / len0
+  const nz = nz0 / len0
+
+  // Угол до оси Y (0..90°), независимо от полушария
+  const angle = Math.acos(Math.max(-1, Math.min(1, Math.abs(ny))))
+
+  // Сохраняем исходное полушарие (вверх/вниз), чтобы не менять знаки поворотов
+  const signY = ny >= 0 ? 1 : -1
+
+  // Направление наклона — проекция на XZ
+  const hx0 = nx
+  const hz0 = nz
+  const hlen = Math.hypot(hx0, hz0)
+  let hx = 0, hz = 1 // дефолт: вдоль +Z, если горизонтальная компонента слишком мала
+  if (hlen > 1e-8) {
+    hx = hx0 / hlen
+    hz = hz0 / hlen
+  }
+
+  // Линеарное масштабирование угла: 0..90° -> 0..maxTiltRad
+  const k = maxTiltRad / (Math.PI / 2) // коэффициент масштабирования
+  const mapped = angle * k
+
+  const y = signY * Math.cos(mapped)
+  const s = Math.sin(mapped)
+  const x = hx * s
+  const z = hz * s
+  return [x, y, z]
+}
+
+/**
  * Метаданные для стратегии Random размещения
  */
 export interface RandomMetadata {
@@ -277,17 +327,12 @@ const calculateSurfaceNormal = (
  *   - положительное nx => наклон вправо (rz > 0)
  */
 const normalToRotation = (normal: Vector3): Vector3 => {
-  const [nx, ny, nz] = normal;
-  const len = Math.hypot(nx, ny, nz);
-  if (len <= 1e-8) return [0, 0, 0];
-  const x = nx / len;
-  const y = ny / len;
-  const z = nz / len;
-
-  const rx = Math.atan2(z, y);
-  const rz = Math.atan2(x, y);
-  const ry = 0;
-  return [rx, ry, rz];
+  // Ограничиваем нормаль согласно MAX_TERRAIN_TILT_RAD
+  const [x, y, z] = limitNormalByMaxTilt(normal, MAX_TERRAIN_TILT_RAD)
+  const rx = Math.atan2(z, y)
+  const rz = Math.atan2(x, y)
+  const ry = 0
+  return [rx, ry, rz]
 };
 
 /**
@@ -467,17 +512,17 @@ const generatePlaceAroundPosition = (
   // 13. Если не удалось найти позицию без коллизий за maxAttempts попыток
   // Возвращаем позицию с предупреждением (fallback механизм)
   console.warn(`PlaceAround: Could not find collision-free position after ${maxAttempts} attempts, placing with potential collision`)
-  
+
   // Fallback: используем базовые параметры для размещения
   const fallbackEdgeDistance = (metadata.minDistance + metadata.maxDistance) / 2
   const fallbackCenterDistance = fallbackEdgeDistance + targetRadius + newObjectRadius
-  const fallbackAngle = distributeEvenly 
+  const fallbackAngle = distributeEvenly
     ? (metadata.angleOffset || 0) + instanceIndex * (2 * Math.PI) / totalInstancesCount
     : (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
 
   const fallbackX = targetPosition[0] + fallbackCenterDistance * Math.cos(fallbackAngle)
   const fallbackZ = targetPosition[2] + fallbackCenterDistance * Math.sin(fallbackAngle)
-  const fallbackY = onlyHorizontal 
+  const fallbackY = onlyHorizontal
     ? targetPosition[1]
     : targetPosition[1] + (Math.random() - 0.5) * fallbackCenterDistance
 
