@@ -77,11 +77,11 @@ export function calculateOpDistance(op: GfxTerrainOp, x: number, z: number): num
 }
 
 /**
- * Функции затухания по нормализованному расстоянию t (0..1).
+ * Функции затухания по нормализованной близости t (0..1), где t=1 — центр фигуры, t=0 — край.
  * - linear: f(t)=t
  * - smoothstep: f(t)=t^2 (3-2t)
  * - gauss: exp(-3 * (1-t)^2)
- * - plateau: плоское ядро до порога flatInner (в t‑пространстве), далее плавный спад
+ * - plateau: плоское ядро долей радиуса flatInner (0..1), далее плавный спад к краю
  */
 export function applyFalloffFunction(
   t: number,
@@ -99,12 +99,16 @@ export function applyFalloffFunction(
       return Math.exp(-3 * g * g)
     }
     case 'plateau': {
-      // Плоское ядро до порога tt >= flatInner, затем плавный спад к 0 к краю.
-      // По умолчанию плоская часть составляет 70% радиуса фигуры.
-      const inner = Math.max(0, Math.min(0.99, flatInner ?? 0.7))
-      if (tt >= inner) return 1
-      const s = tt / inner // нормируем к [0..1]
-      // Плавный спад (smoothstep) в полосе [0..inner]
+      // Интерпретация flatInner как ДОЛИ плоского ядра по радиусу (0..1):
+      // flatInner=1 — полностью плоско до самого края; flatInner=0 — плоского ядра нет.
+      // В терминах близости t (1 — центр, 0 — край) порог насыщения равен C0 = 1 - flatInner.
+      // При t >= C0 — значение 1 (плоское ядро), ниже — плавный спад к 0 у края.
+      const p = Math.max(0, Math.min(1, flatInner ?? 0.3)) // доля плоского ядра по радиусу
+      const c0 = 1 - p // порог по близости, начиная с которого функция насыщена (=1)
+      if (tt >= c0) return 1
+      if (c0 <= 0) return 1 // защита на случай p=1 (полностью плоско)
+      const s = tt / c0 // нормируем полосу [0..c0] в [0..1]
+      // Плавный спад (smoothstep) в полосе от края к плоскому ядру
       return s * s * (3 - 2 * s)
     }
     default:

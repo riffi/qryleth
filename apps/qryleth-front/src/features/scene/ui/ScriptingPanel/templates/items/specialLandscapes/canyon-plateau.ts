@@ -28,7 +28,7 @@ const canyonSpec = {
         placement: { type: 'poisson', minDistance: 50 },
         radius: [25, 40],
         intensity: [10, 18],
-        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.3
         aspect: [0.7, 1.3]
       },
       // Каньоны между плато
@@ -55,4 +55,3 @@ const canyon = await sceneApi.createProceduralLayer(canyonSpec, {
 
 console.log('Созданы каньоны:', canyon)`
 }
-

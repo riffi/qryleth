@@ -21,7 +21,7 @@ const stripeValleySpec = {
           area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 24 }
         },
         intensity: 6,
-        // auto: falloff='plateau', flatInner=0.7 → плоское дно; можно указать flatInner: 0.85
+        // auto: falloff='plateau', flatInner=0.3 → плоское дно; можно указать flatInner: 0.85
       }
     ]
   },

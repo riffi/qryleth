@@ -240,7 +240,7 @@ const archipelagoSpec = {
         placement: { type: 'poisson', minDistance: 80 },
         radius: [20, 35],
         intensity: [6, 10],
-        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.3
         bias: { preferHeight: { min: -1, max: 2, weight: 0.7 } }
       },
       // Мелкие островки
@@ -452,7 +452,7 @@ const spec = {
   placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
   radius: 60,
   intensity: 8
-  // Автоподстановка: falloff='plateau', flatInner=0.7
+  // Автоподстановка: falloff='plateau', flatInner=0.3
 }
 ```
 \n2) Явно более широкое плоское дно:
@@ -498,7 +498,7 @@ const spec = {
   placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
   radius: 70,
   intensity: 8
-  // Автоподстановка: falloff='plateau', flatInner=0.7
+  // Автоподстановка: falloff='plateau', flatInner=0.3
 }
 ```
 
@@ -574,7 +574,7 @@ placement: {
 Совет для ровных узких «полос» плато/впадин:
 - Задайте `area: { kind: 'rect', ... }` узкой по Z и широкой по X.
 - Выберите `cell` как шаг по X; для визуально ровной полосы используйте правило: `radius ≈ 0.6 * cell`,
-  а `aspect ≈ (stripDepth/2) / radius`. У `plateau/valley` по умолчанию действует `falloff: 'plateau'` + `flatInner=0.7`.
+  а `aspect ≈ (stripDepth/2) / radius`. У `plateau/valley` по умолчанию действует `falloff: 'plateau'` + `flatInner=0.3`.
 - Чтобы исключить перепады между соседними «таблетками», добавьте в рецепт `lockParams: true` —
   это зафиксирует одинаковые radius/aspect/intensity/rotation для всех точек рецепта.
 
@@ -601,7 +601,7 @@ bias: {
 - **plateau** - плоское ядро и плавный спад у кромки; настраивается `flatInner` (0..1)
 
 Примечание: если `kind: 'plateau'` и `falloff` не указан, автоматически берётся `falloff: 'plateau'` с
-дефолтным `flatInner = 0.7` (можно переопределить в рецепте).
+дефолтным `flatInner = 0.3` (можно переопределить в рецепте).
 Для `valley` без `step` по умолчанию также используется `falloff: 'plateau'`, чтобы формировать
 впадины с плоским дном. При наличии `step` дефолт остаётся «мягким» (`smoothstep`).
 Аналогично можно использовать `coverArea: true` для долины — вся прямоугольная область будет
@@ -636,7 +636,7 @@ bias: {
     area: { kind: 'rect', x: -150, z: -40, width: 300, depth: 24 }
   },
   intensity: 6,
-  // auto: falloff='plateau', flatInner=0.7 → плоское дно
+  // auto: falloff='plateau', flatInner=0.3 → плоское дно
   // при необходимости: flatInner: 0.85
 }
 ```
@@ -789,7 +789,7 @@ const coastalSpec = {
         radius: [40, 70],
         aspect: [0.6, 1.4],
         intensity: [5, 8],
-        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.3
         rotation: [Math.PI * 0.4, Math.PI * 0.6]
       },
       // Бухты (углубления)

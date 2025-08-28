@@ -162,7 +162,7 @@ export class ProceduralTerrainGenerator {
         const rx = (rect.maxX - rect.minX) / 2
         const rz = (rect.maxZ - rect.minZ) / 2
         const falloff = (recipe.falloff as any) || 'plateau'
-        const flatInner = (recipe as any).flatInner ?? 0.7
+        const flatInner = (recipe as any).flatInner ?? 0.3
         const mode = (recipe.mode && recipe.mode !== 'auto') ? recipe.mode : (kind === 'valley' ? 'sub' : 'set')
         const intensityVal = Array.isArray(recipe.intensity)
           ? (recipe.intensity[0] + recipe.intensity[1]) / 2

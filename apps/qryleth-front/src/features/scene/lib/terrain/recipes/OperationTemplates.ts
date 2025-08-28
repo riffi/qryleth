@@ -77,8 +77,8 @@ export function buildOpsForPoint(
   const falloff = frozen?.falloff || recipe.falloff || defaultFalloff
   // Параметр «плоского ядра» для falloff='plateau' (игнорируется для других видов)
   const flatInner = (frozen?.flatInner ?? (recipe as any).flatInner) as number | undefined
-  // Автоподстановка: если выбран режим 'plateau' и flatInner не задан — используем дефолт 0.7
-  const flatInnerForOp = falloff === 'plateau' ? (flatInner ?? 0.7) : undefined
+  // Автоподстановка: если выбран режим 'plateau' и flatInner не задан — используем дефолт 0.3
+  const flatInnerForOp = falloff === 'plateau' ? (flatInner ?? 0.3) : undefined
 
   const resolvedMode = (recipe.mode && recipe.mode !== 'auto')
     ? recipe.mode

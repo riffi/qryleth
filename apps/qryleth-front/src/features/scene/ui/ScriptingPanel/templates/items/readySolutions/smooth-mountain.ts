@@ -4,7 +4,7 @@ import type { TemplateData } from '../../types'
  * Шаблон: Гладкая гора по центру мира — опирается на наложение плато друг на друга с mode: 'add'
  */
 export const smoothMountainTemplate: TemplateData = {
-  id: 'central-plateau-default',
+  id: 'smooth-mountain',
   name: 'Гладкая гора по центру мира',
   description: 'Большая Гладкая гора по центру мира, основанная на группе плато с mode add',
   code: `// Гладкая гора по центру мира

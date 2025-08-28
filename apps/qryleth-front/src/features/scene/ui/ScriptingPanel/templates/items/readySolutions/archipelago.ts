@@ -41,7 +41,7 @@ const archipelagoSpec = {
         placement: { type: 'poisson', minDistance: 80 },
         radius: [20, 35],
         intensity: [6, 10],
-        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.7
+        // falloff/flatInner опущены — применится 'plateau' + flatInner=0.3
         bias: { preferHeight: { min: -1, max: 2, weight: 0.7 } }
       },
       // Мелкие островки
@@ -69,4 +69,3 @@ const archipelago = await sceneApi.createProceduralLayer(archipelagoSpec, {
 
 console.log('Создан архипелаг:', archipelago)`
 }
-

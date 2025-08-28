@@ -28,7 +28,7 @@ const plateauDefaultSpec = {
         radius: 80,
         intensity: 20
         // falloff и flatInner НЕ указаны — применятся автозначения:
-        // falloff: 'plateau', flatInner: 0.7
+        // falloff: 'plateau', flatInner: 0.3
       }
     ]
   },
@@ -42,4 +42,3 @@ const plateauDefault = await sceneApi.createProceduralLayer(plateauDefaultSpec, 
 
 console.log('Создано плато (дефолт):', plateauDefault)`
 }
-

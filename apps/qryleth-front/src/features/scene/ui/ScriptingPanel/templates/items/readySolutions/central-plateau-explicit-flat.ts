@@ -25,8 +25,8 @@ const plateauExplicitSpec = {
         kind: 'plateau',
         count: 1,
         placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
-        radius: 70,
-        intensity: 8,
+        radius: 90,
+        intensity: 20,
         falloff: 'plateau',
         flatInner: 0.9 // плоская часть до 90% радиуса
       }
