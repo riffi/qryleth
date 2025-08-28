@@ -18,9 +18,9 @@ const stripePlateauSpec = {
         coverArea: true, // ключ: одна операция прямоугольной формы на всю область
         placement: {
           type: 'uniform',
-          area: { kind: 'rect', x: -150, z: 30, width: 300, depth: 20 }
+          area: { kind: 'rect', x: -150, z: 30, width: 300, depth: 60 }
         },
-        intensity: 8,
+        intensity: 12,
         // falloff/flatInner можно не указывать (auto: 'plateau' + 0.7)
         // при желании: flatInner: 0.9
       }
