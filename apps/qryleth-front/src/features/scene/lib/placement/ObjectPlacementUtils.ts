@@ -264,35 +264,30 @@ const calculateSurfaceNormal = (
 };
 
 /**
- * Convert surface normal to rotation angles
- * This aligns the Y-axis (up vector) of the object with the surface normal
+ * Преобразует нормаль поверхности в углы Эйлера [rx, ry, rz] (в радианах),
+ * выравнивая ось Y объекта по нормали. Азимут (ry) фиксируем равным 0 —
+ * управляем только наклонами вокруг X и Z.
+ *
+ * Принято соглашение: последовательность поворотов Rz(rz) затем Rx(rx),
+ * действующая на мировой вектор up (0,1,0). Решение даёт простые формулы:
+ *   rx = atan2(nz, ny)
+ *   rz = atan2(nx, ny)
+ * где n = normalize(normal). Такие знаки согласуются с ожидаемой интуицией:
+ *   - положительное nz => положительный наклон вперёд (rx > 0)
+ *   - положительное nx => наклон вправо (rz > 0)
  */
 const normalToRotation = (normal: Vector3): Vector3 => {
   const [nx, ny, nz] = normal;
+  const len = Math.hypot(nx, ny, nz);
+  if (len <= 1e-8) return [0, 0, 0];
+  const x = nx / len;
+  const y = ny / len;
+  const z = nz / len;
 
-  // Ensure the normal is normalized
-  const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
-  if (length === 0) return [0, 0, 0];
-
-  const normalizedX = nx / length;
-  const normalizedY = ny / length;
-  const normalizedZ = nz / length;
-
-  // More robust calculation using atan2 for better precision
-  // Calculate rotation angles to align Y-axis with normal
-
-  // X rotation (pitch) - rotation around X axis
-  // This tilts the object forward/backward based on Z component of normal
-  const rotationX = Math.atan2(-normalizedZ, normalizedY);
-
-  // Z rotation (roll) - rotation around Z axis
-  // This tilts the object left/right based on X component of normal
-  const rotationZ = Math.atan2(normalizedX, normalizedY);
-
-  // Y rotation (yaw) - keep it 0 for natural alignment
-  const rotationY = 0;
-
-  return [rotationX, rotationY, rotationZ];
+  const rx = Math.atan2(z, y);
+  const rz = Math.atan2(x, y);
+  const ry = 0;
+  return [rx, ry, rz];
 };
 
 /**
