@@ -7,6 +7,9 @@ import { valleyWithMountainsTemplate } from '../items/readySolutions/valley-with
 import { volcanicIslandTemplate } from '../items/readySolutions/volcanic-island'
 import { archipelagoTemplate } from '../items/readySolutions/archipelago'
 import { gentleHillsTemplate } from '../items/readySolutions/gentle-hills'
+import {
+  smoothMountainTemplate
+} from "@/features/scene/ui/ScriptingPanel/templates/items/readySolutions/smooth-mountain.ts";
 
 /**
  * Группа «Готовые решения» — практичные пресеты типовых ландшафтов.
@@ -23,6 +26,7 @@ export const readySolutionsGroup: TemplateGroup = {
     valleyWithMountainsTemplate,
     volcanicIslandTemplate,
     archipelagoTemplate,
-    gentleHillsTemplate
+    gentleHillsTemplate,
+    smoothMountainTemplate
   ]
 }
