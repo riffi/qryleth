@@ -163,12 +163,18 @@ export interface PlacementResult {
 export const generateObjectPlacement = (options: PlacementOptions): PlacementResult => {
   const { strategy, customPosition, bounds, landscapeLayer } = options
 
-  // Determine bounds from landscape layer if available
+  // Determine bounds from landscape layer if available (terrain-aware)
+  const worldW = landscapeLayer
+    ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10)
+    : 10
+  const worldH = landscapeLayer
+    ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10)
+    : 10
   const defaultBounds = {
-    minX: landscapeLayer ? -(landscapeLayer.width || 10) / 2 : -5,
-    maxX: landscapeLayer ? (landscapeLayer.width || 10) / 2 : 5,
-    minZ: landscapeLayer ? -(landscapeLayer.height || 10) / 2 : -5,
-    maxZ: landscapeLayer ? (landscapeLayer.height || 10) / 2 : 5,
+    minX: -(worldW) / 2,
+    maxX: (worldW) / 2,
+    minZ: -(worldH) / 2,
+    maxZ: (worldH) / 2,
   }
 
   const finalBounds = { ...defaultBounds, ...bounds }
@@ -581,11 +587,17 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
     return [x, 0, z];
   }
 
+  const worldW = landscapeLayer
+    ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10)
+    : 10
+  const worldH = landscapeLayer
+    ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10)
+    : 10
   const defaultBounds = {
-    minX: landscapeLayer ? -(landscapeLayer.width || 10) / 2 : -5,
-    maxX: landscapeLayer ? (landscapeLayer.width || 10) / 2 : 5,
-    minZ: landscapeLayer ? -(landscapeLayer.height || 10) / 2 : -5,
-    maxZ: landscapeLayer ? (landscapeLayer.height || 10) / 2 : 5,
+    minX: -(worldW) / 2,
+    maxX: (worldW) / 2,
+    minZ: -(worldH) / 2,
+    maxZ: (worldH) / 2,
   };
 
   const finalBounds = { ...defaultBounds, ...bounds };
