@@ -58,6 +58,17 @@ export function autoModeForKind(kind: string): 'add' | 'sub' | 'set' {
 }
 
 /**
+ * Подбор функции затухания по умолчанию для конкретного вида рецепта.
+ *
+ * Правило:
+ * - Для 'plateau' по умолчанию используем falloff='plateau' (плоское ядро).
+ * - Для остальных типов — 'smoothstep' (универсальный мягкий спад).
+ */
+export function autoFalloffForKind(kind: string): 'smoothstep' | 'gauss' | 'linear' | 'plateau' {
+  return kind === 'plateau' ? 'plateau' : 'smoothstep'
+}
+
+/**
  * Сгенерировать детерминированный идентификатор операции на основе числа из RNG.
  * Внутри кодирует значение в base36 для компактности.
  */
@@ -66,4 +77,3 @@ export function makeDeterministicOpId(nextInt: number): string {
   const u = (nextInt >>> 0).toString(36)
   return `op_${u}`
 }
-

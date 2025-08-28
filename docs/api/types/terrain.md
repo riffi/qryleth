@@ -402,7 +402,8 @@ export interface GfxTerrainOpRecipe {
   aspect?: [number, number]
   intensity: number | [number, number]
   rotation?: [number, number]
-  falloff?: 'smoothstep' | 'gauss' | 'linear'
+  falloff?: 'smoothstep' | 'gauss' | 'linear' | 'plateau'
+  flatInner?: number // для 'plateau': доля плоского ядра (0..1)
   bias?: GfxBiasSpec
   jitter?: { center?: number }
   step?: number

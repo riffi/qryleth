@@ -32,8 +32,15 @@ export class ProceduralTerrainGenerator {
       throw new Error(`${ctx}: неподдерживаемый kind='${(recipe as any)?.kind}'. Ожидалось: ${allowedKinds.join(', ')}`)
     }
 
-    if (recipe.falloff && !['smoothstep','gauss','linear'].includes(recipe.falloff)) {
-      throw new Error(`${ctx}: неподдерживаемый falloff='${(recipe as any)?.falloff}'. Ожидалось: smoothstep | gauss | linear`)
+    if (recipe.falloff && !['smoothstep','gauss','linear','plateau'].includes(recipe.falloff as any)) {
+      throw new Error(`${ctx}: неподдерживаемый falloff='${(recipe as any)?.falloff}'. Ожидалось: smoothstep | gauss | linear | plateau`)
+    }
+    // Валидация параметра flatInner для plateau
+    if ((recipe as any).flatInner != null) {
+      const fi = (recipe as any).flatInner
+      if (typeof fi !== 'number' || !(fi >= 0 && fi <= 1)) {
+        throw new Error(`${ctx}: flatInner должен быть числом в диапазоне [0..1]`)
+      }
     }
 
     // Валидация placement по типу

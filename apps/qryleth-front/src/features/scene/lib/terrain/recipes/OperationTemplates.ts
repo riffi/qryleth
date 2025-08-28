@@ -1,7 +1,7 @@
 import type { GfxTerrainOp } from '@/entities/terrain'
 import type { GfxTerrainOpRecipe } from '@/entities/terrain'
 import { pickFromNumberOrRange, randAngle } from '../utils/PRNGUtils'
-import { autoModeForKind } from '../utils/TerrainUtils'
+import { autoModeForKind, autoFalloffForKind } from '../utils/TerrainUtils'
 
 /**
  * Промежуточный тип «черновика» операции — все поля кроме id.
@@ -44,7 +44,12 @@ export function buildOpsForPoint(
     : (recipe as any).randomRotationEnabled
       ? randAngle(rng)
       : 0
-  const falloff = recipe.falloff || 'smoothstep'
+  // По умолчанию: для plateau → 'plateau', для прочих → 'smoothstep'
+  const falloff = recipe.falloff || autoFalloffForKind(recipe.kind)
+  // Параметр «плоского ядра» для falloff='plateau' (игнорируется для других видов)
+  const flatInner = (recipe as any).flatInner as number | undefined
+  // Автоподстановка: если выбран режим 'plateau' и flatInner не задан — используем дефолт 0.7
+  const flatInnerForOp = falloff === 'plateau' ? (flatInner ?? 0.7) : undefined
 
   const resolvedMode = (recipe.mode && recipe.mode !== 'auto')
     ? recipe.mode
@@ -63,6 +68,7 @@ export function buildOpsForPoint(
         radiusZ,
         intensity: Math.abs(intensity),
         falloff,
+        flatInner: flatInnerForOp,
         rotation,
       }]
     }
@@ -80,6 +86,7 @@ export function buildOpsForPoint(
           radiusZ,
           intensity: Math.abs(intensity),
           falloff,
+          flatInner: flatInnerForOp,
           rotation,
         })
         return ops
@@ -98,6 +105,7 @@ export function buildOpsForPoint(
           radiusZ,
           intensity: Math.abs(intensity),
           falloff,
+          flatInner: flatInnerForOp,
           rotation: dirAngle,
         })
       }
@@ -119,6 +127,7 @@ export function buildOpsForPoint(
           radiusZ: innerR * ringAspect,
           intensity: pitIntensity,
           falloff,
+          flatInner: flatInnerForOp,
           rotation,
         },
         {
@@ -128,6 +137,7 @@ export function buildOpsForPoint(
           radiusZ: outerR * ringAspect,
           intensity: ringIntensity,
           falloff,
+          flatInner: flatInnerForOp,
           rotation: ringRotation,
         },
       ]
@@ -147,6 +157,7 @@ export function buildOpsForPoint(
           radiusZ: r * aspect,
           intensity: ringInt,
           falloff,
+          flatInner: flatInnerForOp,
           rotation,
         })
       }

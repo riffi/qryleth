@@ -135,8 +135,18 @@ export interface GfxTerrainOpRecipe {
    */
   randomRotationEnabled?: boolean
 
-  /** Функция затухания эффекта по краям */
-  falloff?: 'smoothstep' | 'gauss' | 'linear'
+  /**
+   * Функция затухания эффекта по краям.
+   * Дополнительно поддерживается 'plateau' — режим с плоским ядром (см. flatInner).
+   */
+  falloff?: 'smoothstep' | 'gauss' | 'linear' | 'plateau'
+
+  /**
+   * Доля «плоского ядра» для falloff='plateau' (0..1).
+   * Определяет, при каком значении t (1 — центр, 0 — край) вклад держится равным 1.
+   * Внешняя полоса (1 - flatInner) используется для плавного спада к нулю.
+   */
+  flatInner?: number
 
   /**
    * Предпочтения по рельефу (высота/уклон/избежание пересечений).

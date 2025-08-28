@@ -42,7 +42,7 @@ export function applyTerrainOpsOptimized(
 export function calculateOpContribution(op: GfxTerrainOp, x: number, z: number): number {
   const t = calculateOpDistance(op, x, z)
   if (t >= 1) return 0
-  const f = applyFalloffFunction(1 - t, op.falloff || 'smoothstep')
+  const f = applyFalloffFunction(1 - t, op.falloff || 'smoothstep', op.flatInner)
   return op.intensity * f
 }
 
@@ -73,10 +73,12 @@ export function calculateOpDistance(op: GfxTerrainOp, x: number, z: number): num
  * - linear: f(t)=t
  * - smoothstep: f(t)=t^2 (3-2t)
  * - gauss: exp(-3 * (1-t)^2)
+ * - plateau: плоское ядро до порога flatInner (в t‑пространстве), далее плавный спад
  */
 export function applyFalloffFunction(
   t: number,
-  falloff: 'smoothstep' | 'gauss' | 'linear'
+  falloff: 'smoothstep' | 'gauss' | 'linear' | 'plateau',
+  flatInner?: number,
 ): number {
   const tt = Math.max(0, Math.min(1, t))
   switch (falloff) {
@@ -88,8 +90,16 @@ export function applyFalloffFunction(
       const g = 1 - tt
       return Math.exp(-3 * g * g)
     }
+    case 'plateau': {
+      // Плоское ядро до порога tt >= flatInner, затем плавный спад к 0 к краю.
+      // По умолчанию плоская часть составляет 70% радиуса фигуры.
+      const inner = Math.max(0, Math.min(0.99, flatInner ?? 0.7))
+      if (tt >= inner) return 1
+      const s = tt / inner // нормируем к [0..1]
+      // Плавный спад (smoothstep) в полосе [0..inner]
+      return s * s * (3 - 2 * s)
+    }
     default:
       return tt * tt * (3 - 2 * tt)
   }
 }
-
