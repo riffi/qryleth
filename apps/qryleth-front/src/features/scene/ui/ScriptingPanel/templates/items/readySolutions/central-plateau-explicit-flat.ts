@@ -37,7 +37,8 @@ const plateauExplicitSpec = {
 
 const plateauExplicit = await sceneApi.createProceduralLayer(plateauExplicitSpec, {
   name: 'Центральное плато (явный flatInner)',
-  visible: true
+  visible: true,
+  color: '#A0916C' // Цвет плоского каменистого плато
 })
 
 console.log('Создано плато (explicit):', plateauExplicit)`

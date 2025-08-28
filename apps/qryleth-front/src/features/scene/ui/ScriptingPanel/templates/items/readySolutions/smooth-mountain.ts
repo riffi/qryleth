@@ -37,7 +37,8 @@ const smoothMountain = {
 
 const layer = await sceneApi.createProceduralLayer(smoothMountain, {
   name: 'Гладкая гора',
-  visible: true
+  visible: true,
+  color: '#696969' // Темно-серый цвет горы
 })
 
 console.log('Создана Гладкая гора', layer)`

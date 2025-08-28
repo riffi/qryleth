@@ -212,12 +212,16 @@ const opsAuto = await SceneAPI.generateTerrainOpsFromPool(spec.pool, undefined, 
 ### `createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success: boolean, layerId?: string, error?: string }>`
 Создаёт ландшафтный слой типа Terrain на основе спецификации. Внутри вызывает `generateProceduralTerrain(spec)`, затем создаёт слой и выполняет корректировку существующих инстансов по рельефу.
 
-- Вход: `spec` и опциональные поля `layerData` (имя, видимость, позиция и т.п.).
+- Вход: `spec` и опциональные поля `layerData` (имя, видимость, позиция, **цвет** и т.п.).
 - Выход: `{ success, layerId?, error? }`.
 
 Пример (JavaScript):
 ```javascript
-const res = await SceneAPI.createProceduralLayer(spec, { name: 'Песчаные дюны', visible: true })
+const res = await SceneAPI.createProceduralLayer(spec, { 
+  name: 'Песчаные дюны', 
+  visible: true,
+  color: '#F4A460' // Цвет слоя террейна
+})
 if (!res.success) console.error(res.error)
 ```
 

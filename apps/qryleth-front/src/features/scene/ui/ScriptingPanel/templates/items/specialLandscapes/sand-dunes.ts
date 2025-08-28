@@ -45,7 +45,8 @@ const dunesSpec = {
 
 const dunes = await sceneApi.createProceduralLayer(dunesSpec, { 
   name: 'Песчаные дюны', 
-  visible: true 
+  visible: true,
+  color: '#F4A460' // Цвет песчаных дюн
 })
 
 console.log('Созданы дюны:', dunes)`

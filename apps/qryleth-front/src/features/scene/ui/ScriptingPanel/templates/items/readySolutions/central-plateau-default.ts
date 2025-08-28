@@ -37,7 +37,8 @@ const plateauDefaultSpec = {
 
 const plateauDefault = await sceneApi.createProceduralLayer(plateauDefaultSpec, {
   name: 'Центральное плато (дефолт)',
-  visible: true
+  visible: true,
+  color: '#8B7355' // Цвет высокогорного плато
 })
 
 console.log('Создано плато (дефолт):', plateauDefault)`

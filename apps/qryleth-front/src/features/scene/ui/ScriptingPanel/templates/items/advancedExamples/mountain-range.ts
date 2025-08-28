@@ -67,7 +67,8 @@ const mountainRangeSpec = {
 
 const mountains = await sceneApi.createProceduralLayer(mountainRangeSpec, {
   name: 'Горный массив Драконьи Зубы',
-  visible: true
+  visible: true,
+  color: '#8B7D6B' // Серо-коричневый цвет горного массива
 })
 
 console.log('Горный массив создан:', mountains)`

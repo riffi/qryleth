@@ -73,7 +73,8 @@ const coastalSpec = {
 
 const coast = await sceneApi.createProceduralLayer(coastalSpec, {
   name: 'Изрезанное побережье',
-  visible: true
+  visible: true,
+  color: '#F5DEB3' // Песчано-пшеничный цвет прибрежной зоны
 })
 
 console.log('Прибрежная зона создана:', coast)`

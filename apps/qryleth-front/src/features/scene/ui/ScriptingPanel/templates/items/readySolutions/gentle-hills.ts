@@ -49,7 +49,8 @@ const hillsSpec = {
 
 const hills = await sceneApi.createProceduralLayer(hillsSpec, {
   name: 'Пасторальные холмы',
-  visible: true
+  visible: true,
+  color: '#5cad5c' // Лесная зелень для мягких холмов
 })
 
 console.log('Созданы холмы:', hills)`

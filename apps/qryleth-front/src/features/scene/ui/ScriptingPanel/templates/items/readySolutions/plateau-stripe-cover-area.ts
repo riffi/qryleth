@@ -31,7 +31,8 @@ const stripePlateauSpec = {
 
 const stripePlateau = await sceneApi.createProceduralLayer(stripePlateauSpec, {
   name: 'Полоса плато (coverArea)',
-  visible: true
+  visible: true,
+  color: '#8B7355' // Коричневато-каменистый цвет плато
 })
 
 console.log('Создана полоса плато:', stripePlateau)`

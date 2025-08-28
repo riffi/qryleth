@@ -54,7 +54,8 @@ const result = await sceneApi.createProceduralLayer({
   seed: 42
 }, { 
   name: 'Мои первые холмы', 
-  visible: true 
+  visible: true,
+  color: '#228B22' // Зеленый цвет холмов
 })
 
 console.log('Результат:', result)
@@ -337,7 +338,7 @@ console.log('Созданы холмы:', hills)
 ```javascript
 const result = await sceneApi.createProceduralLayer(
   spec,      // спецификация террейна (объект ниже)
-  layerData  // опциональные данные слоя: { name?, visible?, position? }
+  layerData  // опциональные данные слоя: { name?, visible?, position?, color? }
 )
 
 console.log(result) // { success: boolean, layerId?: string, error?: string }

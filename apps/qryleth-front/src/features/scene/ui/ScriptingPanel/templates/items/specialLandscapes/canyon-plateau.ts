@@ -50,7 +50,8 @@ const canyonSpec = {
 
 const canyon = await sceneApi.createProceduralLayer(canyonSpec, {
   name: 'Каньоны и плато',
-  visible: true
+  visible: true,
+  color: '#CD853F' // Перуанский коричнево-оранжевый цвет каньона
 })
 
 console.log('Созданы каньоны:', canyon)`

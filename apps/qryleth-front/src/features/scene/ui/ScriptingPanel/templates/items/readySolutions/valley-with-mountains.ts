@@ -70,7 +70,8 @@ const valleySpec = {
 
 const valley = await sceneApi.createProceduralLayer(valleySpec, { 
   name: 'Долина Драконов', 
-  visible: true 
+  visible: true,
+  color: '#808000' // Темно-зеленый цвет долины с горами
 })
 
 console.log('Создана долина:', valley)`

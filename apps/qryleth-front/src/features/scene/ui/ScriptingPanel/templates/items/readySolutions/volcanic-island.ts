@@ -59,7 +59,8 @@ const islandSpec = {
 
 const island = await sceneApi.createProceduralLayer(islandSpec, {
   name: 'Вулканический остров',
-  visible: true
+  visible: true,
+  color: '#8B4513' // Цвет вулканических пород
 })
 
 console.log('Создан остров:', island)`

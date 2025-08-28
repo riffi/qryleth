@@ -56,7 +56,8 @@ const craterSpec = {
 
 const lunar = await sceneApi.createProceduralLayer(craterSpec, {
   name: 'Лунная поверхность',
-  visible: true
+  visible: true,
+  color: '#C0C0C0' // Цвет лунной поверхности (серебристо-серый)
 })
 
 console.log('Создана лунная поверхность:', lunar)`

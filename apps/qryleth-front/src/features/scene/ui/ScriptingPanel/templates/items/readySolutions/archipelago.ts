@@ -64,7 +64,8 @@ const archipelagoSpec = {
 
 const archipelago = await sceneApi.createProceduralLayer(archipelagoSpec, {
   name: 'Тропический архипелаг',
-  visible: true
+  visible: true,
+  color: '#4682B4' // Голубовато-стальной цвет архипелага
 })
 
 console.log('Создан архипелаг:', archipelago)`

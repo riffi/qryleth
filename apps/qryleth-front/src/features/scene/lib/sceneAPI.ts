@@ -74,6 +74,7 @@ export interface SceneOverview {
     name: string
     visible: boolean
     objectCount: number
+    color?: string
   }>
 }
 
@@ -214,7 +215,8 @@ export class SceneAPI {
    * универсальное выравнивание существующих инстансов по рельефу через
    * `createLayerWithAdjustment`.
    *
-   * Параметр `layerData` позволяет переопределить имя/видимость/позицию и др.
+   * Параметр `layerData` позволяет переопределить имя/видимость/позицию/цвет и др.
+   * Поддерживает задание цвета слою террейна через параметр `color`.
    */
   static async createProceduralLayer(
     spec: GfxProceduralTerrainSpec,
@@ -232,7 +234,9 @@ export class SceneAPI {
         depth: spec.world.height,
         terrain,
         visible: layerData?.visible ?? true,
-        position: layerData?.position ?? useSceneStore.getState().layers.length
+        position: layerData?.position ?? useSceneStore.getState().layers.length,
+        // Поддержка цвета террейна
+        color: layerData?.color
       }
 
       const merged: Omit<SceneLayer, 'id'> = { ...base, ...layerData, terrain }
@@ -319,7 +323,8 @@ export class SceneAPI {
       id: layer.id,
       name: layer.name,
       visible: layer.visible,
-      objectCount: objects.filter(obj => obj.layerId === layer.id).length
+      objectCount: objects.filter(obj => obj.layerId === layer.id).length,
+      color: layer.color
     }))
 
     return {
