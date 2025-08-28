@@ -1,9 +1,19 @@
-import {  useMemo } from 'react'
+import { useMemo } from 'react'
 import { hoverTooltip } from '@codemirror/view'
 import { syntaxTree } from '@codemirror/language'
 import { analyzeVariableTypes, getMethodInfo } from '../utils/codeAnalysis'
 import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
+import { createTooltipDOM, createStyledTooltip } from '../utils/tooltipUtils'
 
+/**
+ * Хук создания hover‑подсказок для редактора скриптов.
+ *
+ * Единообразно оформляет тултипы:
+ * - по методам sceneApi.* (использует общий источник доков);
+ * - по переменным с выведенными типами (основано на API_RETURN_TYPES).
+ *
+ * Возвращает расширение CodeMirror для показа подсказок при наведении.
+ */
 export const useTooltipCreation = () => {
   const createHoverTooltipExtension = useMemo(() => {
 
@@ -32,22 +42,8 @@ export const useTooltipCreation = () => {
               end: node.to,
               above: true,
               create: () => {
-                const div = document.createElement('div')
-                div.style.cssText = `
-                  padding: 8px 12px;
-                  background-color: #1e1e1e;
-                  color: #d4d4d4;
-                  border: 1px solid #444;
-                  border-radius: 6px;
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                  max-width: 400px;
-                  font-family: 'Fira Code', monospace;
-                  font-size: 12px;
-                  line-height: 1.4;
-                  white-space: pre-wrap;
-                  z-index: 10000;
-                `
-                div.textContent = methodInfo
+                const generator = createStyledTooltip(methodInfo)
+                const div = generator()
                 return { dom: div }
               }
             }
@@ -68,25 +64,7 @@ export const useTooltipCreation = () => {
               pos: node.from,
               end: node.to,
               above: true,
-              create: () => {
-                const div = document.createElement('div')
-                div.style.cssText = `
-                  padding: 8px 12px;
-                  background-color: #1e1e1e;
-                  color: #d4d4d4;
-                  border: 1px solid #444;
-                  border-radius: 6px;
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                  max-width: 400px;
-                  font-family: 'Fira Code', monospace;
-                  font-size: 12px;
-                  line-height: 1.4;
-                  white-space: pre-wrap;
-                  z-index: 10000;
-                `
-                div.textContent = typeInfo
-                return { dom: div }
-              }
+              create: () => createTooltipDOM(typeInfo)
             }
           }
         }

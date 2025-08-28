@@ -1,6 +1,5 @@
 import React, { memo } from 'react'
-import { Box, Paper, Group, Text } from '@mantine/core'
-import { IconInfoCircle } from '@tabler/icons-react'
+import { Box } from '@mantine/core'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 import { autocompletion } from '@codemirror/autocomplete'
@@ -16,50 +15,16 @@ interface ScriptEditorProps {
   completionExtension: any
   /** Расширение для hover‑подсказок */
   hoverTooltipExtension: any
-  /** Информация о методе под курсором (tooltip) */
-  currentMethodInfo: string | null
 }
 
 export const ScriptEditor = memo<ScriptEditorProps>(({ 
   script,
   onChange,
   completionExtension,
-  hoverTooltipExtension,
-  currentMethodInfo
+  hoverTooltipExtension
 }) => {
   return (
     <Box style={{ flex: '1', minHeight: 0, position: 'relative', width: '100%' }}>
-      {currentMethodInfo && (
-        <Paper
-          shadow="md"
-          p="xs"
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            zIndex: 1000,
-            maxWidth: 400,
-            backgroundColor: 'var(--mantine-color-dark-7)',
-            border: '1px solid var(--mantine-color-dark-4)'
-          }}
-        >
-          <Group gap="xs" mb="xs">
-            <IconInfoCircle size={16} color="var(--mantine-color-blue-4)" />
-            <Text size="sm" fw={500} c="blue.4">Подсказка типов</Text>
-          </Group>
-          <Text
-            size="xs"
-            c="gray.3"
-            style={{
-              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-              whiteSpace: 'pre-wrap',
-              lineHeight: 1.4
-            }}
-          >
-            {currentMethodInfo}
-          </Text>
-        </Paper>
-      )}
 
       <CodeMirror
         value={script}

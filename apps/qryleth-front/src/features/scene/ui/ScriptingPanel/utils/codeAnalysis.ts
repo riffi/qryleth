@@ -1,4 +1,5 @@
 import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
+import { getMethodDoc } from '../constants/methodDocs'
 
 /**
  * Проанализировать текст скрипта и вывести карту типов переменных,
@@ -62,121 +63,13 @@ export const extractVariablesFromScript = (scriptText: string): string[] => {
   return Array.from(variables)
 }
 
-/**
- * Определить текущий контекст вызова метода sceneApi.* под курсором.
- * Если курсор находится внутри круглых скобок вызова метода, возвращает
- * краткую справку по сигнатуре и параметрам этого метода для показа в тултипе.
- */
-export const analyzeCurrentContext = (text: string, cursorPos: number): string | null => {
-  const beforeCursor = text.substring(0, cursorPos)
-
-  const sceneApiPattern = /sceneApi\.(\w+)\s*\(/g
-  let match
-  let lastMatch = null
-
-  while ((match = sceneApiPattern.exec(beforeCursor)) !== null) {
-    lastMatch = match
-  }
-
-  if (lastMatch) {
-    const methodName = lastMatch[1]
-    const methodStartPos = lastMatch.index + lastMatch[0].length - 1
-
-    const afterMethodStart = text.substring(methodStartPos)
-    let parenCount = 0
-    let insideMethod = false
-
-    for (let i = 0; i < afterMethodStart.length; i++) {
-      const char = afterMethodStart[i]
-      if (char === '(') {
-        parenCount++
-        if (parenCount === 1) insideMethod = true
-      } else if (char === ')') {
-        parenCount--
-        if (parenCount === 0) {
-          insideMethod = cursorPos <= methodStartPos + i;
-          break
-        }
-      }
-    }
-
-    if (insideMethod) {
-      return getMethodInfo(methodName)
-    }
-  }
-
-  return null
-}
+// analyzeCurrentContext удалён: hover‑подсказки и автокомплит используют единый
+// источник документации и контекст, отдельная панель подсказок не используется.
 
 /**
  * Вернуть текстовую справку по методу SceneAPI по его имени. Справка
  * содержит сигнатуру и описание основных параметров/возвращаемых данных.
  */
 export const getMethodInfo = (methodName: string): string | null => {
-  const methodInfoMap: Record<string, string> = {
-    'getSceneOverview': `getSceneOverview(): SceneOverview
-Возвращает: {
-  totalObjects: number,
-  totalInstances: number,
-  objects: SceneObjectInfo[],
-  instances: SceneInstanceInfo[],
-  sceneName: string,
-  layers: Array<{id, name, visible, objectCount}>
-}`,
-    'getSceneObjects': `getSceneObjects(): SceneObjectInfo[]
-Возвращает массив объектов сцены`,
-    'getSceneInstances': `getSceneInstances(): SceneInstanceInfo[]
-Возвращает массив экземпляров объектов`,
-    'findObjectByUuid': `findObjectByUuid(uuid: string): SceneObject | null
-Параметры:
-  uuid: string - UUID объекта для поиска`,
-    'findObjectByName': `findObjectByName(name: string): SceneObject | null
-Параметры:
-  name: string - Имя объекта (частичное совпадение)`,
-    'addInstances': `addInstances(objectUuid, layerId?, count?, placementStrategyConfig?): AddInstancesResult
-Параметры:
-  objectUuid: string - UUID существующего объекта
-  layerId?: string - ID слоя для размещения
-  count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: {
-    strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround',
-    // Для PlaceAround требуется metadata следующего вида:
-    metadata?: {
-      targetInstanceUuid?: string,   // UUID конкретного инстанса (приоритет 1)
-      targetObjectUuid?: string,     // UUID объекта (все его инстансы, приоритет 2)
-      minDistance: number,           // мин. расстояние от грани до грани
-      maxDistance: number,           // макс. расстояние от грани до грани
-      angleOffset?: number,          // сдвиг начального угла (рад)
-      distributeEvenly?: boolean,    // равномерно по кругу (по умолчанию true)
-      onlyHorizontal?: boolean       // только по горизонтали (по умолчанию true)
-    }
-  }`,
-    'getAvailableLayers': `getAvailableLayers(): Array<LayerInfo>
-Возвращает массив доступных слоев`,
-    'canAddInstance': `canAddInstance(objectUuid: string): boolean
-Параметры:
-  objectUuid: string - UUID объекта для проверки`,
-    'getSceneStats': `getSceneStats(): SceneStats
-Возвращает статистику сцены`,
-    'searchObjectsInLibrary': `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>
-Параметры:
-  query: string - Строка поиска`,
-    'createObject': `createObject(objectData, layerId?, count?, placementStrategyConfig?): AddObjectWithTransformResult
-Параметры:
-  objectData: GfxObject - Данные для создания объекта
-  layerId?: string = 'objects' - ID слоя для размещения
-  count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround', metadata?: any }`,
-    'addObjectFromLibrary': `addObjectFromLibrary(objectUuid, layerId?, count?, placementStrategyConfig?): Promise<AddObjectResult>
-Параметры:
-  objectUuid: string - UUID объекта в библиотеке
-  layerId?: string - ID слоя для размещения
-  count?: number = 1 - Количество экземпляров
-  placementStrategyConfig?: { strategy: 'Random' | 'RandomNoCollision' | 'PlaceAround', metadata?: any }`,
-    'adjustInstancesForPerlinTerrain': `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
-Параметры:
-  perlinLayerId: string - ID слоя с Perlin ландшафтом`
-  }
-
-  return methodInfoMap[methodName] || null
+  return getMethodDoc(methodName)
 }

@@ -7,7 +7,6 @@ import { SaveScriptModal } from './components/SaveScriptModal.tsx'
 import { useScriptManager } from './hooks/useScriptManager.ts'
 import { useCodeCompletion } from './hooks/useCodeCompletion.ts'
 import { useTooltipCreation } from './hooks/useTooltipCreation.ts'
-import { analyzeCurrentContext } from './utils/codeAnalysis.ts'
 import { getDefaultScript } from './templates'
 import { getTemplateGroups } from './templates'
 import { TemplatePickerModal } from './components/TemplatePickerModal'
@@ -26,7 +25,6 @@ interface ScriptingPanelProps {
 export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ height = 800 }) => {
   // Храним только JS-скрипт, выбор языка удалён
   const [script, setScript] = useState(() => getDefaultScript())
-  const [currentMethodInfo, setCurrentMethodInfo] = useState<string | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false)
   const [saveScriptName, setSaveScriptName] = useState('')
@@ -146,17 +144,10 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
   }, [aiPrompt, aiLoading, generateScript])
 
   /**
-   * Обработчик редактора: сохраняет текст, анализирует контекст под курсором
-   * для показа подсказок и справки по методам.
+   * Обработчик редактора: сохраняет текст скрипта. Подсказки выводятся через hover.
    */
-  const handleEditorChange = useCallback((value: string, viewUpdate: any) => {
+  const handleEditorChange = useCallback((value: string, _viewUpdate: any) => {
     setScript(value)
-
-    const selection = viewUpdate.state.selection.main
-    const cursorPos = selection.head
-
-    const methodInfo = analyzeCurrentContext(value, cursorPos)
-    setCurrentMethodInfo(methodInfo)
   }, [])
 
   /**
@@ -212,7 +203,6 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
         onChange={handleEditorChange}
         completionExtension={enhancedCompletions}
         hoverTooltipExtension={createHoverTooltipExtension}
-        currentMethodInfo={currentMethodInfo}
       />
 
       <SaveScriptModal
