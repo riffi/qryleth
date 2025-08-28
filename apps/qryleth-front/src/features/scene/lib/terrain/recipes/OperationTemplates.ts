@@ -23,6 +23,76 @@ export type FrozenRecipeParams = Partial<{
 }>
 
 /**
+ * Вычислить итоговый угол поворота операции с учётом orientation.
+ *
+ * Правила:
+ * - Если orientation не задан — используется прежняя логика (rotation/randomRotationEnabled/0).
+ * - orientation может быть строкой ('radial'|'tangent'|'fixed'|'random') или объектом с полями.
+ * - Для режимов radial/tangent базовый угол определяется относительно центра (placement.center для ring
+ *   либо явно заданного orientation.center). invert меняет направление.
+ * - Поле rotation внутри orientation трактуется как «дельта» к базовому углу: число или диапазон.
+ * - При lockParams дельта может быть «заморожена» снаружи и передана через frozen.rotation.
+ */
+function resolveRotation(
+  recipe: GfxTerrainOpRecipe,
+  center: [number, number],
+  rng: () => number,
+  frozen?: FrozenRecipeParams,
+): number {
+  const o: any = (recipe as any).orientation
+  if (o) {
+    const mode: 'radial' | 'tangent' | 'fixed' | 'random' = typeof o === 'string' ? o : o.mode
+    const placementAny: any = recipe.placement as any
+    const ringCenter: [number, number] | undefined = placementAny?.type === 'ring' ? placementAny.center : undefined
+    const origin: [number, number] | undefined = (typeof o === 'object' && o.center) ? o.center : ringCenter
+    const invert: boolean = typeof o === 'object' && o.invert ? true : false
+
+    let base = 0
+    if (mode === 'radial' || mode === 'tangent') {
+      if (origin) {
+        base = Math.atan2(center[1] - origin[1], center[0] - origin[0])
+        if (mode === 'tangent') {
+          base += invert ? -Math.PI / 2 : Math.PI / 2
+        } else {
+          base += invert ? Math.PI : 0
+        }
+      } else {
+        base = 0
+      }
+    }
+
+    // Дельта к базовому углу: frozen.rotation (если lockParams) имеет приоритет,
+    // иначе берём из orientation.rotation или из случайного полного круга для 'random'.
+    if (frozen && typeof frozen.rotation === 'number') {
+      return base + frozen.rotation
+    }
+
+    let delta = 0
+    if (typeof o === 'object' && o.rotation != null) {
+      if (Array.isArray(o.rotation)) {
+        const [min, max] = o.rotation
+        delta = min + (max - min) * rng()
+      } else {
+        delta = o.rotation as number
+      }
+    } else if (mode === 'random') {
+      delta = -Math.PI + 2 * Math.PI * rng()
+    }
+    return base + delta
+  }
+
+  // Базовая (прежняя) схема без orientation
+  if (frozen && typeof frozen.rotation === 'number') return frozen.rotation
+  return (
+    recipe.rotation
+      ? randAngle(rng, recipe.rotation)
+      : (recipe as any).randomRotationEnabled
+        ? randAngle(rng)
+        : 0
+  )
+}
+
+/**
  * Сгенерировать массив операций для одной «центральной» точки по рецепту.
  *
  * В зависимости от вида (kind) рецепт может порождать одну или несколько
@@ -57,15 +127,8 @@ export function buildOpsForPoint(
   // 1) Явно задан `rotation` → угол из указанного диапазона (включая 0).
   // 2) Иначе, если включён `randomRotationEnabled` → случайный угол полного круга.
   // 3) Иначе (по умолчанию) → 0 радиан (ориентация вдоль оси X).
-  const rotation: number = (frozen?.rotation != null)
-    ? frozen.rotation
-    : (
-      recipe.rotation
-        ? randAngle(rng, recipe.rotation)
-        : (recipe as any).randomRotationEnabled
-          ? randAngle(rng)
-          : 0
-    )
+  // Итоговый угол поворота, с учётом orientation (radial/tangent/fixed/random)
+  const rotation: number = resolveRotation(recipe, center, rng, frozen)
   // По умолчанию: для plateau → 'plateau'. Для valley без step → тоже 'plateau' (плоское дно).
   // Для остальных типов — 'smoothstep'. Явно заданный falloff имеет приоритет.
   const defaultFalloff: 'smoothstep' | 'gauss' | 'linear' | 'plateau' =

@@ -12,7 +12,6 @@ const islandSpec = {
   // Круглый остров, центр мира — [0,0]
   world: { width: 200, depth: 200, edgeFade: 0.3 },
   base: { 
-    seed: 2024, 
     octaveCount: 5, 
     amplitude: 4, 
     persistence: 0.6, 
@@ -20,7 +19,7 @@ const islandSpec = {
     height: 128 
   },
   pool: {
-    global: { intensityScale: 1.0, maxOps: 25 },
+    global: { intensityScale: 1.5, maxOps: 50 },
     recipes: [
       // Центральный вулкан
       {
@@ -46,15 +45,16 @@ const islandSpec = {
         kind: 'ridge',
         count: [4, 6],
         placement: { type: 'ring', center: [0, 0], rMin: 80, rMax: 95 },
-        radius: [6, 12],
-        aspect: [0.2, 0.4],
-        intensity: [3, 6],
+        // Ориентация гребней: радиально от центра кольца
+        orientation: 'radial',
+        radius: [10, 12],
+        aspect: [0.2, 0.7],
+        intensity: [5, 7],
         step: 15,
         falloff: 'linear'
       }
     ]
   },
-  seed: 2024
 }
 
 const island = await sceneApi.createProceduralLayer(islandSpec, {
@@ -64,4 +64,3 @@ const island = await sceneApi.createProceduralLayer(islandSpec, {
 
 console.log('Создан остров:', island)`
 }
-

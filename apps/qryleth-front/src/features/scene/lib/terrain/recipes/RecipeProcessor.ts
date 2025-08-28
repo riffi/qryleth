@@ -29,20 +29,41 @@ export function generateOpsForRecipeAtPoints(
   const result: GfxTerrainOp[] = []
   for (let i = 0; i < points.length; i++) {
     const rng = deriveRng(seed, `pt_${i}`)
-    // При lockParams фиксируем параметры один раз на рецепт и применяем ко всем точкам
+    // При lockParams фиксируем параметры один раз на рецепт и применяем ко всем точкам.
+    // ВАЖНО: для orientation фиксируем только «дельту» поворота, а базовый угол
+    // вычисляется от положения каждой точки (radial/tangent).
     let frozen: FrozenRecipeParams | undefined
     if ((recipe as any).lockParams) {
       const frng = deriveRng(seed, 'frozen_recipe_params')
       const radius = pickFromNumberOrRange(frng, recipe.radius)
       const aspect = recipe.aspect ? pickFromNumberOrRange(frng, recipe.aspect) : 1
       const intensity = pickFromNumberOrRange(frng, recipe.intensity)
-      const rotation = recipe.rotation
-        ? randAngle(frng, recipe.rotation)
-        : (recipe as any).randomRotationEnabled
-          ? randAngle(frng)
-          : 0
       const falloff = recipe.falloff
       const flatInner = (recipe as any).flatInner
+
+      // Выбор замораживаемого поворота:
+      // - если задан orientation → rotation трактуем как ДЕЛЬТУ к базовому углу;
+      // - иначе это абсолютный угол как раньше.
+      let rotation: number | undefined
+      const o: any = (recipe as any).orientation
+      if (o) {
+        if (typeof o === 'object' && o.rotation != null) {
+          rotation = Array.isArray(o.rotation)
+            ? o.rotation[0] + (o.rotation[1] - o.rotation[0]) * frng()
+            : (o.rotation as number)
+        } else if ((typeof o === 'string' && o === 'random') || (typeof o === 'object' && o.mode === 'random')) {
+          rotation = -Math.PI + 2 * Math.PI * frng()
+        } else {
+          rotation = 0
+        }
+      } else {
+        rotation = recipe.rotation
+          ? randAngle(frng, recipe.rotation)
+          : (recipe as any).randomRotationEnabled
+            ? randAngle(frng)
+            : 0
+      }
+
       frozen = { radius, aspect, intensity, rotation, falloff, flatInner }
     }
     const drafts: GfxTerrainOpDraft[] = buildOpsForPoint(recipe, points[i], rng, intensityScale, frozen)

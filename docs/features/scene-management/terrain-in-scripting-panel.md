@@ -692,6 +692,73 @@ bias: {
 - Помните, что bias-фильтры и ограничение областей (`placement.area`) могут уменьшить фактическое число операций — это нормально.
 
 
+### Параметр orientation — управление направлением
+
+`orientation` унифицирует работу с поворотом фигур и позволяет привязать направление к геометрии размещения.
+
+- Если указан `orientation`, поля `rotation` и `randomRotationEnabled` игнорируются.
+- Режимы:
+  - `radial` — ориентировать вдоль радиуса от центра (для `ring` центр берётся из `placement.center`). `invert` — к центру.
+  - `tangent` — ориентировать касательно кольца (вправо от радиуса). `invert` меняет направление (CW/CCW).
+  - `fixed` — фиксированный общий угол (база 0) + дельта `rotation`.
+  - `random` — случайный угол полного круга или в пределах диапазона `rotation`.
+- `orientation.rotation` — это дельта к базовому углу. При `lockParams` «замораживается» только дельта, базовый угол считается от каждой точки.
+
+Пример: касательные прибрежные утёсы вокруг острова
+```javascript
+const coastalSpec = {
+  world: { width: 300, depth: 300, edgeFade: 0.2 },
+  base: { seed: 2025, octaveCount: 5, amplitude: 6, persistence: 0.58, width: 128, height: 128 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 60 },
+    recipes: [
+      {
+        kind: 'ridge',
+        count: [8, 12],
+        placement: { type: 'ring', center: [0, 0], rMin: 110, rMax: 135 },
+        orientation: { mode: 'tangent', rotation: [-0.15, 0.15] }, // касательно к берегу + лёгкий разброс
+        radius: [8, 14],
+        aspect: [0.2, 0.4],
+        intensity: [3, 6],
+        step: 18,
+        falloff: 'linear'
+      }
+    ]
+  },
+  seed: 2025
+}
+
+const coast = await sceneApi.createProceduralLayer(coastalSpec, { name: 'Касательные утёсы' })
+```
+
+Пример: «лучи лавы» — радиальные гряды к центру кратера
+```javascript
+const lavaRaysSpec = {
+  world: { width: 220, depth: 220, edgeFade: 0.25 },
+  base: { seed: 913, octaveCount: 4, amplitude: 5, persistence: 0.55, width: 128, height: 128 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 60 },
+    recipes: [
+      { kind: 'crater', count: 1, placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 2 }, radius: 28, intensity: 14, falloff: 'gauss' },
+      {
+        kind: 'ridge',
+        count: [8, 12],
+        placement: { type: 'ring', center: [0, 0], rMin: 40, rMax: 90 },
+        orientation: { mode: 'radial', invert: true, rotation: [-0.08, 0.08] }, // «к центру» + небольшая дельта
+        radius: [6, 12],
+        aspect: [0.25, 0.45],
+        intensity: [3, 7],
+        step: 16,
+        falloff: 'smoothstep'
+      }
+    ]
+  },
+  seed: 913
+}
+
+const lavaRays = await sceneApi.createProceduralLayer(lavaRaysSpec, { name: 'Радиальные «лучи лавы»' })
+```
+
 ### Реалистичный горный массив
 
 Скопируйте в **Scripting Panel**:

@@ -402,6 +402,17 @@ export interface GfxTerrainOpRecipe {
   aspect?: [number, number]
   intensity: number | [number, number]
   rotation?: [number, number]
+  /**
+   * Ориентация фигур. Если задано — перекрывает rotation/randomRotationEnabled.
+   * Строка: 'radial' | 'tangent' | 'fixed' | 'random'.
+   * Объект: { mode, center?, invert?, rotation? } — rotation трактуется как ДЕЛЬТА к базовому углу.
+   */
+  orientation?:
+    | 'radial'
+    | 'tangent'
+    | 'fixed'
+    | 'random'
+    | { mode: 'radial'|'tangent'|'fixed'|'random', center?: [number, number], invert?: boolean, rotation?: number | [number, number] }
   falloff?: 'smoothstep' | 'gauss' | 'linear' | 'plateau'
   flatInner?: number // для 'plateau': доля плоского ядра (0..1)
   bias?: GfxBiasSpec
@@ -429,6 +440,16 @@ export interface GfxBiasSpec {
 - Для «центрального» размещения используйте `ring` с `rMin≈0, rMax≈2` и центром `[world.width/2, world.height/2]`.
 - При ошибках в значениях (неизвестный `kind`, `placement.type`, `falloff` или лишние ключи в `bias`) генератор бросает понятные ошибки с указанием конкретного поля.
 
+#### Orientation — управление направлением фигур
+
+- Если указан `orientation`, поля `rotation` и `randomRotationEnabled` игнорируются.
+- Режимы:
+  - `radial`: угол вдоль радиуса от центра (для `ring` центр берётся из `placement.center`). `invert` разворачивает «к центру».
+  - `tangent`: угол касательно кольца (вправо от радиуса). `invert` меняет направление (CW/CCW).
+  - `fixed`: базовый угол 0, к нему применяется дельта `rotation` (число или диапазон).
+  - `random`: случайный угол полного круга или в пределах дельты `rotation`.
+- `orientation.rotation` — это дельта к базовому углу. При `lockParams` «замораживается» дельта, а базовый угол считается от позиции точки.
+
 ### Примеры
 
 ```ts
@@ -445,6 +466,29 @@ const spec: GfxProceduralTerrainSpec = {
   },
   // Глобальный seed опционален: если не указан, будет сгенерирован автоматически
   seed: 3795
+}
+
+// Пример: прибрежные утёсы, касательно береговой линии
+const coastSpec = {
+  world: { width: 300, depth: 300, edgeFade: 0.2 },
+  base: { seed: 2025, octaveCount: 5, amplitude: 6, persistence: 0.58, width: 128, height: 128 },
+  pool: {
+    global: { intensityScale: 1.0, maxOps: 60 },
+    recipes: [
+      {
+        kind: 'ridge',
+        count: [8, 12],
+        placement: { type: 'ring', center: [0, 0], rMin: 110, rMax: 135 },
+        orientation: { mode: 'tangent', rotation: [-0.2, 0.2] }, // касательно + лёгкий разброс
+        radius: [8, 14],
+        aspect: [0.2, 0.4],
+        intensity: [3, 6],
+        step: 18,
+        falloff: 'linear'
+      }
+    ]
+  },
+  seed: 2025
 }
 ```
 

@@ -136,6 +136,37 @@ export interface GfxTerrainOpRecipe {
   randomRotationEnabled?: boolean
 
   /**
+   * Ориентация фигур относительно центра/касательно или в фиксированном/случайном направлении.
+   *
+   * Унифицированный способ управлять поворотом операций, сочетающий типовую логику
+   * (радиально/касательно) и дельту поворота (фикс/диапазон). Если задано `orientation`,
+   * поля `rotation` и `randomRotationEnabled` игнорируются.
+   *
+   * Варианты использования:
+   * - 'radial' — ориентировать от центра (по умолчанию берётся центр кольцевого placement);
+   * - 'tangent' — ориентировать касательно кольца (вправо от радиуса);
+   * - 'fixed' — зафиксированный общий угол (через rotation как дельту);
+   * - 'random' — случайный угол (дельта из [-π..π] либо из указанного диапазона rotation).
+   *
+   * Объектная форма позволяет задать:
+   * - mode: режим ('radial' | 'tangent' | 'fixed' | 'random');
+   * - center: [x, z] — явный центр для radial/tangent (по умолчанию — из placement.center при type='ring');
+   * - invert: boolean — инверсия направления (для radial — «к центру», для tangent — CW/CCW);
+   * - rotation: число или [min, max] — дельта к базовому углу (для fixed/random/тонкой настройки radial/tangent).
+   */
+  orientation?:
+    | 'radial'
+    | 'tangent'
+    | 'fixed'
+    | 'random'
+    | {
+        mode: 'radial' | 'tangent' | 'fixed' | 'random'
+        center?: [number, number]
+        invert?: boolean
+        rotation?: number | [number, number]
+      }
+
+  /**
    * Функция затухания эффекта по краям.
    * Дополнительно поддерживается 'plateau' — режим с плоским ядром (см. flatInner).
    */
