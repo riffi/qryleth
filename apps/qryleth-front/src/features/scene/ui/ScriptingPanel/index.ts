@@ -5,6 +5,7 @@ export { useScriptManager } from './hooks/useScriptManager'
 export { useCodeCompletion } from './hooks/useCodeCompletion'
 export { useTooltipCreation } from './hooks/useTooltipCreation'
 export { API_RETURN_TYPES } from './constants/apiReturnTypes'
-export { getDefaultScript, getProceduralTerrainTemplates } from './constants/scriptTemplates'
+// Экспорт шаблонов перенесён в папку templates
+export { getDefaultScript, getProceduralTerrainTemplates } from './templates'
 export * from './utils/codeAnalysis'
 export * from './utils/tooltipUtils'

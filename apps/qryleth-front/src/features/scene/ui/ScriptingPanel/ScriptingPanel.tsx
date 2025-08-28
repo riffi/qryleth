@@ -8,18 +8,27 @@ import { useScriptManager } from './hooks/useScriptManager.ts'
 import { useCodeCompletion } from './hooks/useCodeCompletion.ts'
 import { useTooltipCreation } from './hooks/useTooltipCreation.ts'
 import { analyzeCurrentContext } from './utils/codeAnalysis.ts'
-import { getDefaultScript, getTerrainTemplateGroups } from './constants/scriptTemplates.ts'
+import { getDefaultScript } from './templates'
+import { getTemplateGroups } from './templates'
+import { TemplatePickerModal } from './components/TemplatePickerModal'
 import { useAIScriptGenerator } from './hooks/useAIScriptGenerator.ts'
 
 interface ScriptingPanelProps {
   height?: number | string
 }
 
+/**
+ * Основной компонент панели скриптинга.
+ * 
+ * Предоставляет редактор JS-кода, автокомплит, подсказки по API, генерацию кода ИИ,
+ * управление сохранёнными скриптами и выбор шаблонов через полноэкранное окно.
+ */
 export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ height = 800 }) => {
   // Храним только JS-скрипт, выбор языка удалён
   const [script, setScript] = useState(() => getDefaultScript())
   const [currentMethodInfo, setCurrentMethodInfo] = useState<string | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false)
   const [saveScriptName, setSaveScriptName] = useState('')
   const [saveScriptDescription, setSaveScriptDescription] = useState('')
   const [aiPrompt, setAiPrompt] = useState('')
@@ -33,6 +42,12 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     scriptManager.loadSavedScripts()
   }, [scriptManager])
 
+  /**
+   * Сохранить текущий скрипт:
+   * - проверяет валидность имени
+   * - сохраняет имя и описание в менеджере скриптов
+   * - закрывает модалку и очищает поля при успехе
+   */
   const handleSaveScript = useCallback(async () => {
     if (!saveScriptName.trim()) return
 
@@ -44,6 +59,9 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     }
   }, [saveScriptName, saveScriptDescription, script, scriptManager])
 
+  /**
+   * Загрузить ранее сохранённый скрипт по UUID и заменить содержимое редактора.
+   */
   const handleLoadScript = useCallback(async (scriptUuid: string) => {
     const content = await scriptManager.loadScript(scriptUuid)
     if (content) {
@@ -51,15 +69,25 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     }
   }, [scriptManager])
 
+  /**
+   * Удалить сохранённый скрипт по его UUID из локального хранилища.
+   */
   const handleDeleteScript = useCallback(async (scriptUuid: string) => {
     await scriptManager.deleteScript(scriptUuid)
   }, [scriptManager])
 
+  /**
+   * Создать новый скрипт: подставить дефолтный шаблон и сбросить состояние редактора.
+   */
   const handleNewScript = useCallback(() => {
     setScript(getDefaultScript())
     scriptManager.createNewScript()
   }, [scriptManager])
 
+  /**
+   * Открыть окно сохранения. Если редактируем сохранённый скрипт —
+   * подставить текущее имя и описание для удобства.
+   */
   const openSaveModal = useCallback(() => {
     const currentScript = scriptManager.getCurrentScriptInfo()
     if (currentScript) {
@@ -72,6 +100,10 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     setIsSaveModalOpen(true)
   }, [scriptManager])
 
+  /**
+   * Выполнить код из редактора с поддержкой async-функций.
+   * Результат (если есть) и ошибки — в консоль.
+   */
   const executeScript = useCallback(async () => {
     if (!script.trim()) return
 
@@ -101,6 +133,9 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
    * - извлекает из ответа код и подменяет содержимое редактора
    * - язык не переключается: панель поддерживает только JavaScript
    */
+  /**
+   * Сгенерировать код по описанию с помощью ИИ и заменить содержимое редактора.
+   */
   const handleGenerateByAI = useCallback(async () => {
     if (!aiPrompt.trim() || aiLoading) return
 
@@ -110,6 +145,10 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     }
   }, [aiPrompt, aiLoading, generateScript])
 
+  /**
+   * Обработчик редактора: сохраняет текст, анализирует контекст под курсором
+   * для показа подсказок и справки по методам.
+   */
   const handleEditorChange = useCallback((value: string, viewUpdate: any) => {
     setScript(value)
 
@@ -120,16 +159,18 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
     setCurrentMethodInfo(methodInfo)
   }, [])
 
-  const templates = React.useMemo(() => getTerrainTemplateGroups(), [])
-  const handleApplyTemplate = useCallback((name: string) => {
-    // Поиск шаблона по имени во всех группах
-    for (const group of Object.values(templates)) {
-      if (group[name]) {
-        setScript(group[name])
-        return
-      }
-    }
-  }, [templates])
+  /**
+   * Группы шаблонов для нового модального выбора.
+   */
+  const templateGroups = React.useMemo(() => getTemplateGroups(), [])
+
+  /**
+   * Применить выбранный шаблон: подставить код и закрыть выбор.
+   */
+  const handleSelectTemplate = useCallback((tpl: { code: string }) => {
+    setScript(tpl.code)
+    setIsTemplatePickerOpen(false)
+  }, [])
 
   return (
     <Box style={{ height, display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -142,8 +183,7 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
         onEditScript={openSaveModal}
         onDeleteScript={handleDeleteScript}
         onExecuteScript={executeScript}
-        templates={templates}
-        onApplyTemplate={handleApplyTemplate}
+        onOpenTemplatePicker={() => setIsTemplatePickerOpen(true)}
       />
 
       {/* Панель генерации скрипта ИИ */}
@@ -184,6 +224,13 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
         onNameChange={setSaveScriptName}
         onDescriptionChange={setSaveScriptDescription}
         onSave={handleSaveScript}
+      />
+
+      <TemplatePickerModal
+        opened={isTemplatePickerOpen}
+        onClose={() => setIsTemplatePickerOpen(false)}
+        groups={templateGroups}
+        onSelect={handleSelectTemplate}
       />
     </Box>
   )

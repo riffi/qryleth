@@ -13,13 +13,19 @@ interface ToolbarPanelProps {
   onDeleteScript: (uuid: string) => void
   onExecuteScript: () => void
   /**
-   * Набор доступных шаблонов: группы с названиями и скриптами
+   * Открыть полноэкранный выбор шаблонов. Ранее использовалось выпадающее меню —
+   * теперь открываем модальное окно с группами слева и карточками справа.
    */
-  templates?: Record<string, Record<string, string>>
-  /** Применить шаблон по названию */
-  onApplyTemplate?: (name: string) => void
+  onOpenTemplatePicker: () => void
 }
 
+/**
+ * Панель инструментов панели скриптинга.
+ * 
+ * Отвечает за быстрые действия пользователя: создание нового скрипта,
+ * загрузку/сохранение, удаление и выполнение скриптов. Также предоставляет
+ * кнопку открытия полноэкранного выбора шаблонов.
+ */
 export const ToolbarPanel = memo<ToolbarPanelProps>(({ 
   onNewScript,
   savedScripts,
@@ -29,8 +35,7 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
   onEditScript,
   onDeleteScript,
   onExecuteScript,
-  templates,
-  onApplyTemplate
+  onOpenTemplatePicker
 }) => {
   return (
     <Group justify="space-between" p="sm" bg="gray.9">
@@ -43,29 +48,8 @@ export const ToolbarPanel = memo<ToolbarPanelProps>(({
           Новый
         </Button>
 
-        {templates && Object.keys(templates).length > 0 && (
-          <Menu shadow="md" width={300}>
-            <Menu.Target>
-              <Button size="xs" variant="light">Шаблоны</Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              {Object.entries(templates).map(([groupName, groupTemplates]) => (
-                <React.Fragment key={groupName}>
-                  <Menu.Label>{groupName}</Menu.Label>
-                  {Object.keys(groupTemplates).map(templateName => (
-                    <Menu.Item 
-                      key={templateName} 
-                      onClick={() => onApplyTemplate && onApplyTemplate(templateName)}
-                    >
-                      {templateName}
-                    </Menu.Item>
-                  ))}
-                  <Menu.Divider />
-                </React.Fragment>
-              ))}
-            </Menu.Dropdown>
-          </Menu>
-        )}
+        {/* Кнопка выбора шаблонов открывает полноэкранное модальное окно */}
+        <Button size="xs" variant="light" onClick={onOpenTemplatePicker}>Шаблоны</Button>
 
         <Select
           placeholder="Загрузить скрипт"
