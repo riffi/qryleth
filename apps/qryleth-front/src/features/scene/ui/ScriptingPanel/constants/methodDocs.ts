@@ -166,8 +166,8 @@ export const METHOD_DOCS: Record<string, string> = {
   base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
   pool: { recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }] },
   seed: 42
-}, { name: 'Мой террейн', visible: true })
-Описание: Создает террейн в сцене и выравнивает объекты`,
+}, { name: 'Мой террейн', visible: true, color: '#228B22' })
+Описание: Создает террейн в сцене и выравнивает объекты. Поддерживает color для задания цвета слою`,
 }
 
 /**
