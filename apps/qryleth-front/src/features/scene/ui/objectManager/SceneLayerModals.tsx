@@ -40,10 +40,11 @@ import { TerrainAssetPickerModal } from './TerrainAssetPickerModal'
  */
 
 
+// Пресеты размеров слоя: ширина (X) и глубина (Z). Ранее второй параметр назывался height.
 const presets = [
-  {id: 1, title: 'Маленький', width: 10, height: 10 },
-  {id: 2, title: 'Средний', width: 100, height: 100 },
-  {id: 3, title: 'Большой', width: 1000, height: 1000 },
+  {id: 1, title: 'Маленький', width: 10, depth: 10 },
+  {id: 2, title: 'Средний', width: 100, depth: 100 },
+  {id: 3, title: 'Большой', width: 1000, depth: 1000 },
 ]
 
 export const SceneLayerModals: React.FC = () => {
@@ -99,7 +100,8 @@ export const SceneLayerModals: React.FC = () => {
         setLayerFormData(prev => ({
             ...prev,
             width: preset.width,
-            height: preset.height
+            // Используем новое поле глубины. Для совместимости в форме допускаем оба.
+            depth: (preset as any).depth ?? (preset as any).height
         }))
     }, [setLayerFormData])
 
@@ -308,7 +310,8 @@ export const SceneLayerModals: React.FC = () => {
                 // Создаем GfxTerrainConfig для heightmap
                 const terrainConfig: GfxTerrainConfig = {
                     worldWidth: layerFormData.width || 100,
-                    worldHeight: layerFormData.height || 100,
+                    // Глубина слоя маппится на высоту мира террейна (ось Z)
+                    worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || 100,
                     edgeFade: 0,
                     source: {
                         kind: 'heightmap',
@@ -334,7 +337,8 @@ export const SceneLayerModals: React.FC = () => {
                     position: layers?.length || 0,
                     color: layerFormData.color,
                     width: layerFormData.width,
-                    height: layerFormData.height,
+                    // Новое поле глубины слоя
+                    depth: (layerFormData as any).depth ?? (layerFormData as any).height,
                     shape: GfxLayerShape.Terrain,
                     terrain: terrainConfig
                 }
@@ -431,7 +435,7 @@ export const SceneLayerModals: React.FC = () => {
 
             const newTerrain: GfxTerrainConfig = {
                 worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
-                worldHeight: layerFormData.height || currentTerrain?.worldHeight || 100,
+                worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
                 edgeFade: currentTerrain?.edgeFade ?? 0,
                 source: {
                     kind: 'heightmap',
@@ -452,7 +456,7 @@ export const SceneLayerModals: React.FC = () => {
                 name: layerFormData.name?.trim() || currentLayer?.name || 'landscape',
                 color: layerFormData.color || DEFAULT_LANDSCAPE_COLOR,
                 width: layerFormData.width,
-                height: layerFormData.height,
+                depth: (layerFormData as any).depth ?? (layerFormData as any).height,
                 shape: GfxLayerShape.Terrain,
                 terrain: newTerrain
             })
@@ -692,9 +696,9 @@ export const SceneLayerModals: React.FC = () => {
                                             min={1}
                                         />
                                         <NumberInput
-                                            label="Длина, м"
-                                            value={layerFormData.height}
-                                            onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                            label="Глубина, м"
+                                            value={(layerFormData as any).depth ?? (layerFormData as any).height}
+                                            onChange={(val) => setLayerFormData({ ...layerFormData, depth: val || 1 })}
                                             min={1}
                                         />
                                     </Group>
@@ -711,9 +715,9 @@ export const SceneLayerModals: React.FC = () => {
                                 min={1}
                             />
                             <NumberInput
-                                label="Длина, м"
-                                value={layerFormData.height}
-                                onChange={(val) => setLayerFormData({ ...layerFormData, height: val || 1 })}
+                                label="Глубина, м"
+                                value={(layerFormData as any).depth ?? (layerFormData as any).height}
+                                onChange={(val) => setLayerFormData({ ...layerFormData, depth: val || 1 })}
                                 min={1}
                             />
                         </Group>

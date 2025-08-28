@@ -228,7 +228,8 @@ export class SceneAPI {
         type: GfxLayerType.Landscape,
         shape: GfxLayerShape.Terrain,
         width: spec.world.width,
-        height: spec.world.height,
+        // Для слоя используем термин «depth» вместо «height»
+        depth: spec.world.height,
         terrain,
         visible: layerData?.visible ?? true,
         position: layerData?.position ?? useSceneStore.getState().layers.length
@@ -635,12 +636,13 @@ export class SceneAPI {
         finalLayerData = { ...layerData, terrain: terrainConfig }
       } else if (isTerrainLayer && !(layerData as any).terrain) {
         const w = (layerData as any).width || 1
-        const h = (layerData as any).height || 1
+        // Новое поле глубины; поддерживаем legacy height для совместимости
+        const d = ((layerData as any).depth ?? (layerData as any).height) || 1
         const gridW = w > 200 ? 200 : w
-        const gridH = h > 200 ? 200 : h
+        const gridH = d > 200 ? 200 : d
         const defaultTerrain: import('@/entities/terrain').GfxTerrainConfig = {
           worldWidth: w,
-          worldHeight: h,
+          worldHeight: d,
           edgeFade: 0.15,
           source: {
             kind: 'perlin',

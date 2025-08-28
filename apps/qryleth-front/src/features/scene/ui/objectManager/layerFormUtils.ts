@@ -18,7 +18,11 @@ export const createEmptySceneLayer = (): SceneLayer => ({
     // По умолчанию создаётся «объектный» слой
     type: GfxLayerType.Object,
     width: 10,
-    height: 10,
+    /**
+     * Глубина слоя (ось Z), ранее называлась height в старых версиях.
+     * Значение задаётся в условных метрах.
+     */
+    depth: 10,
     shape: GfxLayerShape.Plane,
     color: DEFAULT_LANDSCAPE_COLOR,
     visible: true,

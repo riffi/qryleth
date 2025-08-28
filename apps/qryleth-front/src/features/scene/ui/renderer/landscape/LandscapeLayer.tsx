@@ -61,6 +61,10 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
   }, [sampler, layer.shape, layer.terrain, startTerrainApplying, finishTerrainApplying])
 
   const geometry = useMemo(() => {
+    // Размеры слоя: ширина (X) и глубина (Z). Для совместимости поддерживаем legacy height.
+    const w = layer.width || 1
+    const d = (layer as any).depth ?? (layer as any).height ?? 1
+
     if (layer.shape === GfxLayerShape.Terrain) {
       // Новая архитектура: используем GfxHeightSampler если есть terrain конфигурация
       if (layer.terrain && sampler) {
@@ -69,11 +73,11 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         return geometry
       }
       // Нет конфигурации террейна — возвращаем простую плоскость для безопасности
-      return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+      return new THREE.PlaneGeometry(w, d)
     } else {
-      return new THREE.PlaneGeometry(layer.width || 1, layer.height || 1)
+      return new THREE.PlaneGeometry(w, d)
     }
-  }, [layer.width, layer.height, layer.shape, layer.terrain, layer.id, sampler, geometryVersion])
+  }, [layer.width, (layer as any).depth, (layer as any).height, layer.shape, layer.terrain, layer.id, sampler, geometryVersion])
 
   // Освобождение геометрии при размонтировании/пересоздании
   useEffect(() => {

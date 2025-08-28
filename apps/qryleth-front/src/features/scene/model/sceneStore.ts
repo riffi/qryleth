@@ -209,7 +209,12 @@ export const useSceneStore = create<SceneStore>()(
 
     // Layer management
     setLayers: (layers: SceneLayer[]) => {
-      set({ layers })
+      // Нормализуем legacy-поля: height → depth для слоёв
+      const normalized = layers.map(l => {
+        const depth = (l as any).depth ?? (l as any).height
+        return depth !== undefined ? ({ ...l, depth } as SceneLayer) : l
+      })
+      set({ layers: normalized })
       get().saveToHistory()
     },
 

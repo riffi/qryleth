@@ -58,7 +58,7 @@ describe('LandscapeLayer (integration)', () => {
       visible: true,
       position: 0,
       width: 10,
-      height: 10,
+      depth: 10,
       terrain: {
         worldWidth: 10,
         worldHeight: 10,
@@ -79,7 +79,7 @@ describe('LandscapeLayer (integration)', () => {
       visible: true,
       position: 0,
       width: 10,
-      height: 10,
+      depth: 10,
       terrain: {
         worldWidth: 10,
         worldHeight: 10,
@@ -96,4 +96,3 @@ describe('LandscapeLayer (integration)', () => {
     expect(__storeSpies.finishTerrainApplying).toHaveBeenCalled()
   })
 })
-

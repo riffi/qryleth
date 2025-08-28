@@ -16,8 +16,11 @@ export const WaterLayer: React.FC<WaterLayerProps> = ({ layer }) => {
   const meshRef = useRef<THREE.Mesh>(null)
 
   const geometry = useMemo(() => {
-    return new THREE.PlaneGeometry(layer.width || 10, layer.height || 10, 64, 64)
-  }, [layer.width, layer.height])
+    // Используем ширину (X) и глубину (Z). Для совместимости считываем legacy height.
+    const w = layer.width || 10
+    const d = (layer as any).depth ?? (layer as any).height ?? 10
+    return new THREE.PlaneGeometry(w, d, 64, 64)
+  }, [layer.width, (layer as any).depth, (layer as any).height])
 
   // Создаем shader material для имитации воды
   const waterMaterial = useMemo(() => {

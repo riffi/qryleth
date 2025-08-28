@@ -75,7 +75,7 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
       prevProps.layer.id === nextProps.layer.id &&
       prevProps.layer.visible === nextProps.layer.visible &&
       prevProps.layer.width === nextProps.layer.width &&
-      prevProps.layer.height === nextProps.layer.height &&
+      ((prevProps.layer as any).depth ?? (prevProps.layer as any).height) === ((nextProps.layer as any).depth ?? (nextProps.layer as any).height) &&
       prevProps.layer.shape === nextProps.layer.shape &&
       prevProps.layer.color === nextProps.layer.color && // учитывать изменение цвета слоя
       // Важно: учитывать изменения конфигурации террейна (в т.ч. heightmap)
@@ -93,7 +93,7 @@ export const MemoizedWaterLayer = React.memo<WaterLayerProps>(
       prevProps.layer.id === nextProps.layer.id &&
       prevProps.layer.visible === nextProps.layer.visible &&
       prevProps.layer.width === nextProps.layer.width &&
-      prevProps.layer.height === nextProps.layer.height
+      ((prevProps.layer as any).depth ?? (prevProps.layer as any).height) === ((nextProps.layer as any).depth ?? (nextProps.layer as any).height)
     )
   }
 )

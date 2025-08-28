@@ -150,7 +150,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             color: layerFormData.color,
             ...((layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) && {
                 width: layerFormData.width,
-                height: layerFormData.height,
+                // Используем термин depth вместо height
+                depth: (layerFormData as any).depth ?? (layerFormData as any).height,
                 shape: layerFormData.shape
             })
         }
@@ -190,7 +191,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         const updates: Partial<SceneLayer> = {
             name: layerFormData.name.trim(),
             width: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.width : undefined,
-            height: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.height : undefined,
+            // Новое поле глубины слоя. Для совместимости поддерживаем чтение из legacy height в форме
+            depth: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water)
+              ? ((layerFormData as any).depth ?? (layerFormData as any).height)
+              : undefined,
             shape: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.shape : undefined,
             color: layerFormData.color
         }
@@ -209,7 +213,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             name: layer.name,
             type: layer.type || GfxLayerType.Object,
             width: layer.width || 10,
-            height: layer.height || 10,
+            // В форме используем поле depth, читаем legacy height при наличии
+            depth: (layer as any).depth ?? (layer as any).height ?? 10,
             shape: layer.shape || GfxLayerShape.Plane,
             color: layer.color || DEFAULT_LANDSCAPE_COLOR,
             visible: layer.visible,
