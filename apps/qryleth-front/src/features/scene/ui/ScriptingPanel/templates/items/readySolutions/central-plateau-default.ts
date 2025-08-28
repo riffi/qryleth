@@ -25,8 +25,8 @@ const plateauDefaultSpec = {
         kind: 'plateau',
         count: 1,
         placement: { type: 'ring', center: [0, 0], rMin: 0, rMax: 0 },
-        radius: 70,
-        intensity: 8
+        radius: 80,
+        intensity: 20
         // falloff и flatInner НЕ указаны — применятся автозначения:
         // falloff: 'plateau', flatInner: 0.7
       }
