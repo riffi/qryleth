@@ -10,6 +10,8 @@ export const multiStageTemplate: TemplateData = {
   code: `// Пример создания террейна в несколько этапов
 console.log('Этап 1: Создание базового ландшафта...')
 
+// multiColorApi теперь доступен глобально вместе с sceneApi
+
 const baseResult = await sceneApi.createProceduralLayer({
   world: { width: 300, depth: 300, edgeFade: 0.1 },
   base: { 
@@ -22,7 +24,11 @@ const baseResult = await sceneApi.createProceduralLayer({
   },
   pool: { recipes: [] },
   seed: 1000
-}, { name: 'Базовый ландшафт' })
+}, { 
+  name: 'Базовый ландшафт',
+  // Добавляем многоцветную окраску по высоте
+  multiColor: multiColorApi.createHeightBasedConfig(-2, 8, 4, 1.0)
+})
 
 console.log('Базовый ландшафт:', baseResult)
 

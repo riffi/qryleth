@@ -7,6 +7,7 @@ import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { GfxTerrainConfig } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler.ts'
 import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder.ts'
+import { MultiColorProcessor } from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
@@ -86,7 +87,40 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     }
   }, [geometry])
 
+  // Процессор многоцветной окраски (создается только при наличии multiColor конфигурации)
+  const multiColorProcessor = useMemo(() => {
+    if (layer.multiColor && sampler) {
+      if (DEBUG) console.log('🎨 LandscapeLayer: Creating MultiColorProcessor for layer', layer.id)
+      return new MultiColorProcessor(layer.multiColor)
+    }
+    return null
+  }, [layer.multiColor, sampler])
+
+  // Вычисляем цвета вершин для многоцветной окраски
+  const vertexColors = useMemo(() => {
+    if (multiColorProcessor && sampler && geometry) {
+      if (DEBUG) console.log('🎨 LandscapeLayer: Generating vertex colors')
+      return multiColorProcessor.generateVertexColors(sampler, geometry)
+    }
+    return null
+  }, [multiColorProcessor, sampler, geometry, geometryVersion])
+
+  // Применяем цвета вершин к геометрии
+  useEffect(() => {
+    if (vertexColors && geometry) {
+      geometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 3))
+      geometry.attributes.color.needsUpdate = true
+      if (DEBUG) console.log('🎨 LandscapeLayer: Applied vertex colors to geometry')
+    }
+  }, [vertexColors, geometry])
+
+  // Цвет материала (используется только для одноцветных слоев)
   const materialColor = useMemo(() => {
+    // Если используется многоцветная окраска, цвет материала не важен
+    if (layer.multiColor) {
+      return new THREE.Color('#ffffff') // белый для корректного умножения с vertex colors
+    }
+    
     if (layer.color) {
       return new THREE.Color(layer.color)
     }
@@ -95,7 +129,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     } else {
       return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
     }
-  }, [layer.shape, layer.color])
+  }, [layer.shape, layer.color, layer.multiColor])
 
   const rotation = useMemo(() => {
     if (layer.shape === GfxLayerShape.Terrain) {
@@ -124,6 +158,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         wireframe={false}
         transparent={false}
         opacity={1.0}
+        vertexColors={layer.multiColor ? true : false}
       />
     </mesh>
   )

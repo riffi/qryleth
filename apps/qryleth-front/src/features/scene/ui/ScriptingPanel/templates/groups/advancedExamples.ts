@@ -1,5 +1,6 @@
 import type { TemplateGroup } from '../types'
 import { multiStageTemplate } from '../items/advancedExamples/multi-stage'
+import { multiColorTerrainTemplate } from '../items/advancedExamples/multicolor-terrain'
 
 /**
  * Группа «Продвинутые примеры» — более комплексные сценарии
@@ -14,5 +15,5 @@ export const advancedExamplesGroup: TemplateGroup = {
   id: 'advanced-examples',
   emoji: '🧠',
   title: 'Продвинутые примеры',
-  templates: [multiStageTemplate]
+  templates: [multiStageTemplate, multiColorTerrainTemplate]
 }

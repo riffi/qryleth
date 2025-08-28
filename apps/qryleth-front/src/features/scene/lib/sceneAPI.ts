@@ -30,6 +30,7 @@ import {
 import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
+import { MultiColorAPI } from './sceneAPI.multicolor'
 
 /**
  * Simplified scene object info for agent tools
@@ -216,7 +217,8 @@ export class SceneAPI {
    * `createLayerWithAdjustment`.
    *
    * Параметр `layerData` позволяет переопределить имя/видимость/позицию/цвет и др.
-   * Поддерживает задание цвета слою террейна через параметр `color`.
+   * Поддерживает задание цвета слою террейна через параметр `color` или
+   * многоцветной конфигурации через параметр `multiColor`.
    */
   static async createProceduralLayer(
     spec: GfxProceduralTerrainSpec,
@@ -236,7 +238,9 @@ export class SceneAPI {
         visible: layerData?.visible ?? true,
         position: layerData?.position ?? useSceneStore.getState().layers.length,
         // Поддержка цвета террейна
-        color: layerData?.color
+        color: layerData?.color,
+        // Поддержка многоцветной окраски
+        multiColor: layerData?.multiColor
       }
 
       const merged: Omit<SceneLayer, 'id'> = { ...base, ...layerData, terrain }
@@ -985,3 +989,6 @@ export class SceneAPI {
 
 // Экспорт класса для использования в ScriptingPanel
 export const sceneApi = SceneAPI
+
+// Экспорт MultiColorAPI для использования в ScriptingPanel
+export const multiColorApi = MultiColorAPI

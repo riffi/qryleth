@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Box, Group, Textarea, Button, Tooltip } from '@mantine/core'
-import { sceneApi } from '../../lib/sceneAPI.ts'
+import { sceneApi, multiColorApi } from '../../lib/sceneAPI.ts'
 import { ToolbarPanel } from './components/ToolbarPanel.tsx'
 import { ScriptEditor } from './components/ScriptEditor.tsx'
 import { SaveScriptModal } from './components/SaveScriptModal.tsx'
@@ -112,8 +112,8 @@ export const ScriptingPanel: React.FC<ScriptingPanelProps> = React.memo(({ heigh
         })();
       `
 
-      const func = new Function('sceneApi', 'console', asyncScript)
-      const result = await func(sceneApi, window.console)
+      const func = new Function('sceneApi', 'multiColorApi', 'console', asyncScript)
+      const result = await func(sceneApi, multiColorApi, window.console)
 
       if (result !== undefined) {
         console.log('Результат выполнения скрипта:', result)
