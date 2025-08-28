@@ -617,13 +617,23 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
  * Использует старую сигнатуру и логику placeInstance.
  * @deprecated Будет удалена после завершения миграции всех вызовов на новый placeInstance
  */
+/**
+ * Размещение одного экземпляра объекта (устаревший метод, сохраняется для обратной совместимости).
+ *
+ * Разделение флага выравнивания по террейну:
+ * - alignToTerrainHeight: выравнивать по высоте ландшафта (Y). Если задан bounding box, нижняя грань ставится на поверхность.
+ * - alignToTerrainRotation: автоповорот по нормали поверхности в точке (X,Z). По умолчанию выключен на уровне вызывающих методов.
+ *
+ * Ранее использовался единый флаг alignToTerrain, который совмещал оба аспекта. Теперь флаги разделены.
+ */
 export const placeInstanceLegacy = (
     instance: SceneObjectInstance,
     options?: {
       landscapeLayer?: SceneLayer;
       placementX?: number;
       placementZ?: number;
-      alignToTerrain?: boolean;
+      alignToTerrainHeight?: boolean;
+      alignToTerrainRotation?: boolean;
       objectBoundingBox?: import('@/shared/types').BoundingBox;
       existingInstances?: Array<{
         instance: SceneObjectInstance
@@ -670,10 +680,15 @@ export const placeInstanceLegacy = (
     }
   }
 
+  // Применяем выравнивание по высоте, если включено и есть слой ландшафта
+  if (options?.alignToTerrainHeight && options?.landscapeLayer) {
+    // targetY уже рассчитан выше: при наличии bounding box учитывается нижняя грань
+  }
+
   let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
 
-  // If alignToTerrain is enabled, calculate surface normal and align object
-  if (options?.alignToTerrain && options?.landscapeLayer) {
+  // Автоповорот по нормали поверхности
+  if (options?.alignToTerrainRotation && options?.landscapeLayer) {
     const surfaceNormal = calculateSurfaceNormal(
       options.landscapeLayer,
       placementX,
@@ -708,11 +723,19 @@ export const placeInstanceLegacy = (
  * @param placementStrategyConfig - конфигурация стратегии размещения
  * @returns массив созданных инстансов объектов
  */
+/**
+ * Размещение объекта(ов) по новой сигнатуре через стратегии размещения.
+ *
+ * Параметры выравнивания разделены:
+ * - alignToTerrainHeight: выравнивать по высоте ландшафта (Y). Если задан bounding box, нижняя грань ставится на поверхность.
+ * - alignToTerrainRotation: автоповорот по нормали поверхности (X,Z) — выключен по умолчанию в вызывающем коде.
+ */
 export const placeInstance = (
     objectUuid: string,
     options: {
       landscapeLayer?: SceneLayer;
-      alignToTerrain?: boolean;
+      alignToTerrainHeight?: boolean;
+      alignToTerrainRotation?: boolean;
       objectBoundingBox?: import('@/shared/types').BoundingBox;
       existingInstances?: Array<{instance: SceneObjectInstance, boundingBox: BoundingBox}>;
     },
@@ -745,10 +768,10 @@ export const placeInstance = (
       instanceIndex: i, // передаем индекс текущего инстанса для PlaceAround
       totalInstancesCount: count // передаем общее количество инстансов для PlaceAround
     });
-    // Корректируем высоту Y: если стратегия не задала Y, а требуется выравнивание по террейну,
+    // Корректируем высоту Y: если стратегия не задала Y, а требуется выравнивание по высоте террейна,
     // вычисляем высоту ландшафта и поднимаем объект так, чтобы нижняя грань касалась поверхности.
     let targetY = placementResult.position[1];
-    if (options.alignToTerrain && options.landscapeLayer) {
+    if (options.alignToTerrainHeight && options.landscapeLayer) {
       const heightY = queryHeightAtCoordinate(
         options.landscapeLayer,
         placementResult.position[0],
@@ -764,8 +787,8 @@ export const placeInstance = (
     }
     let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
 
-    // Если нужно выровнять по террейну
-    if (options.alignToTerrain && options.landscapeLayer) {
+    // Если нужно выполнить автоповорот по нормали поверхности
+    if (options.alignToTerrainRotation && options.landscapeLayer) {
       const surfaceNormal = calculateSurfaceNormal(
         options.landscapeLayer,
         placementResult.position[0],

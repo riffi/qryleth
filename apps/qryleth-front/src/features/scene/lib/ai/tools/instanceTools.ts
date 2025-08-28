@@ -55,8 +55,9 @@ const addInstanceSchema = z.object({
   instances: z.array(instanceParamsSchema).optional(),
   // Количество экземпляров для случайного размещения
   count: z.number().min(1).max(100).optional(),
-  // Выравнивание по поверхности ландшафта
-  alignToTerrain: z.boolean().optional().default(false),
+  // Выравнивание по ландшафту (раздельные флаги)
+  alignToTerrainHeight: z.boolean().optional().default(true).describe('выравнивать по высоте ландшафта (Y). Если есть bounding box — нижняя грань ставится на поверхность.'),
+  alignToTerrainRotation: z.boolean().optional().default(false).describe('автоматически поворачивать объект по нормали поверхности (по умолчанию: выключено).'),
   // Стратегия размещения
   placementStrategy: z.enum(['Random', 'RandomNoCollision', 'PlaceAround']).optional().describe('Стратегия размещения: Random — случайное размещение, RandomNoCollision — избегание коллизий, PlaceAround — размещение вокруг указанного объекта/инстанса (по умолчанию RandomNoCollision)'),
   placementMetadata: PlaceAroundMetadataSchema.optional().describe('Метаданные для PlaceAround стратегии. ОБЯЗАТЕЛЬНЫ при использовании PlaceAround!')
@@ -83,7 +84,8 @@ BoundingBox объекта учитывается при расчёте пози
 - visible: true/false (для одиночного экземпляра, по умолчанию true)
 - instances: массив объектов с параметрами для каждого экземпляра (position, rotation, scale, visible)
 - count: количество экземпляров для случайного размещения (1-100)
-- alignToTerrain: true/false (выравнивать объекты перпендикулярно к поверхности ландшафта, по умолчанию false)
+- alignToTerrainHeight: true/false (выравнивание по высоте ландшафта; при наличии bounding box нижняя грань ставится на поверхность; по умолчанию true)
+- alignToTerrainRotation: true/false (автоповорот по нормали к поверхности; по умолчанию false)
 
 Возвращает информацию о созданных экземплярах или ошибку.
 Перед использованием рекомендуется получить список объектов через get_scene_objects.`,

@@ -755,7 +755,8 @@ export class SceneAPI {
         objectUuid,
         {
           landscapeLayer,
-          alignToTerrain: true,
+          alignToTerrainHeight: true,
+          alignToTerrainRotation: false,
           objectBoundingBox,
           existingInstances
         },
@@ -856,7 +857,8 @@ export class SceneAPI {
         objectUuid,
         {
           landscapeLayer,
-          alignToTerrain: true,
+          alignToTerrainHeight: true,
+          alignToTerrainRotation: false,
           objectBoundingBox: boundingBox,
           existingInstances
         },
