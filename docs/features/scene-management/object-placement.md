@@ -20,6 +20,13 @@
 - `RandomNoCollision` — случайное размещение с проверкой пересечений.
 - `PlaceAround` — размещение вокруг целевого инстанса или всех инстансов заданного объекта.
 
+### Параметры выравнивания по террейну
+
+- `alignToTerrainHeight` — выравнивание по высоте ландшафта (Y). По умолчанию включено.
+- `alignToTerrainRotation` — автоповорот по нормали поверхности. По умолчанию выключен.
+- Наклон при автоповороте масштабируется линейно: 0° нормали → 0°, 90° → `maxTerrainTiltDeg` (по умолчанию 30°).
+  - Переопределяется через `metadata.maxTerrainTiltDeg` в любой стратегии (`Random`, `RandomNoCollision`, `PlaceAround`).
+
 Пример (вокруг конкретного инстанса):
 
 ```ts
@@ -31,7 +38,9 @@ SceneAPI.addInstances('rock-uuid', 'objects', 6, {
     maxDistance: 3.0,
     distributeEvenly: false,
     angleOffset: 0,
-    onlyHorizontal: true
+    onlyHorizontal: true,
+    // Переопределяем максимальный наклон для автоповорота
+    maxTerrainTiltDeg: 15
   }
 })
 ```

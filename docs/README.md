@@ -41,9 +41,15 @@
 - Поддержка PNG heightmap (Dexie) и `TerrainOps` (локальные модификации)
 - Обновлён `LandscapeLayer` и UI создания слоя (загрузка PNG)
  - Дедупликация PNG heightmap по хэшу высот в Dexie: повторная загрузка идентичной карты переиспользует существующий ассет
- - Введены `sampler.isReady()/ready()/dispose()`; UI ждёт `ready()` без таймеров
- - Выделены модули: sources/sampling/ops/effects/assets; `GeometryBuilder.ts`
- - Кэши heightmap с TTL/LRU и `invalidate(assetId)` для консистентности
+- Введены `sampler.isReady()/ready()/dispose()`; UI ждёт `ready()` без таймеров
+- Выделены модули: sources/sampling/ops/effects/assets; `GeometryBuilder.ts`
+- Кэши heightmap с TTL/LRU и `invalidate(assetId)` для консистентности
+
+**Выравнивание по террейну и индикатор осей (сентябрь 2025):**
+- Флаг `alignToTerrain` разделён на: `alignToTerrainHeight` (Y) и `alignToTerrainRotation` (поворот по нормали). По умолчанию: высота — включена, автоповорот — выключен.
+- Исправлена математика автоповорота по нормали (X/Z без «зеркал»), добавлено масштабирование наклона: 0° нормали → 0°, 90° → `MAX_TERRAIN_TILT_DEG` (по умолчанию 20°).
+- `maxTerrainTiltDeg` доступен в `metadata` всех стратегий размещения (Random/RandomNoCollision/PlaceAround).
+- В `SceneEditor` добавлен экранный индикатор осей (Viewport Gizmo) — фиксированно в правом нижнем углу.
 
 ---
 

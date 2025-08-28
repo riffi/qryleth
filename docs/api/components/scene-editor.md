@@ -7,6 +7,7 @@
   - расположен в каталоге `src/features/scene/ui/objectManager/SceneObjectManager.tsx`
   - использует `SceneObjectManagerContext` для передачи общих данных
 - `SceneEditorR3F` — Canvas на базе Three.js для визуализации
+ - Экранный индикатор осей (Viewport Gizmo) — фиксированный помощник ориентации камеры
 
 Компоненты расположены в каталоге `src/features/scene/ui/` и экспортируются через `index.ts`.
 
@@ -31,3 +32,12 @@
 - Поддерживаются источники: Perlin, PNG heightmap (через Dexie).
 - UI создания слоя поддерживает загрузку PNG и настройки (min/max, wrap) — см. `SceneLayerModals.tsx`.
 - При загрузке PNG выполняется дедупликация по хэшу высот: повторная загрузка идентичной карты переиспользует уже существующий ассет в Dexie.
+
+---
+
+## Экранный индикатор осей (Viewport Gizmo)
+
+- Реализация: `@react-three/drei` (`GizmoHelper` + `GizmoViewport`).
+- Расположение: правый нижний угол, поверх пост‑обработки.
+- Назначение: наглядно показывает направления осей X/Y/Z независимо от позиции камеры.
+- Код: `apps/qryleth-front/src/features/scene/ui/renderer/controls/ViewportAxesHelper.tsx` и подключение в `SceneContent.tsx`.

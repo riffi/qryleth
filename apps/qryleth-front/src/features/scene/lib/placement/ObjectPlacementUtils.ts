@@ -87,14 +87,16 @@ const limitNormalByMaxTilt = (normal: Vector3, maxTiltRad: number): Vector3 => {
  * Метаданные для стратегии Random размещения
  */
 export interface RandomMetadata {
-  // Пустая структура - будет расширена позже при необходимости
+  /** Максимальный наклон (в градусах) для автоповорота по нормали; если не задан — используется константа. */
+  maxTerrainTiltDeg?: number
 }
 
 /**
  * Метаданные для стратегии RandomNoCollision размещения
  */
 export interface RandomNoCollisionMetadata {
-  // Пустая структура - будет расширена позже при необходимости
+  /** Максимальный наклон (в градусах) для автоповорота по нормали; если не задан — используется константа. */
+  maxTerrainTiltDeg?: number
 }
 
 /**
@@ -121,6 +123,8 @@ export interface PlaceAroundMetadata {
   distributeEvenly?: boolean
   /** только горизонтально Y=const или 3D (по умолчанию: true) */
   onlyHorizontal?: boolean
+  /** Максимальный наклон (в градусах) для автоповорота по нормали; если не задан — используется константа. */
+  maxTerrainTiltDeg?: number
 }
 
 /**
@@ -326,9 +330,9 @@ const calculateSurfaceNormal = (
  *   - положительное nz => положительный наклон вперёд (rx > 0)
  *   - положительное nx => наклон вправо (rz > 0)
  */
-const normalToRotation = (normal: Vector3): Vector3 => {
-  // Ограничиваем нормаль согласно MAX_TERRAIN_TILT_RAD
-  const [x, y, z] = limitNormalByMaxTilt(normal, MAX_TERRAIN_TILT_RAD)
+const normalToRotation = (normal: Vector3, maxTiltRad?: number): Vector3 => {
+  // Ограничиваем нормаль согласно maxTiltRad (либо глобальной константе)
+  const [x, y, z] = limitNormalByMaxTilt(normal, maxTiltRad ?? MAX_TERRAIN_TILT_RAD)
   const rx = Math.atan2(z, y)
   const rz = Math.atan2(x, y)
   const ry = 0
@@ -829,13 +833,24 @@ export const placeInstance = (
 
     // Если нужно выполнить автоповорот по нормали поверхности
     if (options.alignToTerrainRotation && options.landscapeLayer) {
+      // Определяем максимальный наклон из метаданных стратегии, если задан
+      let maxTiltDeg: number | undefined
+      if (placementStrategyConfig.strategy === PlacementStrategy.PlaceAround) {
+        maxTiltDeg = placementStrategyConfig.metadata?.maxTerrainTiltDeg
+      } else if (placementStrategyConfig.strategy === PlacementStrategy.Random) {
+        maxTiltDeg = placementStrategyConfig.metadata?.maxTerrainTiltDeg
+      } else if (placementStrategyConfig.strategy === PlacementStrategy.RandomNoCollision) {
+        maxTiltDeg = placementStrategyConfig.metadata?.maxTerrainTiltDeg
+      }
+      const maxTiltRad = typeof maxTiltDeg === 'number' ? (Math.PI / 180) * maxTiltDeg : undefined
+
       const surfaceNormal = calculateSurfaceNormal(
         options.landscapeLayer,
         placementResult.position[0],
         placementResult.position[2]
       );
 
-      const terrainRotation = normalToRotation(surfaceNormal);
+      const terrainRotation = normalToRotation(surfaceNormal, maxTiltRad);
       finalRotation = [
         (newInstance.transform?.rotation?.[0] || 0) + terrainRotation[0],
         (newInstance.transform?.rotation?.[1] || 0) + terrainRotation[1],

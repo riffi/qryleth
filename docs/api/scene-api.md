@@ -80,6 +80,20 @@ type PlacementStrategyConfig =
   | { strategy: PlacementStrategy.PlaceAround; metadata: PlaceAroundMetadata }
 ```
 
+### `RandomMetadata` / `RandomNoCollisionMetadata`
+```ts
+interface RandomMetadata {
+  /**
+   * Максимальный наклон (в градусах) при автоповороте по нормали.
+   * Если не задан — используется глобальное значение по умолчанию (20°).
+   * Масштабирование линейное: 0° нормали → 0°, 90° → maxTerrainTiltDeg.
+   */
+  maxTerrainTiltDeg?: number
+}
+
+type RandomNoCollisionMetadata = RandomMetadata
+```
+
 ### `PlaceAroundMetadata`
 Метаданные для стратегии размещения вокруг целевых инстансов объекта.
 
@@ -97,6 +111,12 @@ interface PlaceAroundMetadata {
   angleOffset?: number          // начальный угол в радианах (по умолчанию 0)
   distributeEvenly?: boolean    // равномерно по кругу или случайно (по умолчанию true)
   onlyHorizontal?: boolean      // только по горизонтали (Y фиксирован) или 3D (по умолчанию true)
+  /**
+   * Максимальный наклон (в градусах) при автоповороте по нормали.
+   * Если не задан — используется глобальное значение по умолчанию (20°).
+   * Масштабирование линейное: 0° нормали → 0°, 90° → maxTerrainTiltDeg.
+   */
+  maxTerrainTiltDeg?: number
 }
 ```
 
@@ -105,6 +125,11 @@ interface PlaceAroundMetadata {
 - **`Random`** - случайное размещение без проверки коллизий
 - **`RandomNoCollision`** - случайное размещение с избеганием пересечений существующих объектов
 - **`PlaceAround`** - размещение экземпляров вокруг целевого инстанса или всех инстансов указанного объекта с учётом габаритов (bounding box) и коллизий.
+
+Примечания к выравниванию по террейну:
+- Размещение по высоте (Y): по умолчанию включено.
+- Автоповорот по нормали: по умолчанию выключен; при включении повороты по X/Z рассчитываются из нормали без «зеркал».
+- Наклон ограничивается линейным масштабированием: 0° нормали → 0°, 90° → `maxTerrainTiltDeg` (по умолчанию 20°). Значение можно задать в `metadata` стратегии.
 
 ### Result Types / Типы результатов
 
