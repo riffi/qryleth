@@ -71,6 +71,20 @@ export const WaterLayer: React.FC<WaterLayerProps> = ({ layer }) => {
         varying vec2 vUv;
         
         void main() {
+          // Создаем более мягкое размытие на краях
+          vec2 edgeDistance = abs(vUv - 0.5) * 2.0; // Расстояние от центра к краям (0-1)
+          
+          // Используем более мягкий переход с двумя этапами размытия
+          float radialDistance = length(vUv - 0.5) * 2.0; // Радиальное расстояние от центра
+          float squareEdge = max(edgeDistance.x, edgeDistance.y); // Квадратное расстояние до края
+          
+          // Комбинируем радиальное и квадратное размытие для более естественного вида
+          float combinedDistance = mix(radialDistance, squareEdge, 0.7);
+          
+          // Создаем очень мягкий fadeOut, начинающийся раньше и более плавный
+          float fadeOut = 1.0 - smoothstep(0.4, 1.0, combinedDistance);
+          fadeOut = pow(fadeOut, 1.5); // Дополнительное смягчение
+          
           // Создаем переливы воды
           float fresnel = dot(vNormal, vec3(0.0, 0.0, 1.0));
           fresnel = pow(1.0 - fresnel, 2.0);
@@ -82,8 +96,11 @@ export const WaterLayer: React.FC<WaterLayerProps> = ({ layer }) => {
           float noise = sin(vUv.x * 50.0 + time) * sin(vUv.y * 50.0 + time * 1.3) * 0.1;
           waterColor += noise * 0.1;
           
-          // Делаем воду немного прозрачной
-          gl_FragColor = vec4(waterColor, 0.8);
+          
+          // Применяем размытие краев к прозрачности
+          float alpha = 1.0 * fadeOut;
+          
+          gl_FragColor = vec4(waterColor, alpha);
         }
       `,
       transparent: true,
