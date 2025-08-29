@@ -16,6 +16,7 @@ import {
 } from '@/shared/lib/geometry/boundingBoxUtils'
 import { WalkControls } from './WalkControls.tsx'
 import { FlyControls } from './FlyControls.tsx'
+import { FlyoverControls } from './FlyoverControls.tsx'
 import { UiMode } from '@/shared/types/ui'
 
 /**
@@ -216,6 +217,9 @@ export const CameraControls: React.FC = () => {
 
     case 'fly':
       return <FlyControls />
+
+    case 'flyover':
+      return <FlyoverControls />
 
     default:
       return (

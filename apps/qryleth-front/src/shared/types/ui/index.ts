@@ -12,6 +12,8 @@ export enum ViewModeEnum {
   Orbit = 'orbit',
   Walk = 'walk',
   Fly = 'fly',
+  /** Автоматический облёт пиков ландшафта */
+  Flyover = 'flyover',
 }
 
 export enum RenderModeEnum {
@@ -36,7 +38,7 @@ export enum RenderProfile {
 }
 
 // Тип-алиасы для совместимости (будут заменены enum'ами в последующих фазах)
-export type ViewMode = 'orbit' | 'walk' | 'fly'
+export type ViewMode = 'orbit' | 'walk' | 'fly' | 'flyover'
 export type RenderMode = 'solid' | 'wireframe'
 export type TransformMode = 'translate' | 'rotate' | 'scale'
 

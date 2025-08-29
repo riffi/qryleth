@@ -1,8 +1,8 @@
 import React from 'react'
 import { Group, SegmentedControl } from '@mantine/core'
-import { IconPlanet, IconRun, IconPlaneTilt } from '@tabler/icons-react'
+import { IconPlanet, IconRun, IconPlaneTilt, IconDrone } from '@tabler/icons-react'
 
-export type ViewMode = 'orbit' | 'walk' | 'fly'
+export type ViewMode = 'orbit' | 'walk' | 'fly' | 'flyover'
 
 interface ViewModeSegmentProps {
   /** Текущий режим камеры */
@@ -16,7 +16,7 @@ interface ViewModeSegmentProps {
 }
 
 /**
- * Переключатель режима управления камерой сцены: Orbit/Walk/Fly.
+ * Переключатель режима управления камерой сцены: Orbit/Walk/Fly/Flyover.
  * Отдельный компонент, так как только SceneEditor использует его.
  */
 export const ViewModeSegment: React.FC<ViewModeSegmentProps> = ({ value, onChange, frosted = false, size = 'xs' }) => {
@@ -49,6 +49,15 @@ export const ViewModeSegment: React.FC<ViewModeSegmentProps> = ({ value, onChang
             <Group gap={4} wrap="nowrap">
               <IconPlaneTilt size={14} />
               <span>Fly</span>
+            </Group>
+          )
+        },
+        {
+          value: 'flyover',
+          label: (
+            <Group gap={4} wrap="nowrap">
+              <IconDrone size={14} />
+              <span>Облёт</span>
             </Group>
           )
         }

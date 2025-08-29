@@ -631,7 +631,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           )}
         </Stack>
         <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', userSelect: 'none' }}>
-          Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly
+          Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly, 4 — Облёт
         </Text>
       </Group>
     )

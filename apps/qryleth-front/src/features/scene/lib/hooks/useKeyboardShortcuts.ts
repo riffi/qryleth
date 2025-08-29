@@ -101,7 +101,7 @@ export const useKeyboardShortcuts = () => {
         }
       }
 
-      // Если активен режим Play — разрешены только 1/2/3 для камер, остальное игнорируем
+      // Если активен режим Play — разрешены только 1/2/3/4 для камер, остальное игнорируем
       if (uiMode === UiMode.Play) {
         switch (event.key) {
           case '1':
@@ -115,6 +115,10 @@ export const useKeyboardShortcuts = () => {
           case '3':
             event.preventDefault()
             setViewMode(ViewModeEnum.Fly)
+            return
+          case '4':
+            event.preventDefault()
+            setViewMode(ViewModeEnum.Flyover)
             return
           default:
             return // все остальные хоткеи отключены в play
