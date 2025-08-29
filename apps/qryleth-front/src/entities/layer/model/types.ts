@@ -48,14 +48,27 @@ export interface GfxColorZone {
 }
 
 /**
+ * Упрощённый стоп палитры для совместимости с MultiColorProcessor.
+ * Используется для простой окраски по высоте без зональности.
+ */
+export interface GfxMultiColorPaletteStop {
+  /** Значение высоты для этого стопа */
+  height: number;
+  /** Цвет в любом CSS-формате */
+  color: string;
+}
+
+/**
  * Конфигурация многоцветного градиента на основе параметра поверхности.
  * Поддерживает создание зональной окраски с плавными переходами между зонами.
  */
 export interface GfxMultiColorConfig {
+  /** Режим окраски: по вершинам или по треугольникам */
+  mode?: 'vertex' | 'triangle';
   /** Параметр, по которому определяется цвет */
-  parameter: 'height' | 'slope' | 'curvature';
+  parameter?: 'height' | 'slope' | 'curvature';
   /** Цветовые зоны, отсортированные по возрастанию значения параметра */
-  zones: GfxColorZone[];
+  zones?: GfxColorZone[];
   /** 
    * Размер зоны перехода между цветами в единицах параметра.
    * В переходной зоне происходит плавная интерполяция между соседними цветами.
@@ -67,6 +80,17 @@ export interface GfxMultiColorConfig {
    * Если не указан, автоматически вычисляется как [min зоны, max зоны].
    */
   range?: [number, number];
+  /**
+   * Упрощённая палитра для совместимости с MultiColorProcessor.
+   * Используется вместо zones, если указана. Альтернативный способ задания цветов по высоте.
+   */
+  palette?: GfxMultiColorPaletteStop[];
+  /**
+   * Вклад крутизны склонов в яркость цвета (0..1).
+   * Значение 0 - крутизна не влияет, 1 - максимальное влияние.
+   * Соответствует параметру slopeBoost из MultiColorProcessor.
+   */
+  slopeBoost?: number;
 }
 
 export interface GfxLayer {
