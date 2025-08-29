@@ -1,7 +1,6 @@
 import type { TemplateGroup, TemplateData } from './types'
 import { quickStartGroup } from './groups/quickStart'
 import { landscapesGroup } from './groups/landscapes'
-import { advancedExamplesGroup } from './groups/advancedExamples'
 import { utilitiesGroup } from './groups/utilities'
 export { getDefaultScript } from './defaultScript'
 
@@ -18,7 +17,6 @@ export { getDefaultScript } from './defaultScript'
 export const getTemplateGroups = (): TemplateGroup[] => [
   quickStartGroup,
   landscapesGroup,
-  advancedExamplesGroup,
   utilitiesGroup
 ]
 

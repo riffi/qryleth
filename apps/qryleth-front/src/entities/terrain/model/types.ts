@@ -97,6 +97,26 @@ export interface GfxTerrainOp {
 }
 
 /**
+ * Конфигурация параметров адаптивной тесселляции
+ */
+export interface GfxAdaptiveTessellationConfig {
+  /** Включить адаптивную тесселляцию */
+  enabled: boolean;
+  /** Максимальная длина стороны треугольника в мировых единицах */
+  maxEdgeLength?: number;
+  /** Максимальная разность высот в треугольнике для разделения */
+  maxHeightDifference?: number;
+  /** Максимальное количество итераций разбиения */
+  maxIterations?: number;
+  /** Минимальный размер треугольника (для предотвращения бесконечного деления) */
+  minTriangleSize?: number;
+  /** Порог сложности рельефа для автоматического включения (0.0-1.0) */
+  complexityThreshold?: number;
+  /** Минимальная площадь террейна для автоматического включения */
+  minAreaThreshold?: number;
+}
+
+/**
  * Полная конфигурация террейна слоя
  */
 export interface GfxTerrainConfig {
@@ -115,6 +135,11 @@ export interface GfxTerrainConfig {
   source: GfxTerrainSource;
   /** Массив операций модификации террейна */
   ops?: GfxTerrainOp[];
+  /** 
+   * Конфигурация адаптивной тесселляции для оптимизации геометрии 
+   * при резких перепадах высот
+   */
+  adaptiveTessellation?: GfxAdaptiveTessellationConfig;
 }
 
 /**
