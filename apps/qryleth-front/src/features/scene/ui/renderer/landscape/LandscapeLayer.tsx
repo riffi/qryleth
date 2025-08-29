@@ -103,7 +103,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
       return faceGeom
     } else {
       const vertexColors = multiColorProcessor.generateVertexColors(sampler, baseGeometry)
-      baseGeometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 3))
+      baseGeometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 4)) // RGBA вместо RGB
       ;(baseGeometry.attributes.color as THREE.BufferAttribute).needsUpdate = true
       return baseGeometry
     }
@@ -123,6 +123,12 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     if (layer.shape === GfxLayerShape.Terrain) return new THREE.Color('#4a7c59')
     return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
   }, [layer.shape, layer.color, layer.multiColor])
+
+  // Проверка наличия прозрачности в палитре
+  const hasTransparency = useMemo(() => {
+    if (!layer.multiColor?.palette) return false
+    return layer.multiColor.palette.some(stop => (stop.alpha ?? 1.0) < 1.0)
+  }, [layer.multiColor?.palette])
 
   const rotation = useMemo(() => {
     if (layer.shape === GfxLayerShape.Terrain) return [0, 0, 0] as const
@@ -148,7 +154,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
             color={materialColor}
             side={THREE.DoubleSide}
             wireframe={false}
-            transparent={false}
+            transparent={hasTransparency || layer.multiColor} // включаем прозрачность при наличии alpha в палитре
             opacity={1.0}
             vertexColors={useVertexColors}
         />

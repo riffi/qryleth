@@ -40,6 +40,8 @@ export interface GfxMultiColorPaletteStop {
   height: number;
   /** Цвет в любом CSS-формате */
   color: string;
+  /** Прозрачность цвета от 0 (полностью прозрачный) до 1 (полностью непрозрачный) */
+  alpha?: number;
 }
 
 /**
