@@ -40,7 +40,7 @@ const initialLighting: LightingSettings = {
     castShadow: true,
   },
   fog: {
-    enabled: true,
+    enabled: false,
     type: 'exponential',
     color: '#c2dde6',
     near: 200,

@@ -9,10 +9,13 @@ import {
     ColorInput,
     NumberInput,
     Divider,
-    Select
+    Select,
+    Switch,
+    SegmentedControl,
+    Slider
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings } from '@/entities/lighting'
+import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings } from '@/entities/lighting'
 
 interface LightingControlsProps {
     lighting?: LightingSettings
@@ -99,6 +102,30 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
             onLightingChange({
                 ...lighting,
                 backgroundColor: value
+            })
+        }
+    }
+
+    /**
+     * Изменяет параметры тумана сцены.
+     * @param key поле настроек тумана
+     * @param value новое значение
+     */
+    const handleFogChange = (key: keyof FogSettings, value: string | number | boolean) => {
+        if (onLightingChange && lighting) {
+            onLightingChange({
+                ...lighting,
+                fog: {
+                    ...(lighting.fog ?? {
+                        enabled: false,
+                        type: 'linear',
+                        color: '#87CEEB',
+                        near: 10,
+                        far: 100,
+                        density: 0.01
+                    }),
+                    [key]: value
+                }
             })
         }
     }
@@ -236,6 +263,78 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                             onChange={(value) => handleBackgroundChange(value)}
                             withEyeDropper={false}
                         />
+                    </Box>
+
+                    <Box>
+                        <Group justify="space-between" align="center" mb="xs">
+                            <Text size="xs" fw={500}>Туман</Text>
+                            <Switch
+                                size="xs"
+                                checked={lighting.fog?.enabled || false}
+                                onChange={(event) => handleFogChange('enabled', event.currentTarget.checked)}
+                            />
+                        </Group>
+                        
+                        {lighting.fog?.enabled && (
+                            <Stack gap="xs">
+                                <SegmentedControl
+                                    size="xs"
+                                    value={lighting.fog?.type || 'linear'}
+                                    onChange={(value) => handleFogChange('type', value as 'linear' | 'exponential')}
+                                    data={[
+                                        { label: 'Линейный', value: 'linear' },
+                                        { label: 'Экспоненциальный', value: 'exponential' }
+                                    ]}
+                                />
+                                
+                                <ColorInput
+                                    size="xs"
+                                    label="Цвет тумана"
+                                    value={lighting.fog?.color || '#87CEEB'}
+                                    onChange={(value) => handleFogChange('color', value)}
+                                    withEyeDropper={false}
+                                />
+
+                                {lighting.fog?.type === 'linear' ? (
+                                    <>
+                                        <Box>
+                                            <Text size="xs" mb="xs">Ближняя граница: {lighting.fog?.near || 10}</Text>
+                                            <Slider
+                                                size="xs"
+                                                value={lighting.fog?.near || 10}
+                                                onChange={(value) => handleFogChange('near', value)}
+                                                min={1}
+                                                max={200}
+                                                step={1}
+                                            />
+                                        </Box>
+                                        <Box>
+                                            <Text size="xs" mb="xs">Дальняя граница: {lighting.fog?.far || 100}</Text>
+                                            <Slider
+                                                size="xs"
+                                                value={lighting.fog?.far || 100}
+                                                onChange={(value) => handleFogChange('far', value)}
+                                                min={50}
+                                                max={1000}
+                                                step={10}
+                                            />
+                                        </Box>
+                                    </>
+                                ) : (
+                                    <Box>
+                                        <Text size="xs" mb="xs">Плотность: {lighting.fog?.density?.toFixed(3) || 0.010}</Text>
+                                        <Slider
+                                            size="xs"
+                                            value={lighting.fog?.density || 0.01}
+                                            onChange={(value) => handleFogChange('density', value)}
+                                            min={0.0001}
+                                            max={0.01}
+                                            step={0.0001}
+                                        />
+                                    </Box>
+                                )}
+                            </Stack>
+                        )}
                     </Box>
                 </Stack>
             </Collapse>
