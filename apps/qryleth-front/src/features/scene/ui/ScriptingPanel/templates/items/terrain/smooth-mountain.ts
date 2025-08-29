@@ -38,7 +38,17 @@ const smoothMountain = {
 const layer = await sceneApi.createProceduralLayer(smoothMountain, {
   name: 'Гладкая гора',
   visible: true,
-  color: '#696969' // Темно-серый цвет горы
+  multiColor: { 
+    mode: 'vertex', 
+    palette: [ 
+      { height: -10, color: '#2d5a27' }, 
+      { height: 0, color: '#4a7c59' }, 
+      { height: 10, color: '#8aa05a' }, 
+      { height: 25, color: '#b7b7b7' }, 
+      { height: 100, color: '#FFFFFF' }
+    ], 
+    slopeBoost: 0.3
+  }
 })
 
 console.log('Создана Гладкая гора', layer)`
