@@ -231,8 +231,10 @@ export class ProceduralTerrainGenerator {
    * @returns конфигурация террейна, готовая к использованию в сэмплере/рендере
    */
   async generateTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig> {
-    const worldWidth = spec.world.width
-    const worldDepth = (spec.world as any).depth ?? (spec.world as any).height
+    // Приоритетно используем spec.layer, иначе — legacy spec.world
+    const layerConf = spec.layer ?? spec.world
+    const worldWidth = layerConf.width
+    const worldDepth = layerConf.depth ?? layerConf.height
 
     // Автогенерация сидов: если общий seed или base.seed не заданы, генерируем их.
     // Логика:
@@ -264,7 +266,9 @@ export class ProceduralTerrainGenerator {
     const config: GfxTerrainConfig = {
       worldWidth,
       worldHeight: worldDepth,
-      edgeFade: spec.world.edgeFade,
+      edgeFade: layerConf.edgeFade,
+      // Пробрасываем центр слоя из спецификации (если задан)
+      center: layerConf.center,
       source,
       ops
     }

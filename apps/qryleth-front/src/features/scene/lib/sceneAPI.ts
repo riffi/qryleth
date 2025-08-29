@@ -234,9 +234,10 @@ export class SceneAPI {
         name: layerData?.name ?? 'Процедурный ландшафт',
         type: GfxLayerType.Landscape,
         shape: GfxLayerShape.Terrain,
-        width: spec.world.width,
+        // width/depth берём из spec.layer (приоритет) или из legacy spec.world
+        width: spec.layer?.width ?? spec.world.width,
         // Для слоя используем термин «depth» вместо «height»
-        depth: spec.world.height,
+        depth: (spec.layer?.depth ?? spec.layer?.height) ?? spec.world.height,
         terrain,
         visible: layerData?.visible ?? true,
         position: layerData?.position ?? useSceneStore.getState().layers.length,

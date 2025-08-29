@@ -17,6 +17,10 @@
 - `console` — для вывода результатов в консоль браузера (F12)
 - Стандартные JavaScript объекты (Math, Array, Object, etc.)
 
+Важно о координатах террейна
+- Все размеры/координаты рецептов и операций указываются в ЛОКАЛЬНОЙ системе слоя (layer), центрируемой в [0,0] и сдвигаемой параметром `layer.center`.
+- Поле `layer.center: [x, z]` определяет, где в мире располагается центр заданных локальных координат слоя и операций.
+
 **Особенности выполнения:**
 - Код выполняется мгновенно по нажатию "Выполнить"
 - Поддерживается `await` для асинхронных операций
@@ -40,8 +44,8 @@
 ```javascript
 // Создать простые холмы за 30 секунд
 const result = await sceneApi.createProceduralLayer({
-  // Координаты центрированы: X ∈ [-width/2..+width/2], Z ∈ [-depth/2..+depth/2]
-  world: { width: 200, depth: 200, edgeFade: 0.1 },
+  // Новый рекомендуемый блок параметров слоя
+  layer: { width: 200, depth: 200, edgeFade: 0.1, center: [0, 0] },
   base: { 
     seed: 42, 
     amplitude: 8, 
@@ -73,8 +77,8 @@ console.log('Результат:', result)
 
 ```javascript
 const valleySpec = {
-  // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]
-  world: { width: 300, depth: 200, edgeFade: 0.15 },
+  // Рамки слоя 300×200 (X×Z). Диапазоны локальных координат: X [-150..150], Z [-100..100]
+  layer: { width: 300, depth: 200, edgeFade: 0.15, center: [0, 0] },
   base: {
     seed: 1001,
     octaveCount: 4,
@@ -146,8 +150,8 @@ console.log('Создана долина:', layer)
 
 ```javascript
 const islandSpec = {
-  // Круглый остров, центр мира — [0,0]
-  world: { width: 200, depth: 200, edgeFade: 0.3 },
+  // Круглый остров, центр слоя — [0,0]
+  layer: { width: 200, depth: 200, edgeFade: 0.3, center: [0, 0] },
   base: { 
     seed: 2024, 
     octaveCount: 5, 
@@ -208,8 +212,8 @@ console.log('Создан остров:', island)
 
 ```javascript
 const archipelagoSpec = {
-  // Мир 400×300 (X×Z). Диапазоны: X [-200..200], Z [-150..150]
-  world: { width: 400, depth: 300, edgeFade: 0.2 },
+  // Слой 400×300 (X×Z). Диапазоны локальных координат: X [-200..200], Z [-150..150]
+  layer: { width: 400, depth: 300, edgeFade: 0.2, center: [0, 0] },
   base: { 
     seed: 3333, 
     octaveCount: 3, 

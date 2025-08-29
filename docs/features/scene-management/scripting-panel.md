@@ -50,7 +50,8 @@ objects.forEach(obj => {
 ```javascript
 // Создать холмистый ландшафт за 30 секунд
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 200, depth: 200, edgeFade: 0.1 },
+  // Новый рекомендуемый блок параметров слоя террейна
+  layer: { width: 200, depth: 200, edgeFade: 0.1, center: [0, 0] },
   base: { 
     seed: 42, 
     amplitude: 8, 
@@ -162,7 +163,7 @@ console.log('Создано экземпляров:', result.instanceCount)
 
 ```javascript
 const islandSpec = {
-  world: { width: 200, depth: 200, edgeFade: 0.3 },
+  layer: { width: 200, depth: 200, edgeFade: 0.3, center: [0, 0] },
   base: { 
     seed: 2024, 
     octaveCount: 5, 
