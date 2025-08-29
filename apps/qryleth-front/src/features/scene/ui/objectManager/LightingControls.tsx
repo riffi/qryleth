@@ -36,7 +36,7 @@ const LIGHTING_PRESETS = {
             mieDirectionalG: 0.8,
             elevation: 1.2,
             azimuth: 0.25,
-            exposure: 1.5
+            exposure: 1.3
         }
     },
     'evening': {
