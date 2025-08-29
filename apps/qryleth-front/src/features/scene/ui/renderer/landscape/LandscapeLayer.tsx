@@ -6,7 +6,7 @@ import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler.ts'
 import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder.ts'
-import { MultiColorProcessor, type MultiColorConfig } from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
+import { MultiColorProcessor} from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer
@@ -83,7 +83,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     if (layer.multiColor && sampler) {
       if (DEBUG) console.log('🎨 LandscapeLayer: Creating MultiColorProcessor for layer', layer.id)
       // пробросим конфиг как есть — он совместим (mode/palette/slopeBoost)
-      return new MultiColorProcessor(layer.multiColor as unknown as MultiColorConfig)
+      return new MultiColorProcessor(layer.multiColor)
     }
     return null
   }, [layer.multiColor, sampler])

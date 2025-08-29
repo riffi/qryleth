@@ -16,8 +16,8 @@ const valleySpec = {
     octaveCount: 4, 
     amplitude: 6, 
     persistence: 0.5, 
-    width: 128, 
-    height: 128 
+    width: 256, 
+    height: 256 
   },
   pool: {
     // Увеличиваем бюджет операций, чтобы все рецепты попали в результат
@@ -71,7 +71,17 @@ const valleySpec = {
 const valley = await sceneApi.createProceduralLayer(valleySpec, { 
   name: 'Долина Драконов', 
   visible: true,
-  color: '#808000' // Темно-зеленый цвет долины с горами
+  multiColor: {
+  mode: 'triangle',
+    palette: [
+      { height: -10, color: '#2d5a27' },
+      { height: 0,   color: '#4a7c59' },
+      { height: 10,  color: '#8aa05a' },
+      { height: 25,  color: '#b7b7b7' },
+      { height: 100, color: '#FFFFFF' },
+    ],
+    slopeBoost: 0.3, // 0..1 — подкрашивает крутые склоны
+  }
 })
 
 console.log('Создана долина:', valley)`
