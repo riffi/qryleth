@@ -9,7 +9,7 @@ export const gentleHillsTemplate: TemplateData = {
   description: 'Пасторальные мягкие холмы — реалистичные перекаты без резких форм.',
   code: `// Мягкие перекатывающиеся холмы
 const hillsSpec = {
-  world: { width: 250, depth: 250, edgeFade: 0.1 },
+  layer: { width: 250, depth: 250, edgeFade: 0.1 },
   base: { 
     seed: 4444, 
     octaveCount: 4, 

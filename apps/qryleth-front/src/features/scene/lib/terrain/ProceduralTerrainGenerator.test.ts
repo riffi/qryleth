@@ -4,7 +4,7 @@ import { ProceduralTerrainGenerator } from './ProceduralTerrainGenerator'
 import { createGfxHeightSampler } from './GfxHeightSampler'
 
 describe('ProceduralTerrainGenerator', () => {
-  const world = { width: 100, height: 80, edgeFade: 0.1 }
+  const layer = { width: 100, height: 80, edgeFade: 0.1 }
   const base = { seed: 123, octaveCount: 3, amplitude: 5, persistence: 0.5, width: 32, height: 32 }
 
   it('generateOpsFromPool: детерминированность по seed', async () => {
@@ -14,8 +14,8 @@ describe('ProceduralTerrainGenerator', () => {
       ]
     }
     const gen = new ProceduralTerrainGenerator()
-    const ops1 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: world.width, worldHeight: world.height })
-    const ops2 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: world.width, worldHeight: world.height })
+    const ops1 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldHeight: layer.height })
+    const ops2 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldHeight: layer.height })
     expect(ops1.length).toBe(ops2.length)
     for (let i = 0; i < ops1.length; i++) {
       expect(ops1[i].id).toEqual(ops2[i].id)
@@ -32,21 +32,21 @@ describe('ProceduralTerrainGenerator', () => {
       ]
     }
     const gen = new ProceduralTerrainGenerator()
-    const ops = await gen.generateOpsFromPool(pool, 7, { worldWidth: world.width, worldHeight: world.height })
+    const ops = await gen.generateOpsFromPool(pool, 7, { worldWidth: layer.width, worldHeight: layer.height })
     expect(ops.length).toBeLessThanOrEqual(3)
   })
 
   it('generateTerrain: собирает корректную конфигурацию', async () => {
     const spec: GfxProceduralTerrainSpec = {
-      world,
+      layer,
       base,
       pool: { recipes: [{ kind: 'hill', count: 2, placement: { type: 'uniform' }, radius: 6, intensity: 3 }] },
       seed: 999
     }
     const gen = new ProceduralTerrainGenerator()
     const cfg = await gen.generateTerrain(spec)
-    expect(cfg.worldWidth).toBe(world.width)
-    expect(cfg.worldHeight).toBe(world.height)
+    expect(cfg.worldWidth).toBe(layer.width)
+    expect(cfg.worldHeight).toBe(layer.height)
     expect(cfg.source.kind).toBe('perlin')
     expect(cfg.ops && cfg.ops.length).toBeGreaterThan(0)
 

@@ -9,7 +9,7 @@ export const plateauStripeCoverAreaTemplate: TemplateData = {
   description: 'Узкая ровная полоса плато на всю область — без «кусочков».',
   code: `// Ровная узкая полоса плато, заполняющая area целиком (без «кусочков»)
 const stripePlateauSpec = {
-  world: { width: 300, depth: 200, edgeFade: 0.1 },
+  layer: { width: 300, depth: 200, edgeFade: 0.1 },
   base: { seed: 4203, octaveCount: 4, amplitude: 5, persistence: 0.5, width: 128, height: 128 },
   pool: {
     recipes: [

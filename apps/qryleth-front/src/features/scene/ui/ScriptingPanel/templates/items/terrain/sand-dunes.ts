@@ -9,7 +9,7 @@ export const sandDunesTemplate: TemplateData = {
   description: 'Пустынный ландшафт: полосы дюн и редкие впадины.',
   code: `// Пустынный ландшафт с дюнами
 const dunesSpec = {
-  world: { width: 200, depth: 200, edgeFade: 0.15 },
+  layer: { width: 200, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 46283, 
     octaveCount: 3, 

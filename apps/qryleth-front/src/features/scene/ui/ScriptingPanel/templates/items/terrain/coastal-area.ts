@@ -9,7 +9,7 @@ export const coastalAreaTemplate: TemplateData = {
   description: 'Изрезанное побережье: суша, бухты и прибрежные скалы.',
   code: `// Изрезанное побережье с бухтами
 const coastalSpec = {
-  world: { width: 400, depth: 200, edgeFade: 0.25 },
+  layer: { width: 400, depth: 200, edgeFade: 0.25 },
   base: { 
     seed: 9999, 
     octaveCount: 3, 

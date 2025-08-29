@@ -9,7 +9,7 @@ export const canyonPlateauTemplate: TemplateData = {
   description: 'Система каньонов и высоких плато; контрастные формы.',
   code: `// Система каньонов с плоскими плато
 const canyonSpec = {
-  world: { width: 400, depth: 250, edgeFade: 0.2 },
+  layer: { width: 400, depth: 250, edgeFade: 0.2 },
   base: { 
     seed: 9001, 
     octaveCount: 4, 

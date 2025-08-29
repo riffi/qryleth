@@ -32,7 +32,7 @@ const multiColor: GfxMultiColorConfig = {
 
 ```javascript
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 200, depth: 200 },
+  layer: { width: 200, depth: 200 },
   base: { seed: 1000, octaveCount: 4, amplitude: 10 },
   pool: { recipes: [] },
   seed: 1000
@@ -95,7 +95,7 @@ multiColorApi.getDesertHeightConfig()
 const { multiColorApi } = await import('@/features/scene/lib/sceneAPI.multicolor')
 
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 200, depth: 200, edgeFade: 0.15 },
+  layer: { width: 200, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 2000, 
     octaveCount: 5, 
@@ -114,7 +114,7 @@ const result = await sceneApi.createProceduralLayer({
 
 ```javascript
 const result = await sceneApi.createProceduralLayer({
-  world: { width: 180, depth: 180, edgeFade: 0.2 },
+  layer: { width: 180, depth: 180, edgeFade: 0.2 },
   base: { 
     seed: 4000, 
     octaveCount: 6, 

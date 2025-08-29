@@ -198,14 +198,14 @@ const cfg = await SceneAPI.generateProceduralTerrain(spec)
 ```javascript
 // С фиксированным сидом (детерминированно)
 const ops = await SceneAPI.generateTerrainOpsFromPool(spec.pool, spec.seed, {
-  worldWidth: spec.world.width,
-  worldDepth: spec.world.depth // fallback на worldHeight поддерживается
+  worldWidth: spec.layer.width,
+  worldDepth: spec.layer.depth // fallback на worldHeight поддерживается
 })
 
 // Без передачи seed (будет сгенерирован автоматически)
 const opsAuto = await SceneAPI.generateTerrainOpsFromPool(spec.pool, undefined, {
-  worldWidth: spec.world.width,
-  worldDepth: spec.world.depth
+  worldWidth: spec.layer.width,
+  worldDepth: spec.layer.depth
 })
 ```
 

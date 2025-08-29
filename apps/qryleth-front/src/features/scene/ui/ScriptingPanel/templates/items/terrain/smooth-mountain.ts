@@ -9,7 +9,7 @@ export const smoothMountainTemplate: TemplateData = {
   description: 'Большая Гладкая гора по центру мира, основанная на группе плато с mode add',
   code: `// Гладкая гора по центру мира
 const smoothMountain = {
-  world: { width: 300, depth: 300, edgeFade: 0 },
+  layer: { width: 300, depth: 300, edgeFade: 0 },
   base: {
     octaveCount: 4,
     amplitude: 6,

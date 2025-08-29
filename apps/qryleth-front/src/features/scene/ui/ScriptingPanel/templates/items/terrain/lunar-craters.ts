@@ -9,7 +9,7 @@ export const lunarCratersTemplate: TemplateData = {
   description: 'Разномасштабные кратеры с разными профилями спадов.',
   code: `// Кратерный ландшафт как на Луне
 const craterSpec = {
-  world: { width: 300, depth: 300, edgeFade: 0.1 },
+  layer: { width: 300, depth: 300, edgeFade: 0.1 },
   base: { 
     seed: 8888, 
     octaveCount: 2, 

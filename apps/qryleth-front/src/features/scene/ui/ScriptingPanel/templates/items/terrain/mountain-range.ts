@@ -9,7 +9,7 @@ export const mountainRangeTemplate: TemplateData = {
   description: 'Реалистичный массив: главный хребет, отроги и пики.',
   code: `// Реалистичный горный массив с хребтами
 const mountainRangeSpec = {
-  world: { width: 500, depth: 300, edgeFade: 0.2 },
+  layer: { width: 500, depth: 300, edgeFade: 0.2 },
   base: { 
     seed: 7777, 
     octaveCount: 6, 

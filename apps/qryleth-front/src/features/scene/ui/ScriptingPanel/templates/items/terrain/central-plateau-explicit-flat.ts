@@ -9,7 +9,7 @@ export const centralPlateauExplicitFlatTemplate: TemplateData = {
   description: 'Плато с явным указанием falloff и доли плоской центральной части.',
   code: `// Большое плато по центру мира (явные falloff и flatInner)
 const plateauExplicitSpec = {
-  world: { width: 300, depth: 300, edgeFade: 0.1 },
+  layer: { width: 300, depth: 300, edgeFade: 0.1 },
   base: {
     seed: 4202,
     octaveCount: 4,

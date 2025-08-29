@@ -9,8 +9,8 @@ describe('SceneAPI: процедурная генерация террейна',
     const cfg1 = await SceneAPI.generateProceduralTerrain(spec)
     const cfg2 = await SceneAPI.generateProceduralTerrain(spec)
 
-    expect(cfg1.worldWidth).toBe(spec.world.width)
-    expect(cfg1.worldHeight).toBe(spec.world.height)
+    expect(cfg1.worldWidth).toBe(spec.layer.width)
+    expect(cfg1.worldHeight).toBe(spec.layer.height)
     expect(cfg1.ops && cfg1.ops.length).toBeGreaterThan(0)
     expect(cfg1.ops!.map(o => o.id)).toEqual(cfg2.ops!.map(o => o.id))
   })
@@ -20,7 +20,7 @@ describe('SceneAPI: процедурная генерация террейна',
     const ops = await SceneAPI.generateTerrainOpsFromPool(
       spec.pool as GfxTerrainOpPool,
       spec.seed,
-      { worldWidth: spec.world.width, worldHeight: spec.world.height }
+      { worldWidth: spec.layer.width, worldHeight: spec.layer.depth }
     )
     expect(Array.isArray(ops)).toBe(true)
     expect(ops.length).toBeGreaterThan(0)

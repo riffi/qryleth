@@ -9,7 +9,7 @@ export const centralPlateauDefaultTemplate: TemplateData = {
   description: 'Большое плато в центре без явных настроек спадов — используются автозначения.',
   code: `// Большое плато по центру мира (без явных falloff/flatInner)
 const plateauDefaultSpec = {
-  world: { width: 300, depth: 300, edgeFade: 0.1 },
+  layer: { width: 300, depth: 300, edgeFade: 0.1 },
   base: {
     seed: 4201,
     octaveCount: 4,

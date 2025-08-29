@@ -45,7 +45,7 @@ export const getBaseCompletions = () => [
   { label: 'onlyHorizontal', type: 'property', info: createStyledTooltip('Описание: Горизонтальное размещение по Y (boolean, по умолчанию true)') },
 
   // Параметры террейнов
-  { label: 'world', type: 'property', info: createStyledTooltip('Описание: Размеры и настройки мира: { width, depth, edgeFade? }') },
+  { label: 'layer', type: 'property', info: createStyledTooltip('Описание: Размеры и настройки слоя: { width, depth, edgeFade? }') },
   { label: 'base', type: 'property', info: createStyledTooltip('Описание: Базовый шум Perlin: { seed, octaveCount, amplitude, persistence, width, height, heightOffset? }') },
   { label: 'pool', type: 'property', info: createStyledTooltip('Описание: Пул операций рельефа: { global?: {intensityScale?, maxOps?}, recipes: [] }') },
   { label: 'recipes', type: 'property', info: createStyledTooltip('Описание: Массив рецептов рельефа (hill, valley, crater, plateau, ridge, basin, dune, terrace)') },

@@ -1005,7 +1005,7 @@ const testSpec = {
 ```javascript
 // Этап 1: Создать базовый ландшафт
 const baseResult = await sceneApi.createProceduralLayer({
-  world: { width: 300, depth: 300 },
+  layer: { width: 300, depth: 300 },
   base: { seed: 1000, octaveCount: 4, amplitude: 5, persistence: 0.4, width: 128, height: 128 },
   pool: { recipes: [] },
   seed: 1000

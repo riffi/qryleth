@@ -9,7 +9,7 @@ export const valleyStripeCoverAreaTemplate: TemplateData = {
   description: 'Впадина полосой на всю область с плоским дном.',
   code: `// Ровная узкая полоса долины (впадина) на всю area с плоским дном
 const stripeValleySpec = {
-  world: { width: 300, depth: 200, edgeFade: 0.1 },
+  layer: { width: 300, depth: 200, edgeFade: 0.1 },
   base: { seed: 4204, octaveCount: 3, amplitude: 5, persistence: 0.4, width: 128, height: 128 },
   pool: {
     recipes: [

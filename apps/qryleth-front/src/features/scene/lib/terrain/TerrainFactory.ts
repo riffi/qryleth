@@ -14,7 +14,7 @@ import { ProceduralTerrainGenerator } from './ProceduralTerrainGenerator'
  * @param seed — глобальный сид процедурной генерации (для пула операций)
  */
 export function createMountainSpec(seed: number = 9876): GfxProceduralTerrainSpec {
-  const world = { width: 300, height: 300, edgeFade: 0.1 }
+  const layer = { width: 300, height: 300, edgeFade: 0.1 }
   const base = { seed: seed ^ 0x5a5a, octaveCount: 6, amplitude: 12, persistence: 0.6, width: 128, height: 128 }
   const pool: GfxTerrainOpPool = {
     global: { intensityScale: 1.2, maxOps: 100 },
@@ -23,7 +23,7 @@ export function createMountainSpec(seed: number = 9876): GfxProceduralTerrainSpe
       { kind: 'ridge', count: 3, placement: { type: 'gridJitter', cell: 120, jitter: 0.35 }, radius: [8, 12], aspect: [0.2, 0.4], step: 10, intensity: [6, 10], falloff: 'smoothstep' }
     ]
   }
-  return { world, base, pool, seed }
+  return { layer, base, pool, seed }
 }
 
 /**
@@ -31,7 +31,7 @@ export function createMountainSpec(seed: number = 9876): GfxProceduralTerrainSpe
  * @param seed — глобальный сид
  */
 export function createHillsSpec(seed: number = 2468): GfxProceduralTerrainSpec {
-  const world = { width: 240, height: 240, edgeFade: 0.1 }
+  const layer = { width: 240, height: 240, edgeFade: 0.1 }
   const base = { seed: seed ^ 0x777, octaveCount: 5, amplitude: 8, persistence: 0.55, width: 96, height: 96 }
   const pool: GfxTerrainOpPool = {
     global: { intensityScale: 1.0, maxOps: 80 },
@@ -40,7 +40,7 @@ export function createHillsSpec(seed: number = 2468): GfxProceduralTerrainSpec {
       { kind: 'plateau', count: [2, 4], placement: { type: 'poisson', minDistance: 50 }, radius: [12, 18], intensity: [2, 4] }
     ]
   }
-  return { world, base, pool, seed }
+  return { layer, base, pool, seed }
 }
 
 /**
@@ -48,7 +48,7 @@ export function createHillsSpec(seed: number = 2468): GfxProceduralTerrainSpec {
  * @param seed — глобальный сид
  */
 export function createDunesSpec(seed: number = 7777): GfxProceduralTerrainSpec {
-  const world = { width: 200, height: 200, edgeFade: 0.15 }
+  const layer = { width: 200, height: 200, edgeFade: 0.15 }
   const base = { seed: seed ^ 0xaaaa, octaveCount: 3, amplitude: 4, persistence: 0.4, width: 48, height: 48 }
   const pool: GfxTerrainOpPool = {
     recipes: [
@@ -56,7 +56,7 @@ export function createDunesSpec(seed: number = 7777): GfxProceduralTerrainSpec {
       { kind: 'basin', count: [3, 6], placement: { type: 'poisson', minDistance: 40 }, radius: [15, 25], intensity: [2, 4], bias: { preferHeight: { max: 2, weight: 0.8 } } }
     ]
   }
-  return { world, base, pool, seed }
+  return { layer, base, pool, seed }
 }
 
 /**

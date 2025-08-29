@@ -10,7 +10,7 @@ export const valleyWithMountainsTemplate: TemplateData = {
   code: `// Долина, окруженная горными цепями (с долиной на всю ширину)
 const valleySpec = {
   // Мир 300×200 (X×Z). Диапазоны: X [-150..150], Z [-100..100]
-  world: { width: 300, depth: 200, edgeFade: 0.15 },
+  layer: { width: 300, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 1001, 
     octaveCount: 4, 

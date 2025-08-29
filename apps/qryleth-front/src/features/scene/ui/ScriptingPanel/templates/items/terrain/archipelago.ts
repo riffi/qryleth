@@ -10,7 +10,7 @@ export const archipelagoTemplate: TemplateData = {
   code: `// Группа островов разного размера
 const archipelagoSpec = {
   // Мир 400×300 (X×Z). Диапазоны: X [-200..200], Z [-150..150]
-  world: { width: 400, depth: 300, edgeFade: 0.2 },
+  layer: { width: 400, depth: 300, edgeFade: 0.2 },
   base: { 
     octaveCount: 3, 
     amplitude: 2, 

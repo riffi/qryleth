@@ -231,8 +231,7 @@ export class ProceduralTerrainGenerator {
    * @returns конфигурация террейна, готовая к использованию в сэмплере/рендере
    */
   async generateTerrain(spec: GfxProceduralTerrainSpec): Promise<GfxTerrainConfig> {
-    // Приоритетно используем spec.layer, иначе — legacy spec.world
-    const layerConf = spec.layer ?? spec.world
+    const layerConf = spec.layer
     const worldWidth = layerConf.width
     const worldDepth = layerConf.depth ?? layerConf.height
 

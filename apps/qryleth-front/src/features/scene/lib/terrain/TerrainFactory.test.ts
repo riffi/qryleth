@@ -28,7 +28,7 @@ describe('TerrainFactory', () => {
 
   it('create*Spec: возвращают спецификации с ожидаемыми полями', () => {
     const m = createMountainSpec(1)
-    expect(m.world.width).toBeGreaterThan(0)
+    expect(m.layer.width).toBeGreaterThan(0)
     expect(m.pool.recipes.length).toBeGreaterThan(0)
     const h = createHillsSpec(2)
     expect(h.base.octaveCount).toBeGreaterThan(0)

@@ -51,7 +51,7 @@ export interface GfxProceduralTerrainSpec {
    * Это не «вся сцена», а габариты и параметры именно данного слоя:
    * ширина/глубина площадки, edgeFade и опорный центр слоя (center).
    */
-  layer?: {
+  layer: {
     /** Ширина слоя по X */
     width: number
     /** Глубина слоя по Z */
@@ -61,20 +61,6 @@ export interface GfxProceduralTerrainSpec {
     /** Плавный спад высот к краям (0..1, доля от края) */
     edgeFade?: number
     /** Центр слоя террейна в мировых координатах [x, z] */
-    center?: [number, number]
-  }
-
-  /**
-   * @deprecated Используйте поле `layer`. Сохранено для совместимости.
-   * Историческое название «world» вводило в заблуждение: фактически это были
-   * габариты текущего слоя террейна. При наличии и `layer`, и `world` —
-   * используется `layer`.
-   */
-  world: {
-    width: number
-    depth?: number
-    height: number
-    edgeFade?: number
     center?: [number, number]
   }
 
