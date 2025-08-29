@@ -137,12 +137,21 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
 
   const useVertexColors = Boolean(layer.multiColor)
 
+  // Позиция меша: центрируем ландшафтный слой вокруг указанной центральной точки террейна.
+  // Если центр не задан — используем [0,0]. Небольшой сдвиг по Y (0.1) сохраняется, чтобы
+  // избежать мерцания с плоскостью воды/объектов на нулевой высоте.
+  const meshPosition = useMemo(() => {
+    const cx = layer.terrain?.center?.[0] ?? 0
+    const cz = layer.terrain?.center?.[1] ?? 0
+    return [cx, 0.1, cz] as const
+  }, [layer.terrain?.center])
+
   return (
       <mesh
           geometry={finalGeometry}
           visible={layer.visible}
           rotation={rotation}
-          position={[0, 0.1, 0]}
+          position={meshPosition}
           receiveShadow
           userData={{
             generated: true,

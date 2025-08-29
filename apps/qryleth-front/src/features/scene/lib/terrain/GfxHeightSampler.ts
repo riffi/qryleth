@@ -23,6 +23,8 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
   // Оптимизация: пространственный индекс для быстрого поиска релевантных операций
   private spatialIndex?: Map<string, GfxTerrainOp[]>;
   private spatialCellSize = 10; // размер ячейки пространственного индекса в мировых координатах
+  // Операции террейна, приведённые к ЛОКАЛЬНЫМ координатам (относительно cfg.center)
+  private localOps?: GfxTerrainOp[];
   
   // Кэширование результатов
   private heightCache = new Map<string, number>();
@@ -99,6 +101,13 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns высота Y в мировых единицах
    */
   getHeight(x: number, z: number): number {
+    // Смещаем мировые координаты в локальные относительно центра террейна.
+    // Это необходимо для корректного семплинга источника (Perlin/Heightmap),
+    // так как преобразование world->UV рассчитано на центр в [0,0].
+    const cx = this.config.center?.[0] ?? 0
+    const cz = this.config.center?.[1] ?? 0
+    const xLocal = x - cx
+    const zLocal = z - cz
     // Проверяем кэш (с округлением координат для стабильности)
     if (this.cacheEnabled) {
       const cacheKey = this.getCacheKey(x, z);
@@ -109,18 +118,20 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
     }
 
     // 1. Базовая высота из источника
-    let height = this.sourceHeight(x, z);
+    // 1. Базовая высота из источника в локальных координатах террейна
+    let height = this.sourceHeight(xLocal, zLocal);
 
     // 2. Применяем операции модификации террейна
     if (this.config.ops && this.config.ops.length > 0) {
-      height = this.applyTerrainOpsOptimized(height, x, z);
+      // Применяем модификации в ЛОКАЛЬНОЙ системе координат (относительно центра террейна)
+      height = this.applyTerrainOpsOptimized(height, xLocal, zLocal);
     }
 
     // 3. Применяем edgeFade: ведём к базовому уровню источника, а не к нулю
     if (this.config.edgeFade && this.config.edgeFade > 0) {
       const fadeMultiplier = calculateEdgeFade(
-        x,
-        z,
+        xLocal,
+        zLocal,
         this.config.worldWidth,
         this.config.worldHeight,
         this.config.edgeFade
@@ -488,7 +499,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    */
   private buildSpatialIndex(): void {
     if (!this.config.ops || this.config.ops.length === 0) return
-    this.spatialIndex = buildSpatialIndex(this.config.ops, this.spatialCellSize)
+    // Начиная с поддержки center у слоёв, трактуем ops.center как ЛОКАЛЬНЫЕ
+    // координаты относительно cfg.center. Поэтому строим индекс напрямую по ops.
+    this.localOps = this.config.ops.slice()
+    this.spatialIndex = buildSpatialIndex(this.localOps, this.spatialCellSize)
   }
 
   /**
@@ -540,9 +554,11 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns модифицированная высота после применения всех операций
    */
   private applyTerrainOpsOptimized(baseHeight: number, x: number, z: number): number {
-    let height = baseHeight;
-    const relevantOps = this.spatialIndex ? getRelevantOps(this.spatialIndex, this.spatialCellSize, x, z) : (this.config.ops || [])
-    return applyTerrainOpsOptimizedFn(height, x, z, relevantOps);
+    // на вход ожидаются ЛОКАЛЬНЫЕ координаты точки (см. вызов из getHeight)
+    const relevantOps = this.spatialIndex
+      ? getRelevantOps(this.spatialIndex, this.spatialCellSize, x, z)
+      : (this.localOps || [])
+    return applyTerrainOpsOptimizedFn(baseHeight, x, z, relevantOps)
   }
 
   /**

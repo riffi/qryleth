@@ -88,6 +88,11 @@ export const SceneLayerModals: React.FC = () => {
 
     const [currentPreset, setCurrentPreset] = useState<number>(0)
 
+    // Координаты центра ландшафтного слоя (мировые X/Z)
+    // По умолчанию [0, 0]; позволяют создавать несколько террейнов, разнесённых по сцене.
+    const [centerX, setCenterX] = useState<number>(0)
+    const [centerZ, setCenterZ] = useState<number>(0)
+
     /**
      * Применить выбранный пресет размера к форме слоя.
      * Функция обновляет только размеры, сохраняя остальные поля без изменений.
@@ -219,6 +224,9 @@ export const SceneLayerModals: React.FC = () => {
             if (layer.type !== GfxLayerType.Landscape || layer.shape !== GfxLayerShape.Terrain) return
             const terrain = layer.terrain
             if (!terrain) return
+            // Поднимем центр существующего террейна в форму
+            setCenterX(terrain.center?.[0] ?? 0)
+            setCenterZ(terrain.center?.[1] ?? 0)
             if (terrain.source.kind === 'heightmap') {
                 setTerrainSource('heightmap')
                 const params = terrain.source.params
@@ -312,6 +320,8 @@ export const SceneLayerModals: React.FC = () => {
                     worldWidth: layerFormData.width || 100,
                     // Глубина слоя маппится на высоту мира террейна (ось Z)
                     worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || 100,
+                    // Центр террейна — строим вокруг указанной точки
+                    center: [centerX || 0, centerZ || 0],
                     edgeFade: 0,
                     source: {
                         kind: 'heightmap',
@@ -436,6 +446,7 @@ export const SceneLayerModals: React.FC = () => {
             const newTerrain: GfxTerrainConfig = {
                 worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
                 worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
+                center: [centerX ?? (currentTerrain?.center?.[0] ?? 0), centerZ ?? (currentTerrain?.center?.[1] ?? 0)],
                 edgeFade: currentTerrain?.edgeFade ?? 0,
                 source: {
                     kind: 'heightmap',
@@ -659,6 +670,19 @@ export const SceneLayerModals: React.FC = () => {
                                             </Stack>
                                         </Stack>
                                     )}
+                                    {/* Положение центра террейна (мировые координаты X/Z) */}
+                                    <Group gap="sm" mt="xs">
+                                        <NumberInput
+                                            label="Центр X, м"
+                                            value={centerX}
+                                            onChange={(val) => setCenterX(val || 0)}
+                                        />
+                                        <NumberInput
+                                            label="Центр Z, м"
+                                            value={centerZ}
+                                            onChange={(val) => setCenterZ(val || 0)}
+                                        />
+                                    </Group>
                                 </>
                             )}
                             <ColorInput

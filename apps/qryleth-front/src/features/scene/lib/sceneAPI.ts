@@ -225,7 +225,10 @@ export class SceneAPI {
     layerData?: Partial<SceneLayer>
   ): Promise<{ success: boolean; layerId?: string; error?: string }> {
     try {
-      const terrain = await SceneAPI.generateProceduralTerrain(spec)
+      // Базовая конфигурация террейна по спецификации
+      const terrainBase = await SceneAPI.generateProceduralTerrain(spec)
+      // Позволяем переопределить отдельные поля террейна (например, center) через layerData.terrain
+      const terrain: GfxTerrainConfig = { ...terrainBase, ...(layerData?.terrain ?? {}) }
 
       const base: Omit<SceneLayer, 'id'> = {
         name: layerData?.name ?? 'Процедурный ландшафт',

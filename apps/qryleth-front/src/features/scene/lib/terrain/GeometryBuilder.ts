@@ -34,7 +34,10 @@ export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeigh
   for (let i = 0; i < positionArray.length; i += 3) {
     const x = positionArray[i]
     const z = positionArray[i + 2]
-    positionArray[i + 1] = sampler.getHeight(x, z)
+    // Учтём смещение центра: sampler ожидает мировые координаты точки
+    const cx = cfg.center?.[0] ?? 0
+    const cz = cfg.center?.[1] ?? 0
+    positionArray[i + 1] = sampler.getHeight(x + cx, z + cz)
   }
 
   // Обновляем производные данные геометрии

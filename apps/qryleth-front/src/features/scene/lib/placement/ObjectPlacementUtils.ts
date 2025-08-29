@@ -170,11 +170,13 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
   const worldH = landscapeLayer
     ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10)
     : 10
+  const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
+  const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
   const defaultBounds = {
-    minX: -(worldW) / 2,
-    maxX: (worldW) / 2,
-    minZ: -(worldH) / 2,
-    maxZ: (worldH) / 2,
+    minX: centerX - (worldW) / 2,
+    maxX: centerX + (worldW) / 2,
+    minZ: centerZ - (worldH) / 2,
+    maxZ: centerZ + (worldH) / 2,
   }
 
   const finalBounds = { ...defaultBounds, ...bounds }
@@ -593,11 +595,13 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
   const worldH = landscapeLayer
     ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10)
     : 10
+  const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
+  const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
   const defaultBounds = {
-    minX: -(worldW) / 2,
-    maxX: (worldW) / 2,
-    minZ: -(worldH) / 2,
-    maxZ: (worldH) / 2,
+    minX: centerX - (worldW) / 2,
+    maxX: centerX + (worldW) / 2,
+    minZ: centerZ - (worldH) / 2,
+    maxZ: centerZ + (worldH) / 2,
   };
 
   const finalBounds = { ...defaultBounds, ...bounds };
