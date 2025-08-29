@@ -39,6 +39,14 @@ const initialLighting: LightingSettings = {
     position: [10, 10, 10],
     castShadow: true,
   },
+  fog: {
+    enabled: true,
+    type: 'exponential',
+    color: '#c2dde6',
+    near: 200,
+    far: 1000,
+    density: 0.001,
+  },
   backgroundColor: '#87CEEB',
 }
 
@@ -220,7 +228,7 @@ export const useSceneStore = create<SceneStore>()(
 
     /**
      * Создать новый слой сцены.
-     * 
+     *
      * Использование Math.random ранее приводило к риску получения
      * одинаковых идентификаторов. Теперь применяем generateUUID
      * для гарантии уникальности.

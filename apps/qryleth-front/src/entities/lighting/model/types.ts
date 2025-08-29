@@ -73,6 +73,24 @@ export interface SpotLightSettings extends BaseLight {
 }
 
 /**
+ * Настройки тумана в сцене.
+ */
+export interface FogSettings {
+  /** Включён ли туман */
+  enabled?: boolean;
+  /** Тип тумана: 'linear' (линейный) или 'exponential' (экспоненциальный) */
+  type?: 'linear' | 'exponential';
+  /** Цвет тумана в формате hex */
+  color?: string;
+  /** Ближняя граница тумана (для линейного) или плотность (для экспоненциального) */
+  near?: number;
+  /** Дальняя граница тумана (только для линейного типа) */
+  far?: number;
+  /** Плотность тумана (для экспоненциального типа, используется вместо near/far) */
+  density?: number;
+}
+
+/**
  * Корневые настройки освещения сцены.
  */
 export interface LightingSettings {
@@ -89,6 +107,8 @@ export interface LightingSettings {
     /** Радиус выборки */
     radius?: number;
   };
+  /** Настройки тумана */
+  fog?: FogSettings;
   /** Цвет фона сцены */
   backgroundColor?: string;
 }
