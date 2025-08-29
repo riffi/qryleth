@@ -65,8 +65,6 @@ export interface GfxMultiColorPaletteStop {
 export interface GfxMultiColorConfig {
   /** Режим окраски: по вершинам или по треугольникам */
   mode?: 'vertex' | 'triangle';
-  /** Параметр, по которому определяется цвет */
-  parameter?: 'height' | 'slope' | 'curvature';
   /** Цветовые зоны, отсортированные по возрастанию значения параметра */
   zones?: GfxColorZone[];
   /** 

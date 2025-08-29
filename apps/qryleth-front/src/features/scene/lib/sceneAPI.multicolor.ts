@@ -39,8 +39,7 @@ export class MultiColorAPI {
   /**
    * Создать конфигурацию двухцветного градиента.
    * Полезно для простых переходов типа вода-суша или равнина-горы.
-   * 
-   * @param parameter - параметр для градиента ('height', 'slope', 'curvature')
+   *
    * @param lowColor - цвет для низких значений параметра
    * @param highColor - цвет для высоких значений параметра
    * @param threshold - пороговое значение для центра градиента
@@ -48,13 +47,12 @@ export class MultiColorAPI {
    * @returns конфигурация двухцветного градиента
    */
   static createTwoColorGradient(
-    parameter: 'height' | 'slope' | 'curvature',
     lowColor: string,
     highColor: string,
     threshold: number,
     blendWidth: number = 1.0
   ): GfxMultiColorConfig {
-    return createSimpleGradient(parameter, lowColor, highColor, threshold, blendWidth)
+    return createSimpleGradient(lowColor, highColor, threshold, blendWidth)
   }
 
   /**
@@ -118,7 +116,6 @@ export class MultiColorAPI {
     const range = maxHeight - minHeight
 
     return {
-      parameter: 'height',
       blendWidth,
       zones: [
         {
@@ -191,7 +188,6 @@ export class MultiColorAPI {
     const range = maxHeight - minHeight
 
     return {
-      parameter: 'height',
       blendWidth,
       zones: [
         {
@@ -243,8 +239,7 @@ export class MultiColorAPI {
   /**
    * Создать пользовательскую конфигурацию из массива цветов.
    * Автоматически распределяет цвета по заданному диапазону значений.
-   * 
-   * @param parameter - параметр для градиента
+   *
    * @param colors - массив цветов (минимум 2)
    * @param minValue - минимальное значение параметра
    * @param maxValue - максимальное значение параметра
@@ -253,7 +248,6 @@ export class MultiColorAPI {
    * @returns пользовательская конфигурация
    */
   static createCustomConfig(
-    parameter: 'height' | 'slope' | 'curvature',
     colors: string[],
     minValue: number,
     maxValue: number,
@@ -280,7 +274,6 @@ export class MultiColorAPI {
     })
 
     return {
-      parameter,
       blendWidth,
       zones
     }

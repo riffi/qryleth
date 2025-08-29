@@ -11,7 +11,6 @@ import { MultiColorProcessor } from '../MultiColorProcessor';
  * Создает реалистичный переход от воды через луга к заснеженным вершинам.
  */
 export const mountainHeightZones: GfxMultiColorConfig = {
-  parameter: 'height',
   blendWidth: 1.5,
   zones: [
     {
@@ -71,7 +70,6 @@ export const mountainHeightZones: GfxMultiColorConfig = {
  * Полезно для визуализации опасных или труднопроходимых участков.
  */
 export const slopeBasedZones: GfxMultiColorConfig = {
-  parameter: 'slope',
   blendWidth: 0.05,
   zones: [
     {
@@ -117,7 +115,6 @@ export const slopeBasedZones: GfxMultiColorConfig = {
  * Помогает визуализировать впадины, возвышенности и перегибы рельефа.
  */
 export const curvatureBasedZones: GfxMultiColorConfig = {
-  parameter: 'curvature',
   blendWidth: 0.02,
   zones: [
     {
@@ -163,7 +160,6 @@ export const curvatureBasedZones: GfxMultiColorConfig = {
  * Имитирует переход от оазисов к песчаным дюнам и скалистым массивам.
  */
 export const desertHeightZones: GfxMultiColorConfig = {
-  parameter: 'height',
   blendWidth: 2.0,
   zones: [
     {
@@ -208,7 +204,6 @@ export const desertHeightZones: GfxMultiColorConfig = {
  * Функция для создания простой двухцветной конфигурации.
  * Полезна для быстрого создания контрастных переходов.
  * 
- * @param parameter - параметр для градиента
  * @param color1 - первый цвет (для низких значений)
  * @param color2 - второй цвет (для высоких значений)
  * @param threshold - пороговое значение для перехода
@@ -216,14 +211,12 @@ export const desertHeightZones: GfxMultiColorConfig = {
  * @returns конфигурация двухцветного градиента
  */
 export function createSimpleGradient(
-  parameter: 'height' | 'slope' | 'curvature',
   color1: string,
   color2: string,
   threshold: number,
   blendWidth: number = 1.0
 ): GfxMultiColorConfig {
   return {
-    parameter,
     blendWidth,
     zones: [
       {
@@ -289,7 +282,6 @@ export function createAutoHeightZones(
   }
 
   return {
-    parameter: 'height',
     blendWidth,
     zones
   };
