@@ -1,30 +1,26 @@
 # Многоцветная окраска террейна
 
-Система многоцветной окраски позволяет создавать реалистичные ландшафты с плавными цветовыми переходами на основе параметров поверхности.
+Система многоцветной окраски позволяет создавать реалистичные ландшафты с плавными цветовыми переходами по высоте.
 
 ## Основные возможности
 
-### Параметры окраски
+### Параметр окраски
 
-Поддерживается окраска по трем параметрам поверхности:
+Окраска производится только по высоте поверхности:
 
 - **`height`** - высота точки (в метрах)
-- **`slope`** - наклон поверхности (0-1, где 0 = горизонтально, 1 = вертикально)  
-- **`curvature`** - кривизна поверхности (0-1, где 0 = плоско, 1 = максимальная кривизна)
 
-### Зональная система
+### Система палитры
 
-Каждая конфигурация состоит из **цветовых зон** с плавными **градиентными переходами**:
+Каждая конфигурация использует **palette** для плавных градиентных переходов по высоте:
 
 ```typescript
 const multiColor: GfxMultiColorConfig = {
-  parameter: 'height',
-  blendWidth: 1.5, // ширина зоны градиентного перехода
-  zones: [
-    { id: 'water', name: 'Вода', color: '#2e5c8a', min: -2, max: 0.5 },
-    { id: 'sand', name: 'Песок', color: '#d4b896', min: 1, max: 2.5 },
-    { id: 'grass', name: 'Трава', color: '#4a7c59', min: 3, max: 8 },
-    { id: 'rocks', name: 'Камни', color: '#6b6b6b', min: 15, max: 25 }
+  palette: [
+    { height: -2, color: '#2e5c8a' },   // Вода
+    { height: 1, color: '#d4b896' },    // Песок  
+    { height: 3, color: '#4a7c59' },    // Трава
+    { height: 15, color: '#6b6b6b' }    // Камни
   ]
 }
 ```
@@ -52,29 +48,25 @@ const result = await sceneApi.createProceduralLayer({
 const { multiColorApi } = await import('@/features/scene/lib/sceneAPI.multicolor')
 
 // Готовые конфигурации
-const mountain = multiColorApi.getMountainHeightConfig(1.5)
-const desert = multiColorApi.getDesertHeightConfig(2.0)
-const slope = multiColorApi.getSlopeBasedConfig(0.1)
-const curvature = multiColorApi.getCurvatureBasedConfig(0.02)
+const mountain = multiColorApi.getMountainHeightConfig()
+const desert = multiColorApi.getDesertHeightConfig()
 
 // Автоматическая генерация по диапазону
-const auto = multiColorApi.createHeightBasedConfig(-5, 25, 6, 1.2)
+const auto = multiColorApi.createHeightBasedConfig(-5, 25, 6)
 
 // Двухцветный градиент
 const gradient = multiColorApi.createTwoColorGradient(
-  'height', '#2e5c8a', '#f0f8ff', 5, 2.0
+  '#2e5c8a', '#f0f8ff', 5
 )
 
 // Тропический/арктический ландшафт
-const tropical = multiColorApi.createTropicalConfig(-8, 25, 1.8)
-const arctic = multiColorApi.createArcticConfig(-3, 25, 0.8)
+const tropical = multiColorApi.createTropicalConfig(-8, 25)
+const arctic = multiColorApi.createArcticConfig(-3, 25)
 
 // Пользовательские цвета
 const custom = multiColorApi.createCustomConfig(
-  'height',
   ['#8b4513', '#daa520', '#9acd32', '#228b22'], 
-  0, 20, 1.0,
-  ['Пустыня', 'Степь', 'Луга', 'Лес']
+  0, 20
 )
 ```
 
@@ -92,17 +84,6 @@ multiColorApi.getDesertHeightConfig()
 ```
 Переходы: оазис → низкие пески → дюны → скалы → утесы
 
-### По наклону поверхности
-```javascript
-multiColorApi.getSlopeBasedConfig()
-```
-Выделяет: равнины → холмы → склоны → утесы
-
-### По кривизне поверхности
-```javascript
-multiColorApi.getCurvatureBasedConfig()  
-```
-Выделяет: впадины → плоские участки → изгибы → острые хребты
 
 ## Примеры использования
 
@@ -124,7 +105,7 @@ const result = await sceneApi.createProceduralLayer({
   seed: 2000
 }, { 
   name: 'Горный ландшафт',
-  multiColor: multiColorApi.getMountainHeightConfig(1.5)
+  multiColor: multiColorApi.getMountainHeightConfig()
 })
 ```
 
@@ -153,7 +134,7 @@ const result = await sceneApi.createProceduralLayer({
   seed: 4000
 }, { 
   name: 'Тропический остров',
-  multiColor: multiColorApi.createTropicalConfig(-8, 25, 1.8)
+  multiColor: multiColorApi.createTropicalConfig(-8, 25)
 })
 ```
 
@@ -169,10 +150,10 @@ const result = await sceneApi.createProceduralLayer({
 - При наличии `multiColor` поле `color` игнорируется
 - Старые слои работают без изменений
 
-### Параметры blendWidth
-- **Маленькие значения** (0.1-0.5): резкие переходы между зонами
-- **Средние значения** (1.0-2.0): плавные натуральные переходы  
-- **Большие значения** (3.0+): очень мягкие размытые границы
+### Палитра цветов
+- Цвета интерполируются линейно между стопами палитры
+- Минимум 2 стопа в палитре для корректной работы
+- Стопы автоматически сортируются по высоте
 
 ## Архитектурные компоненты
 
@@ -184,6 +165,6 @@ const result = await sceneApi.createProceduralLayer({
 
 ## Ограничения
 
-- Максимум 10 цветовых зон в одной конфигурации (рекомендация)
-- Параметр `curvature` может быть вычислительно затратным на очень больших сетках
-- Параметр `slope` работает корректно только с рельефными поверхностями
+- Максимум 10 стопов в палитре (рекомендация)
+- Окраска производится только по высоте
+- Цвета вычисляются только один раз при создании геометрии

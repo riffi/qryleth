@@ -5,8 +5,6 @@
 import type { GfxMultiColorConfig } from '@/entities/layer'
 import { 
   mountainHeightZones,
-  slopeBasedZones, 
-  curvatureBasedZones,
   desertHeightZones,
   createSimpleGradient,
   createAutoHeightZones
@@ -18,86 +16,58 @@ import {
 export class MultiColorAPI {
   /**
    * Создать конфигурацию многоцветной окраски по высоте.
-   * Автоматически вычисляет зоны на основе диапазона высот террейна.
+   * Автоматически вычисляет палитру на основе диапазона высот террейна.
    * 
    * @param minHeight - минимальная высота террейна
    * @param maxHeight - максимальная высота террейна  
-   * @param zoneCount - количество цветовых зон (3-7)
-   * @param blendWidth - ширина зоны градиентного перехода
+   * @param zoneCount - количество цветовых стопов (3-7)
    * @returns конфигурация многоцветной окраски
    */
   static createHeightBasedConfig(
     minHeight: number,
     maxHeight: number,
-    zoneCount: number = 5,
-    blendWidth: number = 1.0
+    zoneCount: number = 5
   ): GfxMultiColorConfig {
-    const config = createAutoHeightZones(minHeight, maxHeight, zoneCount)
-    return { ...config, blendWidth }
+    return createAutoHeightZones(minHeight, maxHeight, zoneCount)
   }
 
   /**
-   * Создать конфигурацию двухцветного градиента.
+   * Создать конфигурацию двухцветного градиента по высоте.
    * Полезно для простых переходов типа вода-суша или равнина-горы.
    *
-   * @param lowColor - цвет для низких значений параметра
-   * @param highColor - цвет для высоких значений параметра
-   * @param threshold - пороговое значение для центра градиента
-   * @param blendWidth - ширина зоны перехода
+   * @param lowColor - цвет для низких высот
+   * @param highColor - цвет для высоких высот
+   * @param threshold - пороговое значение высоты для центра градиента
    * @returns конфигурация двухцветного градиента
    */
   static createTwoColorGradient(
     lowColor: string,
     highColor: string,
-    threshold: number,
-    blendWidth: number = 1.0
+    threshold: number
   ): GfxMultiColorConfig {
-    return createSimpleGradient(lowColor, highColor, threshold, blendWidth)
+    return createSimpleGradient(lowColor, highColor, threshold)
   }
 
   /**
-   * Получить готовую конфигурацию горного ландшафта с высотной зональностью.
+   * Получить готовую конфигурацию горного ландшафта с высотной палитрой.
    * Включает переходы от воды до заснеженных вершин.
    * 
-   * @param blendWidth - ширина зоны градиентного перехода (по умолчанию 1.5)
    * @returns конфигурация горного ландшафта
    */
-  static getMountainHeightConfig(blendWidth: number = 1.5): GfxMultiColorConfig {
-    return { ...mountainHeightZones, blendWidth }
+  static getMountainHeightConfig(): GfxMultiColorConfig {
+    return mountainHeightZones
   }
 
   /**
-   * Получить готовую конфигурацию пустынного ландшафта с высотной зональностью.
+   * Получить готовую конфигурацию пустынного ландшафта с высотной палитрой.
    * Включает переходы от оазисов до скалистых утесов.
    * 
-   * @param blendWidth - ширина зоны градиентного перехода (по умолчанию 2.0)
    * @returns конфигурация пустынного ландшафта
    */
-  static getDesertHeightConfig(blendWidth: number = 2.0): GfxMultiColorConfig {
-    return { ...desertHeightZones, blendWidth }
+  static getDesertHeightConfig(): GfxMultiColorConfig {
+    return desertHeightZones
   }
 
-  /**
-   * Получить готовую конфигурацию окраски по наклону поверхности.
-   * Выделяет равнины, склоны и утесы разными цветами.
-   * 
-   * @param blendWidth - ширина зоны градиентного перехода (по умолчанию 0.1)
-   * @returns конфигурация окраски по наклону
-   */
-  static getSlopeBasedConfig(blendWidth: number = 0.1): GfxMultiColorConfig {
-    return { ...slopeBasedZones, blendWidth }
-  }
-
-  /**
-   * Получить готовую конфигурацию окраски по кривизне поверхности.
-   * Выделяет впадины, плоские участки и острые формы рельефа.
-   * 
-   * @param blendWidth - ширина зоны градиентного перехода (по умолчанию 0.02)
-   * @returns конфигурация окраски по кривизне
-   */
-  static getCurvatureBasedConfig(blendWidth: number = 0.02): GfxMultiColorConfig {
-    return { ...curvatureBasedZones, blendWidth }
-  }
 
   /**
    * Создать конфигурацию тропического ландшафта.
@@ -105,68 +75,23 @@ export class MultiColorAPI {
    * 
    * @param minHeight - минимальная высота (уровень моря)
    * @param maxHeight - максимальная высота (горные вершины)
-   * @param blendWidth - ширина зоны градиентного перехода
    * @returns конфигурация тропического ландшафта
    */
   static createTropicalConfig(
     minHeight: number = -5,
-    maxHeight: number = 30,
-    blendWidth: number = 1.2
+    maxHeight: number = 30
   ): GfxMultiColorConfig {
     const range = maxHeight - minHeight
 
     return {
-      blendWidth,
-      zones: [
-        {
-          id: 'deep_ocean',
-          name: 'Глубокий океан',
-          color: '#0d1b4d',
-          min: minHeight,
-          max: minHeight + range * 0.05
-        },
-        {
-          id: 'shallow_ocean',
-          name: 'Мелководье',
-          color: '#1e5f99',
-          min: minHeight + range * 0.1,
-          max: minHeight + range * 0.15
-        },
-        {
-          id: 'beach',
-          name: 'Пляж',
-          color: '#f5deb3',
-          min: minHeight + range * 0.2,
-          max: minHeight + range * 0.25
-        },
-        {
-          id: 'coastal_forest',
-          name: 'Прибрежный лес',
-          color: '#228b22',
-          min: minHeight + range * 0.3,
-          max: minHeight + range * 0.5
-        },
-        {
-          id: 'jungle',
-          name: 'Джунгли',
-          color: '#006400',
-          min: minHeight + range * 0.55,
-          max: minHeight + range * 0.75
-        },
-        {
-          id: 'mountain_slopes',
-          name: 'Горные склоны',
-          color: '#8b7355',
-          min: minHeight + range * 0.8,
-          max: minHeight + range * 0.9
-        },
-        {
-          id: 'peaks',
-          name: 'Горные вершины',
-          color: '#d3d3d3',
-          min: minHeight + range * 0.95,
-          max: maxHeight
-        }
+      palette: [
+        { height: minHeight, color: '#0d1b4d' }, // Глубокий океан
+        { height: minHeight + range * 0.1, color: '#1e5f99' }, // Мелководье
+        { height: minHeight + range * 0.2, color: '#f5deb3' }, // Пляж
+        { height: minHeight + range * 0.3, color: '#228b22' }, // Прибрежный лес
+        { height: minHeight + range * 0.55, color: '#006400' }, // Джунгли
+        { height: minHeight + range * 0.8, color: '#8b7355' }, // Горные склоны
+        { height: minHeight + range * 0.95, color: '#d3d3d3' } // Горные вершины
       ]
     }
   }
@@ -177,105 +102,54 @@ export class MultiColorAPI {
    * 
    * @param minHeight - минимальная высота (ледяная вода)
    * @param maxHeight - максимальная высота (ледники)
-   * @param blendWidth - ширина зоны градиентного перехода
    * @returns конфигурация арктического ландшафта
    */
   static createArcticConfig(
     minHeight: number = -3,
-    maxHeight: number = 25,
-    blendWidth: number = 0.8
+    maxHeight: number = 25
   ): GfxMultiColorConfig {
     const range = maxHeight - minHeight
 
     return {
-      blendWidth,
-      zones: [
-        {
-          id: 'ice_water',
-          name: 'Ледяная вода',
-          color: '#4682b4',
-          min: minHeight,
-          max: minHeight + range * 0.1
-        },
-        {
-          id: 'ice_shelf',
-          name: 'Ледяной шельф',
-          color: '#b0e0e6',
-          min: minHeight + range * 0.15,
-          max: minHeight + range * 0.2
-        },
-        {
-          id: 'tundra',
-          name: 'Тундра',
-          color: '#8fbc8f',
-          min: minHeight + range * 0.25,
-          max: minHeight + range * 0.4
-        },
-        {
-          id: 'rocky_ground',
-          name: 'Каменистая почва',
-          color: '#696969',
-          min: minHeight + range * 0.45,
-          max: minHeight + range * 0.7
-        },
-        {
-          id: 'snow_fields',
-          name: 'Снежные поля',
-          color: '#fffafa',
-          min: minHeight + range * 0.75,
-          max: minHeight + range * 0.85
-        },
-        {
-          id: 'glaciers',
-          name: 'Ледники',
-          color: '#f0f8ff',
-          min: minHeight + range * 0.9,
-          max: maxHeight
-        }
+      palette: [
+        { height: minHeight, color: '#4682b4' }, // Ледяная вода
+        { height: minHeight + range * 0.15, color: '#b0e0e6' }, // Ледяной шельф
+        { height: minHeight + range * 0.25, color: '#8fbc8f' }, // Тундра
+        { height: minHeight + range * 0.45, color: '#696969' }, // Каменистая почва
+        { height: minHeight + range * 0.75, color: '#fffafa' }, // Снежные поля
+        { height: minHeight + range * 0.9, color: '#f0f8ff' } // Ледники
       ]
     }
   }
 
   /**
-   * Создать пользовательскую конфигурацию из массива цветов.
-   * Автоматически распределяет цвета по заданному диапазону значений.
+   * Создать пользовательскую конфигурацию из массива цветов по высоте.
+   * Автоматически распределяет цвета по заданному диапазону высот.
    *
    * @param colors - массив цветов (минимум 2)
-   * @param minValue - минимальное значение параметра
-   * @param maxValue - максимальное значение параметра
-   * @param blendWidth - ширина зоны градиентного перехода
-   * @param zoneNames - названия зон (опционально)
+   * @param minHeight - минимальная высота
+   * @param maxHeight - максимальная высота
    * @returns пользовательская конфигурация
    */
   static createCustomConfig(
     colors: string[],
-    minValue: number,
-    maxValue: number,
-    blendWidth: number = 1.0,
-    zoneNames?: string[]
+    minHeight: number,
+    maxHeight: number
   ): GfxMultiColorConfig {
     if (colors.length < 2) {
       throw new Error('Необходимо минимум 2 цвета для создания конфигурации')
     }
 
-    const range = maxValue - minValue
-    const zoneSize = range / colors.length
-    const zones = colors.map((color, index) => {
-      const zoneMin = minValue + index * zoneSize
-      const zoneMax = minValue + (index + 1) * zoneSize
-
-      return {
-        id: `zone_${index}`,
-        name: zoneNames?.[index] || `Зона ${index + 1}`,
-        color,
-        min: index === 0 ? zoneMin : zoneMin + blendWidth / 2,
-        max: index === colors.length - 1 ? zoneMax : zoneMax - blendWidth / 2
-      }
-    })
+    const range = maxHeight - minHeight
+    const stepSize = range / (colors.length - 1)
+    
+    const palette = colors.map((color, index) => ({
+      height: minHeight + index * stepSize,
+      color
+    }))
 
     return {
-      blendWidth,
-      zones
+      palette
     }
   }
 }
