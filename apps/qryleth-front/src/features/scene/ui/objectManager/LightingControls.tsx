@@ -25,7 +25,7 @@ interface LightingControlsProps {
 const LIGHTING_PRESETS = {
     'bright-day': {
         name: 'Яркий день',
-        ambient: { color: '#87CEEB', intensity: 0.6 },
+        ambient: { color: '#87CEEB', intensity: 1 },
         directional: { color: '#FFD700', intensity: 1.0, position: [50, 100, 50] },
         backgroundColor: '#87CEEB',
         sky: {
@@ -36,7 +36,7 @@ const LIGHTING_PRESETS = {
             mieDirectionalG: 0.8,
             elevation: 1.2,
             azimuth: 0.25,
-            exposure: 1
+            exposure: 1.5
         }
     },
     'evening': {
