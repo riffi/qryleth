@@ -15,7 +15,7 @@ import {
     Slider
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
-import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings } from '@/entities/lighting'
+import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings, SkySettings } from '@/entities/lighting'
 
 interface LightingControlsProps {
     lighting?: LightingSettings
@@ -26,26 +26,66 @@ const LIGHTING_PRESETS = {
     'bright-day': {
         name: 'Яркий день',
         ambient: { color: '#87CEEB', intensity: 0.6 },
-        directional: { color: '#FFD700', intensity: 1.0 },
-        backgroundColor: '#87CEEB'
+        directional: { color: '#FFD700', intensity: 1.0, position: [50, 100, 50] },
+        backgroundColor: '#87CEEB',
+        sky: {
+            distance: 450000,
+            turbidity: 0.5,
+            rayleigh: 1.0,
+            mieCoefficient: 0.005,
+            mieDirectionalG: 0.8,
+            elevation: 1.2,
+            azimuth: 0.25,
+            exposure: 1
+        }
     },
     'evening': {
         name: 'Вечер',
-        ambient: { color: '#FF6B35', intensity: 0.3 },
-        directional: { color: '#FF8C42', intensity: 0.6 },
-        backgroundColor: '#2C1810'
+        ambient: { color: '#ff9770', intensity: 0.4 },
+        directional: { color: '#fb9653', intensity: 0.8, position: [30, 20, 30] },
+        backgroundColor: '#512d1e',
+        sky: {
+            distance: 450000,
+            turbidity: 3.0,
+            rayleigh: 0.5,
+            mieCoefficient: 0.04,
+            mieDirectionalG: 0.9,
+            elevation: 0.1,
+            azimuth: 2,
+            exposure: 0.9
+        }
     },
     'night': {
         name: 'Ночь',
-        ambient: { color: '#1E1E3F', intensity: 0.2 },
-        directional: { color: '#4169E1', intensity: 0.3 },
-        backgroundColor: '#0C0C1E'
+        ambient: { color: '#5f5f88', intensity: 0.8 },
+        directional: { color: '#7f96da', intensity: 0.8, position: [20, 10, 20] },
+        backgroundColor: '#0C0C1E',
+        sky: {
+            distance: 450000,
+            turbidity: 0.1,
+            rayleigh: 0.2,
+            mieCoefficient: 0.001,
+            mieDirectionalG: 0.7,
+            elevation: -0.3,
+            azimuth: 0.1,
+            exposure: 0.2
+        }
     },
     'moonlight': {
         name: 'Лунный свет',
         ambient: { color: '#B0C4DE', intensity: 0.25 },
-        directional: { color: '#E6E6FA', intensity: 0.4 },
-        backgroundColor: '#191970'
+        directional: { color: '#E6E6FA', intensity: 0.4, position: [20, 60, 20] },
+        backgroundColor: '#191970',
+        sky: {
+            distance: 450000,
+            turbidity: 0.3,
+            rayleigh: 0.8,
+            mieCoefficient: 0.002,
+            mieDirectionalG: 0.75,
+            elevation: 0.8,
+            azimuth: 1.5,
+            exposure: 0.6
+        }
     }
 } as const
 
@@ -130,6 +170,32 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
         }
     }
 
+    /**
+     * Изменяет параметры неба сцены.
+     * @param key поле настроек неба
+     * @param value новое значение
+     */
+    const handleSkyChange = (key: keyof SkySettings, value: string | number) => {
+        if (onLightingChange && lighting) {
+            onLightingChange({
+                ...lighting,
+                sky: {
+                    ...(lighting.sky ?? {
+                        distance: 450000,
+                        turbidity: 0.1,
+                        rayleigh: 1.0,
+                        mieCoefficient: 0.005,
+                        mieDirectionalG: 0.8,
+                        elevation: 1.2,
+                        azimuth: 0.25,
+                        exposure: 0.5
+                    }),
+                    [key]: value
+                }
+            })
+        }
+    }
+
     const handlePresetChange = (presetKey: string | null) => {
         if (presetKey && onLightingChange) {
             const preset = LIGHTING_PRESETS[presetKey as keyof typeof LIGHTING_PRESETS]
@@ -148,6 +214,19 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                         }),
                         ...preset.directional
                     },
+                    sky: {
+                        ...(lighting?.sky ?? {
+                            distance: 450000,
+                            turbidity: 0.1,
+                            rayleigh: 1.0,
+                            mieCoefficient: 0.005,
+                            mieDirectionalG: 0.8,
+                            elevation: 1.2,
+                            azimuth: 0.25,
+                            exposure: 0.5
+                        }),
+                        ...preset.sky
+                    },
                     backgroundColor: preset.backgroundColor
                 })
             }
@@ -157,13 +236,24 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
     // Определяем текущий пресет на основе настроек освещения
     useEffect(() => {
         if (lighting) {
-            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) =>
-                preset.ambient.color === lighting.ambient?.color &&
-                preset.ambient.intensity === lighting.ambient?.intensity &&
-                preset.directional.color === lighting.directional?.color &&
-                preset.directional.intensity === lighting.directional?.intensity &&
-                preset.backgroundColor === lighting.backgroundColor
-            )
+            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) => {
+                const ambientMatch = preset.ambient.color === lighting.ambient?.color &&
+                    preset.ambient.intensity === lighting.ambient?.intensity
+                const directionalMatch = preset.directional.color === lighting.directional?.color &&
+                    preset.directional.intensity === lighting.directional?.intensity &&
+                    JSON.stringify(preset.directional.position) === JSON.stringify(lighting.directional?.position)
+                const backgroundMatch = preset.backgroundColor === lighting.backgroundColor
+                const skyMatch = lighting.sky && preset.sky &&
+                    preset.sky.turbidity === lighting.sky.turbidity &&
+                    preset.sky.elevation === lighting.sky.elevation &&
+                    preset.sky.azimuth === lighting.sky.azimuth &&
+                    preset.sky.rayleigh === lighting.sky.rayleigh &&
+                    preset.sky.mieCoefficient === lighting.sky.mieCoefficient &&
+                    preset.sky.mieDirectionalG === lighting.sky.mieDirectionalG &&
+                    preset.sky.exposure === lighting.sky.exposure
+
+                return ambientMatch && directionalMatch && backgroundMatch && skyMatch
+            })
             if (currentPreset) {
                 setSelectedPreset(currentPreset[0])
             } else {
@@ -274,7 +364,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                                 onChange={(event) => handleFogChange('enabled', event.currentTarget.checked)}
                             />
                         </Group>
-                        
+
                         {lighting.fog?.enabled && (
                             <Stack gap="xs">
                                 <SegmentedControl
@@ -286,7 +376,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                                         { label: 'Экспоненциальный', value: 'exponential' }
                                     ]}
                                 />
-                                
+
                                 <ColorInput
                                     size="xs"
                                     label="Цвет тумана"

@@ -91,6 +91,28 @@ export interface FogSettings {
 }
 
 /**
+ * Настройки неба (Sky) для процедурного генерирования.
+ */
+export interface SkySettings {
+  /** Дистанция до небесной сферы */
+  distance?: number;
+  /** Мутность атмосферы (0.1-20) */
+  turbidity?: number;
+  /** Коэффициент рассеяния Рэлея (0-4) */
+  rayleigh?: number;
+  /** Коэффициент рассеяния Ми (0-0.1) */
+  mieCoefficient?: number;
+  /** Направленность рассеяния Ми (0-1) */
+  mieDirectionalG?: number;
+  /** Угол возвышения солнца в радианах */
+  elevation?: number;
+  /** Азимутальный угол солнца в радианах */
+  azimuth?: number;
+  /** Экспозиция для HDR-рендеринга */
+  exposure?: number;
+}
+
+/**
  * Корневые настройки освещения сцены.
  */
 export interface LightingSettings {
@@ -109,6 +131,8 @@ export interface LightingSettings {
   };
   /** Настройки тумана */
   fog?: FogSettings;
+  /** Настройки неба */
+  sky?: SkySettings;
   /** Цвет фона сцены */
   backgroundColor?: string;
 }

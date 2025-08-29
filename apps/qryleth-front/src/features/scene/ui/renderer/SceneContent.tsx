@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useThree } from '@react-three/fiber'
 import { SceneLighting } from '@/features/scene/ui/renderer/lighting/SceneLighting.tsx'
 import { CameraControls } from '@/features/scene/ui/renderer/controls/CameraControls.tsx'
 import { ObjectTransformGizmo } from '@/features/scene/ui/renderer/controls/ObjectTransformGizmo.tsx'
@@ -21,6 +22,23 @@ import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
  */
 interface SceneContentProps {
   renderProfile: RenderProfile
+}
+
+/**
+ * Компонент для обновления exposure рендерера при изменении настроек освещения.
+ */
+const ExposureUpdater: React.FC = () => {
+  const { gl } = useThree()
+  const lighting = useSceneStore(state => state.lighting)
+
+  useEffect(() => {
+    if (gl) {
+      gl.toneMappingExposure = lighting.sky?.exposure ?? 1.0
+      console.log('new exposure', lighting.sky?.exposure)
+    }
+  }, [gl, lighting.sky?.exposure])
+
+  return null
 }
 
 /**
@@ -48,6 +66,9 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       {/* Set scene background */}
       <color attach="background" args={[lighting.backgroundColor || '#87CEEB']} />
 
+      {/* Update renderer exposure when lighting changes */}
+      <ExposureUpdater />
+
       {/* Core scene components */}
       <SceneLighting />
       <CameraControls />
@@ -64,10 +85,19 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       </InstancedTransformProvider>
       <LandscapeLayers />
       <WaterLayers />
-      <Sky distance={450000} sunPosition={directionalPosition} inclination={0} azimuth={0.25} turbidity={0.1}/>
+      <Sky
+        distance={lighting.sky?.distance ?? 450000}
+        sunPosition={directionalPosition}
+        turbidity={lighting.sky?.turbidity ?? 0.1}
+        rayleigh={lighting.sky?.rayleigh ?? 1.0}
+        mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
+        mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
+        inclination={lighting.sky?.elevation ?? 0}
+        azimuth={lighting.sky?.azimuth ?? 0.25}
+      />
 
       <EffectComposer>
-        <SMAA />
+        {/*<SMAA />*/}
       </EffectComposer>
 
 

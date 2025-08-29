@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import React, { Suspense, useEffect, useRef } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Box, LoadingOverlay } from '@mantine/core'
 import * as THREE from 'three'
 import { SceneContent } from './SceneContent.tsx'
@@ -17,9 +17,11 @@ export const Scene3D: React.FC<Scene3DProps> = ({
 }) => {
   // Получаем текущий профиль рендера для передачи в SceneContent
   const renderProfile = useSceneStore(state => state.renderProfile)
+  // Получаем настройки освещения для извлечения exposure
+  const lighting = useSceneStore(state => state.lighting)
   // Флаг применения heightmap для показа прелоадера поверх канваса
   const isTerrainApplying = useIsTerrainApplying()
-  
+
   // Инициализируем синхронизацию UI и сцены
   useSceneUISync()
   useSceneRealTimeSync()
@@ -39,7 +41,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           alpha: true,
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.0,
+          toneMappingExposure:  lighting.sky?.exposure ?? 1.0,
         }}
         style={{
           background: 'transparent',
@@ -60,7 +62,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
 
               // Set tone mapping
               state.gl.toneMapping = THREE.ACESFilmicToneMapping
-              state.gl.toneMappingExposure = 1.0
+              state.gl.toneMappingExposure = lighting.sky?.exposure ?? 1.0
             }
 
             // Notify parent that scene is ready
