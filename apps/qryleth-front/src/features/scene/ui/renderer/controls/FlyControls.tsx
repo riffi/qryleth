@@ -7,7 +7,7 @@ import { UiMode } from '@/shared/types/ui'
 
 export const FlyControls: React.FC = () => {
   const { camera, gl } = useThree()
-  const controlsRef = useRef<any>()
+  const controlsRef = useRef<any>(null)
   
   // Movement state
   const moveForward = useRef(false)
@@ -17,6 +17,7 @@ export const FlyControls: React.FC = () => {
   
   const velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
+  const speedRef = useRef(100)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -32,6 +33,12 @@ export const FlyControls: React.FC = () => {
           break
         case 'KeyD':
           moveRight.current = true
+          break
+        case 'NumpadAdd':
+          speedRef.current = Math.min(speedRef.current + 25, 1000)
+          break
+        case 'NumpadSubtract':
+          speedRef.current = Math.max(speedRef.current - 25, 10)
           break
       }
     }
@@ -85,19 +92,20 @@ export const FlyControls: React.FC = () => {
     }
   }, [camera, gl])
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!controlsRef.current || !controlsRef.current.isLocked) return
 
     // Apply damping
     velocity.current.x -= velocity.current.x * 10.0 * delta
     velocity.current.z -= velocity.current.z * 10.0 * delta
 
-    // Calculate movement direction
+    // Calculate movement direction (локальный вектор)
     direction.current.z = Number(moveForward.current) - Number(moveBackward.current)
     direction.current.x = Number(moveRight.current) - Number(moveLeft.current)
-    direction.current.normalize()
+    direction.current.y = 0
+    if (direction.current.lengthSq() > 0) direction.current.normalize()
 
-    const speed = 100
+    const speed = speedRef.current
     if (moveForward.current || moveBackward.current) {
       velocity.current.z -= direction.current.z * speed * delta
     }
@@ -105,13 +113,13 @@ export const FlyControls: React.FC = () => {
       velocity.current.x -= direction.current.x * speed * delta
     }
 
-    // Move the camera (free movement in 3D space)
-    if (controlsRef.current.moveRight) {
-      controlsRef.current.moveRight(-velocity.current.x * delta)
-    }
-    if (controlsRef.current.moveForward) {
-      controlsRef.current.moveForward(-velocity.current.z * delta)
-    }
+    // --- Новый блок: движение относительно направления взгляда камеры ---
+    // Для fly-режима: X — вправо, Z — вперёд (Three.js)
+    // Исправляем знак для X: влево (A) — отрицательно, вправо (D) — положительно
+    const move = new THREE.Vector3(-velocity.current.x, 0, velocity.current.z)
+    move.applyQuaternion(camera.quaternion)
+    camera.position.addScaledVector(move, delta)
+    // --- Конец нового блока ---
   })
 
   return (
