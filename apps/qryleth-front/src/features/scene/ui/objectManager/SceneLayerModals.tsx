@@ -279,19 +279,26 @@ export const SceneLayerModals: React.FC = () => {
      * Если выбран heightmap, поддерживаются два варианта: новый файл (загрузка и создание ассета)
      * или уже существующий ассет из коллекции (без повторной загрузки).
      */
+    /**
+     * Создание ландшафтного слоя с учётом источника террейна и центра.
+     *
+     * ВАЖНО: добавлены зависимости centerX/centerZ, чтобы при изменении центра в UI
+     * колбэк не использовал устаревшие значения из замыкания и корректно создавал слой
+     * вокруг новой точки центра.
+     */
     const handleCreateLayerWithTerrain = useCallback(async () => {
         if (layerModalMode !== 'create') {
             handleCreateLayer()
             return
         }
 
-        // Обычная логика для не-landscape слоев
+        // Если это не ландшафтный слой или не террейн — оставляем стандартную логику создания
         if (layerFormData.type !== GfxLayerType.Landscape || layerFormData.shape !== GfxLayerShape.Terrain) {
             handleCreateLayer()
             return
         }
 
-        // Логика для landscape слоев с terrain
+        // Логика для landscape-террейна
         if (terrainSource === 'heightmap' && (heightmapFile || selectedAsset)) {
             try {
                 setIsUploading(true)
@@ -376,15 +383,65 @@ export const SceneLayerModals: React.FC = () => {
                 setIsUploading(false)
             }
         } else {
-            // Обычная логика для perlin
-            handleCreateLayer()
+            // Вариант Perlin: создаём конфигурацию террейна сами, чтобы учесть центр
+            const w = layerFormData.width || 1
+            const d = ((layerFormData as any).depth ?? (layerFormData as any).height) || 1
+            const gridW = w > 200 ? 200 : w
+            const gridH = d > 200 ? 200 : d
+
+            const terrainConfig: import('@/entities/terrain').GfxTerrainConfig = {
+                worldWidth: w,
+                worldHeight: d,
+                center: [centerX || 0, centerZ || 0],
+                edgeFade: 0.15,
+                source: {
+                    kind: 'perlin',
+                    params: {
+                        seed: 1234,
+                        octaveCount: 4,
+                        amplitude: 0.1,
+                        persistence: 0.5,
+                        width: gridW,
+                        height: gridH,
+                    }
+                }
+            }
+
+            const layerData = {
+                name: layerFormData.name?.trim() || 'landscape',
+                type: GfxLayerType.Landscape,
+                visible: true,
+                position: layers?.length || 0,
+                color: layerFormData.color,
+                width: w,
+                depth: d,
+                shape: GfxLayerShape.Terrain,
+                terrain: terrainConfig
+            }
+
+            const result = await SceneAPI.createLayerWithAdjustment(layerData as any, terrainConfig, {
+                maxAttempts: 15,
+                showNotifications: true
+            })
+
+            if (result.success) {
+                resetModalState()
+            } else {
+                setUploadError(result.error || 'Ошибка создания слоя')
+            }
         }
-    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleCreateLayer, resetModalState, storeCreateLayer])
+    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleCreateLayer, resetModalState, storeCreateLayer, centerX, centerZ])
 
     /**
      * Обновление существующего слоя с учётом настроек heightmap.
      * Если выбран источник heightmap, обновляет параметры min/max/wrap и при необходимости
      * заменяет ассет (assetId) на загруженный/выбранный из коллекции.
+     */
+    /**
+     * Обновление существующего ландшафтного слоя (terrain), включая центр.
+     *
+     * ВАЖНО: добавлены зависимости centerX/centerZ, чтобы не брать старые значения
+     * из замыкания и корректно применять новые координаты центра при сохранении.
      */
     const handleUpdateLayerWithTerrain = useCallback(async () => {
         if (layerModalMode !== 'edit') {
@@ -397,17 +454,53 @@ export const SceneLayerModals: React.FC = () => {
             return
         }
 
-        // Если источник не heightmap — используем стандартный апдейт
-        if (terrainSource !== 'heightmap') {
-            handleUpdateLayer()
-            return
-        }
-
+        // Текущий ID редактируемого слоя нужен во всех ветках
         const currentId = (layerFormData as any).id as string | undefined
         if (!currentId) {
             handleUpdateLayer()
             return
         }
+
+        // Если источник не heightmap (Perlin) — обновляем центр и размеры террейна вручную
+        if (terrainSource !== 'heightmap') {
+            const currentLayer = layers?.find(l => l.id === currentId)
+            const currentTerrain = currentLayer?.terrain
+
+            const newTerrain: GfxTerrainConfig = {
+                worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
+                worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
+                center: [centerX ?? (currentTerrain?.center?.[0] ?? 0), centerZ ?? (currentTerrain?.center?.[1] ?? 0)],
+                edgeFade: currentTerrain?.edgeFade ?? 0.15,
+                seaLevel: currentTerrain?.seaLevel,
+                source: currentTerrain?.source && currentTerrain.source.kind === 'perlin' ? currentTerrain.source : {
+                    kind: 'perlin',
+                    params: {
+                        seed: 1234,
+                        octaveCount: 4,
+                        amplitude: 0.1,
+                        persistence: 0.5,
+                        width: Math.min(200, layerFormData.width || 100),
+                        height: Math.min(200, ((layerFormData as any).depth ?? (layerFormData as any).height) || 100)
+                    }
+                },
+                ops: currentTerrain?.ops,
+                adaptiveTessellation: currentTerrain?.adaptiveTessellation
+            }
+
+            storeUpdateLayer(currentId, {
+                name: layerFormData.name?.trim() || currentLayer?.name || 'landscape',
+                color: layerFormData.color || DEFAULT_LANDSCAPE_COLOR,
+                width: layerFormData.width,
+                depth: (layerFormData as any).depth ?? (layerFormData as any).height,
+                shape: GfxLayerShape.Terrain,
+                terrain: newTerrain
+            })
+
+            resetModalState()
+            return
+        }
+
+        // currentId определён выше
 
         try {
             // Определяем итоговый assetId и размеры
@@ -448,6 +541,7 @@ export const SceneLayerModals: React.FC = () => {
                 worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
                 center: [centerX ?? (currentTerrain?.center?.[0] ?? 0), centerZ ?? (currentTerrain?.center?.[1] ?? 0)],
                 edgeFade: currentTerrain?.edgeFade ?? 0,
+                seaLevel: currentTerrain?.seaLevel,
                 source: {
                     kind: 'heightmap',
                     params: {
@@ -459,7 +553,8 @@ export const SceneLayerModals: React.FC = () => {
                         wrap: heightmapParams.wrap ?? 'clamp'
                     }
                 },
-                ops: currentTerrain?.ops
+                ops: currentTerrain?.ops,
+                adaptiveTessellation: currentTerrain?.adaptiveTessellation
             }
 
             // Обновляем слой через zustand-стор
@@ -477,7 +572,7 @@ export const SceneLayerModals: React.FC = () => {
             console.error('Ошибка обновления heightmap-слоя:', e)
             handleUpdateLayer()
         }
-    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleUpdateLayer, resetModalState, storeUpdateLayer])
+    }, [layerModalMode, layerFormData, terrainSource, heightmapFile, selectedAsset, heightmapParams, layers, handleUpdateLayer, resetModalState, storeUpdateLayer, centerX, centerZ])
 
     // Очистка при размонтировании
     useEffect(() => {
