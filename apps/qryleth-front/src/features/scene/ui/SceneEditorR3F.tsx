@@ -611,14 +611,31 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
    * кнопке панельки; нажатие кнопок меняет viewMode и тем самым активирует
    * соответствующую камеру.
    */
-  const PlayCameraPanel: React.FC = () => (
-    <Group gap={8} wrap="nowrap" align="center">
-      <ViewModeSegment value={viewMode} onChange={setViewMode} frosted size="xs" />
-      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', userSelect: 'none' }}>
-        Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly
-      </Text>
-    </Group>
-  )
+  const PlayCameraPanel: React.FC = () => {
+    const [flySpeed, setFlySpeed] = useState(100)
+    // Слушаем изменения скорости из FlyControls через кастомное событие
+    useEffect(() => {
+      const handler = (e: CustomEvent) => setFlySpeed(e.detail)
+      window.addEventListener('flySpeedChange', handler as EventListener)
+      return () => window.removeEventListener('flySpeedChange', handler as EventListener)
+    }, [])
+
+    return (
+      <Group gap={8} wrap="nowrap" align="center">
+        <Stack gap={0} align="start">
+          <ViewModeSegment value={viewMode} onChange={setViewMode} frosted size="xs" />
+          {viewMode === 'fly' && (
+            <Text size="xs" c="dimmed" style={{ marginLeft: 2, marginTop: 2, userSelect: 'none' }}>
+              Скорость полёта: <b>{flySpeed}</b>
+            </Text>
+          )}
+        </Stack>
+        <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', userSelect: 'none' }}>
+          Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly
+        </Text>
+      </Group>
+    )
+  }
 
   return (
     <>

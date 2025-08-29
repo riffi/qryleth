@@ -36,9 +36,11 @@ export const FlyControls: React.FC = () => {
           break
         case 'NumpadAdd':
           speedRef.current = Math.min(speedRef.current + 25, 1000)
+          window.dispatchEvent(new CustomEvent('flySpeedChange', { detail: speedRef.current }))
           break
         case 'NumpadSubtract':
           speedRef.current = Math.max(speedRef.current - 25, 10)
+          window.dispatchEvent(new CustomEvent('flySpeedChange', { detail: speedRef.current }))
           break
       }
     }
@@ -84,6 +86,9 @@ export const FlyControls: React.FC = () => {
     } catch {
       camera.position.set(0, 5, 10)
     }
+
+    // При монтировании сразу отправляем актуальную скорость
+    window.dispatchEvent(new CustomEvent('flySpeedChange', { detail: speedRef.current }))
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
