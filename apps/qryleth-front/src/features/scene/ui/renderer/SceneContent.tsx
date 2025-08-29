@@ -33,6 +33,9 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
   const gridVisible = useGridVisible()
   const uiMode = useSceneStore(state => state.uiMode)
 
+  // Получаем позицию directional light для синхронизации с положением солнца
+  const directionalPosition = lighting.directional?.position ?? [10, 10, 10]
+
   // renderProfile может использоваться для различения настроек рендера между режимами Edit/View.
   // На текущем этапе реализации служит флагом подготовки к будущим настройкам.
   // Возможные применения: различные настройки post-processing, качество теней, LOD и др.
@@ -61,7 +64,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       </InstancedTransformProvider>
       <LandscapeLayers />
       <WaterLayers />
-      <Sky distance={450000}  sunPosition={[500, 150, -1000]} inclination={0} azimuth={0.25} turbidity={0.1}/>
+      <Sky distance={450000} sunPosition={directionalPosition} inclination={0} azimuth={0.25} turbidity={0.1}/>
 
       <EffectComposer>
         <SMAA />

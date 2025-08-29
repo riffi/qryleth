@@ -19,7 +19,7 @@ export const SceneLighting: React.FC = () => {
   const directional = lighting.directional
   const directionalColor = directional?.color ?? '#FFD700'
   const directionalIntensity = directional?.intensity ?? 1
-  const directionalPosition = directional?.position ?? [10, 10, 10]
+  const directionalPosition = directional?.position ?? [500, 150, -1000]
   const castShadow = directional?.castShadow ?? true
   const shadowMapSize = directional?.shadowProps?.mapSize ?? [2048, 2048]
   const shadowCameraFar = directional?.shadowProps?.cameraFar ?? 100

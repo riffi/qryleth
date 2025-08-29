@@ -130,7 +130,7 @@ const initialLighting: LightingSettings = {
     uuid: 'directional-light',
     color: '#ffffff',
     intensity: 1,
-    position: [10, 10, 10],
+    position: [500, 150, -1000],
     castShadow: true,
   },
   backgroundColor: '#222222',
