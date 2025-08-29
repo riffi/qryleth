@@ -41,7 +41,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
           alpha: true,
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure:  lighting.sky?.exposure ?? 1.0,
+          toneMappingExposure:  lighting.exposure ?? 1.0,
         }}
         style={{
           background: 'transparent',
@@ -62,7 +62,7 @@ export const Scene3D: React.FC<Scene3DProps> = ({
 
               // Set tone mapping
               state.gl.toneMapping = THREE.ACESFilmicToneMapping
-              state.gl.toneMappingExposure = lighting.sky?.exposure ?? 1.0
+              state.gl.toneMappingExposure = lighting.exposure ?? 1.0
             }
 
             // Notify parent that scene is ready

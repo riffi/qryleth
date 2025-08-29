@@ -33,10 +33,9 @@ const ExposureUpdater: React.FC = () => {
 
   useEffect(() => {
     if (gl) {
-      gl.toneMappingExposure = lighting.sky?.exposure ?? 1.0
-      console.log('new exposure', lighting.sky?.exposure)
+      gl.toneMappingExposure = lighting.exposure ?? 1.0
     }
-  }, [gl, lighting.sky?.exposure])
+  }, [gl, lighting.exposure])
 
   return null
 }

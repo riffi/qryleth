@@ -108,8 +108,6 @@ export interface SkySettings {
   elevation?: number;
   /** Азимутальный угол солнца в радианах */
   azimuth?: number;
-  /** Экспозиция для HDR-рендеринга */
-  exposure?: number;
 }
 
 /**
@@ -135,5 +133,8 @@ export interface LightingSettings {
   sky?: SkySettings;
   /** Цвет фона сцены */
   backgroundColor?: string;
+
+  /** Экспозиция для HDR-рендеринга */
+  exposure?: number;
 }
 

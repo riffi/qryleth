@@ -28,6 +28,7 @@ const LIGHTING_PRESETS = {
         ambient: { color: '#87CEEB', intensity: 1 },
         directional: { color: '#FFD700', intensity: 1.0, position: [50, 100, 50] },
         backgroundColor: '#87CEEB',
+        exposure: 1.3,
         sky: {
             distance: 450000,
             turbidity: 0.5,
@@ -36,7 +37,6 @@ const LIGHTING_PRESETS = {
             mieDirectionalG: 0.8,
             elevation: 1.2,
             azimuth: 0.25,
-            exposure: 1.3
         }
     },
     'evening': {
@@ -44,6 +44,7 @@ const LIGHTING_PRESETS = {
         ambient: { color: '#ff9770', intensity: 0.4 },
         directional: { color: '#fb9653', intensity: 0.8, position: [30, 20, 30] },
         backgroundColor: '#512d1e',
+        exposure: 0.9,
         sky: {
             distance: 450000,
             turbidity: 3.0,
@@ -52,7 +53,6 @@ const LIGHTING_PRESETS = {
             mieDirectionalG: 0.9,
             elevation: 0.1,
             azimuth: 2,
-            exposure: 0.9
         }
     },
     'night': {
@@ -60,6 +60,7 @@ const LIGHTING_PRESETS = {
         ambient: { color: '#5f5f88', intensity: 0.8 },
         directional: { color: '#7f96da', intensity: 0.8, position: [20, 10, 20] },
         backgroundColor: '#0C0C1E',
+        exposure: 0.2,
         sky: {
             distance: 450000,
             turbidity: 0.1,
@@ -68,7 +69,6 @@ const LIGHTING_PRESETS = {
             mieDirectionalG: 0.7,
             elevation: -0.3,
             azimuth: 0.1,
-            exposure: 0.2
         }
     },
     'moonlight': {
@@ -76,6 +76,7 @@ const LIGHTING_PRESETS = {
         ambient: { color: '#B0C4DE', intensity: 0.25 },
         directional: { color: '#E6E6FA', intensity: 0.4, position: [20, 60, 20] },
         backgroundColor: '#191970',
+        exposure: 0.6,
         sky: {
             distance: 450000,
             turbidity: 0.3,
@@ -83,8 +84,7 @@ const LIGHTING_PRESETS = {
             mieCoefficient: 0.002,
             mieDirectionalG: 0.75,
             elevation: 0.8,
-            azimuth: 1.5,
-            exposure: 0.6
+            azimuth: 1.5
         }
     }
 } as const
@@ -170,32 +170,6 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
         }
     }
 
-    /**
-     * Изменяет параметры неба сцены.
-     * @param key поле настроек неба
-     * @param value новое значение
-     */
-    const handleSkyChange = (key: keyof SkySettings, value: string | number) => {
-        if (onLightingChange && lighting) {
-            onLightingChange({
-                ...lighting,
-                sky: {
-                    ...(lighting.sky ?? {
-                        distance: 450000,
-                        turbidity: 0.1,
-                        rayleigh: 1.0,
-                        mieCoefficient: 0.005,
-                        mieDirectionalG: 0.8,
-                        elevation: 1.2,
-                        azimuth: 0.25,
-                        exposure: 0.5
-                    }),
-                    [key]: value
-                }
-            })
-        }
-    }
-
     const handlePresetChange = (presetKey: string | null) => {
         if (presetKey && onLightingChange) {
             const preset = LIGHTING_PRESETS[presetKey as keyof typeof LIGHTING_PRESETS]
@@ -223,10 +197,10 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                             mieDirectionalG: 0.8,
                             elevation: 1.2,
                             azimuth: 0.25,
-                            exposure: 0.5
                         }),
                         ...preset.sky
                     },
+                    exposure: preset.exposure ?? 0.5,
                     backgroundColor: preset.backgroundColor
                 })
             }
@@ -249,10 +223,11 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                     preset.sky.azimuth === lighting.sky.azimuth &&
                     preset.sky.rayleigh === lighting.sky.rayleigh &&
                     preset.sky.mieCoefficient === lighting.sky.mieCoefficient &&
-                    preset.sky.mieDirectionalG === lighting.sky.mieDirectionalG &&
-                    preset.sky.exposure === lighting.sky.exposure
+                    preset.sky.mieDirectionalG === lighting.sky.mieDirectionalG
 
-                return ambientMatch && directionalMatch && backgroundMatch && skyMatch
+                const exposureMatch = preset.exposure === lighting.exposure
+
+                return ambientMatch && directionalMatch && backgroundMatch && skyMatch && exposureMatch
             })
             if (currentPreset) {
                 setSelectedPreset(currentPreset[0])
