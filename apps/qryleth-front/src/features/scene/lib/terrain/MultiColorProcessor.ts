@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { GfxMultiColorConfig, GfxMultiColorPaletteStop } from '../../../../entities/layer/model/types'
 
 /**
  * Минимально-самодостаточный, но расширяемый процессор многоцветной окраски.
@@ -15,18 +16,12 @@ import * as THREE from 'three'
  *   slopeBoost?: number
  * }
  */
-export type MultiColorPaletteStop = { height: number; color: string }
-export interface MultiColorConfig {
-  mode?: 'vertex' | 'triangle'
-  palette?: MultiColorPaletteStop[]
-  slopeBoost?: number
-}
 
 export class MultiColorProcessor {
-  private palette: MultiColorPaletteStop[]
+  private palette: GfxMultiColorPaletteStop[]
   private slopeBoost: number
 
-  constructor(private readonly config: MultiColorConfig = {}) {
+  constructor(private readonly config: GfxMultiColorConfig = {}) {
     // Палитра по умолчанию: низ — тёмно-зеленый, середина — зелёный, верх — серо-каменный/снег
     this.palette = (config.palette ?? [
       { height: -10, color: '#2d5a27' },
