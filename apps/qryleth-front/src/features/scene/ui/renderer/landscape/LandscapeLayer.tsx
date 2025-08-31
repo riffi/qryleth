@@ -146,6 +146,17 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
     return [cx, 0.1, cz] as const
   }, [layer.terrain?.center])
 
+  /**
+   * Учет глобального режима рендера (solid | wireframe) из стора редактора сцены.
+   *
+   * Ландшафтный слой ранее всегда рисовался как сплошной. Здесь мы подписываемся
+   * на значение `renderMode` и пробрасываем соответствующий флаг `wireframe` в материал.
+   * Это гарантирует, что переключение режима в тулбаре мгновенно обновит отрисовку
+   * террейна, даже при мемоизации компонента (подписка на стор вызовет перерендер).
+   */
+  const renderMode = useSceneStore(state => (state as any).renderMode)
+  const isWireframe = renderMode === 'wireframe'
+
   return (
       <mesh
           geometry={finalGeometry}
@@ -162,7 +173,7 @@ export const LandscapeLayer: React.FC<LandscapeLayerProps> = ({ layer }) => {
         <meshLambertMaterial
             color={materialColor}
             side={THREE.DoubleSide}
-            wireframe={false}
+            wireframe={isWireframe}
             transparent={hasTransparency || layer.multiColor} // включаем прозрачность при наличии alpha в палитре
             opacity={1.0}
             vertexColors={useVertexColors}
