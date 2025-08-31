@@ -108,4 +108,11 @@ export interface GfxWaterConfig {
    * По умолчанию 1.6, допустимые значения ~ 0.5..3.0
    */
   brightness?: number;
+  /**
+   * Тип визуализации воды.
+   * simple — старый шейдер на базе собственного ShaderMaterial;
+   * realistic — Water из three-stdlib с отражениями/преломлениями.
+   * Если не задан, по умолчанию используется 'realistic'.
+   */
+  type?: 'simple' | 'realistic';
 }

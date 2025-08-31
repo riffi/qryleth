@@ -17,7 +17,8 @@ export const WaterLayers: React.FC = () => {
     <group>
       {waterLayers.map(layer => (
         <MemoizedWaterLayer
-          key={layer.id}
+          // При смене типа воды важно форсировать перемонтирование, чтобы гарантированно сменился подлежащий компонент
+          key={`${layer.id}-${((layer as any).water?.type || 'realistic')}`}
           layer={layer}
         />
       ))}

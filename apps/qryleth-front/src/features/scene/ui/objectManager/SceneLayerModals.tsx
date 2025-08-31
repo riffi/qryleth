@@ -841,19 +841,44 @@ export const SceneLayerModals: React.FC = () => {
                                     min={1}
                                 />
                             </Group>
-                            <Group align="flex-end" gap="sm">
-                                <NumberInput
-                                    label="Яркость воды"
-                                    value={((layerFormData as any).water?.brightness) ?? 1.6}
-                                    onChange={(val) => setLayerFormData({
-                                        ...layerFormData,
-                                        water: { brightness: (val || 1.6) }
-                                    } as any)}
-                                    min={0.5}
-                                    max={3}
-                                    step={0.1}
-                                />
-                            </Group>
+
+                            {/* Выбор типа визуализации воды */}
+                            <Select
+                                label="Тип воды"
+                                data={[
+                                    { value: 'simple', label: 'Простая' },
+                                    { value: 'realistic', label: 'Реалистичная' }
+                                ]}
+                                value={((layerFormData as any).water?.type) || 'realistic'}
+                                onChange={(v) => {
+                                    if (!v) return
+                                    setLayerFormData(prev => ({
+                                        ...prev,
+                                        water: {
+                                            type: v as 'simple' | 'realistic',
+                                            // сохраняем существующую яркость (важна для simple)
+                                            brightness: ((prev as any).water?.brightness ?? 1.6)
+                                        }
+                                    } as any))
+                                }}
+                            />
+
+                            {/* Яркость показываем только для простого варианта */}
+                            {(((layerFormData as any).water?.type) || 'realistic') === 'simple' && (
+                                <Group align="flex-end" gap="sm">
+                                    <NumberInput
+                                        label="Яркость воды"
+                                        value={((layerFormData as any).water?.brightness) ?? 1.6}
+                                        onChange={(val) => setLayerFormData({
+                                            ...layerFormData,
+                                            water: { type: (((layerFormData as any).water?.type) || 'realistic'), brightness: (val || 1.6) }
+                                        } as any)}
+                                        min={0.5}
+                                        max={3}
+                                        step={0.1}
+                                    />
+                                </Group>
+                            )}
                         </Stack>
                     )}
 

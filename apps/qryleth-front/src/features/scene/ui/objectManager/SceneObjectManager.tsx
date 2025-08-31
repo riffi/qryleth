@@ -224,7 +224,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             visible: layer.visible,
             position: layer.position,
             // Поддержка настроек воды при редактировании
-            ...(layer.type === GfxLayerType.Water ? { water: (layer as any).water ?? { brightness: 1.6 } } : {})
+            ...(layer.type === GfxLayerType.Water ? { water: { type: ((layer as any).water?.type || 'realistic'), brightness: ((layer as any).water?.brightness ?? 1.6) } } : {})
         })
         setLayerModalMode('edit')
         setLayerModalOpened(true)
