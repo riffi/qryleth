@@ -60,10 +60,17 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
   // Enable keyboard shortcuts
   useKeyboardShortcuts()
 
+  // Если включён туман, фон сцены берём из цвета тумана,
+  // чтобы на горизонте не было резкой границы между водой и небом.
+  const fogEnabled = lighting.fog?.enabled ?? false
+  const sceneBackground = fogEnabled
+    ? (lighting.fog?.color || lighting.backgroundColor || '#87CEEB')
+    : (lighting.backgroundColor || '#87CEEB')
+
   return (
     <>
       {/* Set scene background */}
-      <color attach="background" args={[lighting.backgroundColor || '#87CEEB']} />
+      <color attach="background" args={[sceneBackground]} />
 
       {/* Update renderer exposure when lighting changes */}
       <ExposureUpdater />
@@ -84,7 +91,9 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       </InstancedTransformProvider>
       <LandscapeLayers />
       <WaterLayers />
+      {/* При активном тумане скрываем скайбокс, чтобы убрать чёткую линию горизонта */}
       <Sky
+        visible={!fogEnabled}
         distance={lighting.sky?.distance ?? 450000}
         sunPosition={directionalPosition}
         turbidity={lighting.sky?.turbidity ?? 0.1}

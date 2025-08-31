@@ -133,6 +133,9 @@ export const AdvancedWaterLayer: React.FC<AdvancedWaterLayerProps> = ({ layer })
     }
   }, [fogEnabled])
 
+  // Убрана инвазивная модификация шейдера: оставляем стандартную реализацию Water
+  // с поддержкой тумана через флаг material.fog и конфиг `fog: true`.
+
   /**
    * Анимирует время в шейдере Water, обеспечивая движение волн и динамику отражений.
    *
