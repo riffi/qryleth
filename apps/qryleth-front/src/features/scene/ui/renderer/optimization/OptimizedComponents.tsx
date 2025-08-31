@@ -89,11 +89,17 @@ export const MemoizedWaterLayer = React.memo<WaterLayerProps>(
   WaterLayer,
   (prevProps, nextProps) => {
     // Custom comparison function for water layers
+    const prevDepth = (prevProps.layer as any).depth ?? (prevProps.layer as any).height
+    const nextDepth = (nextProps.layer as any).depth ?? (nextProps.layer as any).height
+    const prevBrightness = (prevProps.layer as any).water?.brightness ?? 1.6
+    const nextBrightness = (nextProps.layer as any).water?.brightness ?? 1.6
     return (
       prevProps.layer.id === nextProps.layer.id &&
       prevProps.layer.visible === nextProps.layer.visible &&
       prevProps.layer.width === nextProps.layer.width &&
-      ((prevProps.layer as any).depth ?? (prevProps.layer as any).height) === ((nextProps.layer as any).depth ?? (nextProps.layer as any).height)
+      prevDepth === nextDepth &&
+      // Важно: изменение яркости воды должно обновлять рендер
+      prevBrightness === nextBrightness
     )
   }
 )

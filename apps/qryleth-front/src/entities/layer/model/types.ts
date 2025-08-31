@@ -92,4 +92,20 @@ export interface GfxLayer {
    * Если задана, то имеет приоритет над полем color.
    */
   multiColor?: GfxMultiColorConfig;
+  /**
+   * Дополнительные параметры воды.
+   * Используются слоями типа GfxLayerType.Water.
+   */
+  water?: GfxWaterConfig;
+}
+
+/**
+ * Параметры визуализации водной поверхности.
+ */
+export interface GfxWaterConfig {
+  /**
+   * Множитель яркости финального цвета воды (после освещения).
+   * По умолчанию 1.6, допустимые значения ~ 0.5..3.0
+   */
+  brightness?: number;
 }

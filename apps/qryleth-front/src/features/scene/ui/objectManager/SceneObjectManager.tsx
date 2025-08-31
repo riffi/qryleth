@@ -153,7 +153,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 // Используем термин depth вместо height
                 depth: (layerFormData as any).depth ?? (layerFormData as any).height,
                 shape: layerFormData.shape
-            })
+            }),
+            // Для водного слоя пробрасываем пользовательские параметры воды
+            ...(layerFormData.type === GfxLayerType.Water ? { water: (layerFormData as any).water } : {})
         }
 
         try {
@@ -196,7 +198,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
               ? ((layerFormData as any).depth ?? (layerFormData as any).height)
               : undefined,
             shape: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.shape : undefined,
-            color: layerFormData.color
+            color: layerFormData.color,
+            // Пробрасываем настройки воды, если тип слоя — Water
+            ...(layerFormData.type === GfxLayerType.Water ? { water: (layerFormData as any).water } : {})
         }
         storeUpdateLayer(layerFormData.id, updates)
         setLayerFormData(createEmptySceneLayer())
@@ -218,7 +222,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             shape: layer.shape || GfxLayerShape.Plane,
             color: layer.color || DEFAULT_LANDSCAPE_COLOR,
             visible: layer.visible,
-            position: layer.position
+            position: layer.position,
+            // Поддержка настроек воды при редактировании
+            ...(layer.type === GfxLayerType.Water ? { water: (layer as any).water ?? { brightness: 1.6 } } : {})
         })
         setLayerModalMode('edit')
         setLayerModalOpened(true)

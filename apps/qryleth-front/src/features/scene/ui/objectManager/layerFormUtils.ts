@@ -25,6 +25,8 @@ export const createEmptySceneLayer = (): SceneLayer => ({
     depth: 10,
     shape: GfxLayerShape.Plane,
     color: DEFAULT_LANDSCAPE_COLOR,
+    // Настройки воды по умолчанию (используются, если тип слоя Water)
+    water: { brightness: 1},
     visible: true,
     position: 0
 })
