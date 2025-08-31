@@ -16,78 +16,14 @@ import {
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings, SkySettings } from '@/entities/lighting'
+import { LIGHTING_PRESETS } from '@/features/scene/model/lighting-presets'
 
 interface LightingControlsProps {
     lighting?: LightingSettings
     onLightingChange?: (lighting: LightingSettings) => void
 }
 
-const LIGHTING_PRESETS = {
-    'bright-day': {
-        name: 'Яркий день',
-        ambient: { color: '#87CEEB', intensity: 1 },
-        directional: { color: '#FFD700', intensity: 1.0, position: [50, 100, 50] },
-        backgroundColor: '#87CEEB',
-        exposure: 1.3,
-        sky: {
-            distance: 450000,
-            turbidity: 0.5,
-            rayleigh: 1.0,
-            mieCoefficient: 0.005,
-            mieDirectionalG: 0.8,
-            elevation: 1.2,
-            azimuth: 0.25,
-        }
-    },
-    'evening': {
-        name: 'Вечер',
-        ambient: { color: '#ff9770', intensity: 0.4 },
-        directional: { color: '#fb9653', intensity: 0.8, position: [30, 20, 30] },
-        backgroundColor: '#512d1e',
-        exposure: 0.9,
-        sky: {
-            distance: 450000,
-            turbidity: 3.0,
-            rayleigh: 0.5,
-            mieCoefficient: 0.04,
-            mieDirectionalG: 0.9,
-            elevation: 0.1,
-            azimuth: 2,
-        }
-    },
-    'night': {
-        name: 'Ночь',
-        ambient: { color: '#5f5f88', intensity: 0.8 },
-        directional: { color: '#7f96da', intensity: 0.8, position: [20, 10, 20] },
-        backgroundColor: '#0C0C1E',
-        exposure: 0.2,
-        sky: {
-            distance: 450000,
-            turbidity: 0.1,
-            rayleigh: 0.2,
-            mieCoefficient: 0.001,
-            mieDirectionalG: 0.7,
-            elevation: -0.3,
-            azimuth: 0.1,
-        }
-    },
-    'moonlight': {
-        name: 'Лунный свет',
-        ambient: { color: '#B0C4DE', intensity: 0.25 },
-        directional: { color: '#E6E6FA', intensity: 0.4, position: [20, 60, 20] },
-        backgroundColor: '#191970',
-        exposure: 0.6,
-        sky: {
-            distance: 450000,
-            turbidity: 0.3,
-            rayleigh: 0.8,
-            mieCoefficient: 0.002,
-            mieDirectionalG: 0.75,
-            elevation: 0.8,
-            azimuth: 1.5
-        }
-    }
-} as const
+// Пресеты перенесены в общий модуль фичи, импортируются выше
 
 export const LightingControls: React.FC<LightingControlsProps> = ({
     lighting,

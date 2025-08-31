@@ -21,23 +21,24 @@ import type {
 } from '@/entities/scene/types.ts'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { LightingSettings } from '@/entities/lighting'
+import { DEFAULT_LIGHTING_PRESET_KEY, getLightingPreset } from './lighting-presets'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType } from '@/entities/layer'
 
+// Берём значения из пресета по умолчанию ("Яркий день") и дополняем служебными полями
+const initialPreset = getLightingPreset(DEFAULT_LIGHTING_PRESET_KEY)
 const initialLighting: LightingSettings = {
   ambient: {
     uuid: 'ambient-light',
-    color: '#87CEEB',
-    intensity: 0.6,
+    ...(initialPreset.ambient ?? { color: '#87CEEB', intensity: 1 }),
   },
   directional: {
     uuid: 'directional-light',
-    color: '#FFD700',
-    intensity: 1.0,
-    position: [10, 10, 10],
     castShadow: true,
+    position: initialPreset.directional?.position ?? [10, 10, 10],
+    ...(initialPreset.directional ?? { color: '#FFD700', intensity: 1.0 }),
   },
   fog: {
     enabled: false,
@@ -47,7 +48,9 @@ const initialLighting: LightingSettings = {
     far: 1000,
     density: 0.001,
   },
-  backgroundColor: '#87CEEB',
+  backgroundColor: initialPreset.backgroundColor ?? '#87CEEB',
+  sky: initialPreset.sky,
+  exposure: initialPreset.exposure ?? 1.0,
 }
 
 const initialLayers: SceneLayer[] = [
