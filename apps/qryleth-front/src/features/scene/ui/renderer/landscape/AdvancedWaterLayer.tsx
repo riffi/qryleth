@@ -34,6 +34,7 @@ export const AdvancedWaterLayer: React.FC<AdvancedWaterLayerProps> = ({ layer })
   const ref = useRef<any>(null)
   const lighting = useSceneLighting()
   const gl = useThree((state) => state.gl)
+  const fogEnabled = lighting.fog?.enabled ?? false
 
   /**
    * Создаёт геометрию плоскости под воду на основе размеров слоя.
@@ -71,10 +72,11 @@ export const AdvancedWaterLayer: React.FC<AdvancedWaterLayerProps> = ({ layer })
       sunColor: 0xffffff,
       waterColor: 0x001e0f,
       distortionScale: 3.7,
-      fog: false,
+      // Включаем поддержку тумана движка three.js в материале Water
+      fog: fogEnabled,
       format: (gl as any).encoding
     }),
-    [waterNormals, gl]
+    [waterNormals, gl, fogEnabled]
   )
 
   /**
@@ -116,6 +118,20 @@ export const AdvancedWaterLayer: React.FC<AdvancedWaterLayerProps> = ({ layer })
     const exposure = lighting.exposure ?? 1.0
     uniforms.distortionScale.value = 3.7 * exposure
   }, [lighting, layer])
+
+  /**
+   * Синхронизация флага fog у материала с настройками сцены.
+   * Работает как для линейного, так и для экспоненциального тумана,
+   * задаваемого в компоненте SceneLighting через scene.fog.
+   */
+  useEffect(() => {
+    const obj = ref.current as any
+    if (!obj || !obj.material) return
+    if (obj.material.fog !== fogEnabled) {
+      obj.material.fog = fogEnabled
+      obj.material.needsUpdate = true
+    }
+  }, [fogEnabled])
 
   /**
    * Анимирует время в шейдере Water, обеспечивая движение волн и динамику отражений.
