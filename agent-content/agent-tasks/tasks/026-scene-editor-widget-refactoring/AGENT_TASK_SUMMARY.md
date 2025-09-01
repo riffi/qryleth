@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
   total: 4
-  completed: 1
+  completed: 2
 ---
 
 # Рефакторинг SceneEditor: выделение виджета и реорганизация фич
@@ -88,7 +88,7 @@ phases:
 - На первом шаге допускается оставить использование `useVisualSettingsStore` (persist) без миграции. Зафиксировать список ключей и места использования.
 - Обновить `SceneEditorPage` для импорта виджета вместо фичи.
 
-### ⏳ Фаза 2: scene-toolbar (презентационная) и scene-persistence (чистая)
+### ✅ Фаза 2: scene-toolbar (презентационная) и scene-persistence (чистая) — done ([отчёт](./phases/phase_2_summary.md))
 - Создать `features/scene-toolbar/` для тулбаров (Main/Left/Right/SceneEditorToolBar). Тулбары не знают о сторах — только пропсы/колбэки.
 - Создать `features/scene-persistence/` для сохранения/загрузки сцен. Экспортировать чистые функции/хуки; не импортировать стор сцены.
 - Перенести модалки сохранения и операции работы с Dexie/HTTP в `scene-persistence`. Виджет управляет их вызовом и синхронизацией со сценой.

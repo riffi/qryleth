@@ -49,9 +49,7 @@ import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
 import { useScenePanelLayout } from '@/features/scene-layout'
-import { SceneEditorToolBar } from './SceneEditorToolBar'
-import { LeftToolbar } from './LeftToolbar'
-import { RightToolbar } from './RightToolbar'
+// Тулбары передаются из виджета как компоненты (фича scene-toolbar)
 
 const getStatusColor = (status: SceneStatus) => {
   switch (status) {
@@ -83,6 +81,12 @@ interface SceneEditorR3FProps {
   showObjectManager?: boolean
   uuid?: string
   isNew?: boolean
+  /** Запрос на сохранение сцены (виджет решает, показать модал или сразу сохранить) */
+  onSaveSceneRequest?: (payload: { uuid?: string; name?: string }) => void
+  /** Компоненты тулбаров, поставляемые виджетом */
+  LeftToolbarComponent?: React.ComponentType<any>
+  RightToolbarComponent?: React.ComponentType<any>
+  TopToolbarComponent?: React.ComponentType<any>
 }
 
 /**
@@ -92,7 +96,11 @@ interface SceneEditorR3FProps {
 export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   showObjectManager = true,
   uuid,
-  isNew = false
+  isNew = false,
+  onSaveSceneRequest,
+  LeftToolbarComponent,
+  RightToolbarComponent,
+  TopToolbarComponent,
 }) => {
   // Автоматическая регистрация только инструментов сцены.
   // Инструменты ObjectEditor подключаются исключительно в его собственном сервисе,
@@ -103,7 +111,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
-  const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
+  // Сохранение сцены делегируется виджету через onSaveSceneRequest
   // Управление раскладкой панелей вынесено в фичу scene-layout
   const {
     chatCollapsed,
@@ -269,20 +277,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleSaveSceneToLibrary = async () => {
-    // If scene already exists (has UUID), save directly
-    if (sceneMetaData?.uuid) {
-      await saveSceneToDatabase(sceneMetaData.name, undefined, sceneMetaData.uuid)
-    } else {
-      // For new scenes, show modal
-      setSaveSceneModalOpened(true)
-    }
-  }
-
-  const handleSaveScene = async (name: string, description?: string) => {
-    const success = await saveSceneToDatabase(name, description)
-    if (success) {
-      setSaveSceneModalOpened(false)
-    }
+    onSaveSceneRequest?.({ uuid: sceneMetaData?.uuid, name: sceneMetaData?.name })
   }
 
   const handleEditObject = (objectUuid: string, instanceId?: string) => {
@@ -631,8 +626,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         }}
         >
         {/* Левый тулбар с иконками чата и скриптинга */}
-        {!isPlay && (
-          <LeftToolbar
+        {!isPlay && LeftToolbarComponent && (
+          <LeftToolbarComponent
             chatCollapsed={chatCollapsed}
             onToggleChat={toggleChatPanel}
             scriptingPanelVisible={scriptingPanelVisible}
@@ -719,8 +714,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             background: 'linear-gradient(180deg, color-mix(in srgb, var(--mantine-color-dark-7) 65%, transparent), transparent)'
           }}
         >
-          {!isPlay && (
-            <SceneEditorToolBar
+          {!isPlay && TopToolbarComponent && (
+            <TopToolbarComponent
               gridVisible={gridVisible}
               onToggleGrid={toggleGridVisibility}
               autoOrbitTargetOnSelect={autoOrbitTargetOnSelect}
@@ -816,8 +811,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         )}
 
         {/* Правый тулбар с иконкой менеджера объектов - показывается только когда правая панель скрыта */}
-        {!isPlay && showObjectManager && objectPanelCollapsed && (
-          <RightToolbar
+        {!isPlay && showObjectManager && objectPanelCollapsed && RightToolbarComponent && (
+          <RightToolbarComponent
             objectPanelCollapsed={objectPanelCollapsed}
             onToggleObjectPanel={toggleRightPanel}
           />
@@ -871,12 +866,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             modalMode={true}
           />
       </Modal>
-      <SaveSceneModal
-        opened={saveSceneModalOpened}
-        onClose={() => setSaveSceneModalOpened(false)}
-        onSave={handleSaveScene}
-        currentSceneName={sceneMetaData?.name}
-      />
+      {/* Save modal перенесён на уровень виджета (scene-persistence) */}
 
       {/* Подтверждение удаления инстанса */}
       <Modal
@@ -898,81 +888,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         </Stack>
       </Modal>
     </>
-  )
-}
-
-interface SaveSceneModalProps {
-  opened: boolean
-  onClose: () => void
-  onSave: (name: string, description?: string) => void
-  currentSceneName?: string
-}
-
-const SaveSceneModal: React.FC<SaveSceneModalProps> = ({ opened, onClose, onSave, currentSceneName }) => {
-  const [sceneName, setSceneName] = useState('')
-  const [sceneDescription, setSceneDescription] = useState('')
-
-  const handleSave = () => {
-    if (!sceneName.trim()) {
-      notifications.show({
-        title: 'Ошибка',
-        message: 'Введите название сцены',
-        color: 'red',
-        icon: <IconX size="1rem" />,
-      })
-      return
-    }
-
-  onSave(sceneName.trim(), sceneDescription.trim() || undefined)
-    setSceneName('')
-    setSceneDescription('')
-  }
-
-  const handleClose = () => {
-    setSceneName('')
-    setSceneDescription('')
-    onClose()
-  }
-
-  // Set default name when modal opens
-  React.useEffect(() => {
-    if (opened && currentSceneName && !sceneName) {
-      setSceneName(currentSceneName)
-    }
-  }, [opened, currentSceneName, sceneName])
-
-  return (
-    <Modal
-      opened={opened}
-      onClose={handleClose}
-      title="Сохранить сцену"
-      size="md"
-    >
-      <Stack gap="md">
-        <TextInput
-          label="Название сцены"
-          placeholder="Введите название..."
-          value={sceneName}
-          onChange={(e) => setSceneName(e.currentTarget.value)}
-          required
-        />
-        <Textarea
-          label="Описание (необязательно)"
-          placeholder="Краткое описание сцены..."
-          value={sceneDescription}
-          onChange={(e) => setSceneDescription(e.currentTarget.value)}
-          minRows={3}
-        />
-        <Group justify="flex-end" mt="md">
-          <Button variant="subtle" onClick={handleClose}>
-            Отмена
-          </Button>
-          <Button onClick={handleSave}>
-            Сохранить
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
   )
 }
 
