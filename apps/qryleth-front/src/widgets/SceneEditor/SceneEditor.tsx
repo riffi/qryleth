@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { SceneEditorR3F } from '@/features/scene'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/scene-toolbar'
-import { PlayControls } from '@/features/scene-play-mode'
+import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
+import { ObjectEditorR3F, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
+import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
+import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
 import { useSceneStore } from '@/features/scene/model/sceneStore'
 import { notifications } from '@mantine/notifications'
@@ -29,6 +32,14 @@ export interface SceneEditorProps {
 export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjectManager = true }) => {
   const [saveOpened, setSaveOpened] = useState(false)
   const [pendingSave, setPendingSave] = useState<{ uuid?: string; name?: string } | null>(null)
+  const [editorOpened, setEditorOpened] = useState(false)
+  const [editingObject, setEditingObject] = useState<{ objectUuid: string; instanceId?: string } | null>(null)
+  const globalPanelState = useGlobalPanelState()
+  // Play‑hotkeys: обрабатываются на уровне виджета (FSD: features → widgets)
+  const uiMode = useSceneStore(s => s.uiMode)
+  const setViewMode = useSceneStore(s => s.setViewMode)
+  const togglePlay = useSceneStore(s => s.togglePlay)
+  usePlayHotkeys({ uiMode, onExitPlay: () => togglePlay(), onSetViewMode: (m) => setViewMode(m as any) })
 
   const handleSaveRequest = (payload: { uuid?: string; name?: string }) => {
     if (payload.uuid) {
@@ -66,6 +77,34 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
     }
   }
 
+  const objects = useSceneStore(s => s.objects)
+  const updateObject = useSceneStore(s => s.updateObject)
+
+  const editingObjectData = React.useMemo(() => {
+    if (!editingObject) return undefined
+    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
+    if (!obj) return undefined
+    return JSON.parse(JSON.stringify(obj))
+  }, [editingObject, objects])
+
+  const handleRequestEditObject = (objectUuid: string, instanceId?: string) => {
+    setEditingObject({ objectUuid, instanceId })
+    setEditorOpened(true)
+  }
+
+  const handleEditorSaveClick = () => {
+    if (!editingObjectData) return
+    updateObject(editingObjectData.uuid, {
+      primitives: editingObjectData.primitives,
+      materials: editingObjectData.materials,
+      boundingBox: editingObjectData.boundingBox,
+      primitiveGroups: editingObjectData.primitiveGroups,
+      primitiveGroupAssignments: editingObjectData.primitiveGroupAssignments,
+    })
+    notifications.show({ title: 'Успешно!', message: 'Изменения объекта сохранены', color: 'green' })
+    setEditorOpened(false)
+  }
+
   return (
     <>
       <SceneEditorR3F
@@ -77,7 +116,39 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
         RightToolbarComponent={RightToolbar}
         TopToolbarComponent={SceneEditorToolBar}
         PlayOverlayComponent={PlayControls}
+        onRequestEditObject={handleRequestEditObject}
       />
+      <Modal
+        opened={editorOpened}
+        onClose={() => setEditorOpened(false)}
+        fullScreen
+        styles={{
+          body: { height: 'calc(100dvh - 120px)', padding: 0 },
+          content: { height: '100dvh' },
+          header: { padding: '1rem' },
+          title: { flexGrow: 1, marginRight: '2rem' }
+        }}
+        title={
+          <Group justify="space-between" style={{ width: '100%' }}>
+            <Text size="lg" fw={500}>{editingObjectData ? `Редактор объекта: ${editingObjectData.name}` : 'Редактор объекта'}</Text>
+            <Group gap="xs">
+              <Tooltip label="Сохранить" withArrow>
+                <ActionIcon color="gray" variant="subtle" onClick={handleEditorSaveClick}>
+                  <IconDeviceFloppy size={24} />
+                </ActionIcon>
+              </Tooltip>
+              <PanelToggleButtons
+                activeLeftPanel={globalPanelState.panelState.leftPanel}
+                activeRightPanel={globalPanelState.panelState.rightPanel}
+                onToggle={globalPanelState.togglePanel}
+                size="md"
+              />
+            </Group>
+          </Group>
+        }
+      >
+        <ObjectEditorR3F objectData={editingObjectData} externalPanelState={globalPanelState} modalMode={true} />
+      </Modal>
       <SaveModal
         opened={saveOpened}
         onClose={() => setSaveOpened(false)}

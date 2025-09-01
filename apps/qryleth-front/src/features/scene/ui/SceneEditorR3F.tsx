@@ -19,7 +19,7 @@ import { SceneChatInterface } from './ChatInterface'
 import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
 import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
-import { ObjectEditorR3F, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
+// import from object-editor удалены: редактор поднимается на уровень виджета
 import { useSceneToolRegistration } from '@/features/scene'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX, IconDeviceFloppy } from '@tabler/icons-react'
@@ -35,7 +35,7 @@ import { useSceneHistory } from '../lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { UiMode } from '@/shared/types/ui'
-import type { SceneStatus } from '@/features/scene/model/store-types'
+import type { SceneStatus } from '@/entities/scene/types'
 import {
   IconArrowBack,
   IconArrowForward,
@@ -46,7 +46,6 @@ import {
   IconPlayerStop
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
-import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
 import { useScenePanelLayout } from '@/features/scene-layout'
 // Тулбары передаются из виджета как компоненты (фича scene-toolbar)
@@ -89,6 +88,8 @@ interface SceneEditorR3FProps {
   TopToolbarComponent?: React.ComponentType<any>
   /** Компонент оверлея Play (фича scene-play-mode) */
   PlayOverlayComponent?: React.ComponentType<any>
+  /** Запрос на открытие редактора объекта (виджет рендерит ObjectEditorR3F) */
+  onRequestEditObject?: (objectUuid: string, instanceId?: string) => void
 }
 
 /**
@@ -104,6 +105,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   RightToolbarComponent,
   TopToolbarComponent,
   PlayOverlayComponent,
+  onRequestEditObject,
 }) => {
   // Автоматическая регистрация только инструментов сцены.
   // Инструменты ObjectEditor подключаются исключительно в его собственном сервисе,
@@ -112,8 +114,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   // Initialize scene history for undo/redo and get controls
   const { undo, redo, canUndo, canRedo } = useSceneHistory()
 
-  const [editorOpened, setEditorOpened] = useState(false)
-  const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
+  // Редактор объекта переносится на уровень виджета
   // Сохранение сцены делегируется виджету через onSaveSceneRequest
   // Управление раскладкой панелей вынесено в фичу scene-layout
   const {
@@ -143,7 +144,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   // Логика ресайза и первичной адаптации перенесена в хук useScenePanelLayout
 
   // Глобальное состояние панелей для ObjectEditor
-  const globalPanelState = useGlobalPanelState()
+  // const globalPanelState = useGlobalPanelState()
 
   const viewMode = useViewMode()
   const setViewMode = useSceneStore(state => state.setViewMode)
@@ -284,8 +285,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const handleEditObject = (objectUuid: string, instanceId?: string) => {
-    setEditingObject({ objectUuid, instanceId })
-    setEditorOpened(true)
+    onRequestEditObject?.(objectUuid, instanceId)
   }
 
   /**
@@ -293,22 +293,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
    * обновляя примитивы, материалы и BoundingBox объекта сцены.
    * После обновления отображает уведомление об успешном сохранении.
    */
-  const handleSaveObjectEdit = (object: GfxObject) => {
-    updateObject(object.uuid, {
-      primitives: object.primitives,
-      materials: object.materials,
-      boundingBox: object.boundingBox,
-      primitiveGroups: object.primitiveGroups,
-      primitiveGroupAssignments: object.primitiveGroupAssignments,
-    })
-
-    notifications.show({
-      title: 'Успешно!',
-      message: 'Изменения объекта сохранены',
-      color: 'green',
-      icon: <IconCheck size="1rem" />
-    })
-  }
+  // Сохранение изменений объекта выполняется на уровне виджета
 
   /**
    * Обновляет название сцены в zustand-хранилище и помечает сцену как изменённую.
@@ -415,22 +400,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [selectedInstanceInfo, openDeleteConfirm, uiMode])
 
-  /**
-   * Формирует объект из состояния редактора и закрывает модальное окно.
-   */
-  const handleEditorSaveClick = () => {
-    if (!editingObjectData) return
-    const updated = buildUpdatedObject(editingObjectData)
-    handleSaveObjectEdit(updated)
-    setEditorOpened(false)
-  }
-
-  const editingObjectData = React.useMemo(() => {
-    if (!editingObject) return undefined
-    const obj = objects.find(o => o.uuid === editingObject.objectUuid)
-    if (!obj) return undefined
-    return JSON.parse(JSON.stringify(obj))
-  }, [editingObject, objects])
+  // Редактирование объекта и сохранение поднимаются на уровень виджета
 
   /**
    * Удаляет выбранный инстанс из сцены без подтверждения.
@@ -499,44 +469,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   }
 
   const isPlay = uiMode === UiMode.Play
-
-  /**
-   * Панель управления камерами для Play-режима.
-   * Компонент рендерится поверх канвы только при UiMode.Play и позволяет
-   * переключать режим камеры (Orbit/Walk/Fly) кнопками. Дополнительно
-   * отображает постоянную текстовую подсказку о горячих клавишах 1/2/3,
-   * чтобы пользователь всегда видел, как быстро переключать режимы без мыши.
-   *
-   * Синхронизация с хоткеями обеспечивается через общее состояние стора:
-   * нажатия 1/2/3 меняют viewMode, что мгновенно отражается в активной
-   * кнопке панельки; нажатие кнопок меняет viewMode и тем самым активирует
-   * соответствующую камеру.
-   */
-  const PlayCameraPanel: React.FC = () => {
-    const [flySpeed, setFlySpeed] = useState(100)
-    // Слушаем изменения скорости из FlyControls через кастомное событие
-    useEffect(() => {
-      const handler = (e: CustomEvent) => setFlySpeed(e.detail)
-      window.addEventListener('flySpeedChange', handler as EventListener)
-      return () => window.removeEventListener('flySpeedChange', handler as EventListener)
-    }, [])
-
-    return (
-      <Group gap={8} wrap="nowrap" align="center">
-        <Stack gap={0} align="start">
-          <ViewModeSegment value={viewMode} onChange={setViewMode} frosted size="xs" />
-          {viewMode === 'fly' && (
-            <Text size="xs" c="dimmed" style={{ marginLeft: 2, marginTop: 2, userSelect: 'none' }}>
-              Скорость полёта: <b>{flySpeed}</b>
-            </Text>
-          )}
-        </Stack>
-        <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', userSelect: 'none' }}>
-          Переключение камер: 1 — Orbit, 2 — Walk, 3 — Fly, 4 — Облёт
-        </Text>
-      </Group>
-    )
-  }
+  // Play overlay и хоткеи обрабатываются на уровне виджета/scene-play-mode
+  // Отслеживаем текущую скорость полёта (FlyControls шлёт событие 'flySpeedChange')
+  const [flySpeed, setFlySpeed] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    const handler = (e: CustomEvent) => setFlySpeed(e.detail)
+    window.addEventListener('flySpeedChange', handler as EventListener)
+    return () => window.removeEventListener('flySpeedChange', handler as EventListener)
+  }, [])
 
   return (
     <>
@@ -739,7 +679,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
                 viewMode={viewMode as any}
                 onChangeViewMode={setViewMode as any}
                 onExitPlay={handleTogglePlay}
-                flySpeed={undefined}
+                flySpeed={flySpeed}
               />
             )}
           </Box>
@@ -804,54 +744,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
         )}
       </Container>
       </MainLayout>
-      <Modal
-        opened={editorOpened}
-        onClose={() => setEditorOpened(false)}
-        fullScreen
-        styles={{
-          body: {
-            height: 'calc(100dvh - 120px)',
-            padding: 0
-          },
-          content: {
-            height: '100dvh'
-          },
-          header: {
-            padding: '1rem'
-          },
-          title:{
-            flexGrow: 1,
-            marginRight: '2rem'
-          }
-        }}
-        title={
-          <Group justify="space-between" style={{ width: '100%' }}>
-            <Text size="lg" fw={500}>
-              {editingObjectData ? `Редактор объекта: ${editingObjectData.name}` : 'Редактор объекта'}
-            </Text>
-            <Group gap="xs">
-              <Tooltip label="Сохранить" withArrow>
-                <ActionIcon color="gray" variant="subtle" onClick={handleEditorSaveClick}>
-                  <IconDeviceFloppy size={24} />
-                </ActionIcon>
-              </Tooltip>
-              <PanelToggleButtons
-                activeLeftPanel={globalPanelState.panelState.leftPanel}
-                activeRightPanel={globalPanelState.panelState.rightPanel}
-                onToggle={globalPanelState.togglePanel}
-                size="md"
-              />
-            </Group>
-          </Group>
-        }
-      >
-          <ObjectEditorR3F
-            objectData={editingObjectData}
-            externalPanelState={globalPanelState}
-            modalMode={true}
-          />
-      </Modal>
-      {/* Save modal перенесён на уровень виджета (scene-persistence) */}
 
       {/* Подтверждение удаления инстанса */}
       <Modal

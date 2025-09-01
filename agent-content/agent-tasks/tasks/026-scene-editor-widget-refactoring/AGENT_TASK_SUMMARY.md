@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
   total: 4
-  completed: 3
+  completed: 4
 ---
 
 # Рефакторинг SceneEditor: выделение виджета и реорганизация фич
@@ -106,7 +106,7 @@ phases:
   - Создать `ui/LibraryBrowser.tsx` как основной компонент.
 - Обновить использование object-library в `LibraryPage` и `SceneEditor` через публичное API фичи.
 
-### ⏳ Фаза 4: Очистка фичи scene, типы, документация
+### ✅ Фаза 4: Очистка фичи scene, типы, документация — done ([отчёт](./phases/phase_4_summary.md))
 - Очистить `features/scene/` от перенесенной функциональности (панели/модалки/тулбары/Play‑UI), сохранив только данные/рендер и состояния, влияющие на рендер и инструменты.
 - Убрать импорт `object-editor` из `scene` (импорт выполняет только виджет).
 - Вынести доменные типы (например, `SceneStatus`) в `entities/scene` и обновить импорты; UI‑общие типы — в `shared/types`.

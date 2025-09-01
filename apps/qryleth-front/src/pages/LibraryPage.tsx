@@ -26,6 +26,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, type SceneRecord, type ObjectRecord } from '@/shared/lib/database'
+import { loadScenes as loadScenesApi, loadObjects as loadObjectsApi } from '@/features/object-library'
 import { LibraryObjectCard, LibraryBrowser, useLibrarySearch } from '@/features/object-library'
 //__REPLACE_BELOW__
 import MainLayout from '@/widgets/layouts/MainLayout'
@@ -45,7 +46,7 @@ const LibraryPage: React.FC = () => {
 
   const loadScenes = async () => {
     try {
-      const allScenes = await db.getAllScenes()
+      const allScenes = await loadScenesApi()
       setScenes(allScenes)
     } catch (error) {
       console.error('Error loading scenes:', error)
@@ -59,7 +60,7 @@ const LibraryPage: React.FC = () => {
 
   const loadObjects = async () => {
     try {
-      const allObjects = await db.getAllObjects()
+      const allObjects = await loadObjectsApi()
       setObjects(allObjects)
     } catch (error) {
       console.error('Error loading objects:', error)

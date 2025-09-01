@@ -51,6 +51,16 @@
 - `maxTerrainTiltDeg` доступен в `metadata` всех стратегий размещения (Random/RandomNoCollision/PlaceAround).
 - В `SceneEditor` добавлен экранный индикатор осей (Viewport Gizmo) — фиксированно в правом нижнем углу.
 
+**Рефакторинг SceneEditor под FSD (сентябрь 2025):**
+- Введён виджет `widgets/SceneEditor` — точка композиции редактора.
+- Монолит `SceneEditorR3F` разделён по зонам ответственности:
+  - `features/scene-layout` — панели и ресайз (persist фасад).
+  - `features/scene-toolbar` — презентационные тулбары.
+  - `features/scene-persistence` — SaveModal и чистые функции сохранения.
+  - `features/scene-play-mode` — Play‑overlay и хоткеи Play (1/2/3/4, Esc).
+- Доменные типы сцены `SceneStatus`, `SceneMetaData` вынесены в `entities/scene`.
+- Страница библиотеки использует общий `LibraryBrowser` и хук поиска `useLibrarySearch`.
+
 ---
 
 ## 🔌 Справочник API
@@ -72,6 +82,7 @@
 - **[Scene Editor](api/components/scene-editor.md)** - Компоненты редактора сцены
  - 🆕 **[Object Preview Card](api/components/object-preview-card.md)** - Карточка с превью и hover‑препросмотром
  - 🆕 **[OffscreenObjectRenderer](api/libs/offscreen-object-renderer.md)** - Утилита генерации PNG превью
+ - 🆕 **[Library Browser](api/components/object-library.md)** — вкладки «Сцены/Объекты», поиск и списки
 
 ---
 

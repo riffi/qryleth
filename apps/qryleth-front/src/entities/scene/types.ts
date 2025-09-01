@@ -29,3 +29,17 @@ export interface SceneData {
   lighting: LightingSettings
 }
 
+/**
+ * Статус сцены: доменный тип (entities).
+ */
+export type SceneStatus = 'draft' | 'saved' | 'modified'
+
+/**
+ * Метаданные сцены: доменный тип (entities).
+ */
+export interface SceneMetaData {
+  uuid?: string
+  name: string
+  status: SceneStatus
+}
+

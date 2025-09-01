@@ -1,14 +1,13 @@
 import React from 'react'
 import { Group, Text, Badge, ActionIcon, Tooltip, Divider } from '@mantine/core'
 import { IconFileText, IconDeviceFloppy } from '@tabler/icons-react'
-import type { SceneMetaData } from '@/features/scene/model/store-types.ts'
+import type { SceneMetaData, SceneStatus } from '@/entities/scene/types'
 
 interface SceneHeaderProps {
     sceneMetaData?: SceneMetaData
     onSaveSceneToLibrary?: () => void
 }
 
-type SceneStatus = 'draft' | 'modified' | 'saved'
 
 const getStatusColor = (status: SceneStatus) => {
     switch (status) {

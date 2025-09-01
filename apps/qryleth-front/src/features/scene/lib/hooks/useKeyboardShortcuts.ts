@@ -57,7 +57,7 @@ export const useKeyboardShortcuts = () => {
         }
       } catch {}
 
-      // Global Play toggle (works in любом uiMode)
+      // Global Play toggle (работает в любом uiMode)
       if (!event.ctrlKey && !event.metaKey) {
         const key = event.key.toLowerCase()
         if (key === 'p') {
@@ -70,14 +70,7 @@ export const useKeyboardShortcuts = () => {
           }
           return
         }
-        if (key === 'escape' && uiMode === UiMode.Play) {
-          event.preventDefault()
-          togglePlay()
-          if (typeof document !== 'undefined' && document.exitPointerLock) {
-            try { ignoreNextPointerUnlock.current = true; document.exitPointerLock() } catch {}
-          }
-          return
-        }
+        // Esc в Play теперь обрабатывается в scene-play-mode/usePlayHotkeys
       }
 
       // Handle Ctrl/Cmd combinations first
@@ -101,29 +94,7 @@ export const useKeyboardShortcuts = () => {
         }
       }
 
-      // Если активен режим Play — разрешены только 1/2/3/4 для камер, остальное игнорируем
-      if (uiMode === UiMode.Play) {
-        switch (event.key) {
-          case '1':
-            event.preventDefault()
-            setViewMode(ViewModeEnum.Orbit)
-            return
-          case '2':
-            event.preventDefault()
-            setViewMode(ViewModeEnum.Walk)
-            return
-          case '3':
-            event.preventDefault()
-            setViewMode(ViewModeEnum.Fly)
-            return
-          case '4':
-            event.preventDefault()
-            setViewMode(ViewModeEnum.Flyover)
-            return
-          default:
-            return // все остальные хоткеи отключены в play
-        }
-      }
+      // Горячие клавиши камер в Play вынесены в scene-play-mode/usePlayHotkeys
 
       // Transform mode shortcuts (Edit mode)
       switch (event.key.toLowerCase()) {

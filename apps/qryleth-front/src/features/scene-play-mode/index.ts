@@ -1,3 +1,2 @@
 export * from './ui/PlayControls'
-export * from './hooks/usePlayMode'
-
+export * from './hooks/usePlayHotkeys'

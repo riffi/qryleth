@@ -17,18 +17,11 @@ import type {
   RenderProfile,
   CameraPose
 } from '@/shared/types/ui'
-import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
+import type { SceneObject, SceneObjectInstance, SceneLayer, SceneMetaData } from '@/entities/scene/types'
 import type { LightingSettings } from '@/entities/lighting/model/types'
 
 
-// Scene metadata types
-export type SceneStatus = 'draft' | 'saved' | 'modified'
-
-export interface SceneMetaData {
-  uuid?: string
-  name: string
-  status: SceneStatus
-}
+// Scene metadata types вынесены в entities/scene
 
 // Store state interface
 export interface SceneStoreState {
