@@ -113,6 +113,36 @@ phases:
 - Обновить документацию в `docs/` (архитектура, компоненты, FSD) и схемы связей.
 - Провести аудит импортов на предмет `feature → feature` и `features → widgets` (см. «Критерии приёмки»).
 
+#### Перенос доменных типов: список и чек‑лист
+
+Перенести доменные типы сцены из фичи в `entities/scene` и обновить импорты.
+
+- Что переносим (доменные типы):
+  - `SceneStatus` — статусы сцены: `'draft' | 'saved' | 'modified'`.
+  - `SceneMetaData` — метаданные сцены: `{ uuid?: string; name: string; status: SceneStatus }`.
+
+- Куда:
+  - `apps/qryleth-front/src/entities/scene/types.ts` (добавить новые экспортируемые типы рядом с `SceneObject`, `SceneObjectInstance`, `SceneLayer`, `SceneData`).
+  - При необходимости — реэкспорт через `apps/qryleth-front/src/entities/index.ts`.
+
+- Где используются и что правим (импорты):
+  - `apps/qryleth-front/src/features/scene/model/store-types.ts`
+    - Импортировать `SceneMetaData` и `SceneStatus` из `@/entities/scene/types`.
+    - Удалить локальные определения этих типов.
+  - `apps/qryleth-front/src/features/scene/model/sceneStore.ts`
+    - Импортировать `SceneMetaData` из `@/entities/scene/types`.
+  - `apps/qryleth-front/src/features/scene/ui/SceneEditorR3F.tsx`
+    - Импортировать `SceneStatus` из `@/entities/scene/types` (для функций `getStatusColor`/`getStatusText`).
+  - `apps/qryleth-front/src/features/scene/ui/objectManager/SceneHeader.tsx`
+    - Удалить локальное дублирование `type SceneStatus = ...` и импортировать `SceneStatus` и `SceneMetaData` из `@/entities/scene/types`.
+
+- Что не переносим (UI‑уровень остаётся в `shared/types/ui`):
+  - `UiMode`, `RenderProfile`, `ViewMode`, `RenderMode`, `TransformMode`, `CameraPose` — это UI/режимы, они не доменные.
+
+- Верификация:
+  - Полный поиск `SceneStatus` и `SceneMetaData` по коду; все импорты должны идти из `@/entities/scene/types`.
+  - Удалено любое локальное дублирование этих типов в компонентах.
+
 ## Планируемая новая структура:
 
 ```
