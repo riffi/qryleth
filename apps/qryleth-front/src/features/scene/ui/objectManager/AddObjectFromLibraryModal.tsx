@@ -10,7 +10,7 @@ import {
 } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { db, type ObjectRecord } from '@/shared/lib/database.ts'
-import { ObjectPreviewCard } from '@/shared/ui'
+import { LibraryObjectCard } from '@/features/object-library'
 import { notifications } from '@mantine/notifications'
 import type { SceneObject } from '@/entities/scene/types'
 
@@ -121,7 +121,7 @@ export const AddObjectFromLibraryModal: React.FC<AddObjectFromLibraryModalProps>
               <Grid>
               {filteredObjects.map((object) => (
                 <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4 }}>
-                  <ObjectPreviewCard
+                  <LibraryObjectCard
                     object={object}
                     onAdd={handleAddObject}
                     showAddButton={true}

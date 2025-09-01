@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, type SceneRecord, type ObjectRecord } from '@/shared/lib/database'
-import { ObjectPreviewCard } from '@/shared/ui'
+import { LibraryObjectCard } from '@/features/object-library'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { useNavigate } from 'react-router-dom'
 import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
@@ -270,7 +270,7 @@ const LibraryPage: React.FC = () => {
                     <Grid>
                       {filteredObjects.map((object) => (
                         <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                          <ObjectPreviewCard
+                          <LibraryObjectCard
                           object={object}
                           onEdit={handleEditObject}
                           onDelete={handleDeleteObject}
