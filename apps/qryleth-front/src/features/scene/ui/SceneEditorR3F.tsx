@@ -9,8 +9,6 @@ import {
   Group,
   Modal,
   Stack,
-  TextInput,
-  Textarea,
   Button,
   Text,
   Divider
@@ -234,51 +232,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     // Синхронизация черновика названия при загрузке/смене сцены
     setSceneNameDraft(sceneMetaData?.name || '')
   }, [sceneMetaData?.name])
-
-
-  const saveSceneToDatabase = async (name: string, description?: string, uuid?: string) => {
-    try {
-      const state = useSceneStore.getState()
-      const sceneData = state.getCurrentSceneData()
-      let sceneUuid: string
-      let successMessage: string
-
-      if (uuid) {
-        // Update existing scene
-        await db.updateScene(uuid, name, sceneData, description, undefined)
-        sceneUuid = uuid
-        successMessage = `Сцена "${name}" сохранена`
-      } else {
-        // Create new scene
-        sceneUuid = await db.saveScene(name, sceneData, description, undefined)
-        successMessage = `Сцена "${name}" сохранена в библиотеку`
-      }
-
-      state.setSceneMetadata({
-        uuid: sceneUuid,
-        name: name,
-        status: 'saved'
-      })
-
-      notifications.show({
-        title: 'Успешно!',
-        message: successMessage,
-        color: 'green',
-        icon: <IconCheck size="1rem" />,
-      })
-
-      return true
-    } catch (error) {
-      console.error('Failed to save scene:', error)
-      notifications.show({
-        title: 'Ошибка',
-        message: 'Не удалось сохранить сцену',
-        color: 'red',
-        icon: <IconX size="1rem" />,
-      })
-      return false
-    }
-  }
+  // Сохранение сцены перенесено на уровень виджета через onSaveSceneRequest
 
   const handleSaveSceneToLibrary = async () => {
     onSaveSceneRequest?.({ uuid: sceneMetaData?.uuid, name: sceneMetaData?.name })
