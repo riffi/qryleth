@@ -26,7 +26,8 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, type SceneRecord, type ObjectRecord } from '@/shared/lib/database'
-import { LibraryObjectCard } from '@/features/object-library'
+import { LibraryObjectCard, LibraryBrowser, useLibrarySearch } from '@/features/object-library'
+//__REPLACE_BELOW__
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { useNavigate } from 'react-router-dom'
 import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
@@ -70,15 +71,8 @@ const LibraryPage: React.FC = () => {
     }
   }
 
-  const filteredScenes = scenes.filter(scene =>
-    scene.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (scene.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  )
-
-  const filteredObjects = objects.filter(object =>
-    object.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (object.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  )
+  const filteredScenes = useLibrarySearch(scenes, searchQuery, (s) => `${s.name} ${s.description ?? ''}`)
+  const filteredObjects = useLibrarySearch(objects, searchQuery, (o) => `${o.name} ${o.description ?? ''}`)
 
   const handleEditScene = (scene: SceneRecord) => {
     navigate(`/scenes/${scene.uuid}/edit`)
@@ -158,136 +152,17 @@ const LibraryPage: React.FC = () => {
           )}
         </Group>
         <Divider />
-        <Tabs value={activeTab} onChange={setActiveTab}>
-          <Tabs.List>
-            <Tabs.Tab value="scenes" leftSection={<IconPhoto size={16} />}>Сцены</Tabs.Tab>
-            <Tabs.Tab value="objects" leftSection={<IconCube size={16} />}>Объекты</Tabs.Tab>
-          </Tabs.List>
-          <Tabs.Panel value="scenes">
-            <Stack gap="md" mt="md">
-              <Group justify="space-between">
-                <TextInput
-                  placeholder="Поиск по названию или описанию..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                  leftSection={<IconSearch size={16} />}
-                  style={{ flex: 1 }}
-                />
-              </Group>
-              {/**
-               * ScrollArea для списка сцен: отключаем горизонтальную прокрутку у viewport,
-               * т.к. Mantine Grid использует отрицательные внешние отступы (gutters),
-               * что может создавать горизонтальный скролл. Дополнительно даём горизонтальные
-               * внутренние отступы обёртке Grid, чтобы компенсировать эти отрицательные отступы.
-               */}
-              <ScrollArea style={{ height: 'calc(100vh - 200px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
-                {filteredScenes.length === 0 ? (
-                  <Box ta="center" py="xl">
-                    <Text size="lg" c="dimmed">
-                      {searchQuery ? 'Сцены не найдены' : 'Библиотека пуста'}
-                    </Text>
-                    <Text size="sm" c="dimmed" mt="xs">
-                      {searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Сохраните первую сцену, чтобы начать'}
-                    </Text>
-                  </Box>
-                ) : (
-                  <Box px="sm">
-                    <Grid>
-                      {filteredScenes.map((scene) => (
-                        <Grid.Col key={scene.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                          <Card shadow="sm" padding="md" radius="md" withBorder>
-                          <Stack gap="sm">
-                            <Group justify="space-between" align="flex-start">
-                              <Box style={{ flex: 1 }}>
-                                <Text fw={500} lineClamp={1}>{scene.name}</Text>
-                                {scene.description && (
-                                  <Text size="sm" c="dimmed" lineClamp={2} mt={4}>{scene.description}</Text>
-                                )}
-                              </Box>
-                            </Group>
-                            <Group gap="xs" mt="auto">
-                              <IconCalendar size={14} />
-                              <Text size="xs" c="dimmed">{formatDate(scene.updatedAt)}</Text>
-                            </Group>
-                            <Group gap="xs" mt="xs">
-                              <Button
-                                size="xs"
-                                leftSection={<IconEdit size={14} />}
-                                onClick={() => handleEditScene(scene)}
-                                loading={isLoading}
-                                style={{ flex: 1 }}
-                              >
-                                Редактировать
-                              </Button>
-                              <Tooltip label="Удалить сцену">
-                                <ActionIcon
-                                  size="sm"
-                                  color="red"
-                                  variant="subtle"
-                                  onClick={() => handleDeleteScene(scene)}
-                                >
-                                  <IconTrash size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Group>
-                          </Stack>
-                        </Card>
-                      </Grid.Col>
-                    ))}
-                    </Grid>
-                  </Box>
-                )}
-              </ScrollArea>
-            </Stack>
-          </Tabs.Panel>
-          <Tabs.Panel value="objects">
-            <Stack gap="md" mt="md">
-              <Group justify="space-between">
-                <TextInput
-                  placeholder="Поиск объектов..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                  leftSection={<IconSearch size={16} />}
-                  style={{ flex: 1 }}
-                />
-              </Group>
-              {/**
-               * ScrollArea для списка объектов: аналогично отключаем горизонтальный скролл
-               * и компенсируем отрицательные отступы Grid через горизонтальные паддинги.
-               */}
-              <ScrollArea style={{ height: 'calc(100vh - 280px)' }} styles={{ viewport: { overflowX: 'hidden' } }}>
-                {filteredObjects.length === 0 ? (
-                  <Box ta="center" py="xl">
-                    <Text size="lg" c="dimmed">
-                      {searchQuery ? 'Объекты не найдены' : 'Нет сохраненных объектов'}
-                    </Text>
-                    <Text size="sm" c="dimmed" mt="xs">
-                      {searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Сохраните объекты через менеджер объектов'}
-                    </Text>
-                  </Box>
-                ) : (
-                  <Box px="sm">
-                    <Grid>
-                      {filteredObjects.map((object) => (
-                        <Grid.Col key={object.uuid} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                          <LibraryObjectCard
-                          object={object}
-                          onEdit={handleEditObject}
-                          onDelete={handleDeleteObject}
-                          showDeleteButton={true}
-                          showDate={true}
-                          size="sm"
-                          loading={isLoading}
-                        />
-                      </Grid.Col>
-                    ))}
-                    </Grid>
-                  </Box>
-                )}
-              </ScrollArea>
-            </Stack>
-          </Tabs.Panel>
-        </Tabs>
+        <LibraryBrowser
+          scenes={filteredScenes}
+          objects={filteredObjects}
+          isLoading={isLoading}
+          onEditScene={handleEditScene}
+          onDeleteScene={handleDeleteScene}
+          onCreateScene={() => navigate('/scenes/new')}
+          onEditObject={handleEditObject}
+          onDeleteObject={handleDeleteObject}
+          onCreateObject={() => navigate('/objects/new')}
+        />
       </Stack>
     </MainLayout>
   )

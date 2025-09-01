@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
   total: 4
-  completed: 2
+  completed: 3
 ---
 
 # Рефакторинг SceneEditor: выделение виджета и реорганизация фич
@@ -98,7 +98,7 @@ phases:
   - Не переносить `ScriptingPanel` в `scene-layout`. Он остаётся в `features/scene/ui/ScriptingPanel` и подключается виджетом как содержимое левой панели.
   - В `scene-layout` хранится только состояние видимости/ресайза; логика скриптинга и зависимости от `SceneAPI` остаются в `features/scene`.
 
-### ⏳ Фаза 3: scene-play-mode и доработка object-library
+### ✅ Фаза 3: scene-play-mode и доработка object-library — done ([отчёт](./phases/phase_3_summary.md))
 - Создать `features/scene-play-mode/` для Play‑режима (панель камер, подсказки, хоткеи). Не импортировать стор сцены — всё через пропсы/колбэки (`onTogglePlay`, текущая камера и т.п.).
 - Расширить `features/object-library/` до полноценной фичи:
   - Добавить `model/libraryStore.ts` (если требуется локальное состояние библиотеки).

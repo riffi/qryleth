@@ -87,6 +87,8 @@ interface SceneEditorR3FProps {
   LeftToolbarComponent?: React.ComponentType<any>
   RightToolbarComponent?: React.ComponentType<any>
   TopToolbarComponent?: React.ComponentType<any>
+  /** Компонент оверлея Play (фича scene-play-mode) */
+  PlayOverlayComponent?: React.ComponentType<any>
 }
 
 /**
@@ -101,6 +103,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   LeftToolbarComponent,
   RightToolbarComponent,
   TopToolbarComponent,
+  PlayOverlayComponent,
 }) => {
   // Автоматическая регистрация только инструментов сцены.
   // Инструменты ObjectEditor подключаются исключительно в его собственном сервисе,
@@ -731,31 +734,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
           <Box style={{ width: '100%', height: '100%' }}>
             <Scene3D className="scene-canvas" onSceneReady={() => {}} />
-            {isPlay && (
-              <Box
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  zIndex: 20,
-                  display: 'flex',
-                  gap: 12,
-                  padding: 6,
-                  background: 'color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent)',
-                  backdropFilter: 'blur(8px)',
-                  borderRadius: '10px',
-                  boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-                  transition: 'opacity 200ms ease'
-                }}
-              >
-                {/* Панель переключения камер доступна только в Play */}
-                <PlayCameraPanel />
-                <Tooltip label="Выйти из Play" withArrow>
-                  <ActionIcon size="md" variant="filled" color="red" onClick={handleTogglePlay} aria-label="Выйти из Play">
-                    <IconPlayerStop size={18} />
-                  </ActionIcon>
-                </Tooltip>
-              </Box>
+            {isPlay && PlayOverlayComponent && (
+              <PlayOverlayComponent
+                viewMode={viewMode as any}
+                onChangeViewMode={setViewMode as any}
+                onExitPlay={handleTogglePlay}
+                flySpeed={undefined}
+              />
             )}
           </Box>
         </Paper>

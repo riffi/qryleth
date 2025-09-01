@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { SceneEditorR3F } from '@/features/scene'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/scene-toolbar'
+import { PlayControls } from '@/features/scene-play-mode'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
 import { useSceneStore } from '@/features/scene/model/sceneStore'
 import { notifications } from '@mantine/notifications'
@@ -75,6 +76,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
         LeftToolbarComponent={LeftToolbar}
         RightToolbarComponent={RightToolbar}
         TopToolbarComponent={SceneEditorToolBar}
+        PlayOverlayComponent={PlayControls}
       />
       <SaveModal
         opened={saveOpened}
