@@ -13,6 +13,7 @@ import {
   useSelectedItemType
 } from '../../model/objectStore'
 import type { GfxObject } from '@/entities/object'
+import { useObjectPanelLayout } from '@/features/object-layout/hooks/useObjectPanelLayout'
 
 interface ObjectEditorLayoutProps {
   objectData?: GfxObject
@@ -43,6 +44,8 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   externalPanelState,
   hideHeader = false
 }) => {
+  // Подключаем persist‑раскладку ObjectEditor (инициализация дефолтов и сеттеры ширин)
+  const layout = useObjectPanelLayout()
   // Состояние и ссылки для управления ресайзом панелей
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [leftPanelWidthPx, setLeftPanelWidthPx] = useState<number>(400)
@@ -69,9 +72,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
       if (resizingSide === 'left') {
         const newWidth = clamp(e.clientX - containerBounds.left, minLeft, maxLeft)
+        layout.setLeftPanelWidthPx(newWidth)
         setLeftPanelWidthPx(newWidth)
       } else if (resizingSide === 'right') {
         const newWidth = clamp(containerBounds.right - e.clientX, minRight, maxRight)
+        layout.setRightPanelWidthPx(newWidth)
         setRightPanelWidthPx(newWidth)
       }
     }
@@ -92,6 +97,19 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       document.body.style.userSelect = ''
     }
   }, [resizingSide, containerBounds])
+
+  // Синхронизация локального состояния ширин с persist‑хранилищем
+  useEffect(() => {
+    if (typeof layout.leftPanelWidthPx === 'number') {
+      setLeftPanelWidthPx(layout.leftPanelWidthPx)
+    }
+  }, [layout.leftPanelWidthPx])
+
+  useEffect(() => {
+    if (typeof layout.rightPanelWidthPx === 'number') {
+      setRightPanelWidthPx(layout.rightPanelWidthPx)
+    }
+  }, [layout.rightPanelWidthPx])
 
   /**
    * Инициализирует начало ресайза выбранной панели, сохраняя границы контейнера.

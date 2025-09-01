@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
-import { ObjectEditorR3F, PanelToggleButtons } from '@/features/object-editor'
+import { PanelToggleButtons } from '@/features/editor/object'
+import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { Title, Group, ActionIcon, Tooltip, Modal, Stack, TextInput, Button } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { db } from '@/shared/lib/database'
 import type { ObjectRecord } from '@/shared/api/types'
 import type { GfxObject } from '@/entities/object'
-import { useGlobalPanelState } from '@/features/object-editor/lib/hooks/useGlobalPanelState'
-import { buildUpdatedObject, generateObjectPreview } from '@/features/object-editor/lib/saveUtils'
+import { useGlobalPanelState } from '@/features/editor/object/hooks'
+import { buildUpdatedObject, generateObjectPreview } from '@/features/editor/object/lib'
 
 const ObjectEditorPage: React.FC = () => {
   const { id } = useParams()
@@ -217,7 +218,7 @@ const ObjectEditorPage: React.FC = () => {
 
   return (
     <MainLayout rightSection={headerRightSection}>
-      <ObjectEditorR3F
+      <ObjectEditor mode="page"
         objectData={objectRecord?.objectData || {
           uuid: '',
           name: 'Новый объект',
@@ -226,7 +227,7 @@ const ObjectEditorPage: React.FC = () => {
           primitiveGroups: {},
           primitiveGroupAssignments: {}
         }}
-        externalPanelState={globalPanelState}
+        externalLayoutState={globalPanelState}
       />
       
       {/* Модальное окно для ввода имени нового объекта */}

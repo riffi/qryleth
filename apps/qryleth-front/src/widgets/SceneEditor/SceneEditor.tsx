@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { SceneEditorR3F } from '@/features/scene'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/scene-toolbar'
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
-import { ObjectEditorR3F, PanelToggleButtons, useGlobalPanelState } from '@/features/object-editor'
+import { PanelToggleButtons } from '@/features/editor/object'
+import { useGlobalPanelState } from '@/features/editor/object/hooks'
+import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
@@ -147,7 +149,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
           </Group>
         }
       >
-        <ObjectEditorR3F objectData={editingObjectData} externalPanelState={globalPanelState} modalMode={true} />
+        <ObjectEditor mode="embedded" objectData={editingObjectData} externalLayoutState={globalPanelState} />
       </Modal>
       <SaveModal
         opened={saveOpened}

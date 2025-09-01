@@ -41,7 +41,7 @@ import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-import { generateObjectPreview } from '@/features/object-editor/lib/saveUtils'
+import { generateObjectPreview } from '@/features/editor/object/lib'
 import type {
     ObjectManagerProps,
     SceneLayerModalMode,

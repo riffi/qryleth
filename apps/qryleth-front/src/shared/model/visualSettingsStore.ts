@@ -30,6 +30,10 @@ interface VisualSettingsState {
   sceneRightPanelWidthPx: number
   /** Однократная инициализация стартовой раскладки SceneEditor на устройстве */
   sceneEditorLayoutInitialized: boolean
+  // ObjectEditor layout
+  objectLeftPanelWidthPx: number
+  objectRightPanelWidthPx: number
+  objectEditorLayoutInitialized: boolean
 
   /**
    * Устанавливает активную вкладку на странице библиотеки.
@@ -70,6 +74,10 @@ interface VisualSettingsState {
    * чтобы последующие монтирования не переопределяли пользовательские настройки.
    */
   markSceneEditorLayoutInitialized: () => void
+  // ObjectEditor setters
+  setObjectLeftPanelWidthPx: (px: number) => void
+  setObjectRightPanelWidthPx: (px: number) => void
+  markObjectEditorLayoutInitialized: () => void
 
   /**
    * Сбрасывает визуальные настройки к значениям по умолчанию.
@@ -90,6 +98,9 @@ const DEFAULT_VISUAL_SETTINGS: Pick<
   | 'sceneLeftPanelWidthPx'
   | 'sceneRightPanelWidthPx'
   | 'sceneEditorLayoutInitialized'
+  | 'objectLeftPanelWidthPx'
+  | 'objectRightPanelWidthPx'
+  | 'objectEditorLayoutInitialized'
 > = {
   libraryTab: 'scenes',
   // SceneEditor defaults: аккуратные значения по умолчанию; точная первичная адаптация выполняется в компоненте при первом монтировании
@@ -99,6 +110,10 @@ const DEFAULT_VISUAL_SETTINGS: Pick<
   sceneLeftPanelWidthPx: 360,
   sceneRightPanelWidthPx: 320,
   sceneEditorLayoutInitialized: false,
+  // ObjectEditor defaults
+  objectLeftPanelWidthPx: 360,
+  objectRightPanelWidthPx: 320,
+  objectEditorLayoutInitialized: false,
 }
 
 /**
@@ -161,6 +176,17 @@ export const useVisualSettingsStore = create<VisualSettingsState>()(
        */
       markSceneEditorLayoutInitialized: () => {
         set({ sceneEditorLayoutInitialized: true })
+      },
+
+      // ObjectEditor layout setters
+      setObjectLeftPanelWidthPx: (px: number) => {
+        set({ objectLeftPanelWidthPx: Math.max(0, Math.round(px)) })
+      },
+      setObjectRightPanelWidthPx: (px: number) => {
+        set({ objectRightPanelWidthPx: Math.max(0, Math.round(px)) })
+      },
+      markObjectEditorLayoutInitialized: () => {
+        set({ objectEditorLayoutInitialized: true })
       },
 
       /**

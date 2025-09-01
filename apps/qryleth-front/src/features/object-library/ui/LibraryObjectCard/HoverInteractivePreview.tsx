@@ -2,7 +2,7 @@ import React from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { GfxObject } from '@/entities/object'
-import { ObjectRendererR3F } from '@/features/object-editor/lib/offscreen-renderer/ObjectRendererR3F'
+import { ObjectRendererR3F } from '@/features/editor/object/lib'
 import { LoadingOverlay } from '@mantine/core'
 
 export interface HoverInteractivePreviewProps {

@@ -2,14 +2,14 @@
 id: 27
 epic: null
 title: "Рефакторинг ObjectEditor: виджет, тулбары и унификация раскладки"
-status: planned
+status: done
 created: 2025-09-01
 updated: 2025-09-01
 owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
-  total: 5
-  completed: 0
+  total: 8
+  completed: 6
 ---
 
 # Рефакторинг ObjectEditor: виджет, тулбары и унификация раскладки
@@ -279,3 +279,51 @@ features/
 - Ручные сценарии: переключение чат/свойства, коллапс/открытие Outliner, ресайз левой/правой панелей, возврат после перезагрузки.
 - Проверка в контексте страницы и модального редактора (SceneEditor).
 - Поиск по проекту: отсутствие `PanelToggleButtons` и глобальных хуков старых панелей.
+
+
+**Отчёт**: [phases/phase_1_summary.md](phases/phase_1_summary.md)
+
+**Отчёт (фаза 2):** [phases/phase_2_summary.md](phases/phase_2_summary.md)
+
+**Отчёт (фаза 3):** [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
+**Отчёт (фаза 4):** [phases/phase_4_summary.md](phases/phase_4_summary.md)
+
+**Отчёт (фаза 5):** [phases/phase_5_summary.md](phases/phase_5_summary.md)
+
+**Отчёт (фаза 6):** [phases/phase_6_summary.md](phases/phase_6_summary.md)
+
+### Фаза 6: Перенос исходников в новый неймспейс (object-editor → editor/object)
+- Задачи:
+  - Перенести исходники `features/object-editor/*` в `features/editor/object/*`:
+    - `ui/` (включая `renderer/` и панели свойств, ChatInterface),
+    - `model/`,
+    - `lib/ai`, `lib` (saveUtils, offscreen-renderer, objectEditorApi),
+    - `lib/hooks`.
+  - Обновить внутренние импорты у перенесённых файлов на новые относительные/alias пути.
+  - Обновить barrel-экспорты (`index.ts`) в новом неймспейсе; при необходимости оставить совместимые реэкспорты для стабильности API.
+  - Массово заменить оставшиеся импорты в репозитории на `@/features/editor/object/*`.
+  - Удалить временные реэкспорты, если они дублируют перенесённые исходники.
+  - Проверить сборку/типы, зафиксировать изменения в отчёте.
+- DoD:
+  - Нет прямых импортов из `@/features/object-editor/*` (кроме, возможно, временных совместимых экспортов).
+  - Билд успешен, отсутствуют регрессии типов.
+
+### Фаза 7: ESLint правила импортов и финальная чистка
+- Задачи:
+  - Подключить `eslint-plugin-import` в `apps/qryleth-front` и включить `import/no-restricted-paths`:
+    - Запретить использование `@/features/object-editor/*` вне самого пакета (требовать `@/features/editor/object/*`).
+    - Зафиксировать границы доменов `scene/*` ↔ `editor/object/*` по FSD.
+  - (Опционально) Настроить `import/order` и pathGroups для единообразия импортов.
+  - Обновить документацию (getting-started, scene-management) — пути и примеры кода под новый неймспейс.
+- DoD:
+  - Lint проходит без ошибок, правила применяются.
+  - Документация соответствует актуальной структуре.
+
+### Фаза 8 (опционально): Оптимизация чанков и размера бандла
+- Задачи:
+  - Проанализировать предупреждения Vite/Rollup по размерам чанков.
+  - Добавить `dynamic import()`/`manualChunks` там, где уместно (offscreen‑renderer, AI‑инструменты и т.п.).
+  - Проверить влияние на UX (ленивая подгрузка), измерить метрики.
+- DoD:
+  - Сокращено количество предупреждений по размеру чанков; критичные подсистемы загружаются лениво.

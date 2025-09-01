@@ -57,6 +57,9 @@ qryleth/
 └── agent-content/         # Контент для ИИ агентов
 ```
 
+Примечание: доступен новый неймспейс `features/editor/object/*` с реэкспортами API из `features/object-editor/*` для безопасной миграции.
+Виджет `widgets/ObjectEditor` поддерживает режимы `page` и `embedded` и используется в `SceneEditor` в embedded-режиме.
+
 
 Подробную информацию об архитектуре см. в [Принципах проектирования](../architecture/design-principles.md).
 
