@@ -474,9 +474,10 @@ AI инструмент для создания объектов теперь п
 
 ### Связанные AI Tools
 
-- **ObjectEditor tools** (`src/features/object-editor/lib/ai/tools/`):
+- **ObjectEditor tools** (`src/features/editor/object/lib/ai/tools/`):
   - `getObjectData` - возвращает полную информацию о группах
   - `addPrimitives` - поддерживает создание примитивов с группами
   
 - **SceneEditor tools** (`src/features/scene/lib/ai/tools/`):
   - `add_new_object` - создание объектов с группами на сцене
+

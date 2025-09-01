@@ -69,7 +69,7 @@ interface BaseLight {
 ### ObjectSceneLighting.tsx  
 - Рендерит освещение в редакторе объектов
 - Использует хук `useObjectLighting()` из `objectStore`
-- Находится в `src/features/object-editor/ui/renderer/lighting/`
+- Находится в `src/features/editor/object/ui/renderer/lighting/`
 
 ## UI управления
 
@@ -82,7 +82,7 @@ interface BaseLight {
 ### LightingControlPanel.tsx
 - Панель управления освещением в редакторе объектов
 - Аналогичный функционал для объектного редактора
-- Находится в `src/features/object-editor/ui/LightingControlPanel/`
+- Находится в `src/features/editor/object/ui/LightingControlPanel/`
 
 ## Хранилища состояния
 
@@ -94,7 +94,7 @@ interface BaseLight {
 ### objectStore.ts
 - Содержит настройки освещения для редактора объектов
 - Хук `useObjectLighting()` для управления освещением
-- Находится в `src/features/object-editor/model/`
+- Находится в `src/features/editor/object/model/`
 
 ## Ключевые файлы
 
@@ -104,13 +104,13 @@ interface BaseLight {
 
 ### Компоненты
 - `src/features/scene/ui/renderer/lighting/SceneLighting.tsx`
-- `src/features/object-editor/ui/renderer/lighting/ObjectSceneLighting.tsx`
+- `src/features/editor/object/ui/renderer/lighting/ObjectSceneLighting.tsx`
 - `src/features/scene/ui/objectManager/LightingControls.tsx`
-- `src/features/object-editor/ui/LightingControlPanel/LightingControlPanel.tsx`
+- `src/features/editor/object/ui/LightingControlPanel/LightingControlPanel.tsx`
 
 ### Stores
 - `src/features/scene/model/sceneStore.ts`
-- `src/features/object-editor/model/objectStore.ts`
+- `src/features/editor/object/model/objectStore.ts`
 
 ## Примеры использования
 
@@ -177,3 +177,4 @@ const object: GfxObject = {
 2. **Унифицированный подход**: Схожие компоненты рендеринга для сцены и объектов
 3. **Готовность к расширению**: Типы Point/Spot light готовы для будущей реализации рендеринга
 4. **Гибкая архитектура**: Базовый интерфейс позволяет легко добавлять новые типы света
+

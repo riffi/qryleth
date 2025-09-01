@@ -19,5 +19,19 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Запрещаем старый неймспейс object-editor извне (используем editor/object)
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/object-editor/*'],
+              message: 'Используйте новый неймспейс: \'@/features/editor/object/*\''
+            },
+          ],
+        },
+      ],
+    },
   },
 ])

@@ -9,7 +9,7 @@ owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
   total: 8
-  completed: 6
+  completed: 8
 ---
 
 # Рефакторинг ObjectEditor: виджет, тулбары и унификация раскладки

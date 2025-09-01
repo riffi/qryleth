@@ -2,7 +2,7 @@
 
 Утилита offscreen‑рендеринга превью для `GfxObject` на базе React Three Fiber с переиспользованием внутренних рендер‑компонентов.
 
-- Файл: `apps/qryleth-front/src/features/object-editor/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`
+- Файл: `apps/qryleth-front/src/features/editor/object/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`
 - Связанный компонент: `ObjectRendererR3F.tsx` — отвечает за рендер примитивов/групп.
 
 ## Конфигурация
@@ -46,7 +46,7 @@ interface PreviewRenderResult {
 ## Использование
 
 ```ts
-import { OffscreenObjectRenderer } from '@/features/object-editor/lib/offscreen-renderer'
+import { OffscreenObjectRenderer } from '@/features/editor/object/lib/offscreen-renderer'
 
 const renderer = new OffscreenObjectRenderer({ width: 512, height: 512, transparent: true })
 const { dataUrl } = await renderer.renderPreview(gfxObject)
@@ -54,4 +54,5 @@ renderer.dispose()
 ```
 
 Для удобства используйте хелпер `generateObjectPreview()` из `saveUtils.ts` (включает кеширование и обработку ошибок).
+
 

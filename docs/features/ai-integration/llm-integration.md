@@ -15,7 +15,7 @@
 - **Shared Layer** - содержит базовую инфраструктуру LangChain (`chatService.ts`, `toolRegistry.ts`, `types.ts`)
 - **Features Layer** - каждая feature регистрирует свои AI инструменты независимо:
   - `features/scene/lib/ai/tools/` - инструменты для работы со сценой
-  - `features/object-editor/lib/ai/tools/` - инструменты для редактирования объектов
+  - `features/editor/object/lib/ai/tools/` - инструменты для редактирования объектов
 
 ### Процесс работы
 
@@ -56,7 +56,7 @@
 - `search_objects_in_library` - поиск объектов в библиотеке
 - `add_object_from_library` - добавление объекта из библиотеки
 
-**Object Editor Tools** (регистрируются в `features/object-editor`):
+**Object Editor Tools** (регистрируются в `features/editor/object`):
  - `getObjectData` - получение полных данных текущего объекта
  - `addPrimitives` - добавление одного или нескольких примитивов
 
@@ -115,7 +115,7 @@ ChatInterface была полностью перестроена в соотве
 
 2. **Feature-специфичные ChatInterface**:
    - **SceneChatInterface** (`features/scene/ui/ChatInterface/`)
-   - **ObjectChatInterface** (`features/object-editor/ui/ChatInterface/`)
+   - **ObjectChatInterface** (`features/editor/object/ui/ChatInterface/`)
 
 ### SceneChatInterface
 
@@ -151,7 +151,7 @@ features/scene/ui/ChatInterface/
 
 **Структура:**
 ```
-features/object-editor/ui/ChatInterface/
+features/editor/object/ui/ChatInterface/
 ├── ObjectChatInterface.tsx     # Главный компонент
 ├── components/
 │   └── ObjectToolCallbacks/    # Обработка tool callbacks
@@ -162,7 +162,7 @@ features/object-editor/ui/ChatInterface/
 
 **Система панелей ObjectEditor:**
 ```
-features/object-editor/ui/
+features/editor/object/ui/
 ├── PanelToggleButtons/         # Кнопки переключения панелей
 ├── ObjectEditorLayout/         # Layout с поддержкой панелей
 └── ChatInterface/              # ChatInterface для объектов
@@ -203,11 +203,12 @@ features/object-editor/ui/
 **Features Layer:**
 - `src/features/scene/ui/ChatInterface/` - ChatInterface для сцен
 - `src/features/scene/lib/ai/` - AI инструменты для работы со сценой
-- `src/features/object-editor/ui/ChatInterface/` - ChatInterface для объектов
-- `src/features/object-editor/ui/PanelToggleButtons/` - Система панелей
-- `src/features/object-editor/ui/ObjectEditorLayout/` - Layout с панелями
-- `src/features/object-editor/lib/ai/` - AI инструменты для редактирования объектов
+- `src/features/editor/object/ui/ChatInterface/` - ChatInterface для объектов
+- `src/features/editor/object/ui/PanelToggleButtons/` - Система панелей
+- `src/features/editor/object/ui/ObjectEditorLayout/` - Layout с панелями
+- `src/features/editor/object/lib/ai/` - AI инструменты для редактирования объектов
 
 **Документация:**
 - [Design Principles](../../architecture/design-principles.md) - Принципы архитектуры
 - [Feature-Sliced Design](../../architecture/feature-sliced-design.md) - Руководство по FSD
+

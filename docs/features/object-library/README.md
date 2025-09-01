@@ -9,7 +9,7 @@
 
 ## Автогенерация превью при сохранении
 
-- Модуль: `apps/qryleth-front/src/features/object-editor/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`.
+- Модуль: `apps/qryleth-front/src/features/editor/object/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`.
 - Вызов: `generateObjectPreview(gfxObject, useCache?)` из `saveUtils.ts`.
 - Формат превью: PNG (base64 Data URL), размер по умолчанию 512×512, прозрачный фон.
 - Освещение: ambient + два directional, подобранные для читаемого силуэта.
@@ -24,7 +24,7 @@
 
 Основные файлы интеграции:
 
-- `apps/qryleth-front/src/features/object-editor/lib/saveUtils.ts` — генерация и кеширование превью.
+- `apps/qryleth-front/src/features/editor/object/lib/saveUtils.ts` — генерация и кеширование превью.
 - `apps/qryleth-front/src/pages/ObjectEditorPage.tsx` — вызов генерации при сохранении/создании объекта.
 - `apps/qryleth-front/src/shared/ui/SaveObjectDialog.tsx` — отображение прогресса (опционально).
 
@@ -52,9 +52,10 @@
 
 ## Быстрые ссылки (код)
 
-- Offscreen превью: `apps/qryleth-front/src/features/object-editor/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`
-- R3F‑рендерер объекта: `apps/qryleth-front/src/features/object-editor/lib/offscreen-renderer/ObjectRendererR3F.tsx`
-- Генерация превью и кеш: `apps/qryleth-front/src/features/object-editor/lib/saveUtils.ts`
+- Offscreen превью: `apps/qryleth-front/src/features/editor/object/lib/offscreen-renderer/OffscreenObjectRenderer.tsx`
+- R3F‑рендерер объекта: `apps/qryleth-front/src/features/editor/object/lib/offscreen-renderer/ObjectRendererR3F.tsx`
+- Генерация превью и кеш: `apps/qryleth-front/src/features/editor/object/lib/saveUtils.ts`
 - Карточка с превью: `apps/qryleth-front/src/shared/ui/ObjectPreviewCard/ObjectPreviewCard.tsx`
 - Hover‑препросмотр: `apps/qryleth-front/src/shared/ui/ObjectPreviewCard/HoverInteractivePreview.tsx`
+
 

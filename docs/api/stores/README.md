@@ -121,10 +121,10 @@ const SceneEditor: React.FC = () => {
 
 ## Object Editor Store / Хранилище редактора объектов
 
-**Location**: `src/features/object-editor/model/objectStore.ts`
+**Location**: `src/features/editor/object/model/objectStore.ts`
 **Purpose**: Manages object editing state
 
-**Местоположение**: `src/features/object-editor/model/objectStore.ts`
+**Местоположение**: `src/features/editor/object/model/objectStore.ts`
 **Назначение**: Отвечает за редактирование объектов
 
 ### State Properties / Свойства состояния
@@ -158,7 +158,7 @@ interface ObjectStoreState {
 ### Usage Example / Пример использования
 
 ```typescript
-import { useObjectStore } from '@/features/object-editor'
+import { useObjectStore } from '@/features/editor/object'
 
 const ObjectEditor: React.FC = () => {
   const {
@@ -380,3 +380,4 @@ export const useSceneStore = create<SceneStore>()(
 > 📝 **Note**: All stores follow the Feature-Sliced Design architecture and maintain strict separation of concerns. See [Design Principles](../../architecture/design-principles.md) for more information.
 > 
 > 📝 **Примечание**: Все хранилища следуют архитектуре Feature-Sliced Design и поддерживают строгое разделение обязанностей. См. [Принципы проектирования](../../architecture/design-principles.md) для получения дополнительной информации.
+

@@ -150,7 +150,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 
 2. **Feature-специфичные ChatInterface**:
    - `features/scene/ui/ChatInterface/SceneChatInterface` - для работы со сценами
-   - `features/object-editor/ui/ChatInterface/ObjectChatInterface` - для редактирования объектов
+   - `features/editor/object/ui/ChatInterface/ObjectChatInterface` - для редактирования объектов
 
 ### Миграция от монолитного подхода
 
@@ -166,7 +166,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 ```typescript
 // shared/entities/chat - базовая функциональность
 // features/scene/ui/ChatInterface - специфично для сцен
-// features/object-editor/ui/ChatInterface - специфично для объектов
+// features/editor/object/ui/ChatInterface - специфично для объектов
 ```
 
 ### Особенности реализации ChatInterface
@@ -190,3 +190,4 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 ---
 
 > Соблюдение FSD делает кодовую базу модульной и поддерживаемой. Правильная архитектура AI Tools и ChatInterface гарантирует возможность независимого развития различных функций редактора.
+

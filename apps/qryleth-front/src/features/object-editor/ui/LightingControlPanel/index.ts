@@ -1,1 +1,0 @@
-export { LightingControlPanel } from './LightingControlPanel'

@@ -97,7 +97,7 @@ interface SceneChatInterfaceProps {
 
 ### ObjectChatInterface
 
-**Путь**: `features/object-editor/ui/ChatInterface/`
+**Путь**: `features/editor/object/ui/ChatInterface/`
 
 Специализированный чат для редактирования объектов.
 
@@ -160,7 +160,7 @@ Scene-специфичный хук для работы с чатом.
 
 ### useObjectChat
 
-**Путь**: `features/object-editor/ui/ChatInterface/hooks/useObjectChat.ts`
+**Путь**: `features/editor/object/ui/ChatInterface/hooks/useObjectChat.ts`
 
 Object-editor специфичный хук для работы с чатом.
 
@@ -168,7 +168,7 @@ Object-editor специфичный хук для работы с чатом.
 
 ### PanelToggleButtons
 
-**Путь**: `features/object-editor/ui/PanelToggleButtons/`
+**Путь**: `features/editor/object/ui/PanelToggleButtons/`
 
 Кнопки для переключения между панелями в ObjectEditor.
 
@@ -188,7 +188,7 @@ interface PanelToggleButtonsProps {
 
 ### ObjectEditorLayout
 
-**Путь**: `features/object-editor/ui/ObjectEditorLayout/`
+**Путь**: `features/editor/object/ui/ObjectEditorLayout/`
 
 Layout компонент с поддержкой переключаемых панелей.
 

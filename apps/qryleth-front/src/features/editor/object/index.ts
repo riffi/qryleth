@@ -18,4 +18,4 @@ export {
   registerObjectEditorTools,
   unregisterObjectEditorTools,
   useObjectEditorToolRegistration,
-} from '@/features/object-editor/lib/ai'
+} from '@/features/editor/object/lib/ai'

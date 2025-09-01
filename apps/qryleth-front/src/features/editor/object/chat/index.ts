@@ -1,5 +1,1 @@
-/**
- * Подсистема чата ObjectEditor (реэкспорт текущего ChatInterface).
- */
-export { ObjectChatInterface } from '@/features/object-editor/ui/ChatInterface'
-
+export { ObjectChatInterface } from '../ui/ChatInterface'
