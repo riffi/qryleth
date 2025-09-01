@@ -21,10 +21,11 @@ phases:
 ## Цели
 - Привести фичу `object-editor` к корректному FSD:
   - Выделить виджет `widgets/ObjectEditor` как единственную точку композиции (pages → widgets → features).
-  - Вынести управление панелями/ресайзом в обобщённую фичу `features/editor-layout` с отдельными сторами для сцены и объекта (раздельный persist).
-  - Создать независимые от сцены тулбары `features/object-toolbar` (Left/Right) с кнопками «чат/свойства» и «менеджер».
+  - Вынести управление панелями/ресайзом в обобщённую фичу `features/editor/layout` с отдельными сторами для сцены и объекта (раздельный persist).
+  - Создать независимые от сцены тулбары `features/editor/object/toolbar` (Left/Right) с кнопками «чат/свойства» и «Outliner».
   - Удалить использование `PanelToggleButtons` и связанного глобального стейта в пользу тулбаров и layout‑store.
 - Обеспечить двухрежимное использование `ObjectEditor`: как страница и как встроенный (embedded) редактор в SceneEditor (модально), без пересечения состояний панелей.
+- Реструктурировать `features/*`: сгруппировать редакторские подсистемы под `features/editor/*` (ядро `editor/layout`, поддомены `editor/scene/*` и `editor/object/*`), настроить алиасы и запретить кросс‑импорты между scene↔object.
 
 ## Контекст
 
@@ -32,7 +33,7 @@ phases:
 - `features/object-editor/ui/ObjectEditorR3F.tsx` — монолитный компонент, включающий:
   - Отрисовку 3D (`ObjectScene3D`) и наплывающие контролы (grid/render/transform)
   - Левую панель: чат и/или свойства (через `ObjectEditorLayout` и `usePanelState`/`useGlobalPanelState`)
-  - Правую панель: менеджер примитивов/материалов
+  - Правую панель: Outliner — состав объекта (примитивы/материалы/группы)
 - Страница `pages/ObjectEditorPage.tsx` управляет панелями через `PanelToggleButtons` и `useGlobalPanelState`.
 - В `widgets/SceneEditor/SceneEditor.tsx` модально встраивается `ObjectEditorR3F` с внешним `globalPanelState`.
 
@@ -42,28 +43,37 @@ phases:
 3. Нарушение FSD‑границ при необходимости переиспользования панелей между разными контекстами.
 4. `PanelToggleButtons` дублируют функциональность тулбаров и должны быть удалены.
 
+### Выявленные проблемы и риски (из анализа)
+1) Naming collision в `ObjectEditorPage:220` — потенциальная путаница при замене на виджет. Действие: страница будет импортировать `ObjectEditor` (виджет) вместо `ObjectEditorR3F`; корректно разнести имена и импорты, исключить рекурсию.
+2) Persist‑ключи — возможные коллизии с `scene` редактором. Действие: вводим уникальные префиксы `objectEditor*` в `shared/model/visualSettingsStore`; проверка и аудит по проекту.
+3) Embedded‑режим в `SceneEditor:150` — сейчас использует `globalPanelState`. Действие: ввести переходный адаптер к `objectLayoutStore` и/или поддержать `externalLayoutState` в виджете для плавной миграции.
+4) AI‑инструменты (`features/object-editor/lib/ai`) — нет плана миграции. Действие: перенести регистрацию инструментов в границы новой подсистемы (вероятно `object-chat`), обеспечить инициализацию/разинициализацию на уровне виджета без нарушения FSD.
+5) Зависимость от `scene-layout` — необходимо чётко определить reuse. Действие: выносим общую логику в `features/editor/layout`, а адаптеры для сцен/объекта делаем тонкими (`features/editor/scene/layout` и `objectLayoutStore`).
+6) `ObjectEditorLayout` использует внутренний `usePanelState` — требуется миграция на внешний стор. Действие: заменить внутреннее состояние на `objectLayoutStore` с мостом для обратной совместимости на переходный период.
+
 ## Архитектурные решения и ограничения (FSD)
 
 1) Композиция сверху вниз:
 - Виджет `widgets/ObjectEditor` — единственная точка сборки редактора объекта.
-- Виджет импортирует фичи (`object-toolbar`, `editor-layout`, `object-*`). Фичи не импортируют виджеты и не импортируют другие фичи напрямую.
+- Виджет импортирует фичи (`editor/object/toolbar`, `editor/layout`, `object-*`). Фичи не импортируют виджеты и не импортируют другие фичи напрямую.
 
 2) Обобщённый layout:
-- Добавляется `features/editor-layout` (универсальная логика панелей/ресайза/persist).
+- Добавляется `features/editor/layout` (универсальная логика панелей/ресайза/persist).
 - Для разделения состояний вводятся адаптеры/фасады: `sceneLayoutStore` (уже есть) и `objectLayoutStore` (новый), с разными persist‑ключами в `shared/model/visualSettingsStore`.
 - На первом этапе допускается фасад поверх существующего persist‑стора, далее — постепенная миграция без дублирования ключей.
+ - `features/editor/scene/layout` — тонкий адаптер к `editor/layout` (обратная совместимость страниц/виджетов сцены).
 
-3) Тулбары:
-- Создать независимую фичу `features/object-toolbar` (презентационную):
+-3) Тулбары:
+- Создать независимую фичу `features/editor/object/toolbar` (презентационную):
   - `LeftToolbar`: кнопки «чат» и «свойства».
-  - `RightToolbar`: кнопка «менеджер».
+  - `RightToolbar`: кнопка «Outliner» (правая панель состава объекта).
 - Тулбары принимают только пропсы (значения и колбэки), не читают стор напрямую.
 
 4) Разделение ответственностей внутри object-editor:
-- `object-renderer`: 3D сцена и оверлеи.
-- `object-properties`: панели свойств (примитив/материал/группы).
-- `object-manager`: менеджер примитивов/материалов/групп.
-- `object-chat`: чат‑интерфейс.
+- `editor/object/renderer`: 3D сцена и оверлеи.
+- `editor/object/properties`: панели свойств (примитив/материал/группы).
+- `editor/object/outliner`: обзор состава объекта (иерархия примитивов/групп, материалы).
+- `editor/object/chat`: чат‑интерфейс.
 - `object-editor/model`: zustand‑store объекта (renderMode/transformMode/gridVisible/selection и т.п.; доменные типы — в `entities/*`).
 
 5) Persist ключи (обязательно раздельные):
@@ -71,6 +81,7 @@ phases:
   - `objectEditorLeftPanelWidthPx`, `objectEditorRightPanelWidthPx`
   - `objectEditorChatCollapsed`, `objectEditorPropertiesVisible`, `objectEditorObjectPanelCollapsed`
   - `objectEditorLayoutInitialized`
+ - Провести аудит по проекту на предмет отсутствия коллизий с ключами сцены (`scene*`).
 
 6) Деприкация и удаление:
 - Полностью убрать `PanelToggleButtons` и `useGlobalPanelState` после перевода на тулбары и `objectLayoutStore` (если больше нигде не используются — удалить файлы).
@@ -84,71 +95,186 @@ widgets/
    └─ index.ts
 
 features/
-├─ editor-layout/              # Универсальная логика панелей/ресайза (новая)
-│  ├─ model/store.ts           # Базовые утилиты/хуки
+├─ editor/layout/                 # Универсальная логика панелей/ресайза (ядро)
+│  ├─ model/store.ts              # Базовые утилиты/хуки
 │  ├─ adapters/
-│  │  ├─ sceneLayoutStore.ts   # Уже есть (как фасад) или перенести
-│  │  └─ objectLayoutStore.ts  # Новый фасад под object‑editor + persist ключи
+│  │  ├─ sceneLayoutStore.ts      # Тонкий фасад под SceneEditor
+│  │  └─ objectLayoutStore.ts     # Тонкий фасад под ObjectEditor
 │  └─ index.ts
-├─ object-toolbar/             # Независимые тулбары для ObjectEditor (новая)
+├─ editor/object/toolbar/         # Тулбары ObjectEditor (презентационные)
 │  ├─ ui/LeftToolbar.tsx
 │  ├─ ui/RightToolbar.tsx
 │  └─ index.ts
-├─ object-renderer/            # 3D рендер и оверлеи (выделить из object-editor)
-├─ object-properties/          # Свойства примитива/материала/группы
-├─ object-manager/             # Менеджер примитивов/материалов/групп
-├─ object-chat/                # Чат‑интерфейс
-└─ object-editor/              # Публичное API фичи (минимум импорта)
+├─ editor/object/renderer/        # 3D рендер и оверлеи (бывш. object-renderer)
+├─ editor/object/properties/      # Свойства примитива/материала/группы
+├─ editor/object/outliner/        # Outliner состава объекта (иерархия/секции)
+├─ editor/object/chat/            # Чат/AI‑интеграция
+└─ editor/scene/*                 # Специфика SceneEditor (toolbar, play-mode, persistence, layout‑адаптер)
 ```
+
+## План реструктуризации features (группировка, алиасы, миграция)
+
+Цель: сделать структуру `features/*` более предсказуемой и масштабируемой, сгруппировав всё, что относится к редакторам, под общей зонтичной папкой `editor/`, сохранив FSD‑границы и чистые зависимости.
+
+1) Категории и назначение
+- `features/editor/*`: всё, что относится к редакторам (общая логика и поддомены).
+  - `features/editor/layout`: общая логика панелей/ресайза/persist (ядро), без привязки к сцене/объекту.
+  - `features/editor/scene/*`: всё специфичное для SceneEditor (toolbar, play-mode, persistence, scene‑layout как адаптер к editor/layout).
+  - `features/editor/object/*`: всё специфичное для ObjectEditor (toolbar, outliner, properties, renderer, chat/ai).
+- `features/library/*`: переиспользуемые библиотеки контента (например, `object-library`).
+- `features/common/*`: действительно переиспользуемые фичи, не зависящие от стора сцены/объекта (универсальные модалки, ассет‑браузеры и т.п.).
+
+2) Правила FSD и зависимостей (не нарушать при переносе)
+- Виджеты (`widgets/*`) импортируют фичи. Фичи не импортируют виджеты и не импортируют другие фичи напрямую, кроме разрешённых «общих» (`features/editor/layout`, `features/common/*`, `features/library/*`) через стабильные публичные API.
+- Фичи `editor/scene/*` и `editor/object/*` не ссылаются друг на друга. Общие части идут через `editor/layout` или `shared/*`.
+- Переиспользуемые фичи не читают сторы сцены/объекта напрямую — только пропсы и свои локальные store/хуки.
+
+3) Алиасы и линтинг
+- Добавить алиасы в `tsconfig` и/или Vite:
+  - `@/features/editor/*`, `@/features/common/*`, `@/features/library/*`.
+  - Сохранить существующие `@/features/*` на переходный период с реэкспортами.
+- Добавить ESLint правило/плагин (или локальное правило) для запрета кросс‑импортов между `editor/scene/*` и `editor/object/*`.
+
+Чек‑лист правок конфигурации (Фаза 2):
+- `apps/qryleth-front/tsconfig.app.json` — убедиться, что пути добавлены:
+  ```jsonc
+  {
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["src/*"],
+        "@/features/editor/*": ["src/features/editor/*"],
+        "@/features/common/*": ["src/features/common/*"],
+        "@/features/library/*": ["src/features/library/*"]
+      }
+    }
+  }
+  ```
+- `apps/qryleth-front/vite.config.ts` — alias уже настроен на `@ → ./src`. Дополнительных настроек не требуется, но проверить, что сборщик разрешает новые пути из `tsconfig` (Vite читает tsconfig paths через плагин TS — в нашем пресете ок).
+- `apps/qryleth-front/eslint.config.js` — добавить проверку границ импортов:
+  ```js
+  import importPlugin from 'eslint-plugin-import'
+
+  export default tseslint.config([
+    // ...
+    {
+      files: ['**/*.{ts,tsx}'],
+      plugins: { import: importPlugin },
+      settings: {
+        'import/resolver': {
+          typescript: true,
+        },
+      },
+      rules: {
+        // Запрет сценовым фичам импортировать объектные и наоборот
+        'import/no-restricted-paths': ['error', {
+          zones: [
+            { target: './src/features/editor/object', from: './src/features/editor/scene' },
+            { target: './src/features/editor/scene', from: './src/features/editor/object' },
+          ]
+        }],
+      }
+    }
+  ])
+  ```
+
+4) Переиспользуемые фичи (common)
+- Критерии помещения в `features/common/*`:
+  - Не зависят от `sceneStore`/`objectStore`.
+  - Экспортируют компоненты/хуки с чистыми контрактами через пропсы/колбэки.
+  - Общая полезность (могут использоваться и страницами, и виджетами, и разными редакторами).
+- UI‑только элементы предпочтительно располагать в `shared/ui`; headless‑утилиты — `shared/lib`. Если есть собственный UI + локальная логика/стор — это фича `features/common/*`.
+
+5) Пошаговая миграция (чтобы не ронять сборку)
+- Шаг 1 (в рамках Фазы 2): создать новые директории `features/editor/layout`, `features/editor/scene/*`, `features/editor/object/*` и добавить индекс‑реэкспорты.
+- Шаг 2: перенести логику `scene-layout` в `editor/layout` (ядро) и оставить `features/editor/scene/layout` как тонкий адаптер (реэкспорт/хелперы под сцены).
+- Шаг 3: создать `features/editor/object/toolbar` и подключить из виджета ObjectEditor. Затем последовательно переносить `editor/object/properties`, `editor/object/outliner`, `editor/object/renderer`, `editor/object/chat` в `features/editor/object/*`.
+- Шаг 4: обновить импорты в коде на новые алиасы. На переходный период оставить реэкспорты в старых путях, затем удалить их в завершающей фазе.
+- Шаг 5: провести аудит зависимостей и удалить старые каталоги после переключения всех импортов.
+
+6) Риски и смягчение
+- Много правок импортов → делить на подфазы, использовать реэкспорты и алиасы для плавного переключения.
+- Нарушение FSD при переносе → ручной аудит импортов, запрет кросс‑импортов правилами ESLint.
+- Регрессия persist ключей → не менять схему ключей одновременно с перемещением логики; переносить ключи отдельно (см. Фазу 2).
+
+7) Включение в фазы задачи
+- Фаза 2: старт реструктуризации — ввод `features/editor/layout`, адаптер `editor/scene/layout`, настройка алиасов и реэкспортов.
+- Фаза 3: перенос объектных подсистем (`object-*`) в `features/editor/object/*`.
+- Фаза 5: удаление старых директорий, финальный аудит импортов и обновление документации.
 
 ## Список фаз (план)
 
 ### Фаза 1: Виджет ObjectEditor и независимые тулбары
-- Создать `widgets/ObjectEditor` с пропсами: `{ mode: 'page'|'embedded'; objectData?; onChange?; onRequestSave?; externalLayoutState? }`.
-- Создать `features/object-toolbar` (LeftToolbar: «чат/свойства», RightToolbar: «менеджер»).
-- Интегрировать виджет на странице `ObjectEditorPage` (без изменения существующего layout‑состояния; на переходный период — адаптер к старому состоянию панелей).
-- Критерий: страница работает через виджет и новые тулбары, без регрессий.
+- Работы:
+  - Создать `widgets/ObjectEditor` с пропсами: `{ mode: 'page'|'embedded'; objectData?; onChange?; onRequestSave?; externalLayoutState? }`.
+  - Реализовать UI‑контракты тулбаров и панелей через пропсы (без доступа к сторам внутри тулбаров).
+  - Создать `features/editor/object/toolbar` (LeftToolbar: «чат/свойства», RightToolbar: «Outliner»).
+  - Интегрировать виджет на странице `ObjectEditorPage` (пока использовать текущий state панелей через адаптер).
+  - Исправить naming collision: заменить прямой рендер `ObjectEditorR3F` на `ObjectEditor` (виджет), откорректировать импорты.
+  - Обновить заголовок/кнопки страницы на использование тулбаров, удалить `PanelToggleButtons` из шапки.
+- Критерии приёмки:
+  - Страница рендерит виджет и новые тулбары, функциональность панелей не деградирует.
 
-### Фаза 2: Обобщённый editor-layout и objectLayoutStore
-- Добавить `features/editor-layout` и фасад `objectLayoutStore` с отдельными persist‑ключами в `shared/model/visualSettingsStore`.
-- Перевести `ObjectEditorLayout` на `objectLayoutStore` (лево/право/ресайз/коллапс), удалить внутренние дубли логики ресайза.
-- Критерий: состояние панелей объекта независимо от сцены; размеры сохраняются между сессиями.
+### Фаза 2: Обобщённый editor/layout и objectLayoutStore
+- Работы:
+  - Добавить `features/editor/layout` (ядро) и фасад `objectLayoutStore` с раздельными persist‑ключами в `shared/model/visualSettingsStore` (`objectEditor*`).
+  - Перевести `ObjectEditorLayout` на `objectLayoutStore` (ширины/коллапс/ресайз, init‑флаг), удалить дубль логики.
+  - Ввести `features/editor/scene/layout` как тонкий адаптер над `editor/layout` (для SceneEditor).
+  - Добавить tsconfig‑алиасы `@/features/editor/*`, `@/features/common/*`, `@/features/library/*`; оставить реэкспорты в старых путях.
+  - Добавить ESLint‑правило `import/no-restricted-paths` для запрета кросс‑импортов scene↔object.
+  - В `widgets/SceneEditor` внедрить переходный адаптер embedded‑режима (`externalLayoutState`/bridge к `objectLayoutStore`).
+- Критерии приёмки:
+  - Состояния панелей объекта независимы от сценовых, persist работает.
+  - Импорты начинают использовать новые алиасы; сборка и линт зелёные.
 
 ### Фаза 3: Декомпозиция object-editor на подфичи
-- Вынести в отдельные фичи: `object-renderer`, `object-properties`, `object-manager`, `object-chat`.
-- Навести порядок импорта типов: доменные — из `entities/*`; UI‑режимы — из `shared/types/ui`.
-- Критерий: фичи изолированы, импорты соответствуют FSD.
+- Работы:
+  - Перенести подсистемы в `features/editor/object/*`: `renderer`, `properties`, `outliner`, `chat`.
+  - Обновить `index.ts` публичных API для каждой подфичи; обеспечить стабильные импорты.
+  - Навести порядок импорта типов: доменные — `entities/*`; UI‑режимы — `shared/types/ui`.
+  - Мигрировать AI‑инструменты: перенести регистрацию/разрегистрацию из `features/object-editor/lib/ai` в `editor/object/chat` (или `editor/object/ai`), инициализацию/очистку вызывать из виджета.
+- Критерии приёмки:
+  - Нет кросс‑импортов между фичами; контракты через пропсы/хуки.
 
 ### Фаза 4: Интеграция в SceneEditor (embedded) и удаление PanelToggleButtons
-- В `widgets/SceneEditor` заменить модальный `ObjectEditorR3F` на `widgets/ObjectEditor` (`mode='embedded'`).
-- Убедиться, что состояния панелей редакторов не пересекаются.
-- Полностью удалить `PanelToggleButtons` и `useGlobalPanelState` из кода, если не используются.
-- Критерий: модальный объектный редактор работает через виджет; следов старых панельных кнопок нет.
+- Работы:
+  - В `widgets/SceneEditor` заменить модальный `ObjectEditorR3F` на `widgets/ObjectEditor` (`mode='embedded'`).
+  - Убедиться, что состояния панелей редакторов не пересекаются (разные persist‑ключи).
+  - Полностью удалить `PanelToggleButtons` и `useGlobalPanelState` из кода, почистить импорты.
+  - Убрать переходные адаптеры embedded‑режима.
+- Критерии приёмки:
+  - Модальный объектный редактор работает через виджет; следов старых кнопок нет.
 
 ### Фаза 5: Чистка, документация и верификация FSD
-- Обновить README/доки по структуре и контрактам.
-- Проверить, что виджеты не импортируются фичами; фичи не импортируют друг друга и виджеты.
-- Произвести финальный аудит зависимостей и persist‑ключей.
+- Работы:
+  - Обновить README/доки по структуре и контрактам (новые пути/публичные API).
+  - Удалить реэкспорты и старые директории после переключения всех импортов.
+  - Финально проверить FSD‑границы: виджеты → фичи; отсутствие фич→виджет и фич→фич (кроме editor/layout/common/library).
+  - Провести аудит persist‑ключей (`objectEditor*` vs `scene*`), UX панелей (чат/свойства/Outliner), ресайз, восстановление ширин.
+- Критерии приёмки:
+  - Репозиторий в консистентном состоянии; сборка/линт зелёные; доки актуальны.
 
 ## Критерии приёмки (DoD)
 - Страницы и модальные сценарии используют только `widgets/ObjectEditor`.
 - В коде отсутствует `PanelToggleButtons` и его стор/хуки.
-- `features/object-toolbar` изолирован от стор(ов), принимает пропсы.
-- `features/editor-layout` предоставляет `objectLayoutStore` с независимыми persist‑ключами; состояния с `sceneLayoutStore` не пересекаются.
-- Монолит `ObjectEditorR3F` разбит: рендерер, свойства, менеджер, чат — отдельные подфичи.
+- `features/editor/object/toolbar` изолирован от стор(ов), принимает пропсы.
+ - `features/editor/layout` предоставляет `objectLayoutStore` с независимыми persist‑ключами; состояния с `sceneLayoutStore` не пересекаются.
+- Монолит `ObjectEditorR3F` разбит: рендерер, свойства, Outliner, чат — отдельные подфичи.
 - Документация обновлена, FSD‑границы соблюдены.
+ - AI‑инструменты перенесены в рамках новой архитектуры; инициализация происходит на уровне виджета, без нарушения FSD.
 
 ## Оценка рисков и митигирование
-- Риск 1: Коллизии persist‑ключей — использовать префикс `objectEditor*`, мигрировать аккуратно.
+- Риск 1: Коллизии persist‑ключей — использовать префикс `objectEditor*`, аудит ключей, миграция без дублирования.
 - Риск 2: Незаметные импорты между фичами — статический анализ импорта и ручная проверка.
 - Риск 3: Регрессии UI при ресайзе панелей — этапная интеграция и сравнение с текущим поведением.
-- Риск 4: Встроенный режим (embedded) — предусмотреть `externalLayoutState?` для совместимости и плавной миграции.
+- Риск 4: Встроенный режим (embedded) — `externalLayoutState?` и/или bridge к `objectLayoutStore`.
+- Риск 5: AI‑инструменты — выделение зоны ответственности и точек инициализации на уровне виджета, покрыть сценарии регистрации/очистки.
 
 ## Что не входит в объём
 - Доработки доменных типов и форматов данных объектов за рамками разбиения по FSD.
 - Глубокая переработка рендера 3D сцены (только выделение и перемещение в подфичу).
 
 ## Верификация
-- Ручные сценарии: переключение чат/свойства, коллапс/открытие менеджера, ресайз левой/правой панелей, возврат после перезагрузки.
+- Ручные сценарии: переключение чат/свойства, коллапс/открытие Outliner, ресайз левой/правой панелей, возврат после перезагрузки.
 - Проверка в контексте страницы и модального редактора (SceneEditor).
 - Поиск по проекту: отсутствие `PanelToggleButtons` и глобальных хуков старых панелей.
