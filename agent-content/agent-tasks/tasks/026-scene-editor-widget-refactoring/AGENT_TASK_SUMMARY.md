@@ -2,14 +2,14 @@
 id: 26
 epic: null
 title: "Рефакторинг SceneEditor: выделение виджета и реорганизация фич"
-status: planned
+status: in-progress
 created: 2025-09-01
 updated: 2025-09-01
 owner: team-ui
 tags: [frontend, architecture, refactoring, FSD]
 phases:
   total: 4
-  completed: 0
+  completed: 1
 ---
 
 # Рефакторинг SceneEditor: выделение виджета и реорганизация фич
@@ -81,7 +81,7 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Виджет SceneEditor и выделение scene-layout
+### ✅ Фаза 1: Виджет SceneEditor и выделение scene-layout — done ([отчёт](./phases/phase_1_summary.md))
 - Создать `widgets/SceneEditor/` (координатор): принимает/пробрасывает пропсы/колбэки, читает сцену через `useSceneStore`, собирает фичи без прямых `feature → feature` импортов.
 - Создать фичу `features/scene-layout/` для управления панелями (видимость, чат/скриптинг, ресайз).
 - Перенести из `SceneEditorR3F` только логику панелей в `scene-layout`. Все состояния, влияющие на рендер/инструменты, оставить в `features/scene`.

@@ -48,7 +48,7 @@ import {
 import type { GfxObject } from "@/entities";
 import { buildUpdatedObject } from '@/features/object-editor/lib/saveUtils'
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
-import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
+import { useScenePanelLayout } from '@/features/scene-layout'
 import { SceneEditorToolBar } from './SceneEditorToolBar'
 import { LeftToolbar } from './LeftToolbar'
 import { RightToolbar } from './RightToolbar'
@@ -104,13 +104,22 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [editorOpened, setEditorOpened] = useState(false)
   const [editingObject, setEditingObject] = useState<{objectUuid: string, instanceId?: string} | null>(null)
   const [saveSceneModalOpened, setSaveSceneModalOpened] = useState(false)
-  // Видимость панелей и ширины берём из глобального визуального стора (persist)
-  const chatCollapsed = useVisualSettingsStore(s => s.sceneChatCollapsed)
-  const setChatCollapsed = useVisualSettingsStore(s => s.setSceneChatCollapsed)
-  const scriptingPanelVisible = useVisualSettingsStore(s => s.sceneScriptingVisible)
-  const setScriptingPanelVisible = useVisualSettingsStore(s => s.setSceneScriptingVisible)
-  const objectPanelCollapsed = useVisualSettingsStore(s => s.sceneObjectPanelCollapsed)
-  const setObjectPanelCollapsed = useVisualSettingsStore(s => s.setSceneObjectPanelCollapsed)
+  // Управление раскладкой панелей вынесено в фичу scene-layout
+  const {
+    chatCollapsed,
+    setChatCollapsed,
+    scriptingPanelVisible,
+    setScriptingPanelVisible,
+    objectPanelCollapsed,
+    setObjectPanelCollapsed,
+    leftPanelWidthPx,
+    setLeftPanelWidthPx,
+    rightPanelWidthPx,
+    setRightPanelWidthPx,
+    containerRef,
+    resizingSide,
+    beginResize,
+  } = useScenePanelLayout()
   // Состояние подтверждения удаления инстанса
   const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<{ globalIndex: number; title: string } | null>(null)
@@ -120,113 +129,7 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const [sceneNameDraft, setSceneNameDraft] = useState<string>('')
   const [isEditingSceneName, setIsEditingSceneName] = useState<boolean>(false)
 
-  // Ресайз панелей: более современный UX с drag-handles
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const leftPanelWidthPx = useVisualSettingsStore(s => s.sceneLeftPanelWidthPx)
-  const rightPanelWidthPx = useVisualSettingsStore(s => s.sceneRightPanelWidthPx)
-  const setLeftPanelWidthPx = useVisualSettingsStore(s => s.setSceneLeftPanelWidthPx)
-  const setRightPanelWidthPx = useVisualSettingsStore(s => s.setSceneRightPanelWidthPx)
-  const [resizingSide, setResizingSide] = useState<'left' | 'right' | null>(null)
-  const [containerBounds, setContainerBounds] = useState<{ left: number; right: number } | null>(null)
-
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
-
-  /**
-   * Обрабатывает изменение размеров при перетаскивании разделителей панелей.
-   * Здесь же задаются минимальные/максимальные ширины панелей. Пороговые значения
-   * подобраны так, чтобы на ноутбуках (более узкие экраны) оставлять больше места
-   * области рендеринга по центру.
-   */
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingSide || !containerBounds) return
-
-      // Чуть уменьшаем минимальные ширины панелей, чтобы на ноутбуках
-      // центр (рендеринг) был крупнее. Ранее было 260/240.
-      const minLeft = 220
-      const maxLeft = objectPanelCollapsed
-        ? window.innerWidth * 0.5  // Если правая панель скрыта - можно до половины экрана
-        : scriptingPanelVisible
-          ? Math.min(window.innerWidth * 0.48, 820)
-          : Math.min(window.innerWidth * 0.32, 480)
-      const minRight = 200
-      const maxRight = Math.min(window.innerWidth * 0.36, 520)
-
-      if (resizingSide === 'left') {
-        const newWidth = clamp(e.clientX - containerBounds.left, minLeft, maxLeft)
-        setLeftPanelWidthPx(newWidth)
-      } else if (resizingSide === 'right') {
-        const newWidth = clamp(containerBounds.right - e.clientX, minRight, maxRight)
-        setRightPanelWidthPx(newWidth)
-      }
-    }
-
-    const handleMouseUp = () => setResizingSide(null)
-
-    if (resizingSide) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-  }, [resizingSide, containerBounds, scriptingPanelVisible, objectPanelCollapsed])
-
-  /**
-   * Инициализирует стартовые ширины и состояние панелей в зависимости от
-   * текущей ширины окна. Цель — на ноутбуках автоматически дать больше
-   * пространства центральной области рендеринга.
-   *
-   * Правила (подобраны эмпирически):
-   * - <= 1280px: левая панель свёрнута, правая панель уже (≈240px)
-   * - <= 1440px: обе панели уже (левая ≈300px, правая ≈260px)
-   * - > 1440px: дефолтные ширины (360px и 320px)
-   */
-  // Первичная адаптация размеров панелей — выполняется один раз на устройстве,
-  // если ранее не была выполнена (персистентный стор хранит флаг).
-  useEffect(() => {
-    const isInitialized = useVisualSettingsStore.getState().sceneEditorLayoutInitialized
-    if (isInitialized) return
-    try {
-      const width = window.innerWidth
-
-      if (width <= 1280) {
-        // Узкие ноутбуки: свернуть слева по умолчанию, справа сделать уже
-        setChatCollapsed(true)
-        setLeftPanelWidthPx(280)
-        setRightPanelWidthPx(240)
-      } else if (width <= 1440) {
-        // Типичные ноутбуки/ультрабуки: обе панели компактнее
-        setLeftPanelWidthPx(300)
-        setRightPanelWidthPx(260)
-      } else {
-        // Десктопы/широкие экраны: оставить значения по умолчанию
-        setLeftPanelWidthPx(360)
-        setRightPanelWidthPx(320)
-      }
-    } catch (e) {
-      // В не-браузерных окружениях безопасно игнорируем
-    }
-    // Помечаем как инициализированный layout, чтобы не перетирать пользовательские настройки
-    useVisualSettingsStore.getState().markSceneEditorLayoutInitialized()
-    // Один раз на маунт: стартовая адаптация
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const beginResize = (side: 'left' | 'right') => (e: React.MouseEvent) => {
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    setContainerBounds({ left: rect.left, right: rect.right })
-    setResizingSide(side)
-    e.preventDefault()
-    e.stopPropagation()
-  }
+  // Логика ресайза и первичной адаптации перенесена в хук useScenePanelLayout
 
   // Глобальное состояние панелей для ObjectEditor
   const globalPanelState = useGlobalPanelState()

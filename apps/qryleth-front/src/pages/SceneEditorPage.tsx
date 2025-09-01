@@ -1,6 +1,6 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import { SceneEditorR3F } from '@/features/scene'
+import { SceneEditor } from '@/widgets/SceneEditor'
 import { ErrorBoundary } from '@/shared/ui'
 import { Paper, Text, Group, Button, ScrollArea, Box } from '@mantine/core'
 
@@ -28,7 +28,7 @@ const SceneEditorPage: React.FC = () => {
           </Paper>
         )}
       >
-        <SceneEditorR3F
+        <SceneEditor
           uuid={id}
           isNew={isNew}
           showObjectManager
