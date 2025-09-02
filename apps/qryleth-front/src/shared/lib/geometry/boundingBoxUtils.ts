@@ -351,3 +351,19 @@ export function transformBoundingBox(
 export function getBoundingBoxCenter(box: BoundingBox): Vector3 {
   return midpoint(box.min, box.max)
 }
+
+/**
+ * Проверяет пересечение двух AABB (axis-aligned bounding boxes) в 3D.
+ * Возвращает true, если боксы пересекаются или касаются по любой оси.
+ * Чистая геометрия без зависимостей от entities.
+ */
+export function intersectAABB(box1: BoundingBox, box2: BoundingBox): boolean {
+  return !(
+    box1.max[0] < box2.min[0] || // box1 левее box2
+    box1.min[0] > box2.max[0] || // box1 правее box2
+    box1.max[1] < box2.min[1] || // box1 ниже box2
+    box1.min[1] > box2.max[1] || // box1 выше box2
+    box1.max[2] < box2.min[2] || // box1 «впереди» box2
+    box1.min[2] > box2.max[2]    // box1 «позади» box2
+  )
+}

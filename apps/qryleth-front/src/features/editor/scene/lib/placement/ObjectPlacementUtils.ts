@@ -3,9 +3,10 @@ import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
-import { transformBoundingBox, getBoundingBoxCenter } from '@/shared/lib/geometry/boundingBoxUtils'
+import { transformBoundingBox, getBoundingBoxCenter, intersectAABB } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
-import { normalize as v3normalize, length as v3length } from '@/shared/lib/math/vector3'
+import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
+import { createRng } from '@/shared/lib/utils/prng'
 
 /**
  * Получить GfxHeightSampler для работы с высотами террейна слоя
@@ -44,42 +45,7 @@ export enum PlacementStrategy {
 const MAX_TERRAIN_TILT_DEG = 30;
 const MAX_TERRAIN_TILT_RAD = (Math.PI / 180) * MAX_TERRAIN_TILT_DEG;
 
-/**
- * Пересчитывает наклон нормали относительно вертикали (оси Y) в пропорции, чтобы
- * 90° соответствовало maxTiltRad, а 0° — 0. Сохраняет направление наклона (по XZ)
- * и «полушарие» (знак Y) исходной нормали.
- */
-const limitNormalByMaxTilt = (normal: Vector3, maxTiltRad: number): Vector3 => {
-  const len0 = v3length(normal)
-  if (len0 <= 1e-8) return [0, 1, 0]
-  const [nx, ny, nz] = v3normalize(normal)
-
-  // Угол до оси Y (0..90°), независимо от полушария
-  const angle = Math.acos(Math.max(-1, Math.min(1, Math.abs(ny))))
-
-  // Сохраняем исходное полушарие (вверх/вниз), чтобы не менять знаки поворотов
-  const signY = ny >= 0 ? 1 : -1
-
-  // Направление наклона — проекция на XZ
-  const hx0 = nx
-  const hz0 = nz
-  const hlen = Math.hypot(hx0, hz0)
-  let hx = 0, hz = 1 // дефолт: вдоль +Z, если горизонтальная компонента слишком мала
-  if (hlen > 1e-8) {
-    hx = hx0 / hlen
-    hz = hz0 / hlen
-  }
-
-  // Линеарное масштабирование угла: 0..90° -> 0..maxTiltRad
-  const k = maxTiltRad / (Math.PI / 2) // коэффициент масштабирования
-  const mapped = angle * k
-
-  const y = signY * Math.cos(mapped)
-  const s = Math.sin(mapped)
-  const x = hx * s
-  const z = hz * s
-  return [x, y, z]
-}
+//
 
 /**
  * Метаданные для стратегии Random размещения
@@ -148,6 +114,16 @@ export interface PlacementOptions {
     boundingBox: BoundingBox
   }>
   newObjectBoundingBox?: BoundingBox
+  /** Масштаб нового объекта (если известен заранее), влияет на выравнивание по Y */
+  newObjectScale?: Vector3
+  /** Детеминированный генератор случайных чисел; по умолчанию Math.random */
+  rng?: () => number
+  /**
+   * Seed для детерминированной генерации. При наличии автоматически
+   * создаётся генератор случайных чисел через createRng(seed).
+   * Если одновременно передан и rng, и seed — приоритет у rng.
+   */
+  seed?: number | string
 }
 
 export interface PlacementResult {
@@ -160,6 +136,8 @@ export interface PlacementResult {
  */
 export const generateObjectPlacement = (options: PlacementOptions): PlacementResult => {
   const { strategy, customPosition, bounds, landscapeLayer } = options
+  // Приоритет: явно переданный rng > seed > Math.random
+  const rng = options.rng ?? (options.seed !== undefined ? createRng(options.seed) : Math.random)
 
   // Determine bounds from landscape layer if available (terrain-aware)
   const worldW = landscapeLayer
@@ -181,8 +159,8 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
 
   switch (strategy) {
     case PlacementStrategy.Random: {
-      const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
-      const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
+      const x = rng() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
+      const z = rng() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
       return {
         position: [x, 0, z], // Y will be adjusted by correctLLMGeneratedObject
         strategy: PlacementStrategy.Random
@@ -203,8 +181,8 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
       console.warn('PlaceAround strategy requires PlacementStrategyConfig with metadata. Use generateObjectPlacementWithConfig instead.')
 
       // Fallback на Random для backward compatibility
-      const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
-      const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
+      const x = rng() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
+      const z = rng() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
       return {
         position: [x, 0, z],
         strategy: PlacementStrategy.Random
@@ -213,8 +191,8 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
 
     default: {
       console.warn(`Unknown placement strategy: ${strategy}, falling back to Random`)
-      const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
-      const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
+      const x = rng() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX
+      const z = rng() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ
       return {
         position: [x, 0, z],
         strategy: PlacementStrategy.Random
@@ -244,8 +222,13 @@ export const generateObjectPlacementWithConfig = (
     newObjectBoundingBox?: BoundingBox
     instanceIndex?: number // для PlaceAround стратегии
     totalInstancesCount?: number // для PlaceAround стратегии
+    newObjectScale?: Vector3
+    rng?: () => number
+    /** См. правила в PlacementOptions: seed используется для создания rng, если rng не задан */
+    seed?: number | string
   }
 ): PlacementResult => {
+  const rng = options.rng ?? (options.seed !== undefined ? createRng(options.seed) : Math.random)
   // Для PlaceAround используем специальную логику
   if (placementStrategyConfig.strategy === PlacementStrategy.PlaceAround) {
     if (!options.existingInstances || !options.newObjectBoundingBox) {
@@ -260,7 +243,8 @@ export const generateObjectPlacementWithConfig = (
       options.existingInstances,
       options.newObjectBoundingBox,
       instanceIndex,
-      totalInstancesCount
+      totalInstancesCount,
+      rng
     )
 
     return {
@@ -275,7 +259,9 @@ export const generateObjectPlacementWithConfig = (
     bounds: options.bounds,
     landscapeLayer: options.landscapeLayer,
     existingInstances: options.existingInstances,
-    newObjectBoundingBox: options.newObjectBoundingBox
+    newObjectBoundingBox: options.newObjectBoundingBox,
+    newObjectScale: options.newObjectScale,
+    rng
   };
 
   return generateObjectPlacement(legacyOptions);
@@ -336,14 +322,7 @@ const calculateSurfaceNormal = (
  *   - положительное nz => положительный наклон вперёд (rx > 0)
  *   - положительное nx => наклон вправо (rz > 0)
  */
-const normalToRotation = (normal: Vector3, maxTiltRad?: number): Vector3 => {
-  // Ограничиваем нормаль согласно maxTiltRad (либо глобальной константе)
-  const [x, y, z] = limitNormalByMaxTilt(normal, maxTiltRad ?? MAX_TERRAIN_TILT_RAD)
-  const rx = Math.atan2(z, y)
-  const rz = Math.atan2(x, y)
-  const ry = 0
-  return [rx, ry, rz]
-};
+const normalToRotation = (normal: Vector3, maxTiltRad?: number): Vector3 => normalToRotationShared(normal, maxTiltRad ?? MAX_TERRAIN_TILT_RAD)
 
 /**
  * Генерировать позицию вокруг target объектов для стратегии PlaceAround
@@ -360,7 +339,8 @@ const generatePlaceAroundPosition = (
   existingInstances: Array<{ instance: SceneObjectInstance; boundingBox: BoundingBox }>,
   newObjectBoundingBox: BoundingBox,
   instanceIndex: number,
-  totalInstancesCount: number
+  totalInstancesCount: number,
+  rng: () => number
 ): Vector3 => {
   // Валидация метаданных
   validatePlaceAroundMetadata(metadata)
@@ -434,7 +414,7 @@ const generatePlaceAroundPosition = (
   // 8. Поиск позиции без коллизий (максимум 100 попыток)
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Расчет случайного расстояния от грани до грани
-    const edgeToEdgeDistance = Math.random() * (metadata.maxDistance - metadata.minDistance) + metadata.minDistance
+    const edgeToEdgeDistance = rng() * (metadata.maxDistance - metadata.minDistance) + metadata.minDistance
     const actualCenterDistance = edgeToEdgeDistance + targetRadius + newObjectRadius
 
     // Расчет угла размещения
@@ -444,11 +424,11 @@ const generatePlaceAroundPosition = (
       const angleStep = (2 * Math.PI) / totalInstancesCount
       const baseAngle = (metadata.angleOffset || 0) + instanceIndex * angleStep
       // Добавляем случайное отклонение ±10% от равномерного угла при повторных попытках
-      const angleVariation = attempt > 0 ? (Math.random() - 0.5) * 0.2 * angleStep : 0
+      const angleVariation = attempt > 0 ? (rng() - 0.5) * 0.2 * angleStep : 0
       angle = baseAngle + angleVariation
     } else {
       // Случайное распределение углов
-      angle = (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
+      angle = (metadata.angleOffset || 0) + rng() * 2 * Math.PI
     }
 
     // Расчет новой позиции относительно target центра
@@ -465,7 +445,7 @@ const generatePlaceAroundPosition = (
     } else {
       // 3D размещение - случайная высота в пределах actualCenterDistance * 0.5
       const verticalRange = actualCenterDistance * 0.5
-      const verticalOffset = (Math.random() - 0.5) * 2 * verticalRange
+      const verticalOffset = (rng() - 0.5) * 2 * verticalRange
       newY = targetPosition[1] + verticalOffset
     }
 
@@ -503,7 +483,7 @@ const generatePlaceAroundPosition = (
         rotation: existingRotation
       })
 
-      if (checkBoundingBoxCollision(paddedCandidateBB, existingTransformedBB)) {
+      if (intersectAABB(paddedCandidateBB, existingTransformedBB)) {
         hasCollision = true
         break
       }
@@ -524,13 +504,13 @@ const generatePlaceAroundPosition = (
   const fallbackCenterDistance = fallbackEdgeDistance + targetRadius + newObjectRadius
   const fallbackAngle = distributeEvenly
     ? (metadata.angleOffset || 0) + instanceIndex * (2 * Math.PI) / totalInstancesCount
-    : (metadata.angleOffset || 0) + Math.random() * 2 * Math.PI
+    : (metadata.angleOffset || 0) + rng() * 2 * Math.PI
 
   const fallbackX = targetPosition[0] + fallbackCenterDistance * Math.cos(fallbackAngle)
   const fallbackZ = targetPosition[2] + fallbackCenterDistance * Math.sin(fallbackAngle)
   const fallbackY = onlyHorizontal
     ? targetPosition[1]
-    : targetPosition[1] + (Math.random() - 0.5) * fallbackCenterDistance
+    : targetPosition[1] + (rng() - 0.5) * fallbackCenterDistance
 
   return [fallbackX, fallbackY, fallbackZ]
 }
@@ -559,27 +539,19 @@ const validatePlaceAroundMetadata = (metadata: PlaceAroundMetadata): void => {
 /**
  * Check if two bounding boxes intersect
  */
-const checkBoundingBoxCollision = (box1: BoundingBox, box2: BoundingBox): boolean => {
-  return !(
-    box1.max[0] < box2.min[0] || // box1 is to the left of box2
-    box1.min[0] > box2.max[0] || // box1 is to the right of box2
-    box1.max[1] < box2.min[1] || // box1 is below box2
-    box1.min[1] > box2.max[1] || // box1 is above box2
-    box1.max[2] < box2.min[2] || // box1 is in front of box2
-    box1.min[2] > box2.max[2]    // box1 is behind box2
-  );
-};
+// checkBoundingBoxCollision перенесён в shared/lib/geometry/boundingBoxUtils.ts как intersectAABB
 
 /**
  * Generate random position without collisions
  */
 const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 => {
   const { bounds, landscapeLayer, existingInstances, newObjectBoundingBox } = options;
+  const rng = options.rng ?? Math.random
 
   if (!existingInstances || !newObjectBoundingBox) {
     console.warn('RandomNoCollision strategy requires existingInstances and newObjectBoundingBox, falling back to Random');
-    const x = Math.random() * ((bounds?.maxX ?? 5) - (bounds?.minX ?? -5)) + (bounds?.minX ?? -5);
-    const z = Math.random() * ((bounds?.maxZ ?? 5) - (bounds?.minZ ?? -5)) + (bounds?.minZ ?? -5);
+    const x = rng() * ((bounds?.maxX ?? 5) - (bounds?.minX ?? -5)) + (bounds?.minX ?? -5);
+    const z = rng() * ((bounds?.maxZ ?? 5) - (bounds?.minZ ?? -5)) + (bounds?.minZ ?? -5);
     return [x, 0, z];
   }
 
@@ -603,16 +575,17 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
   const minDistance = 0.5; // Минимальное расстояние между объектами
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
-    const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
+    const x = rng() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
+    const z = rng() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
 
     // Рассчитать правильную Y координату на ландшафте
     let y = 0;
     if (landscapeLayer) {
       y = queryHeightAtCoordinate(landscapeLayer, x, z);
       // Adjust Y position based on object's bounding box to prevent sinking into terrain
-      const bottomOffset = newObjectBoundingBox.min[1];
-      y = y - bottomOffset;
+      const scaleY = options.newObjectScale?.[1] ?? 1
+      const bottomOffset = newObjectBoundingBox.min[1] * scaleY
+      y = y - bottomOffset
     }
 
     // Create transformed bounding box for the new object at this position
@@ -649,7 +622,7 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
         rotation: existingRotation
       });
 
-      if (checkBoundingBoxCollision(paddedNewBB, existingTransformedBB)) {
+      if (intersectAABB(paddedNewBB, existingTransformedBB)) {
         hasCollision = true;
         break;
       }
@@ -660,9 +633,10 @@ const generateRandomNoCollisionPosition = (options: PlacementOptions): Vector3 =
     }
   }
 
-  const x = Math.random() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
-  const z = Math.random() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
-  const y = landscapeLayer ? queryHeightAtCoordinate(landscapeLayer, x, z) - newObjectBoundingBox.min[1] : 0;
+  const x = rng() * (finalBounds.maxX - finalBounds.minX) + finalBounds.minX;
+  const z = rng() * (finalBounds.maxZ - finalBounds.minZ) + finalBounds.minZ;
+  const scaleY = options.newObjectScale?.[1] ?? 1
+  const y = landscapeLayer ? queryHeightAtCoordinate(landscapeLayer, x, z) - newObjectBoundingBox.min[1] * scaleY : 0;
   return [x, y, z];
 };
 

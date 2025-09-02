@@ -9,7 +9,7 @@ import type {
   GfxTerrainOpRecipe
 } from '@/entities/terrain'
 import { placePoints } from './placement'
-import { areaToWorldRect } from './placement/PlacementUtils'
+import { areaToWorldRect } from './placement/TerrainPlacementUtils'
 import { deriveRng, randAngle, randIntRange, generateRandomSeed, splitSeed } from './utils/PRNGUtils'
 import { generateOpsForRecipeAtPoints } from './recipes/RecipeProcessor'
 import { processBias } from './recipes/BiasProcessor'

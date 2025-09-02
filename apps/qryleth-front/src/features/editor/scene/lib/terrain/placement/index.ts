@@ -14,6 +14,6 @@ export {
   isInsideArea,
   randomPointInRect,
   randomPointInCircle
-} from './PlacementUtils'
+} from './TerrainPlacementUtils'
 // Дополнительно экспортируем общий тип 2D-границ из shared для удобства потребителей
 export type { BoundRect2D } from '@/shared/types'

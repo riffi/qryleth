@@ -1,5 +1,5 @@
 import type { GfxPlacementArea, GfxPlacementSpec } from '@/entities/terrain'
-import { areaToWorldRect, dist2, isInsideArea, isInsideRect, makeWorldRect, randomPointInCircle, randomPointInRect } from './PlacementUtils'
+import { areaToWorldRect, dist2, isInsideArea, isInsideRect, makeWorldRect, randomPointInCircle, randomPointInRect } from './TerrainPlacementUtils'
 
 /**
  * Результат размещения — набор мировых координат центров операций.
