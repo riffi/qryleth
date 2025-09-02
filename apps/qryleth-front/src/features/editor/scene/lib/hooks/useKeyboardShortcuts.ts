@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSceneStore } from '@/features/scene'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { UiMode, ViewModeEnum } from '@/shared/types/ui'
 import * as THREE from 'three'
 

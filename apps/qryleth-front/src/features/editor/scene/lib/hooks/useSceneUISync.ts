@@ -1,4 +1,5 @@
-import { useSceneObjectsOptimized, useSceneObjectInstancesOptimized, useSelectionState, useSceneStore } from '@/features/scene'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { useSceneObjectsOptimized, useSceneObjectInstancesOptimized, useSelectionState } from '@/features/editor/scene/model/optimizedSelectors'
 import { useUISync, useRealTimeSync } from '@/shared/lib/hooks/useUISync'
 
 /**

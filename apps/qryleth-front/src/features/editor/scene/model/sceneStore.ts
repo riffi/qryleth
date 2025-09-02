@@ -5,7 +5,7 @@ import type {
   SceneStore,
   SceneStoreState,
   SceneMetaData
-} from '@/features/scene/model/store-types'
+} from '@/features/editor/scene/model/store-types'
 import { UiMode, RenderProfile, type CameraPose } from '@/shared/types/ui'
 import type {
   ViewMode,

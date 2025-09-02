@@ -17,7 +17,7 @@ import {
     Alert
 } from '@mantine/core'
 import { IconLayersLinked, IconSettings, IconUpload, IconPhoto, IconX } from '@tabler/icons-react'
-import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import { useSceneActions } from '../../model/optimizedSelectors.ts'

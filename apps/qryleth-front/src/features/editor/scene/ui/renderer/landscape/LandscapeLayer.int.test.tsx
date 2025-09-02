@@ -6,7 +6,7 @@ import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type { SceneLayer } from '@/entities/scene/types'
 
 // Мокаем Zustand store-хук, чтобы перехватывать обращения без реального стора
-vi.mock('@/features/scene/model/sceneStore.ts', () => {
+vi.mock('@/features/editor/scene/model/sceneStore.ts', () => {
   const updateLayer = vi.fn()
   const startTerrainApplying = vi.fn()
   const finishTerrainApplying = vi.fn()
@@ -49,7 +49,7 @@ describe('LandscapeLayer (integration)', () => {
   afterEach(() => cleanup())
 
   it('не вызывает updateLayer на маунте (Perlin)', async () => {
-    const { __storeSpies } = await import('@/features/scene/model/sceneStore.ts') as any
+    const { __storeSpies } = await import('@/features/editor/scene/model/sceneStore.ts') as any
     const layer: SceneLayer = {
       id: 'l1',
       name: 'Terrain',
@@ -70,7 +70,7 @@ describe('LandscapeLayer (integration)', () => {
   })
 
   it('управляет прелоадером через ready() (Heightmap): start→finish', async () => {
-    const { __storeSpies } = await import('@/features/scene/model/sceneStore.ts') as any
+    const { __storeSpies } = await import('@/features/editor/scene/model/sceneStore.ts') as any
     const layer: SceneLayer = {
       id: 'l2',
       name: 'Terrain HM',

@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { GfxLayerType } from '@/entities/layer'
-import { useSceneLighting } from '@/features/scene/model/sceneStore.ts'
+import { useSceneLighting } from '@/features/editor/scene/model/sceneStore.ts'
 
 /**
  * Отрисовывает слой воды на сцене.

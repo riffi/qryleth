@@ -13,7 +13,7 @@ import {
   IconRipple
 } from '@tabler/icons-react'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
-import type { ObjectInfo } from '@/features/scene'
+import type { ObjectInfo } from './types.ts'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { GfxLayerType } from '@/entities/layer'

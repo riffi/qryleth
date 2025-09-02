@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useMemo, useState } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSceneStore } from '@/features/scene'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
 
 interface InstancedObjectTransformProps {

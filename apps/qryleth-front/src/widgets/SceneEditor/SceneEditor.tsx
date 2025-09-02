@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { SceneEditorR3F } from '@/features/scene'
+import { SceneEditorR3F } from '@/features/editor/scene/ui'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/editor/scene/toolbar'
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
@@ -7,7 +7,7 @@ import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { notifications } from '@mantine/notifications'
 
 export interface SceneEditorProps {

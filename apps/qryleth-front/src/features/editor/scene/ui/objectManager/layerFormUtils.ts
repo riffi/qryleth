@@ -1,4 +1,4 @@
-import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants.ts'
 import type { SceneLayer } from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 

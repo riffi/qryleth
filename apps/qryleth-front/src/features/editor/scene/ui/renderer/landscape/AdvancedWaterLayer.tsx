@@ -4,7 +4,7 @@ import { extend, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { GfxLayerType } from '@/entities/layer'
-import { useSceneLighting } from '@/features/scene/model/sceneStore.ts'
+import { useSceneLighting } from '@/features/editor/scene/model/sceneStore.ts'
 import type { WaterLayerProps as BaseWaterLayerProps } from './WaterLayer.tsx'
 
 // Регистрируем класс Water как JSX-элемент <water /> для R3F

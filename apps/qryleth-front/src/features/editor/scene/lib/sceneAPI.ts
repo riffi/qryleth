@@ -3,7 +3,7 @@
  * Предоставляет публичный интерфейс для взаимодействия с Zustand store
  */
 
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'

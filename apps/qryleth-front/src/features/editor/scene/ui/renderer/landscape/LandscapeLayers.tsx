@@ -1,6 +1,6 @@
 import React from 'react'
-import { useSceneLayers } from '@/features/scene'
-import { MemoizedLandscapeLayer } from '@/features/scene'
+import { useSceneLayers } from '@/features/editor/scene/model/sceneStore'
+import { MemoizedLandscapeLayer } from '../optimization/OptimizedComponents'
 import { GfxLayerType } from '@/entities/layer'
 
 export const LandscapeLayers: React.FC = () => {

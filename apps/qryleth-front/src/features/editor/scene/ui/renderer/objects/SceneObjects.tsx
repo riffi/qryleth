@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { MemoizedSceneObject } from '@/features/scene'
+import { MemoizedSceneObject } from '../optimization/OptimizedComponents'
 import { InstancedObjects, useInstanceOptimization } from '@/shared/r3f/optimization/InstancedObjects.tsx'
 import {
   useSceneObjects,
@@ -8,7 +8,7 @@ import {
   useHoveredObject,
   useSceneLayers,
   useSceneStore
-} from '@/features/scene'
+} from '@/features/editor/scene/model/sceneStore'
 // События сцены: импорт через алиас scene/lib для устойчивости путей
 import { useSceneEvents } from '@/features/editor/scene/lib/hooks/useSceneEvents'
 

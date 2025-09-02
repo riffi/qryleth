@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
-import { useSelectedObject, useHoveredObject } from '@/features/scene'
+import { useSelectedObject, useHoveredObject } from '@/features/editor/scene/model/sceneStore'
 import type {
   HoveredSceneObject,
   SelectedSceneObject

@@ -16,7 +16,7 @@ import {
 } from '@mantine/core'
 import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings, SkySettings } from '@/entities/lighting'
-import { LIGHTING_PRESETS } from '@/features/scene/model/lighting-presets'
+import { LIGHTING_PRESETS } from '@/features/editor/scene/model/lighting-presets'
 
 interface LightingControlsProps {
     lighting?: LightingSettings

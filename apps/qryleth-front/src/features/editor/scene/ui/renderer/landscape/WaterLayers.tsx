@@ -1,6 +1,6 @@
 import React from 'react'
-import { useSceneLayers } from '@/features/scene'
-import { MemoizedWaterLayer } from '@/features/scene'
+import { useSceneLayers } from '@/features/editor/scene/model/sceneStore'
+import { MemoizedWaterLayer } from '../optimization/OptimizedComponents'
 import { GfxLayerType } from '@/entities/layer'
 
 /**

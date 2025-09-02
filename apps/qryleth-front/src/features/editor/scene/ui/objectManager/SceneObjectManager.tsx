@@ -39,7 +39,7 @@ import type { LightingSettings } from '@/entities/lighting'
 import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
-import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
+import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants.ts'
 import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
 import { generateObjectPreview } from '@/features/editor/object/lib'
 import type {
