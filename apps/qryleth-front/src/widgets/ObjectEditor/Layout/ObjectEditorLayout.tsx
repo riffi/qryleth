@@ -1,40 +1,46 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Box, Container, Paper } from '@mantine/core'
-import { ObjectScene3D } from '../renderer/ObjectScene3D'
-import { PrimitiveControlPanel } from '../PrimitiveControlPanel/PrimitiveControlPanel'
-import { GroupControlPanel } from '../GroupControlPanel/GroupControlPanel'
-import { MaterialControlPanel } from '../MaterialControlPanel/MaterialControlPanel'
-import { ObjectManagementPanel } from '../ObjectManagementPanel/ObjectManagementPanel'
-import { usePanelState } from '../PanelToggleButtons/hooks/usePanelState'
 import { DragHandleVertical } from '@/shared/ui'
 import {
   useSelectedMaterialUuid,
   useSelectedGroupUuids,
   useSelectedItemType
-} from '../../model/objectStore'
+} from '@/features/editor/object/model/objectStore'
 import type { GfxObject } from '@/entities/object'
 import { useObjectPanelLayout } from '@/features/object-layout/hooks/useObjectPanelLayout'
+import { ObjectScene3D } from '@/features/editor/object/ui/renderer/ObjectScene3D'
+import { PrimitiveControlPanel } from '@/features/editor/object/ui/PrimitiveControlPanel/PrimitiveControlPanel'
+import { GroupControlPanel } from '@/features/editor/object/ui/GroupControlPanel/GroupControlPanel'
+import { MaterialControlPanel } from '@/features/editor/object/ui/MaterialControlPanel/MaterialControlPanel'
+import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagementPanel/ObjectManagementPanel'
+import { usePanelState } from '@/features/editor/object/ui/PanelToggleButtons/hooks/usePanelState'
 
 interface ObjectEditorLayoutProps {
+  /** Данные редактируемого объекта (для контекста и будущих расширений). */
   objectData?: GfxObject
+  /** Вёрстка центральной области: обычно 3D‑сцена редактора объекта. */
   children?: React.ReactNode
-  /** Дополнительные элементы управления в header */
+  /** Дополнительные элементы управления в заголовке (если он показан). */
   headerControls?: React.ReactNode
-  /** Компонент чата для левой панели */
+  /** Компонент чата для левой панели (взаимоисключается со свойствами). */
   chatComponent?: React.ReactNode
-  /** Внешнее управление состоянием панелей (для интеграции с page/modal header) */
+  /** Внешнее состояние панелей (для интеграции со страницей/виджетом). */
   externalPanelState?: {
     panelState: any
     togglePanel: (panel: any) => void
     showPanel: (panel: any) => void
   }
-  /** Скрыть внутренний заголовок (для модального режима) */
+  /** Скрыть внутренний заголовок (для встроенного режима). */
   hideHeader?: boolean
 }
 
 /**
- * Layout для редактора объектов с поддержкой переключаемых панелей.
- * Реализует логику взаимоисключающих левых панелей (чат vs свойства).
+ * Компоновщик ObjectEditor с поддержкой переключаемых панелей и ресайза.
+ *
+ * Ответственность компонента:
+ * - Управление левой панелью (чат или свойства) и правой панелью (менеджер).
+ * - Ресайз панелей с сохранением размеров в persist‑хранилище (object-layout).
+ * - Встраивание 3D‑сцены (children) между панелями.
  */
 export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   objectData,
@@ -42,11 +48,12 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   headerControls,
   chatComponent,
   externalPanelState,
-  hideHeader = false
+  hideHeader = false,
 }) => {
-  // Подключаем persist‑раскладку ObjectEditor (инициализация дефолтов и сеттеры ширин)
+  // Persist‑раскладка ObjectEditor (инициализация и сеттеры ширин панелей)
   const layout = useObjectPanelLayout()
-  // Состояние и ссылки для управления ресайзом панелей
+
+  // Ссылки и локальное состояние для интерактивного ресайза
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [leftPanelWidthPx, setLeftPanelWidthPx] = useState<number>(400)
   const [rightPanelWidthPx, setRightPanelWidthPx] = useState<number>(350)
@@ -54,12 +61,14 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const [containerBounds, setContainerBounds] = useState<{ left: number; right: number } | null>(null)
 
   /**
-   * Ограничивает значение value в пределах [min, max].
+   * Возвращает значение, ограниченное диапазоном [min, max].
+   * Используется для предотвращения слишком маленьких/больших панелей при ресайзе.
    */
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
   /**
-   * Обработчик движения мыши во время ресайза: вычисляет и применяет новую ширину панели.
+   * Обработчики мыши для режима ресайза: пересчитывают ширину соответствующей панели
+   * на основании положения курсора и границ контейнера, обновляют persist‑значения.
    */
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -96,23 +105,21 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
-  }, [resizingSide, containerBounds])
+  }, [resizingSide, containerBounds, layout])
 
-  // Синхронизация локального состояния ширин с persist‑хранилищем
+  /**
+   * Синхронизация начальных и внешне изменённых (persist) ширин панелей с локальным состоянием.
+   */
   useEffect(() => {
-    if (typeof layout.leftPanelWidthPx === 'number') {
-      setLeftPanelWidthPx(layout.leftPanelWidthPx)
-    }
+    if (typeof layout.leftPanelWidthPx === 'number') setLeftPanelWidthPx(layout.leftPanelWidthPx)
   }, [layout.leftPanelWidthPx])
 
   useEffect(() => {
-    if (typeof layout.rightPanelWidthPx === 'number') {
-      setRightPanelWidthPx(layout.rightPanelWidthPx)
-    }
+    if (typeof layout.rightPanelWidthPx === 'number') setRightPanelWidthPx(layout.rightPanelWidthPx)
   }, [layout.rightPanelWidthPx])
 
   /**
-   * Инициализирует начало ресайза выбранной панели, сохраняя границы контейнера.
+   * Инициализирует начало ресайза выбранной панели: фиксирует геометрию контейнера и включает режим перетаскивания.
    */
   const beginResize = (side: 'left' | 'right') => (e: React.MouseEvent) => {
     if (!containerRef.current) return
@@ -122,21 +129,26 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     e.preventDefault()
     e.stopPropagation()
   }
+
   const selectedMaterialUuid = useSelectedMaterialUuid()
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
   const internalPanelState = usePanelState()
-
-  // Используем внешнее состояние панелей если передано, иначе внутреннее
   const { panelState, showPanel } = externalPanelState || internalPanelState
 
-  // Автоматическое переключение на свойства при выборе примитива/материала/группы
+  /**
+   * При выборе конкретного материала/группы — автоматически переключаем левую панель на «Свойства»,
+   * чтобы пользователь сразу видел контекстные настройки.
+   */
   useEffect(() => {
     if ((selectedMaterialUuid || selectedGroupUuids.length > 0) && panelState.leftPanel === 'chat') {
       showPanel('properties')
     }
   }, [selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, showPanel])
 
+  /**
+   * Рендерит левую панель: чат (если передан chatComponent) или свойства (материал/группа/примитив).
+   */
   const renderLeftPanel = () => {
     if (!panelState.leftPanel) return null
 
@@ -152,7 +164,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            transition: resizingSide ? undefined : 'width 160ms ease'
+            transition: resizingSide ? undefined : 'width 160ms ease',
           }}
         >
           {chatComponent}
@@ -170,7 +182,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             height: '100%',
             flexShrink: 0,
             overflow: 'hidden',
-            transition: resizingSide ? undefined : 'width 160ms ease'
+            transition: resizingSide ? undefined : 'width 160ms ease',
           }}
         >
           {selectedMaterialUuid ? (
@@ -187,10 +199,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     return null
   }
 
+  /**
+   * Рендерит правую панель: менеджер объектов, когда он активен.
+   */
   const renderRightPanel = () => {
-    if (!panelState.rightPanel || panelState.rightPanel !== 'manager') {
-      return null
-    }
+    if (!panelState.rightPanel || panelState.rightPanel !== 'manager') return null
 
     return (
       <Paper
@@ -203,7 +216,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          transition: resizingSide ? undefined : 'width 160ms ease'
+          transition: resizingSide ? undefined : 'width 160ms ease',
         }}
       >
         <ObjectManagementPanel />
@@ -213,7 +226,6 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
   return (
     <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-
       <Container
         size="xl"
         fluid
@@ -225,27 +237,31 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           gap: 6,
           height: '100%',
           overflow: 'hidden',
-          flex: 1
+          flex: 1,
         }}
       >
         {renderLeftPanel()}
 
         {/* Ручка между левой панелью и центром */}
         {panelState.leftPanel && (
-          <DragHandleVertical onMouseDown={beginResize('left')} ariaLabel="Изменить ширину левой панели" active={resizingSide === 'left'} />
+          <DragHandleVertical
+            onMouseDown={beginResize('left')}
+            ariaLabel="Изменить ширину левой панели"
+            active={resizingSide === 'left'}
+          />
         )}
 
-        <Paper
-          shadow="sm"
-          radius="md"
-          style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}
-        >
+        <Paper shadow="sm" radius="md" style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 400 }}>
           {children || <ObjectScene3D />}
         </Paper>
 
         {/* Ручка между центром и правой панелью */}
         {panelState.rightPanel === 'manager' && (
-          <DragHandleVertical onMouseDown={beginResize('right')} ariaLabel="Изменить ширину правой панели" active={resizingSide === 'right'} />
+          <DragHandleVertical
+            onMouseDown={beginResize('right')}
+            ariaLabel="Изменить ширину правой панели"
+            active={resizingSide === 'right'}
+          />
         )}
 
         {renderRightPanel()}
@@ -253,3 +269,4 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     </Box>
   )
 }
+

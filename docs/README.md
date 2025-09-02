@@ -133,3 +133,4 @@
 ## 🔄 Миграции
 
 - 024 — terrain-coordinates-refactor: migrations/024-terrain-coordinates-refactor.md
+- 027 — editor-object-namespace-finalize: migrations/027-editor-object-namespace-finalize.md

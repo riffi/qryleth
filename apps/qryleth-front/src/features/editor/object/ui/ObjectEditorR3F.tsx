@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react'
 import { Box, Group } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
-import { ObjectEditorLayout } from './ObjectEditorLayout'
-import { ObjectChatInterface } from './ChatInterface'
 import {
   useObjectStore,
   useObjectRenderMode,
@@ -15,10 +13,6 @@ import type { GfxObject } from '@/entities/object'
 interface ObjectEditorR3FProps {
   /** Данные редактируемого объекта */
   objectData?: GfxObject
-  /** Внешнее управление состоянием панелей (из page header) */
-  externalPanelState?: any
-  /** Режим модального окна - скрывает внутренний заголовок */
-  modalMode?: boolean
 }
 
 /**
@@ -26,11 +20,7 @@ interface ObjectEditorR3FProps {
  * Используется как самостоятельный компонент без модального окна.
  * Управление открытием/закрытием осуществляется родительским компонентом.
  */
-export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
-  objectData,
-  externalPanelState,
-  modalMode = false
-}) => {
+export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) => {
   // Подключаем обработку горячих клавиш (Ctrl+A для выбора всех примитивов)
   useOEKeyboardShortcuts()
   const renderMode = useObjectRenderMode()
@@ -66,7 +56,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
     }
   }, [objectData])
 
-  // Создаем компонент 3D сцены с дополнительными контролами
+  // Создаём компонент 3D‑сцены с дополнительными контролами рендера/трансформаций
   const sceneContent = (
     <Box style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Box
@@ -90,32 +80,5 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({
       </Box>
     </Box>
   )
-
-  // Создаем компонент чата для ObjectEditor
-  const chatComponent = (
-    <ObjectChatInterface
-      isVisible={true} // Управляется через panelState
-      mode={modalMode ? 'modal' : 'page'}
-      onPrimitiveAdded={(primitive) => {
-        console.log('Primitive added via AI:', primitive)
-      }}
-      onMaterialCreated={(material) => {
-        console.log('Material created via AI:', material)
-      }}
-      onObjectModified={(modifications) => {
-        console.log('Object modified via AI:', modifications)
-      }}
-    />
-  )
-
-  return (
-      <ObjectEditorLayout
-        objectData={objectData}
-        externalPanelState={externalPanelState}
-        hideHeader={modalMode}
-        chatComponent={chatComponent}
-      >
-        {sceneContent}
-      </ObjectEditorLayout>
-    )
-  }
+  return sceneContent
+}

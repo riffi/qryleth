@@ -2,6 +2,8 @@ import React, { useMemo } from 'react'
 import type { GfxObject } from '@/entities/object'
 import { ObjectEditorR3F } from '@/features/editor/object'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
+import { ObjectEditorLayout } from './Layout'
+import { ObjectChatInterface } from '@/features/editor/object/ui/ChatInterface'
 
 export interface ObjectEditorProps {
   /**
@@ -60,16 +62,92 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   const internalGlobalPanels = useGlobalPanelState()
   const panelStateBridge = useMemo(() => externalLayoutState ?? internalGlobalPanels, [externalLayoutState, internalGlobalPanels])
 
-  // Примечание по onChange/onRequestSave:
-  // На первой фазе внедряем только API. Реальная привязка к сторам и событиям сохранения
-  // будет реализована на следующих фазах (при унификации layout-стора и тулбаров).
+  /**
+   * Формирует компонент ObjectChatInterface с привязкой к состоянию панелей и экшенам стора.
+   *
+   * Назначение:
+   * - Привязать видимость чата к левой панели (panelState.leftPanel === 'chat').
+   * - Обрабатывать сворачивание/разворачивание чата через state‑bridge (hidePanel/showPanel/togglePanel).
+   * - Подключить колбэки к zustand‑стоору ObjectEditor для фактических изменений.
+   */
+  const chatComponent = (
+    <ObjectChatInterface
+      isVisible={panelStateBridge.panelState?.leftPanel === 'chat'}
+      onVisibilityChange={(visible) => {
+        // Скрываем/показываем чат через bridge; если метода нет — используем toggle.
+        if (visible) {
+          panelStateBridge.showPanel?.('chat') ?? panelStateBridge.togglePanel?.('chat')
+        } else {
+          panelStateBridge.hidePanel?.('chat') ?? panelStateBridge.togglePanel?.('chat')
+        }
+      }}
+      mode={mode === 'embedded' ? 'modal' : 'page'}
+      onPrimitiveAdded={async (primitive) => {
+        /**
+         * Добавляет примитив в хранилище ObjectEditor и автоматически
+         * переключает левую панель на «Свойства» для моментального редактирования.
+         */
+        try {
+          const { useObjectStore } = await import('@/features/editor/object/model/objectStore')
+          useObjectStore.getState().addPrimitive(primitive)
+          // Гарантированно показываем панель свойств
+          if (panelStateBridge.showPanel) {
+            panelStateBridge.showPanel('properties')
+          } else if (
+            panelStateBridge.togglePanel &&
+            panelStateBridge.panelState?.leftPanel !== 'properties'
+          ) {
+            panelStateBridge.togglePanel('properties')
+          }
+        } catch (e) {
+          console.error('Не удалось добавить примитив из чата:', e)
+        }
+      }}
+      onMaterialCreated={async (material) => {
+        /**
+         * Создаёт материал в хранилище ObjectEditor и выбирает его, чтобы
+         * пользователь сразу видел свойства материала.
+         */
+        try {
+          const { useObjectStore } = await import('@/features/editor/object/model/objectStore')
+          const uuid = useObjectStore.getState().addMaterial(material)
+          useObjectStore.getState().selectMaterial(uuid)
+          panelStateBridge.showPanel?.('properties')
+        } catch (e) {
+          console.error('Не удалось создать материал из чата:', e)
+        }
+      }}
+      onObjectModified={async (modifications) => {
+        /**
+         * Применяет дельту изменений к хранилищу ObjectEditor.
+         * Поддерживает ключи: primitives, materials, primitiveGroups, primitiveGroupAssignments, lighting.
+         * Неизменённые части состояния не трогаются.
+         */
+        try {
+          const { useObjectStore } = await import('@/features/editor/object/model/objectStore')
+          const s = useObjectStore.getState()
+          const m: any = modifications || {}
+          if (Array.isArray(m.primitives)) s.setPrimitives(m.primitives)
+          if (Array.isArray(m.materials)) s.setMaterials(m.materials)
+          if (m.primitiveGroups) s.setPrimitiveGroups(m.primitiveGroups)
+          if (m.primitiveGroupAssignments) s.setPrimitiveGroupAssignments(m.primitiveGroupAssignments)
+          if (m.lighting) s.setLighting(m.lighting)
+        } catch (e) {
+          console.error('Не удалось применить модификации объекта из чата:', e)
+        }
+      }}
+    />
+  )
 
   return (
-    <ObjectEditorR3F
+    <ObjectEditorLayout
       objectData={objectData}
       externalPanelState={panelStateBridge}
-      modalMode={mode === 'embedded'}
-    />
+      hideHeader={mode === 'embedded'}
+      chatComponent={chatComponent}
+    >
+      <ObjectEditorR3F objectData={objectData} />
+    </ObjectEditorLayout>
   )
 }
 

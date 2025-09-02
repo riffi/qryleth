@@ -1,5 +1,0 @@
-export * from '../ui/PrimitiveControlPanel/PrimitiveControlPanel'
-export * from '../ui/GroupControlPanel/GroupControlPanel'
-export * from '../ui/MaterialControlPanel/MaterialControlPanel'
-export * from '../ui/MaterialManager/MaterialManager'
-export * from '../ui/LightingControlPanel'
