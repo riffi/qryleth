@@ -3,6 +3,7 @@
  */
 
 import type { Vector3, BoundingBox } from "@/shared/types";
+import { add, sub, mul, scale as v3scale, midpoint } from '@/shared/lib/math/vector3'
 import type { GfxPrimitive } from "@/entities/primitive";
 import type { GfxPrimitiveGroup } from "../model/types";
 
@@ -123,11 +124,7 @@ export function getGroupCenter(
     return [0, 0, 0];
   }
 
-  return [
-    (bounds.min[0] + bounds.max[0]) / 2,
-    (bounds.min[1] + bounds.max[1]) / 2,
-    (bounds.min[2] + bounds.max[2]) / 2
-  ];
+  return midpoint(bounds.min, bounds.max);
 }
 
 /**
@@ -154,11 +151,11 @@ export function getGroupCenterWithTransform(
   }
 
   // Применяем трансформацию группы к базовому центру
-  return [
-    baseCenter[0] + (group.transform.position[0] || 0),
-    baseCenter[1] + (group.transform.position[1] || 0),
-    baseCenter[2] + (group.transform.position[2] || 0)
-  ];
+  return add(baseCenter, [
+    group.transform.position[0] || 0,
+    group.transform.position[1] || 0,
+    group.transform.position[2] || 0,
+  ] as Vector3);
 }
 
 /**
@@ -249,22 +246,11 @@ function applyTransform(
   transform: { position: Vector3; rotation: Vector3; scale: Vector3 },
   parentTransform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }
 ): { position: Vector3; rotation: Vector3; scale: Vector3 } {
+  const p = parentTransform
   return {
-    position: [
-      transform.position[0] + (parentTransform.position?.[0] ?? 0),
-      transform.position[1] + (parentTransform.position?.[1] ?? 0),
-      transform.position[2] + (parentTransform.position?.[2] ?? 0)
-    ],
-    rotation: [
-      transform.rotation[0] + (parentTransform.rotation?.[0] ?? 0),
-      transform.rotation[1] + (parentTransform.rotation?.[1] ?? 0),
-      transform.rotation[2] + (parentTransform.rotation?.[2] ?? 0)
-    ],
-    scale: [
-      transform.scale[0] * (parentTransform.scale?.[0] ?? 1),
-      transform.scale[1] * (parentTransform.scale?.[1] ?? 1),
-      transform.scale[2] * (parentTransform.scale?.[2] ?? 1)
-    ]
+    position: add(transform.position, [p.position?.[0] ?? 0, p.position?.[1] ?? 0, p.position?.[2] ?? 0] as Vector3),
+    rotation: add(transform.rotation, [p.rotation?.[0] ?? 0, p.rotation?.[1] ?? 0, p.rotation?.[2] ?? 0] as Vector3),
+    scale: mul(transform.scale, [p.scale?.[0] ?? 1, p.scale?.[1] ?? 1, p.scale?.[2] ?? 1] as Vector3),
   };
 }
 
@@ -275,22 +261,19 @@ function applyInverseTransform(
   transform: { position: Vector3; rotation: Vector3; scale: Vector3 },
   parentTransform: { position?: Vector3; rotation?: Vector3; scale?: Vector3 }
 ): { position: Vector3; rotation: Vector3; scale: Vector3 } {
+  const p = parentTransform
+  const posParent: Vector3 = [p.position?.[0] ?? 0, p.position?.[1] ?? 0, p.position?.[2] ?? 0]
+  const rotParent: Vector3 = [p.rotation?.[0] ?? 0, p.rotation?.[1] ?? 0, p.rotation?.[2] ?? 0]
+  const sclParent: Vector3 = [p.scale?.[0] ?? 1, p.scale?.[1] ?? 1, p.scale?.[2] ?? 1]
+
   return {
-    position: [
-      transform.position[0] - (parentTransform.position?.[0] ?? 0),
-      transform.position[1] - (parentTransform.position?.[1] ?? 0),
-      transform.position[2] - (parentTransform.position?.[2] ?? 0)
-    ],
-    rotation: [
-      transform.rotation[0] - (parentTransform.rotation?.[0] ?? 0),
-      transform.rotation[1] - (parentTransform.rotation?.[1] ?? 0),
-      transform.rotation[2] - (parentTransform.rotation?.[2] ?? 0)
-    ],
+    position: sub(transform.position, posParent),
+    rotation: sub(transform.rotation, rotParent),
     scale: [
-      (parentTransform.scale?.[0] ?? 1) !== 0 ? transform.scale[0] / (parentTransform.scale?.[0] ?? 1) : transform.scale[0],
-      (parentTransform.scale?.[1] ?? 1) !== 0 ? transform.scale[1] / (parentTransform.scale?.[1] ?? 1) : transform.scale[1],
-      (parentTransform.scale?.[2] ?? 1) !== 0 ? transform.scale[2] / (parentTransform.scale?.[2] ?? 1) : transform.scale[2]
-    ]
+      sclParent[0] !== 0 ? transform.scale[0] / sclParent[0] : transform.scale[0],
+      sclParent[1] !== 0 ? transform.scale[1] / sclParent[1] : transform.scale[1],
+      sclParent[2] !== 0 ? transform.scale[2] / sclParent[2] : transform.scale[2],
+    ] as Vector3,
   };
 }
 
@@ -391,10 +374,10 @@ function getPrimitiveBounds(primitive: GfxPrimitive): BoundingBox | null {
       return null;
   }
 
-  const halfSize: Vector3 = [size[0] / 2, size[1] / 2, size[2] / 2];
+  const halfSize: Vector3 = v3scale(size, 0.5);
 
   return {
-    min: [position[0] - halfSize[0], position[1] - halfSize[1], position[2] - halfSize[2]],
-    max: [position[0] + halfSize[0], position[1] + halfSize[1], position[2] + halfSize[2]]
-  };
+    min: sub(position, halfSize),
+    max: add(position, halfSize)
+  } as BoundingBox;
 }

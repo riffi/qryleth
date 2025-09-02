@@ -1,4 +1,5 @@
 import React from 'react'
+import { clamp } from '@/shared/lib/math/number'
 import { sceneLayoutStore } from '../model/panelLayoutStore'
 
 export type ResizeSide = 'left' | 'right' | null
@@ -33,7 +34,7 @@ export function useScenePanelLayout() {
   const [resizingSide, setResizingSide] = React.useState<ResizeSide>(null)
   const [containerBounds, setContainerBounds] = React.useState<{ left: number; right: number } | null>(null)
 
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+  // Универсальная функция ограничения диапазона из shared
 
   /**
    * Обработчики движения мыши во время перетаскивания разделителей панелей.

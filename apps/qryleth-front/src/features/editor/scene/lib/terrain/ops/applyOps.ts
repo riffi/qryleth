@@ -1,4 +1,5 @@
 import type { GfxTerrainOp } from '@/entities/terrain'
+import { smoothstep } from '@/shared/lib/math/number'
 
 /**
  * Применяет массив операций модификации к базовой высоте с использованием
@@ -93,7 +94,7 @@ export function applyFalloffFunction(
     case 'linear':
       return tt
     case 'smoothstep':
-      return tt * tt * (3 - 2 * tt)
+      return smoothstep(tt)
     case 'gauss': {
       const g = 1 - tt
       return Math.exp(-3 * g * g)
@@ -109,9 +110,9 @@ export function applyFalloffFunction(
       if (c0 <= 0) return 1 // защита на случай p=1 (полностью плоско)
       const s = tt / c0 // нормируем полосу [0..c0] в [0..1]
       // Плавный спад (smoothstep) в полосе от края к плоскому ядру
-      return s * s * (3 - 2 * s)
+      return smoothstep(s)
     }
     default:
-      return tt * tt * (3 - 2 * tt)
+      return smoothstep(tt)
   }
 }

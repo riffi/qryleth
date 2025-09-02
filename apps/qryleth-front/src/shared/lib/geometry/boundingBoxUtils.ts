@@ -1,4 +1,5 @@
 import type { BoundingBox, Vector3 } from '@/shared/types'
+import { add, mul, midpoint } from '@/shared/lib/math/vector3'
 import type { GfxPrimitive, GfxObject } from '@/entities'
 
 /**
@@ -11,14 +12,7 @@ function applyTransform(point: Vector3, transform?: {
 }): Vector3 {
   if (!transform) return point
 
-  let [x, y, z] = point
-
-  // Применяем масштабирование
-  if (transform.scale) {
-    x *= transform.scale[0]
-    y *= transform.scale[1]
-    z *= transform.scale[2]
-  }
+  let [x, y, z] = transform.scale ? mul(point, transform.scale) : point
 
   // Применяем поворот (упрощенно, для базовых углов)
   if (transform.rotation) {
@@ -57,9 +51,7 @@ function applyTransform(point: Vector3, transform?: {
 
   // Применяем смещение
   if (transform.position) {
-    x += transform.position[0]
-    y += transform.position[1]
-    z += transform.position[2]
+    return add([x, y, z], transform.position)
   }
 
   return [x, y, z]
@@ -424,9 +416,5 @@ export function transformBoundingBox(
  * Используется для позиционирования объектов и камер.
  */
 export function getBoundingBoxCenter(box: BoundingBox): Vector3 {
-  return [
-    (box.min[0] + box.max[0]) / 2,
-    (box.min[1] + box.max[1]) / 2,
-    (box.min[2] + box.max[2]) / 2
-  ]
+  return midpoint(box.min, box.max)
 }

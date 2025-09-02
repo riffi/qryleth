@@ -3,8 +3,9 @@ import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
-import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
+import { transformBoundingBox, getBoundingBoxCenter } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
+import { normalize as v3normalize, length as v3length } from '@/shared/lib/math/vector3'
 
 /**
  * Получить GfxHeightSampler для работы с высотами террейна слоя
@@ -49,12 +50,9 @@ const MAX_TERRAIN_TILT_RAD = (Math.PI / 180) * MAX_TERRAIN_TILT_DEG;
  * и «полушарие» (знак Y) исходной нормали.
  */
 const limitNormalByMaxTilt = (normal: Vector3, maxTiltRad: number): Vector3 => {
-  const [nx0, ny0, nz0] = normal
-  const len0 = Math.hypot(nx0, ny0, nz0)
+  const len0 = v3length(normal)
   if (len0 <= 1e-8) return [0, 1, 0]
-  const nx = nx0 / len0
-  const ny = ny0 / len0
-  const nz = nz0 / len0
+  const [nx, ny, nz] = v3normalize(normal)
 
   // Угол до оси Y (0..90°), независимо от полушария
   const angle = Math.acos(Math.max(-1, Math.min(1, Math.abs(ny))))
@@ -168,7 +166,7 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
     ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10)
     : 10
   const worldH = landscapeLayer
-    ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10)
+    ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.depth ?? 10)
     : 10
   const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
   const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
@@ -413,11 +411,7 @@ const generatePlaceAroundPosition = (
   // 5. Расчет центра и радиуса target объекта
   // Центр: берём центр трансформированного bounding box, чтобы круг размещения
   // проходил вокруг геометрического центра, а не вокруг pivot, что исключает сдвиг.
-  const targetCenter: Vector3 = [
-    (targetTransformedBB.min[0] + targetTransformedBB.max[0]) / 2,
-    (targetTransformedBB.min[1] + targetTransformedBB.max[1]) / 2,
-    (targetTransformedBB.min[2] + targetTransformedBB.max[2]) / 2,
-  ]
+  const targetCenter: Vector3 = getBoundingBoxCenter(targetTransformedBB)
 
   // Радиус: используем максимальный размер по X/Z как консервативную оценку до грани
   const targetRadius = Math.max(
@@ -907,10 +901,12 @@ export const adjustAllInstancesForPerlinTerrain = (
     return instances // No valid terrain layer, return unchanged
   }
 
-  const layerWidth = terrainLayer.width || 1
-  const layerHeight = terrainLayer.height || 1
+  // Для Landscape слоя термин «глубина» хранится в поле depth.
+  // Приоритет: берём реальные размеры из конфигурации террейна, затем поля слоя (width/depth|height).
+  const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
+  const layerDepth = terrainLayer.terrain?.worldHeight ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
   const halfWidth = layerWidth / 2
-  const halfHeight = layerHeight / 2
+  const halfDepth = layerDepth / 2
 
   return instances.map(instance => {
     if (!instance.transform?.position) {
@@ -920,7 +916,7 @@ export const adjustAllInstancesForPerlinTerrain = (
     const [originalX, currentY, originalZ] = instance.transform.position
 
     // Check if instance is within terrain bounds
-    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfHeight || originalZ > halfHeight) {
+    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfDepth || originalZ > halfDepth) {
       return instance // Outside terrain bounds, don't adjust
     }
 
@@ -987,10 +983,10 @@ export const adjustAllInstancesForTerrainAsync = async (
     })
   }
 
-  const layerWidth = terrainLayer.width || 1
-  const layerHeight = terrainLayer.height || 1
+  const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
+  const layerDepth = terrainLayer.terrain?.worldHeight ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
   const halfWidth = layerWidth / 2
-  const halfHeight = layerHeight / 2
+  const halfDepth = layerDepth / 2
 
   return instances.map(instance => {
     if (!instance.transform?.position) {
@@ -1000,7 +996,7 @@ export const adjustAllInstancesForTerrainAsync = async (
     const [originalX, currentY, originalZ] = instance.transform.position
 
     // Check if instance is within terrain bounds
-    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfHeight || originalZ > halfHeight) {
+    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfDepth || originalZ > halfDepth) {
       return instance // Outside terrain bounds, don't adjust
     }
 

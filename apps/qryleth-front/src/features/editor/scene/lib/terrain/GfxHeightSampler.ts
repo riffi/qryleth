@@ -4,6 +4,7 @@ import { sampleHeightFromHeightsField, sampleHeightFromImageData } from './heigh
 import { buildSpatialIndex, getRelevantOps } from './ops/spatialIndex';
 import { applyTerrainOpsOptimized as applyTerrainOpsOptimizedFn } from './ops/applyOps';
 import { calculateEdgeFade } from './effects/edgeFade';
+import { normalize as v3normalize } from '@/shared/lib/math/vector3'
 import { getCachedImageData, getCachedHeightsField, loadHeightsField, loadImageData } from './assets/heightmapCache';
 // Константы геометрии теперь используются в GeometryBuilder
 // Флаг отладки: в продакшене подавляем подробные логи
@@ -159,7 +160,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * - Вычисляем четыре соседних значения высоты: слева/справа и сзади/спереди.
    * - Формируем два касательных вектора на поверхности и берём их векторное произведение.
    * - Нормализуем результат; в вырожденном случае возвращаем [0,1,0].
-   */
+  */
   getNormal(x: number, z: number): [number, number, number] {
     const step = this.sampleStep
 
@@ -177,9 +178,8 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       tangentX[0] * tangentZ[1] - tangentX[1] * tangentZ[0]
     ]
 
-    const length = Math.hypot(normal[0], normal[1], normal[2])
-    if (length <= 1e-8) return [0, 1, 0]
-    return [normal[0] / length, normal[1] / length, normal[2] / length]
+    // Нормализация через общий векторный утилити (safe fallback при нулевой длине)
+    return v3normalize(normal as unknown as [number, number, number])
   }
 
   /**

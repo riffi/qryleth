@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { clamp } from '@/shared/lib/math/number'
 import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
 import { IconMessages, IconAdjustments, IconFolder, IconX } from '@tabler/icons-react'
 import { DragHandleVertical } from '@/shared/ui'
@@ -64,11 +65,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const [resizingSide, setResizingSide] = useState<'left' | 'right' | null>(null)
   const [containerBounds, setContainerBounds] = useState<{ left: number; right: number } | null>(null)
 
-  /**
-   * Возвращает значение, ограниченное диапазоном [min, max].
-   * Используется для предотвращения слишком маленьких/больших панелей при ресайзе.
-   */
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+  // Ограничение ширины панелей используем из shared math
 
   /**
    * Обработчики мыши для режима ресайза: пересчитывают ширину соответствующей панели

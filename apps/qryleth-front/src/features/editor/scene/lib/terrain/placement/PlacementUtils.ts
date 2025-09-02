@@ -9,6 +9,7 @@
  */
 
 import type { GfxPlacementArea } from '@/entities/terrain'
+import { clamp } from '@/shared/lib/math/number'
 
 /**
  * Описывает прямоугольные границы в мировых координатах.
@@ -140,9 +141,7 @@ export function randomPointInCircle(
  * @param min — нижняя граница
  * @param max — верхняя граница
  */
-export function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v))
-}
+// clamp переиспользуем из shared/lib/math/number
 
 /**
  * Квадрат Евклидова расстояния между двумя точками (x1,z1) и (x2,z2).

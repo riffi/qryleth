@@ -1,4 +1,5 @@
 import React from 'react'
+import { clamp } from '@/shared/lib/math/number'
 import { objectPanelLayoutStore } from '../model/panelLayoutStore'
 
 export type ResizeSide = 'left' | 'right' | null
@@ -21,7 +22,7 @@ export function useObjectPanelLayout() {
   const [resizingSide, setResizingSide] = React.useState<ResizeSide>(null)
   const [containerBounds, setContainerBounds] = React.useState<{ left: number; right: number } | null>(null)
 
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+  // Ограничение ширины панелей при ресайзе берём из общего math‑утилити
 
   React.useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -106,4 +107,3 @@ export function useObjectPanelLayout() {
     beginResize,
   }
 }
-

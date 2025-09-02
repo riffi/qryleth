@@ -1,4 +1,5 @@
 import { createRng } from '@/shared/lib/utils/prng'
+import { lerp } from '@/shared/lib/math/number'
 
 /**
  * Опции генерации Перлин-шума.
@@ -95,19 +96,19 @@ export function generatePerlinNoise(
         const horizBlend = (x - sampleX0) * sampleFrequency
 
         // Смешиваем верхние два «узла»
-        const top = interpolate(
+        const top = lerp(
           whiteNoise[sampleY0 * width + sampleX0],
           whiteNoise[sampleY1 * width + sampleX0],
           vertBlend
         )
         // Смешиваем нижние два «узла»
-        const bottom = interpolate(
+        const bottom = lerp(
           whiteNoise[sampleY0 * width + sampleX1],
           whiteNoise[sampleY1 * width + sampleX1],
           vertBlend
         )
         // Финальная интерполяция по горизонтали
-        noise[noiseIndex] = interpolate(top, bottom, horizBlend)
+        noise[noiseIndex] = lerp(top, bottom, horizBlend)
         noiseIndex += 1
       }
     }
@@ -132,15 +133,7 @@ export function generateWhiteNoise(
   return noise
 }
 
-/**
- * Линейная интерполяция между двумя значениями.
- * - x0: начальное значение
- * - x1: конечное значение
- * - alpha: коэффициент смешивания [0..1]
- */
-function interpolate(x0: number, x1: number, alpha: number): number {
-  return x0 * (1 - alpha) + alpha * x1
-}
+// Линейную интерполяцию используем из shared/lib/math/number
 
 /**
  * Создает генератор псевдослучайных чисел в диапазоне [0, 1).
