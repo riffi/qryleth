@@ -24,3 +24,4 @@ export type {
 export type { Vector3 } from './vector3'
 export type { Transform } from './transform'
 export type { BoundingBox, BoundingBoxDimensions } from './boundingBox'
+export type { Point2, Size2D, Rect2D, Circle2D, BoundRect2D } from './geo2d'

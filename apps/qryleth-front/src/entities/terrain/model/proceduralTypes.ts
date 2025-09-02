@@ -237,9 +237,10 @@ export interface GfxBiasSpec {
  * `{ kind: 'rect', x: 0, z: 0, width: 100, depth: 80 }`
  * — центрированная область 100×80 в границах X [-50..+50], Z [-40..+40].
  */
+// Геометрическая область размещения на плоскости XZ использует shared 2D типы
 export type GfxPlacementArea =
-  | { kind: 'rect', x: number, z: number, width: number, depth: number }
-  | { kind: 'circle', x: number, z: number, radius: number }
+  | ({ kind: 'rect' } & import('@/shared/types').Rect2D)
+  | ({ kind: 'circle' } & import('@/shared/types').Circle2D)
 
 /**
  * Дополнительные опции для генерации пула операций.

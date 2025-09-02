@@ -9,21 +9,12 @@
  */
 
 import type { GfxPlacementArea } from '@/entities/terrain'
+import type { BoundRect2D } from '@/shared/types'
+import { isInsideBoundRect, randomPointInBoundRect, randomPointInCircle as rndPointInCircle } from '@/shared/lib/math/geometry2d'
 import { clamp } from '@/shared/lib/math/number'
 
-/**
- * Описывает прямоугольные границы в мировых координатах.
- */
-export interface WorldRect {
-  /** Левая граница по X */
-  minX: number
-  /** Правая граница по X */
-  maxX: number
-  /** Нижняя граница по Z (минимум) */
-  minZ: number
-  /** Верхняя граница по Z (максимум) */
-  maxZ: number
-}
+/** Тип границ на плоскости XZ для удобства совместимости */
+export type WorldRect = BoundRect2D
 
 /**
  * Построить полный мировой прямоугольник по размерам мира.
@@ -73,7 +64,7 @@ export function areaToWorldRect(
  * @param rect — прямоугольные границы
  */
 export function isInsideRect(pX: number, pZ: number, rect: WorldRect): boolean {
-  return pX >= rect.minX && pX <= rect.maxX && pZ >= rect.minZ && pZ <= rect.maxZ
+  return isInsideBoundRect(rect, pX, pZ)
 }
 
 /**
@@ -109,9 +100,7 @@ export function isInsideArea(
  * @param rng — детерминированный генератор случайных чисел [0..1)
  */
 export function randomPointInRect(rect: WorldRect, rng: () => number): [number, number] {
-  const x = rect.minX + (rect.maxX - rect.minX) * rng()
-  const z = rect.minZ + (rect.maxZ - rect.minZ) * rng()
-  return [x, z]
+  return randomPointInBoundRect(rect, rng)
 }
 
 /**
@@ -128,11 +117,7 @@ export function randomPointInCircle(
   radius: number,
   rng: () => number
 ): [number, number] {
-  const ang = 2 * Math.PI * rng()
-  const r = radius * Math.sqrt(rng())
-  const x = cx + r * Math.cos(ang)
-  const z = cz + r * Math.sin(ang)
-  return [x, z]
+  return rndPointInCircle(cx, cz, radius, rng)
 }
 
 /**
