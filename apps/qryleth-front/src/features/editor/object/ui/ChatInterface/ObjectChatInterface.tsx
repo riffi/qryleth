@@ -15,6 +15,10 @@ interface ObjectChatInterfaceProps {
   onPrimitiveAdded?: (primitive: GfxPrimitive) => void
   onMaterialCreated?: (material: CreateGfxMaterial) => void
   onObjectModified?: (modifications: Record<string, unknown>) => void
+  /**
+   * Скрыть заголовок внутри панели чата. Полезно, когда заголовок рендерится контейнером панели (Layout).
+   */
+  hideHeader?: boolean
 }
 
 /**
@@ -27,7 +31,8 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
   className = '',
   onPrimitiveAdded,
   onMaterialCreated,
-  onObjectModified
+  onObjectModified,
+  hideHeader = false
 }) => {
   const [inputValue, setInputValue] = useState('')
 
@@ -62,38 +67,40 @@ export const ObjectChatInterface: React.FC<ObjectChatInterfaceProps> = ({
 
   return (
     <Stack gap={0} className={className} style={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
-      <Paper p="md" withBorder>
-        <Group justify="space-between" align="center">
-          <Group gap="xs" align="center">
-            <Text size="lg" fw={500}>Чат</Text>
-            {!objectInfo.isEmpty && (
-              <Badge variant="light" color="gray">
-                {objectInfo.primitivesCount}P • {objectInfo.materialsCount}M
-              </Badge>
-            )}
-          </Group>
-          <Group gap="xs">
-            <ActionIcon
-              variant="light"
-              size="sm"
-              onClick={clearMessages}
-              aria-label="Очистить чат"
-            >
-              <IconTrash size={16} />
-            </ActionIcon>
-            {onVisibilityChange && (
+      {!hideHeader && (
+        <Paper p="md" withBorder>
+          <Group justify="space-between" align="center">
+            <Group gap="xs" align="center">
+              <Text size="lg" fw={500}>Чат</Text>
+              {!objectInfo.isEmpty && (
+                <Badge variant="light" color="gray">
+                  {objectInfo.primitivesCount}P • {objectInfo.materialsCount}M
+                </Badge>
+              )}
+            </Group>
+            <Group gap="xs">
               <ActionIcon
-                variant="subtle"
+                variant="light"
                 size="sm"
-                onClick={() => onVisibilityChange(false)}
-                aria-label="Скрыть чат"
+                onClick={clearMessages}
+                aria-label="Очистить чат"
               >
-                <IconArrowsDiagonalMinimize2 size={16} />
+                <IconTrash size={16} />
               </ActionIcon>
-            )}
+              {onVisibilityChange && (
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => onVisibilityChange(false)}
+                  aria-label="Скрыть чат"
+                >
+                  <IconArrowsDiagonalMinimize2 size={16} />
+                </ActionIcon>
+              )}
+            </Group>
           </Group>
-        </Group>
-      </Paper>
+        </Paper>
+      )}
 
       <ChatContainer
         messages={messages}

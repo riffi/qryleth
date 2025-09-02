@@ -81,6 +81,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   const chatComponent = (
     <ObjectChatInterface
       isVisible={panelStateBridge.panelState?.leftPanel === 'chat'}
+      hideHeader={true}
       onVisibilityChange={(visible) => {
         // Скрываем/показываем чат через bridge; если метода нет — используем toggle.
         if (visible) {

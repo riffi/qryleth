@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Container, Paper } from '@mantine/core'
+import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
+import { IconMessages, IconAdjustments, IconFolder, IconX } from '@tabler/icons-react'
 import { DragHandleVertical } from '@/shared/ui'
 import {
   useSelectedMaterialUuid,
@@ -182,9 +183,28 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             flexDirection: 'column',
             overflow: 'hidden',
             transition: resizingSide ? undefined : 'width 160ms ease',
+            background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+            backdropFilter: 'blur(8px)'
           }}
         >
-          {chatComponent}
+          {/* Заголовок левой панели: Чат */}
+          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+            <Group>
+              <IconMessages size={20} />
+              <Text fw={500}>Панель чата</Text>
+            </Group>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={() => hidePanel?.('chat')}
+              aria-label="Скрыть чат"
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          </Group>
+          <Box style={{ flex: 1, minHeight: 0 }}>
+            {chatComponent}
+          </Box>
         </Paper>
       )
     }
@@ -198,17 +218,40 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             width: `${leftPanelWidthPx}px`,
             height: '100%',
             flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
             overflow: 'hidden',
             transition: resizingSide ? undefined : 'width 160ms ease',
+            background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+            backdropFilter: 'blur(8px)'
           }}
         >
-          {selectedMaterialUuid ? (
-            <MaterialControlPanel />
-          ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
-            <GroupControlPanel />
-          ) : (
-            <PrimitiveControlPanel />
-          )}
+          {/* Заголовок левой панели: Свойства */}
+          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+            <Group>
+              <IconAdjustments size={20} />
+              <Text fw={500}>
+                {selectedMaterialUuid ? 'Свойства материала' : (selectedItemType === 'group' ? 'Свойства группы' : 'Свойства примитива')}
+              </Text>
+            </Group>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={() => hidePanel?.('properties')}
+              aria-label="Скрыть свойства"
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          </Group>
+          <Box style={{ flex: 1, minHeight: 0 }}>
+            {selectedMaterialUuid ? (
+              <MaterialControlPanel />
+            ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
+              <GroupControlPanel />
+            ) : (
+              <PrimitiveControlPanel />
+            )}
+          </Box>
         </Paper>
       )
     }
@@ -234,9 +277,28 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           flexDirection: 'column',
           overflow: 'hidden',
           transition: resizingSide ? undefined : 'width 160ms ease',
+          background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+          backdropFilter: 'blur(8px)'
         }}
       >
-        <ObjectManagementPanel />
+        {/* Заголовок правой панели: Менеджер объектов */}
+        <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+          <Group>
+            <IconFolder size={20} />
+            <Text fw={500}>Менеджер объектов</Text>
+          </Group>
+          <ActionIcon
+            variant="subtle"
+            size="sm"
+            onClick={() => hidePanel?.('manager')}
+            aria-label="Скрыть менеджер"
+          >
+            <IconX size={16} />
+          </ActionIcon>
+        </Group>
+        <Box style={{ flex: 1, minHeight: 0 }}>
+          <ObjectManagementPanel />
+        </Box>
       </Paper>
     )
   }
@@ -251,10 +313,13 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           display: 'flex',
           flexDirection: 'row',
           width: '100%',
-          gap: 6,
+          // Контейнер без внутренних отступов по бокам — как в SceneEditor
+          gap: 0,
           height: '100%',
           overflow: 'hidden',
           flex: 1,
+          position: 'relative',
+          paddingInline: 0,
         }}
       >
         {renderLeftPanel()}
