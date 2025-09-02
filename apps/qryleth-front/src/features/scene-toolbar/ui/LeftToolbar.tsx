@@ -19,6 +19,13 @@ interface LeftToolbarProps {
    * Колбэк переключения видимости панели скриптинга.
    */
   onToggleScripting: () => void
+  /**
+   * Горизонтальное смещение тулбара от левого края контейнера, px.
+   * Используется для сдвига тулбара вправо, когда открыта левая панель,
+   * чтобы тулбар располагался непосредственно справа от панели.
+   * Если не задано — тулбар прижат к левому краю.
+   */
+  offsetLeftPx?: number
 }
 
 /**
@@ -31,22 +38,31 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   chatCollapsed,
   onToggleChat,
   scriptingPanelVisible,
-  onToggleScripting
+  onToggleScripting,
+  offsetLeftPx = 0,
 }) => {
+  /**
+   * Упрощённое правило: одинаковая прозрачность 0.3 для любых состояний,
+   * что эквивалентно 70% цвета в color-mix. Тень выключена всегда.
+   */
+  const bgOpacityPercent = 30
   return (
     <Box
       style={{
         position: 'absolute',
-        left: 0,
+        // Смещение от левого края контейнера: 0, если панель скрыта; ширина панели + разделитель — если открыта
+        left: offsetLeftPx,
         top: '50%',
         transform: 'translateY(-50%)',
         zIndex: 150,
         width: 40,
-        background: 'var(--mantine-color-dark-8)',
-        borderRight: '1px solid var(--mantine-color-dark-5)',
+        background: `color-mix(in srgb, var(--mantine-color-dark-8) ${bgOpacityPercent}%, transparent)`,
+        // Убрали рамку справа по требованию
+        borderRight: 'none',
         borderTopRightRadius: 8,
         borderBottomRightRadius: 8,
-        boxShadow: '2px 0 8px rgba(0,0,0,0.2)',
+        boxShadow: 'none',
+        transition: 'background 160ms ease, box-shadow 160ms ease, left 160ms ease',
         padding: '8px 0'
       }}
     >

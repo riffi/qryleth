@@ -23,11 +23,11 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
         transform: 'translateY(-50%)',
         zIndex: 150,
         width: 40,
-        background: 'var(--mantine-color-dark-8)',
-        borderLeft: '1px solid var(--mantine-color-dark-5)',
+        background: 'color-mix(in srgb, var(--mantine-color-dark-8) 30%, transparent)',
+        borderLeft: 'none',
         borderTopLeftRadius: 8,
         borderBottomLeftRadius: 8,
-        boxShadow: '-2px 0 8px rgba(0,0,0,0.2)',
+        boxShadow: 'none',
         padding: '8px 0',
       }}
     >
@@ -48,4 +48,3 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
     </Box>
   )
 }
-

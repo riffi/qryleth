@@ -371,6 +371,14 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
   const chatPanelWidth = `${leftPanelWidthPx}px`
   const objectPanelWidth = `${rightPanelWidthPx}px`
 
+  // Ширина вертикальной ручки-резайзера между панелями и центром, px (см. DragHandleVertical.width по умолчанию)
+  const dragHandleWidthPx = 6
+
+  // Смещения тулбаров: когда панели открыты — тулбары сдвигаются от краёв контейнера на ширину панели + разделитель
+  // Не зависят от isPlay, т.к. сами тулбары не рендерятся в play; так избегаем обращения к isPlay до инициализации
+  const leftToolbarOffsetPx = (!chatCollapsed) ? (leftPanelWidthPx + dragHandleWidthPx) : 0
+  const rightToolbarOffsetPx = (!objectPanelCollapsed) ? (rightPanelWidthPx + dragHandleWidthPx) : 0
+
   // Handlers to toggle panels from header
   const toggleChatPanel = () => {
     if (!chatCollapsed && !scriptingPanelVisible) {
@@ -529,6 +537,8 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
             onToggleChat={toggleChatPanel}
             scriptingPanelVisible={scriptingPanelVisible}
             onToggleScripting={toggleScriptingPanel}
+            // Смещаем тулбар вправо, если левая панель открыта
+            offsetLeftPx={leftToolbarOffsetPx}
           />
         )}
 
@@ -689,11 +699,13 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           </>
         )}
 
-        {/* Правый тулбар с иконкой менеджера объектов - показывается только когда правая панель скрыта */}
-        {!isPlay && showObjectManager && objectPanelCollapsed && RightToolbarComponent && (
+        {/* Правый тулбар: виден всегда в режиме редактора; смещается влево при открытой правой панели */}
+        {!isPlay && showObjectManager && RightToolbarComponent && (
           <RightToolbarComponent
             objectPanelCollapsed={objectPanelCollapsed}
             onToggleObjectPanel={toggleRightPanel}
+            // Смещаем тулбар влево от правого края, если правая панель открыта
+            offsetRightPx={rightToolbarOffsetPx}
           />
         )}
       </Container>
