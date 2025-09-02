@@ -1,5 +1,5 @@
 import React from 'react'
-import { objectLayoutStore } from '../model/store'
+import { objectPanelLayoutStore } from '../model/panelLayoutStore'
 
 export type ResizeSide = 'left' | 'right' | null
 
@@ -12,10 +12,10 @@ export type ResizeSide = 'left' | 'right' | null
  * - однократную первичную инициализацию значений на основе ширины окна.
  */
 export function useObjectPanelLayout() {
-  const leftPanelWidthPx = objectLayoutStore.useLeftPanelWidthPx()
-  const rightPanelWidthPx = objectLayoutStore.useRightPanelWidthPx()
-  const setLeftPanelWidthPx = objectLayoutStore.useSetLeftPanelWidthPx()
-  const setRightPanelWidthPx = objectLayoutStore.useSetRightPanelWidthPx()
+  const leftPanelWidthPx = objectPanelLayoutStore.useLeftPanelWidthPx()
+  const rightPanelWidthPx = objectPanelLayoutStore.useRightPanelWidthPx()
+  const setLeftPanelWidthPx = objectPanelLayoutStore.useSetLeftPanelWidthPx()
+  const setRightPanelWidthPx = objectPanelLayoutStore.useSetRightPanelWidthPx()
 
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const [resizingSide, setResizingSide] = React.useState<ResizeSide>(null)
@@ -59,7 +59,7 @@ export function useObjectPanelLayout() {
   }, [resizingSide, containerBounds, setLeftPanelWidthPx, setRightPanelWidthPx])
 
   React.useEffect(() => {
-    const inited = objectLayoutStore.getLayoutInitialized()
+    const inited = objectPanelLayoutStore.getLayoutInitialized()
     if (inited) return
     try {
       const width = window.innerWidth
@@ -76,7 +76,7 @@ export function useObjectPanelLayout() {
     } catch (_) {
       // ignore SSR / env issues
     }
-    objectLayoutStore.markLayoutInitialized()
+    objectPanelLayoutStore.markLayoutInitialized()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

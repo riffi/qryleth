@@ -6,6 +6,8 @@
 
 - Старый неймспейс `features/object-editor/*` — удалён из кода и запрещён ESLint‑правилом.
 - Публичный API `features/editor/object` упрощён: из корневого индекса убраны избыточные реэкспорты `renderer/properties/chat`.
+- Логика раскладки ObjectEditor консолидирована в `features/editor/object/layout/*` (persist ширин, init, видимость панелей);
+  переходный `features/object-layout/*` удалён.
 - Сняты промежуточные «прокладки»:
   - Удалены файлы-индексы:
     - `src/features/editor/object/renderer/index.ts`

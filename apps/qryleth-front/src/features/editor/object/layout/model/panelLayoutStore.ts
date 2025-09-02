@@ -7,7 +7,7 @@ import { useVisualSettingsStore } from '@/shared/model/visualSettingsStore'
  * - Централизовать доступ к persist‑полям VisualSettingsStore с префиксом object*.
  * - Обеспечить стабильный API использования в хуках и компонентах раскладки.
  */
-export const objectLayoutStore = {
+export const objectPanelLayoutStore = {
   /** Текущая ширина левой панели ObjectEditor (px). */
   useLeftPanelWidthPx: () => useVisualSettingsStore(s => s.objectLeftPanelWidthPx),
   /** Установить ширину левой панели ObjectEditor (px). */

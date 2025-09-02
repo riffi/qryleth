@@ -9,13 +9,15 @@ import {
 } from '@/features/editor/object/model/objectStore'
 import { useObjectSelectedPrimitiveIds } from '@/features/editor/object/model/objectStore'
 import type { GfxObject } from '@/entities/object'
-import { useObjectPanelLayout } from '@/features/object-layout/hooks/useObjectPanelLayout'
+// Логика раскладки перенесена в фичу editor/object/layout
+import { useObjectPanelLayout } from '@/features/editor/object/layout/hooks/useObjectPanelLayout'
 import { ObjectScene3D } from '@/features/editor/object/ui/renderer/ObjectScene3D'
 import { PrimitiveControlPanel } from '@/features/editor/object/ui/PrimitiveControlPanel/PrimitiveControlPanel'
 import { GroupControlPanel } from '@/features/editor/object/ui/GroupControlPanel/GroupControlPanel'
 import { MaterialControlPanel } from '@/features/editor/object/ui/MaterialControlPanel/MaterialControlPanel'
 import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagementPanel/ObjectManagementPanel'
-import { usePanelState } from '@/features/editor/object/ui/PanelToggleButtons/hooks/usePanelState'
+// Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
+import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
 
 interface ObjectEditorLayoutProps {
   /** Данные редактируемого объекта (для контекста и будущих расширений). */
@@ -135,7 +137,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const selectedMaterialUuid = useSelectedMaterialUuid()
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
-  const internalPanelState = usePanelState()
+  const internalPanelState = useGlobalPanelState()
   const { panelState, hidePanel, showPanel } = externalPanelState || internalPanelState
 
   // Текущее количество выбранных примитивов
