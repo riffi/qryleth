@@ -11,6 +11,9 @@
     - `src/features/editor/object/renderer/index.ts`
     - `src/features/editor/object/properties/index.ts`
     - `src/features/editor/object/chat/index.ts`
+  - Тулбары ObjectEditor перенесены в целевой неймспейс:
+    - Новое расположение: `src/features/editor/object/toolbar/*`
+    - Старый путь `src/features/object-toolbar/*` удалён после стабилизации.
 - Обновлена документация «Getting Started» и оглавление миграций.
 
 ## Публичный API после миграции
@@ -59,4 +62,3 @@ npm run build && npm run dev
 ## Обратная совместимость
 
 Снятые промежуточные индексы не использовались за пределами самой фичи; миграция не несёт breaking changes для внешних модулей. Если встретите обращение к удалённым путям — переведите импорт на корневую точку входа `@/features/editor/object`.
-

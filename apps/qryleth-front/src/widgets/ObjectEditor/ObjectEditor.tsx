@@ -4,7 +4,7 @@ import { ObjectEditorR3F } from '@/features/editor/object'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditorLayout } from './Layout'
 import { ObjectChatInterface } from '@/features/editor/object/ui/ChatInterface'
-import { LeftToolbar as ObjectLeftToolbar, RightToolbar as ObjectRightToolbar } from '@/features/object-toolbar'
+import { LeftToolbar as ObjectLeftToolbar, RightToolbar as ObjectRightToolbar } from '@/features/editor/object/toolbar'
 import { useSelectedItemType, useSelectedMaterialUuid } from '@/features/editor/object/model/objectStore'
 
 export interface ObjectEditorProps {
