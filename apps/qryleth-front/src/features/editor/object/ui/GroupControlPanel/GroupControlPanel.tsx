@@ -17,6 +17,7 @@ import {
   useObjectPrimitiveGroups,
   usePrimitiveGroupAssignments
 } from '../../model/objectStore.ts'
+import { InlineEdit } from '@/shared/ui'
 import { getGroupCenter } from '@/entities/primitiveGroup/lib/coordinateUtils'
 import type { Vector3 } from '@/shared/types'
 
@@ -264,7 +265,7 @@ export const GroupControlPanel: React.FC = () => {
           />
         ))}
       </Group>}
-      {JSON.stringify(values)}
+      {/* Текстовый вывод значений трансформации удалён как лишний */}
     </Box>
   )
 
@@ -274,17 +275,27 @@ export const GroupControlPanel: React.FC = () => {
     <Paper
       shadow="sm"
       p="md"
-      style={{ width: "100%", height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
+      // Панель группы занимает всю ширину левой панели; заголовок выводится контейнером панели
+      style={{ width: '100%', height: '100%', borderRadius: 0 }}
     >
       <Stack gap="sm" style={{ height: '100%' }}>
-        <Group>
-          <Text size="lg" fw={500}>Трансформации группы</Text>
-        </Group>
 
         <Box>
-          <Text size="sm" c="dimmed" mb="md">
-            Группа: {selectedGroup.name}
-          </Text>
+          <Text size="sm" c="dimmed" mb={4}>Имя группы</Text>
+          <InlineEdit
+            value={selectedGroup.name}
+            placeholder="Название группы"
+            size="sm"
+            onChange={(val) => {
+              /**
+               * Переименование группы примитивов через zustand‑store.
+               * Пустое значение заменяем на дефолтное «Группа».
+               */
+              const next = (val ?? '').trim()
+              const safe = next.length > 0 ? next : 'Группа'
+              useObjectStore.getState().renameGroup(selectedGroup.uuid, safe)
+            }}
+          />
         </Box>
 
         <Stack gap="md" mt="md">

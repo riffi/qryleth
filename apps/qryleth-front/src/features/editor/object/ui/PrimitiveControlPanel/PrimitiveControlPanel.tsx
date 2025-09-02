@@ -17,6 +17,7 @@ import {
   useObjectSelectedPrimitiveIds,
   useObjectMaterials
 } from '../../model/objectStore.ts'
+import { InlineEdit } from '@/shared/ui'
 import type { GfxPrimitive } from '@/entities/primitive'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 
@@ -391,15 +392,32 @@ export const PrimitiveControlPanel: React.FC = () => {
     <Paper
       shadow="sm"
       p="md"
-      style={{ width: "100%", height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
+      // Панель примитива занимает всю ширину левой панели; внешняя рамка задаётся контейнером панели
+      style={{ width: '100%', height: '100%', borderRadius: 0 }}
     >
       <Stack gap="sm" style={{ height: '100%' }}>
-        <Group>
-          <Text size="lg" fw={500}>Трансформации</Text>
-        </Group>
-
         {selectedPrimitiveData && (
-          <Stack gap="md" mt="md">
+          <>
+            <Box>
+              <Text size="sm" c="dimmed" mb={4}>Имя примитива</Text>
+              <InlineEdit
+                value={selectedPrimitiveData.name}
+                placeholder="Название примитива"
+                size="sm"
+                onChange={(val) => {
+                  /**
+                   * Переименование примитива через zustand‑store.
+                   * Пустую строку заменяем на дефолтное значение «Примитив».
+                   */
+                  const next = (val ?? '').trim()
+                  const safe = next.length > 0 ? next : 'Примитив'
+                  if (selectedPrimitiveIds.length === 1) {
+                    useObjectStore.getState().updatePrimitive(selectedPrimitiveIds[0], { name: safe })
+                  }
+                }}
+              />
+            </Box>
+            <Stack gap="md" mt="md">
             <TransformBlock
               label="Position"
               property="position"
@@ -439,6 +457,7 @@ export const PrimitiveControlPanel: React.FC = () => {
               <GeometryBlock primitive={selectedPrimitiveData} />
             </Box>
           </Stack>
+          </>
         )}
           {selectedPrimitiveIds.length > 1 && (
             <Text size="sm" c="dimmed" mt="md">
