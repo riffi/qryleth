@@ -166,43 +166,38 @@ Object-editor специфичный хук для работы с чатом.
 
 ## Система панелей ObjectEditor
 
-### PanelToggleButtons
+### Toolbars
 
-**Путь**: `features/editor/object/ui/PanelToggleButtons/`
+**Путь**: `features/editor/object/toolbar/`
 
-Кнопки для переключения между панелями в ObjectEditor.
+Вертикальные тулбары для управления панелями ObjectEditor.
 
-**Props:**
+Левый тулбар:
 ```typescript
-interface PanelToggleButtonsProps {
-  panelState: PanelState
-  onPanelChange: (panel: PanelType, visible: boolean) => void
-  mode?: 'header' | 'modal'
+interface LeftToolbarProps {
+  chatCollapsed: boolean
+  onToggleChat: () => void
+  propertiesCollapsed: boolean
+  onToggleProperties: () => void
+  showPropertiesAction?: boolean
 }
 ```
 
-**Типы панелей:**
-- `chat` - панель чата
-- `properties` - панель свойств объекта  
-- `manager` - панель менеджера объектов
+Правый тулбар:
+```typescript
+interface RightToolbarProps {
+  managerCollapsed: boolean
+  onToggleManager: () => void
+}
+```
 
 ### ObjectEditorLayout
 
-**Путь**: `features/editor/object/ui/ObjectEditorLayout/`
+**Путь**: `widgets/ObjectEditor/Layout/`
 
-Layout компонент с поддержкой переключаемых панелей.
-
-**Props:**
-```typescript
-interface ObjectEditorLayoutProps {
-  children: React.ReactNode
-  panelState: PanelState
-  onPanelChange: (panel: PanelType, visible: boolean) => void
-  chatComponent?: React.ReactNode
-  propertiesComponent?: React.ReactNode
-  managerComponent?: React.ReactNode
-}
-```
+Layout виджета с поддержкой переключаемых панелей и ресайза. Источником состояния панелей
+выступает zustand‑стор `features/editor/object/layout/model/panelVisibilityStore`,
+а размеры панелей инициализируются через persist‑фасад `features/editor/object/layout/model/panelLayoutStore`.
 
 **Логика панелей:**
 - Левая панель: чат и свойства взаимоисключающие

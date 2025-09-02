@@ -34,22 +34,22 @@ phases:
   - Отрисовку 3D (`ObjectScene3D`) и наплывающие контролы (grid/render/transform)
   - Левую панель: чат и/или свойства (через `ObjectEditorLayout` и `usePanelState`/`useGlobalPanelState`)
   - Правую панель: Outliner — состав объекта (примитивы/материалы/группы)
-- Страница `pages/ObjectEditorPage.tsx` управляет панелями через `PanelToggleButtons` и `useGlobalPanelState`.
+- Страница `pages/ObjectEditorPage.tsx` ранее управляла панелями через `PanelToggleButtons` и `useGlobalPanelState` — теперь управление перенесено в тулбары виджета и layout‑store.
 - В `widgets/SceneEditor/SceneEditor.tsx` модально встраивается `ObjectEditorR3F` с внешним `globalPanelState`.
 
 ### Проблемы
 1. Монолитность и смешение ответственности в `ObjectEditorR3F` и `ObjectEditorLayout`.
 2. Дублирование/расхождение логики панелей относительно `scene` редактора.
 3. Нарушение FSD‑границ при необходимости переиспользования панелей между разными контекстами.
-4. `PanelToggleButtons` дублируют функциональность тулбаров и должны быть удалены.
+4. `PanelToggleButtons` дублировали функциональность тулбаров и удалены.
 
 ### Выявленные проблемы и риски (из анализа)
 1) Naming collision в `ObjectEditorPage:220` — потенциальная путаница при замене на виджет. Действие: страница будет импортировать `ObjectEditor` (виджет) вместо `ObjectEditorR3F`; корректно разнести имена и импорты, исключить рекурсию.
-2) Persist‑ключи — возможные коллизии с `scene` редактором. Действие: вводим уникальные префиксы `objectEditor*` в `shared/model/visualSettingsStore`; проверка и аудит по проекту.
+2) Persist‑ключи — возможные коллизии с `scene` редактором. Действие: введены уникальные префиксы `objectEditor*` в `shared/model/visualSettingsStore`; выполнена проверка по проекту.
 3) Embedded‑режим в `SceneEditor:150` — сейчас использует `globalPanelState`. Действие: ввести переходный адаптер к `objectLayoutStore` и/или поддержать `externalLayoutState` в виджете для плавной миграции.
 4) AI‑инструменты (`features/object-editor/lib/ai`) — нет плана миграции. Действие: перенести регистрацию инструментов в `features/editor/object/chat`, обеспечить инициализацию/разинициализацию на уровне виджета без нарушения FSD.
 5) Зависимость от `scene-layout` — необходимо чётко определить reuse. Действие: выносим общую логику в `features/editor/layout`, а адаптеры для сцен/объекта делаем тонкими (`features/editor/scene/layout` и `objectLayoutStore`).
-6) `ObjectEditorLayout` использует внутренний `usePanelState` — требуется миграция на внешний стор. Действие: заменить внутреннее состояние на `objectLayoutStore` с мостом для обратной совместимости на переходный период.
+6) Ранее `ObjectEditorLayout` использовал внутренний `usePanelState` — выполнена миграция на внешний стор из `features/editor/object/layout` (persist‑ширины + глобальная видимость панелей).
 
 ## Архитектурные решения и ограничения (FSD)
 
@@ -185,12 +185,12 @@ features/
   - Общая полезность (могут использоваться и страницами, и виджетами, и разными редакторами).
 - UI‑только элементы предпочтительно располагать в `shared/ui`; headless‑утилиты — `shared/lib`. Если есть собственный UI + локальная логика/стор — это фича `features/common/*`.
 
-5) Пошаговая миграция (чтобы не ронять сборку)
+5) Пошаговая миграция (результат)
 - Шаг 1 (в рамках Фазы 2): создать новые директории `features/editor/layout`, `features/editor/scene/*`, `features/editor/object/*` и добавить индекс‑реэкспорты.
-- Шаг 2: перенести логику `scene-layout` в `editor/layout` (ядро) и оставить `features/editor/scene/layout` как тонкий адаптер (реэкспорт/хелперы под сцены).
-- Шаг 3: создать `features/editor/object/toolbar` и подключить из виджета ObjectEditor. Затем последовательно переносить из `features/object-editor/*` в `features/editor/object/*`: `renderer`, `properties`, `outliner`, `chat`, `model`.
-- Шаг 4: обновить импорты в коде на новые алиасы. На переходный период оставить реэкспорты в старых путях, затем удалить их в завершающей фазе.
-- Шаг 5: провести аудит зависимостей и удалить старые каталоги после переключения всех импортов.
+- Шаг 2: логика раскладки ObjectEditor вынесена в `features/editor/object/layout` (persist‑ширины, init, глобальный стор панелей).
+- Шаг 3: создан `features/editor/object/toolbar` и подключён из виджета `ObjectEditor`.
+- Шаг 4: обновлены импорты на новый неймспейс; переходные реэкспорты удалены после стабилизации.
+- Шаг 5: проведён аудит зависимостей и удалены старые каталоги (`features/object-toolbar`, `features/object-layout`).
 
 6) Риски и смягчение
 - Много правок импортов → делить на подфазы, использовать реэкспорты и алиасы для плавного переключения.

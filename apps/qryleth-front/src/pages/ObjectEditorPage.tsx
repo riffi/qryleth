@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
-import { PanelToggleButtons } from '@/features/editor/object'
 import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { Title, Group, ActionIcon, Tooltip, Modal, Stack, TextInput, Button } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
@@ -198,12 +197,7 @@ const ObjectEditorPage: React.FC = () => {
             <IconDeviceFloppy size={24} />  
           </ActionIcon>
         </Tooltip>
-        <PanelToggleButtons
-          activeLeftPanel={globalPanelState.panelState.leftPanel}
-          activeRightPanel={globalPanelState.panelState.rightPanel}
-          onToggle={globalPanelState.togglePanel}
-          size="md"
-        />
+        {/* Переключение панелей выполняется тулбарами внутри ObjectEditor */}
       </Group>
     </>
   )

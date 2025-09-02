@@ -13,7 +13,7 @@ filesChanged: 1
 - `SceneEditor` теперь использует новый виджет ObjectEditor в embedded‑режиме вместо прямого `ObjectEditorR3F`:
   - Обновлён файл `apps/qryleth-front/src/widgets/SceneEditor/SceneEditor.tsx:1`.
   - Встраивание выполнено через `<ObjectEditor mode="embedded" ... />`.
-  - Состояние панелей синхронизируется через `externalLayoutState={globalPanelState}` (глобальный стор панелей ObjectEditor), сохраняя текущее поведение `PanelToggleButtons`.
+- Состояние панелей синхронизируется через `externalLayoutState={globalPanelState}` (глобальный стор панелей ObjectEditor); управление выполняется тулбарами виджета.
 
 ## Примечания
 - Persist размеров панелей ObjectEditor реализован ранее через `object-layout`; embedded‑интеграция использует ту же модель состояния панелей (глобальный zustand‑стор), что и на странице редактора объекта.

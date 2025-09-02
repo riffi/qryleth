@@ -57,6 +57,6 @@ src/features/editor/object/ui/ # Компоненты редактора объ�
 
 ### Система панелей ObjectEditor
 
-- **PanelToggleButtons** (`features/editor/object/ui/PanelToggleButtons/`) - кнопки переключения панелей
-- **ObjectEditorLayout** (`features/editor/object/ui/ObjectEditorLayout/`) - layout с поддержкой переключаемых панелей
+- **Toolbars** (`features/editor/object/toolbar/`) — вертикальные тулбары ObjectEditor (левая: чат/свойства, правая: менеджер)
+- **ObjectEditorLayout** (`widgets/ObjectEditor/Layout/`) — layout виджета с поддержкой переключаемых панелей и ресайза
 

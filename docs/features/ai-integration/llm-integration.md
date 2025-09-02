@@ -162,10 +162,10 @@ features/editor/object/ui/ChatInterface/
 
 **Система панелей ObjectEditor:**
 ```
-features/editor/object/ui/
-├── PanelToggleButtons/         # Кнопки переключения панелей
-├── ObjectEditorLayout/         # Layout с поддержкой панелей
-└── ChatInterface/              # ChatInterface для объектов
+features/editor/object/
+├── toolbar/                    # Вертикальные тулбары (чат/свойства, менеджер)
+├── layout/                     # Zustand‑сторы панелей и фасад persist‑ширин
+└── ui/ChatInterface/           # ChatInterface для объектов
 ```
 
 ### Принципы использования ChatInterface
@@ -204,8 +204,8 @@ features/editor/object/ui/
 - `src/features/scene/ui/ChatInterface/` - ChatInterface для сцен
 - `src/features/scene/lib/ai/` - AI инструменты для работы со сценой
 - `src/features/editor/object/ui/ChatInterface/` - ChatInterface для объектов
-- `src/features/editor/object/ui/PanelToggleButtons/` - Система панелей
-- `src/features/editor/object/ui/ObjectEditorLayout/` - Layout с панелями
+- `src/features/editor/object/toolbar/` - Тулбары управления панелями
+- `src/features/editor/object/layout/` - Состояние панелей и persist‑ширин
 - `src/features/editor/object/lib/ai/` - AI инструменты для редактирования объектов
 
 **Документация:**

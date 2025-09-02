@@ -17,11 +17,11 @@ filesChanged: 8
   - Обновлён корневой индекс `apps/qryleth-front/src/features/editor/object/index.ts` — теперь экспортирует `hooks` и `lib`.
 
 - Переведены внешние импорты на новый неймспейс `features/editor/object`:
-  - `apps/qryleth-front/src/pages/ObjectEditorPage.tsx:4,11-12` — `PanelToggleButtons`, `useGlobalPanelState`, `buildUpdatedObject`, `generateObjectPreview`.
-  - `apps/qryleth-front/src/widgets/SceneEditor/SceneEditor.tsx:5-6` — `PanelToggleButtons`, `useGlobalPanelState`.
-  - `apps/qryleth-front/src/widgets/ObjectEditor/ObjectEditor.tsx:3-4` — `ObjectEditorR3F`, `useGlobalPanelState`.
-  - `apps/qryleth-front/src/features/scene/ui/objectManager/SceneObjectManager.tsx:44` — `generateObjectPreview`.
-  - `apps/qryleth-front/src/features/object-library/ui/LibraryObjectCard/HoverInteractivePreview.tsx:5` — `ObjectRendererR3F`.
+  - `apps/qryleth-front/src/pages/ObjectEditorPage.tsx` — `useGlobalPanelState`, `buildUpdatedObject`, `generateObjectPreview` (PanelToggleButtons удалены).
+  - `apps/qryleth-front/src/widgets/SceneEditor/SceneEditor.tsx` — `useGlobalPanelState` (PanelToggleButtons удалены).
+  - `apps/qryleth-front/src/widgets/ObjectEditor/ObjectEditor.tsx` — `ObjectEditorR3F`, `useGlobalPanelState`.
+  - `apps/qryleth-front/src/features/scene/ui/objectManager/SceneObjectManager.tsx` — `generateObjectPreview`.
+  - `apps/qryleth-front/src/features/object-library/ui/LibraryObjectCard/HoverInteractivePreview.tsx` — `ObjectRendererR3F`.
 
 - Проверена сборка фронтенда: `apps/qryleth-front` собирается успешно.
 

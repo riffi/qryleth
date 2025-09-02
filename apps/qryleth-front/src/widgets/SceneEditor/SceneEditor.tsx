@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { SceneEditorR3F } from '@/features/scene'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/scene-toolbar'
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
-import { PanelToggleButtons } from '@/features/editor/object'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
@@ -139,12 +138,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
                   <IconDeviceFloppy size={24} />
                 </ActionIcon>
               </Tooltip>
-              <PanelToggleButtons
-                activeLeftPanel={globalPanelState.panelState.leftPanel}
-                activeRightPanel={globalPanelState.panelState.rightPanel}
-                onToggle={globalPanelState.togglePanel}
-                size="md"
-              />
+              {/* Панели ObjectEditor управляются его встроенными тулбарами */}
             </Group>
           </Group>
         }

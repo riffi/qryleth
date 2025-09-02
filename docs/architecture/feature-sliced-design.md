@@ -39,16 +39,17 @@ src/
 │  ├─ scene-toolbar/      # Презентационные тулбары редактора
 │  ├─ scene-persistence/  # Чистые операции сохранения + SaveModal
 │  ├─ scene-play-mode/    # Play‑overlay и хоткеи Play (виджет подключает)
-│  └─ object-editor/
-│     ├─ model/
-│     ├─ ui/
-│     │  ├─ ChatInterface/    # ObjectChatInterface для объектов
-│     │  ├─ PanelToggleButtons/  # Система управления панелями  
-│     │  └─ ObjectEditorLayout/  # Layout с переключаемыми панелями
-│     ├─ lib/
-│     │  └─ ai/   # AI инструменты для редактирования объектов
-│     │     └─ tools/  # getObjectData и addPrimitives
-│     └─ index.ts
+│  └─ editor/
+│     └─ object/
+│        ├─ model/
+│        ├─ ui/
+│        │  └─ ChatInterface/    # ObjectChatInterface для объектов
+│        ├─ layout/               # Состояние раскладки и панелей (zustand + persist)
+│        ├─ toolbar/              # Вертикальные тулбары (чат/свойства, менеджер)
+│        ├─ lib/
+│        │  └─ ai/   # AI инструменты для редактирования объектов
+│        │     └─ tools/  # getObjectData и addPrimitives
+│        └─ index.ts
 ├─ shared/
 │  ├─ entities/
 │  │  └─ chat/             # Общая chat функциональность
