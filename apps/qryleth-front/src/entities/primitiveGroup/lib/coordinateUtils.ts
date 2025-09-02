@@ -3,7 +3,7 @@
  */
 
 import type { Vector3, BoundingBox } from "@/shared/types";
-import { add, sub, mul, scale as v3scale, midpoint } from '@/shared/lib/math/vector3'
+import { add, sub, mul, scale as v3scale, midpoint, min as v3min, max as v3max } from '@/shared/lib/math/vector3'
 import type { GfxPrimitive } from "@/entities/primitive";
 import type { GfxPrimitiveGroup } from "../model/types";
 
@@ -81,27 +81,24 @@ export function calculateGroupBounds(
   
   if (groupPrimitives.length === 0) return null;
 
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let accMin: Vector3 | null = null
+  let accMax: Vector3 | null = null
 
   for (const primitive of groupPrimitives) {
-    const bounds = getPrimitiveBounds(primitive);
-    if (bounds) {
-      minX = Math.min(minX, bounds.min[0]);
-      minY = Math.min(minY, bounds.min[1]);
-      minZ = Math.min(minZ, bounds.min[2]);
-      maxX = Math.max(maxX, bounds.max[0]);
-      maxY = Math.max(maxY, bounds.max[1]);
-      maxZ = Math.max(maxZ, bounds.max[2]);
+    const bounds = getPrimitiveBounds(primitive)
+    if (!bounds) continue
+    if (!accMin || !accMax) {
+      accMin = bounds.min
+      accMax = bounds.max
+    } else {
+      accMin = v3min(accMin, bounds.min)
+      accMax = v3max(accMax, bounds.max)
     }
   }
 
-  if (minX === Infinity) return null;
+  if (!accMin || !accMax) return null
 
-  return {
-    min: [minX, minY, minZ],
-    max: [maxX, maxY, maxZ]
-  };
+  return { min: accMin, max: accMax }
 }
 
 /**

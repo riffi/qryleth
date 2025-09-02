@@ -1,5 +1,5 @@
 import type { BoundingBox, Vector3 } from '@/shared/types'
-import { add, mul, midpoint } from '@/shared/lib/math/vector3'
+import { add, mul, midpoint, min as v3min, max as v3max } from '@/shared/lib/math/vector3'
 import type { GfxPrimitive, GfxObject } from '@/entities'
 
 /**
@@ -81,21 +81,11 @@ function calculateBoxBoundingBox(geometry: { width: number; height: number; dept
     [halfWidth, halfHeight, halfDepth]
   ]
 
-  // Применяем трансформации ко всем вершинам
+  // Применяем трансформации ко всем вершинам и агрегируем min/max векторно
   const transformedVertices = vertices.map(v => applyTransform(v, transform))
-
-  // Находим min/max по каждой оси
-  const min: Vector3 = [
-    Math.min(...transformedVertices.map(v => v[0])),
-    Math.min(...transformedVertices.map(v => v[1])),
-    Math.min(...transformedVertices.map(v => v[2]))
-  ]
-
-  const max: Vector3 = [
-    Math.max(...transformedVertices.map(v => v[0])),
-    Math.max(...transformedVertices.map(v => v[1])),
-    Math.max(...transformedVertices.map(v => v[2]))
-  ]
+  const { min, max } = transformedVertices.reduce<{ min: Vector3; max: Vector3 }>((acc, v) => {
+    return { min: v3min(acc.min, v), max: v3max(acc.max, v) }
+  }, { min: transformedVertices[0], max: transformedVertices[0] })
 
   return { min, max }
 }
@@ -114,22 +104,11 @@ function calculateSphereBoundingBox(geometry: { radius: number }, transform?: {
   const baseMin: Vector3 = [-radius, -radius, -radius]
   const baseMax: Vector3 = [radius, radius, radius]
 
-  // Применяем трансформации к угловым точкам
+  // Применяем трансформации к угловым точкам и берём поосевые min/max векторно
   const transformedMin = applyTransform(baseMin, transform)
   const transformedMax = applyTransform(baseMax, transform)
-
-  // Для корректности берем min/max по каждой оси
-  const min: Vector3 = [
-    Math.min(transformedMin[0], transformedMax[0]),
-    Math.min(transformedMin[1], transformedMax[1]),
-    Math.min(transformedMin[2], transformedMax[2])
-  ]
-
-  const max: Vector3 = [
-    Math.max(transformedMin[0], transformedMax[0]),
-    Math.max(transformedMin[1], transformedMax[1]),
-    Math.max(transformedMin[2], transformedMax[2])
-  ]
+  const min: Vector3 = v3min(transformedMin, transformedMax)
+  const max: Vector3 = v3max(transformedMin, transformedMax)
 
   return { min, max }
 }
@@ -154,18 +133,8 @@ function calculateCylinderBoundingBox(geometry: {
 
   const transformedMin = applyTransform(baseMin, transform)
   const transformedMax = applyTransform(baseMax, transform)
-
-  const min: Vector3 = [
-    Math.min(transformedMin[0], transformedMax[0]),
-    Math.min(transformedMin[1], transformedMax[1]),
-    Math.min(transformedMin[2], transformedMax[2])
-  ]
-
-  const max: Vector3 = [
-    Math.max(transformedMin[0], transformedMax[0]),
-    Math.max(transformedMin[1], transformedMax[1]),
-    Math.max(transformedMin[2], transformedMax[2])
-  ]
+  const min: Vector3 = v3min(transformedMin, transformedMax)
+  const max: Vector3 = v3max(transformedMin, transformedMax)
 
   return { min, max }
 }
@@ -188,18 +157,8 @@ function calculateConeBoundingBox(geometry: {
 
   const transformedMin = applyTransform(baseMin, transform)
   const transformedMax = applyTransform(baseMax, transform)
-
-  const min: Vector3 = [
-    Math.min(transformedMin[0], transformedMax[0]),
-    Math.min(transformedMin[1], transformedMax[1]),
-    Math.min(transformedMin[2], transformedMax[2])
-  ]
-
-  const max: Vector3 = [
-    Math.max(transformedMin[0], transformedMax[0]),
-    Math.max(transformedMin[1], transformedMax[1]),
-    Math.max(transformedMin[2], transformedMax[2])
-  ]
+  const min: Vector3 = v3min(transformedMin, transformedMax)
+  const max: Vector3 = v3max(transformedMin, transformedMax)
 
   return { min, max }
 }
@@ -223,18 +182,8 @@ function calculatePyramidBoundingBox(geometry: {
 
   const transformedMin = applyTransform(baseMin, transform)
   const transformedMax = applyTransform(baseMax, transform)
-
-  const min: Vector3 = [
-    Math.min(transformedMin[0], transformedMax[0]),
-    Math.min(transformedMin[1], transformedMax[1]),
-    Math.min(transformedMin[2], transformedMax[2])
-  ]
-
-  const max: Vector3 = [
-    Math.max(transformedMin[0], transformedMax[0]),
-    Math.max(transformedMin[1], transformedMax[1]),
-    Math.max(transformedMin[2], transformedMax[2])
-  ]
+  const min: Vector3 = v3min(transformedMin, transformedMax)
+  const max: Vector3 = v3max(transformedMin, transformedMax)
 
   return { min, max }
 }
@@ -346,17 +295,10 @@ export function mergeBoundingBoxes(boxes: BoundingBox[]): BoundingBox {
     return boxes[0]
   }
 
-  const min: Vector3 = [
-    Math.min(...boxes.map(box => box.min[0])),
-    Math.min(...boxes.map(box => box.min[1])),
-    Math.min(...boxes.map(box => box.min[2]))
-  ]
-
-  const max: Vector3 = [
-    Math.max(...boxes.map(box => box.max[0])),
-    Math.max(...boxes.map(box => box.max[1])),
-    Math.max(...boxes.map(box => box.max[2]))
-  ]
+  const { min, max } = boxes.reduce<{ min: Vector3; max: Vector3 }>((acc, b) => ({
+    min: v3min(acc.min, b.min),
+    max: v3max(acc.max, b.max)
+  }), { min: boxes[0].min, max: boxes[0].max })
 
   return { min, max }
 }
@@ -395,18 +337,9 @@ export function transformBoundingBox(
   ]
 
   const transformed = corners.map(c => applyTransform(c, transform))
-
-  const min: Vector3 = [
-    Math.min(...transformed.map(v => v[0])),
-    Math.min(...transformed.map(v => v[1])),
-    Math.min(...transformed.map(v => v[2]))
-  ]
-
-  const max: Vector3 = [
-    Math.max(...transformed.map(v => v[0])),
-    Math.max(...transformed.map(v => v[1])),
-    Math.max(...transformed.map(v => v[2]))
-  ]
+  const { min, max } = transformed.reduce<{ min: Vector3; max: Vector3 }>((acc, v) => {
+    return { min: v3min(acc.min, v), max: v3max(acc.max, v) }
+  }, { min: transformed[0], max: transformed[0] })
 
   return { min, max }
 }
