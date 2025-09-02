@@ -9,7 +9,7 @@ Detailed documentation for the Scene Store that manages 3D scene editor state.
 ## Location / Местоположение
 
 ```typescript
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 ```
 
 ---

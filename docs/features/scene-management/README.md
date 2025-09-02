@@ -12,10 +12,15 @@
 ## Структура папок
 
 ```text
-src/features/scene/
-├─ model/   # state logic / бизнес-логика
-├─ ui/      # UI components / UI компоненты
-└─ index.ts  # public API / публичный API
+src/features/editor/scene/
+├─ model/     # state / бизнес-логика
+├─ ui/        # UI-компоненты (R3F, менеджер, чат, скриптинг)
+├─ lib/       # headless-хуки, SceneAPI, terrain, ai-tools
+├─ layout/    # логика раскладки панелей
+├─ toolbar/   # тулбары редактора сцены
+├─ config/    # конфигурация террейна и прочее
+├─ constants.ts
+└─ index.ts   # публичный API editor/scene
 ```
 
 See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for details.
@@ -23,7 +28,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 ## Основные компоненты
 
 ### 🎬 SceneEditorR3F
-**Location**: `src/pages/SceneEditor/SceneEditorR3F.tsx`
+**Location**: `src/features/editor/scene/ui/SceneEditorR3F.tsx`
 
 Основной компонент редактора сцен, который координирует всю функциональность редактирования сцен.
 
@@ -35,7 +40,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Предоставляет функциональность отмены/повтора
 
 ### 🎨 Scene3D
-**Location**: `src/features/scene/ui/Scene3D.tsx`
+**Location**: `src/features/editor/scene/ui/renderer/Scene3D.tsx`
 
 Компонент канваса Three.js, ответственный за 3D рендеринг и визуализацию.
 
@@ -46,7 +51,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Поддерживает множественные режимы просмотра
 
 ### 🗂️ SceneObjectManager
-**Location**: `src/features/scene/ui/objectManager/SceneObjectManager.tsx`
+**Location**: `src/features/editor/scene/ui/objectManager/SceneObjectManager.tsx`
 
 Панель для управления слоями сцены, объектами и настройками освещения. Построена по паттерну compound-components и использует контекст `SceneObjectManagerContext` для обмена данными между вложенными элементами.
 
@@ -57,7 +62,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Доступ к редактированию объектов
 
 ### 💬 SceneChatInterface  
-**Location**: `src/features/scene/ui/ChatInterface/SceneChatInterface.tsx`
+**Location**: `src/features/editor/scene/ui/ChatInterface/SceneChatInterface.tsx`
 
 Специализированный чат для работы со сценами с интеграцией AI агента (после рефакторинга FSD).
 

@@ -25,31 +25,30 @@ shared/   ← НЕ МОЖЕТ импортировать слои выше (са
 ```text
 src/
 ├─ features/
-│  ├─ scene/
-│  │  ├─ model/   # Состояние и бизнес-логика
-│  │  ├─ ui/      # React-компоненты
-│  │  │  └─ ChatInterface/  # SceneChatInterface с debug-панелью
-│  │  ├─ lib/     # Вспомогательные функции
-│  │  │  └─ ai/   # AI инструменты для сценарии
-│  │  │     ├─ tools/     # Конкретные AI tools
-│  │  │     └─ index.ts   # Провайдер инструментов
-│  │  ├─ api/     # Запросы к серверу
-│  │  └─ index.ts # Публичный API
-│  ├─ scene-layout/       # Панели редактора и ресайз (persist фасад)
-│  ├─ scene-toolbar/      # Презентационные тулбары редактора
+│  ├─ editor/
+│  │  ├─ scene/
+│  │  │  ├─ model/     # Zustand‑store, типы, селекторы
+│  │  │  ├─ ui/        # R3F‑композиция, объектный менеджер, чат, скриптинг
+│  │  │  ├─ lib/       # Headless‑хуки, SceneAPI, terrain, AI‑tools
+│  │  │  ├─ layout/    # Раскладка и панельное состояние (persist‑фасад)
+│  │  │  ├─ toolbar/   # Тулбары (левый/правый/верхний)
+│  │  │  ├─ config/    # Конфигурация террейна и прочее
+│  │  │  ├─ constants.ts
+│  │  │  └─ index.ts   # Публичный API editor/scene
+│  │  └─ object/
+│  │     ├─ model/
+│  │     ├─ ui/
+│  │     │  └─ ChatInterface/    # ObjectChatInterface для объектов
+│  │     ├─ layout/               # Состояние раскладки и панелей
+│  │     ├─ toolbar/              # Вертикальные тулбары (чат/свойства, менеджер)
+│  │     ├─ lib/
+│  │     │  └─ ai/                # AI инструменты редактирования объекта
+│  │     │     └─ tools/
+│  │     └─ index.ts
 │  ├─ scene-persistence/  # Чистые операции сохранения + SaveModal
 │  ├─ scene-play-mode/    # Play‑overlay и хоткеи Play (виджет подключает)
-│  └─ editor/
-│     └─ object/
-│        ├─ model/
-│        ├─ ui/
-│        │  └─ ChatInterface/    # ObjectChatInterface для объектов
-│        ├─ layout/               # Состояние раскладки и панелей (zustand + persist)
-│        ├─ toolbar/              # Вертикальные тулбары (чат/свойства, менеджер)
-│        ├─ lib/
-│        │  └─ ai/   # AI инструменты для редактирования объектов
-│        │     └─ tools/  # getObjectData и addPrimitives
-│        └─ index.ts
+│  └─ widgets/
+│     └─ SceneEditor/             # Виджет сценового редактора (композиция)
 ├─ shared/
 │  ├─ entities/
 │  │  └─ chat/             # Общая chat функциональность
@@ -64,6 +63,28 @@ src/
 ```
 
 Каждая фича изолирована. Она предоставляет функциональность через `index.ts`, скрывая внутренние модули.
+
+---
+
+## Редакторские подсистемы (features/editor/*)
+
+В рамках FSD редакторские домены выделены в отдельный неймспейс `features/editor/*`:
+
+- editor/scene: полный стек сценового редактора (model/ui/lib/layout/toolbar/config/constants). Публичные точки входа: `@/features/editor/scene/ui`, `@/features/editor/scene/model`, `@/features/editor/scene/lib`.
+- editor/object: стек редактора объекта (model/ui/lib/layout/toolbar). Публичные точки входа аналогичны: `@/features/editor/object/*`.
+
+Границы и зависимости:
+- Запрещены кросс‑импорты между `editor/scene/*` и `editor/object/*`. Общие зависимости — только через `shared/*` (типы, утилиты, UI) или согласованные фасады (`editor/*/layout`).
+- Виджеты (`widgets/*`) импортируют только публичные API фич (например, `@/features/editor/scene/ui`) и не залезают во внутренние пути.
+- Общая инфраструктура сцены вне редактора (persist, play‑mode, сохранение) остаётся в своих фичах (`features/scene-persistence`, `features/scene-play-mode`) и подключается из виджета.
+- Исторические фичи `scene-layout` и `scene-toolbar` переехали в `editor/scene/layout` и `editor/scene/toolbar`.
+
+Примеры импортов:
+```ts
+import { SceneEditorR3F } from '@/features/editor/scene/ui'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
+```
 
 ---
 

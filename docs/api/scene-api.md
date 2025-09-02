@@ -5,7 +5,7 @@
 ---
 
 ## Location / Местоположение
-`src/features/scene/lib/sceneAPI.ts`
+`src/features/editor/scene/lib/sceneAPI.ts`
 
 ---
 
