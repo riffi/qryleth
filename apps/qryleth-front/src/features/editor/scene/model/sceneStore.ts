@@ -19,6 +19,7 @@ import type {
   SceneObjectInstance,
   SceneLayer
 } from '@/entities/scene/types.ts'
+import type { GfxBiome } from '@/entities/biome'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { LightingSettings } from '@/entities/lighting'
 import { DEFAULT_LIGHTING_PRESET_KEY, getLightingPreset } from './lighting-presets'
@@ -74,6 +75,8 @@ const initialState: SceneStoreState = {
   objectInstances: [],
   layers: initialLayers,
   lighting: initialLighting,
+  // Биомы сцены (области скаттеринга)
+  biomes: [],
 
   // UI state
   uiMode: UiMode.Edit,
@@ -213,6 +216,57 @@ export const useSceneStore = create<SceneStore>()(
     removeObjectInstance: (index: number) => {
       const list = get().objectInstances.filter((_, i) => i !== index)
       set({ objectInstances: list })
+      get().saveToHistory()
+      get().markSceneAsModified()
+    },
+
+    // Biome management
+    /**
+     * Заменяет текущий список биомов сцены.
+     * Выполняет минимальную нормализацию (генерация uuid при отсутствии)
+     * и сохраняет состояние в историю без пометки как изменённое (для загрузки сцены).
+     */
+    setBiomes: (biomes: GfxBiome[]) => {
+      const normalized = biomes.map(b => ({
+        ...b,
+        uuid: b.uuid || generateUUID(),
+        visible: b.visible !== false,
+      }))
+      set({ biomes: normalized })
+      get().saveToHistory()
+    },
+    /**
+     * Добавляет новый биом в сцену.
+     * Генерирует uuid при необходимости, включает visible по умолчанию,
+     * сохраняет историю и помечает сцену как изменённую.
+     */
+    addBiome: (biome: GfxBiome) => {
+      const normalized: GfxBiome = {
+        ...biome,
+        uuid: biome.uuid || generateUUID(),
+        visible: biome.visible !== false,
+      }
+      set({ biomes: [...get().biomes, normalized] })
+      get().saveToHistory()
+      get().markSceneAsModified()
+    },
+    /**
+     * Обновляет биом по его UUID частичным набором полей.
+     * Сохраняет историю и помечает сцену как изменённую.
+     */
+    updateBiome: (biomeUuid: string, updates: Partial<GfxBiome>) => {
+      const biomes = get().biomes.map(b => (b.uuid === biomeUuid ? { ...b, ...updates } : b))
+      set({ biomes })
+      get().saveToHistory()
+      get().markSceneAsModified()
+    },
+    /**
+     * Удаляет биом по UUID. Инстансы, привязанные к биому (biomeUuid),
+     * не удаляются автоматически — ответственность вызывающей стороны
+     * решить, что делать (очистить или переassign).
+     */
+    removeBiome: (biomeUuid: string) => {
+      set({ biomes: get().biomes.filter(b => b.uuid !== biomeUuid) })
       get().saveToHistory()
       get().markSceneAsModified()
     },
@@ -479,6 +533,7 @@ export const useSceneStore = create<SceneStore>()(
         if (data.objects) state.setObjects(data.objects)
         if (data.objectInstances) state.setObjectInstances(data.objectInstances)
         if (data.layers) state.setLayers(data.layers)
+        if (data.biomes) state.setBiomes(data.biomes)
         if (data.lighting) state.setLighting(data.lighting)
 
         // Set scene metadata
@@ -507,7 +562,8 @@ export const useSceneStore = create<SceneStore>()(
         objects: state.objects,
         objectInstances: state.objectInstances,
         layers: state.layers,
-        lighting: state.lighting
+        lighting: state.lighting,
+        biomes: state.biomes,
       }
     },
 
@@ -517,6 +573,7 @@ export const useSceneStore = create<SceneStore>()(
         objectInstances: [],
         layers: initialLayers,
         lighting: initialLighting,
+        biomes: [],
         selectedObject: null,
         hoveredObject: null,
         sceneMetaData: initialSceneMetaData,
@@ -596,6 +653,7 @@ export const useSceneObjects = () => useSceneStore(state => state.objects)
 export const useSceneObjectInstances = () =>
   useSceneStore(state => state.objectInstances)
 export const useSceneLayers = () => useSceneStore(state => state.layers)
+export const useSceneBiomes = () => useSceneStore(state => state.biomes)
 /**
  * Хук для доступа к настройкам освещения сцены.
  */

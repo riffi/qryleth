@@ -1,4 +1,5 @@
 import { useObjectStore } from '../model/objectStore'
+import { useObjectMetaStore } from '../model/objectMetaStore'
 import type { GfxObject } from '@/entities/object'
 import { OffscreenObjectRenderer } from './offscreen-renderer'
 
@@ -9,6 +10,10 @@ import { OffscreenObjectRenderer } from './offscreen-renderer'
  */
 export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   const state = useObjectStore.getState()
+  // Метаданные объекта (например, теги) берём из отдельного стора метаданных
+  // чтобы редактирование тегов не смешивалось с примитивами/материалами.
+  const metaState = useObjectMetaStore.getState()
+  const metaTags = (metaState.tags || []).map((t: string) => t.trim()).filter(Boolean)
   
   const updatedObject = {
     ...baseObject,
@@ -17,6 +22,8 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
     materials: state.materials,
     primitiveGroups: state.primitiveGroups,
     primitiveGroupAssignments: state.primitiveGroupAssignments,
+    // Дублируем теги в objectData для согласованности с библиотекой
+    ...(metaTags ? { tags: metaTags } : {}),
   }
   
   return updatedObject

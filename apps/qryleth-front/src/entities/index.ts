@@ -25,3 +25,5 @@ export * from './terrain'
 
 // Scene types (special case - has types.ts directly)
 export * from './scene/types'
+// Biomes domain
+export * from './biome'

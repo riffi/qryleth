@@ -18,6 +18,7 @@ import type {
   CameraPose
 } from '@/shared/types/ui'
 import type { SceneObject, SceneObjectInstance, SceneLayer, SceneMetaData } from '@/entities/scene/types'
+import type { GfxBiome } from '@/entities/biome'
 import type { LightingSettings } from '@/entities/lighting/model/types'
 
 
@@ -28,6 +29,11 @@ export interface SceneStoreState {
   objects: SceneObject[]
   objectInstances: SceneObjectInstance[]
   layers: SceneLayer[]
+  /**
+   * Биомы сцены: доменные сущности, описывающие области скаттеринга
+   * и их параметры генерации. Хранятся независимо от слоёв и объектов.
+   */
+  biomes: GfxBiome[]
   selectedObject: SelectedSceneObject | null
   hoveredObject: HoveredSceneObject | null
   sceneMetaData: SceneMetaData
@@ -85,6 +91,25 @@ export interface SceneStoreActions {
     instanceId: string,
     updates: Partial<SceneObjectInstance>
   ) => void
+
+  // Biomes management
+  /**
+   * Полностью заменить список биомов сцены.
+   * Предполагается использование при загрузке сцены или массовых изменениях.
+   */
+  setBiomes: (biomes: GfxBiome[]) => void
+  /**
+   * Добавить один биом в сцену.
+   */
+  addBiome: (biome: GfxBiome) => void
+  /**
+   * Обновить биом по его UUID частичным набором полей.
+   */
+  updateBiome: (biomeUuid: string, updates: Partial<GfxBiome>) => void
+  /**
+   * Удалить биом по UUID.
+   */
+  removeBiome: (biomeUuid: string) => void
 
   // Layer management
   setLayers: (layers: SceneLayer[]) => void
@@ -157,6 +182,7 @@ export interface SceneStoreActions {
     objectInstances: SceneObjectInstance[]
     layers: SceneLayer[]
     lighting: LightingSettings
+    biomes: GfxBiome[]
   }
   clearScene: () => void
   loadSceneData: (data: any, sceneName?: string, sceneUuid?: string) => void

@@ -28,6 +28,14 @@ export interface SceneRecord extends BaseDbRecord {
 }
 
 export interface ObjectRecord extends BaseDbRecord {
+  /**
+   * Дублированные теги записи библиотеки для быстрого поиска/индексации.
+   * Поле хранится отдельно от objectData.tags и индексируется в Dexie.
+   */
+  tags?: string[]
+  /**
+   * Полные данные графического объекта (включая дублирующее поле tags).
+   */
   objectData: GfxObject
 }
 

@@ -2,6 +2,7 @@ import type {LightingSettings} from "../lighting";
 import type {GfxObjectInstance} from "../objectInstance";
 import type {GfxLayer} from "@/entities/layer";
 import type {GfxObject} from "@/entities/object";
+import type { GfxBiome } from '@/entities/biome'
 
 export interface SceneObject extends GfxObject{
   layerId?: string;
@@ -27,6 +28,8 @@ export interface SceneData {
   objectInstances: SceneObjectInstance[]
   layers: SceneLayer[]
   lighting: LightingSettings
+  /** Биомы сцены (области скаттеринга и их параметры) */
+  biomes: GfxBiome[]
 }
 
 /**

@@ -110,6 +110,18 @@ export class SceneLibraryDB extends Dexie {
       terrainAssets: '++id, assetId, heightsHash, fileName, createdAt, updatedAt'
     })
 
+    // Версия 7: индексация тегов объектов (отдельное поле tags + multiEntry *tags)
+    // Храним теги как отдельное поле на уровне ObjectRecord для быстрого поиска,
+    // и дублируем их в objectData.tags для удобства редактирования.
+    this.version(7).stores({
+      scenes: '++id, uuid, name, createdAt, updatedAt',
+      // В objects добавлены индексы: tags (по массиву в целом) и *tags (multiEntry по каждому тегу)
+      objects: '++id, uuid, name, createdAt, updatedAt, tags, *tags',
+      connections: '++id, connectionId, name, createdAt, updatedAt, isActive',
+      scripts: '++id, uuid, name, createdAt, updatedAt',
+      terrainAssets: '++id, assetId, heightsHash, fileName, createdAt, updatedAt'
+    })
+
     // Примечание: добавление новых полей (heightsBuffer/heightsWidth/heightsHeight)
     // не требует изменения индексов, поэтому версия схемы может оставаться прежней.
     // Если в будущем понадобятся индексы по этим полям — потребуется повысить версию
@@ -192,12 +204,19 @@ export class SceneLibraryDB extends Dexie {
     const now = new Date()
 
     try {
+      // Нормализуем и дублируем теги: в objectData.tags и в корневое поле tags
+      const normalizedTags = (objectData.tags || [])
+        .map(t => t.trim())
+        .filter(Boolean)
+      // Обновим objectData для согласованности (сохраняем копию с нормализованными тегами)
+      const objectDataToSave: GfxObject = { ...objectData, tags: normalizedTags }
       await this.objects.add({
         uuid,
         name,
         description,
         thumbnail,
-        objectData,
+        tags: normalizedTags,
+        objectData: objectDataToSave,
         createdAt: now,
         updatedAt: now
       })
@@ -228,10 +247,35 @@ export class SceneLibraryDB extends Dexie {
       if (!existingObject) {
         throw new Error(`Object with UUID ${uuid} not found`)
       }
-      
-      // Обновляем объект
+      // Подготовим согласованные теги
+      let tagsToSave: string[] | undefined = updates.tags
+      let objectDataToSave: GfxObject | undefined = updates.objectData as any
+
+      // Если пришли новые objectData — возьмём теги из него
+      if (objectDataToSave) {
+        const normalizedObjectTags = (objectDataToSave.tags || [])
+          .map(t => t.trim())
+          .filter(Boolean)
+        objectDataToSave = { ...objectDataToSave, tags: normalizedObjectTags }
+        // Если в updates.tags не заданы — дублируем из objectData
+        if (!tagsToSave) tagsToSave = normalizedObjectTags
+      }
+
+      // Если пришли только tags — продублируем их в objectData при модификации
+      if (!objectDataToSave && tagsToSave) {
+        const normalizedTags = tagsToSave.map(t => t.trim()).filter(Boolean)
+        objectDataToSave = {
+          ...existingObject.objectData,
+          tags: normalizedTags,
+        } as GfxObject
+        tagsToSave = normalizedTags
+      }
+
+      // Обновляем объект (fields merge)
       await this.objects.where('uuid').equals(uuid).modify({
         ...updates,
+        ...(tagsToSave ? { tags: tagsToSave } : {}),
+        ...(objectDataToSave ? { objectData: objectDataToSave } : {}),
         updatedAt: new Date()
       })
     } catch (e) {

@@ -37,7 +37,10 @@ export const LibraryBrowser: React.FC<LibraryBrowserProps> = ({
   const setSearchQuery = useLibraryStore(s => s.setSearchQuery)
 
   const filteredScenes = useLibrarySearch(scenes, searchQuery, (s) => `${s.name} ${s.description ?? ''}`)
-  const filteredObjects = useLibrarySearch(objects, searchQuery, (o) => `${o.name} ${o.description ?? ''}`)
+  const filteredObjects = useLibrarySearch(objects, searchQuery, (o) => {
+    const tags = (o.tags && Array.isArray(o.tags)) ? o.tags.join(' ') : (o.objectData?.tags || []).join(' ')
+    return `${o.name} ${o.description ?? ''} ${tags}`
+  })
 
   const formatDate = (date: Date) => new Date(date).toLocaleString('ru-RU', {
     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -149,4 +152,3 @@ export const LibraryBrowser: React.FC<LibraryBrowserProps> = ({
     </Stack>
   )
 }
-

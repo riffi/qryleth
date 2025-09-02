@@ -1,5 +1,5 @@
 import React from 'react'
-import { Stack, Box, Text, Group } from '@mantine/core'
+import { Stack, Box, Text, Group, Badge, Anchor } from '@mantine/core'
 import { IconCube, IconCalendar, IconPhoto } from '@tabler/icons-react'
 import { BaseCard, PreviewImage, MetadataBadges, ActionButtons } from '@/shared/ui'
 import type { ActionButton } from '@/shared/ui'
@@ -42,6 +42,10 @@ export interface ObjectCardProps {
   previewOverlay?: ReactNode
   /** Дата обновления объекта (если отличается от объекта) */
   updatedAt?: Date
+  /** Колбэк по клику на тег (если задан — теги станут кликабельными) */
+  onTagClick?: (tag: string) => void
+  /** Максимальное количество видимых тегов до сворачивания (по умолчанию 5) */
+  tagDisplayLimit?: number
 }
 
 /**
@@ -58,8 +62,11 @@ export const ObjectCard: React.FC<ObjectCardProps> = ({
   loading = false,
   actions = [],
   previewOverlay,
-  updatedAt
+  updatedAt,
+  onTagClick,
+  tagDisplayLimit = 5,
 }) => {
+  const [tagsExpanded, setTagsExpanded] = React.useState(false)
   /**
    * Получает размеры превью в зависимости от размера карточки
    */
@@ -93,6 +100,50 @@ export const ObjectCard: React.FC<ObjectCardProps> = ({
       icon: <IconPhoto size={12} />
     }] : [])
   ]
+
+  /**
+   * Рендер тегов с возможностью клика и сворачивания списка при большом количестве.
+   */
+  const renderTags = () => {
+    const tags = object.tags || []
+    if (!tags.length) return null
+
+    const limit = Math.max(1, tagDisplayLimit)
+    const visible = tagsExpanded ? tags : tags.slice(0, limit)
+    const hiddenCount = tags.length - visible.length
+
+    return (
+      <Group gap="xs" wrap="wrap">
+        {visible.map((t) => (
+          <Badge
+            key={t}
+            variant="outline"
+            color="gray"
+            style={{ cursor: onTagClick ? 'pointer' as const : 'default' }}
+            onClick={onTagClick ? () => onTagClick(t) : undefined}
+          >
+            {t}
+          </Badge>
+        ))}
+        {!tagsExpanded && hiddenCount > 0 && (
+          <Badge
+            variant="light"
+            color="blue"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setTagsExpanded(true)}
+            title={"Показать все теги"}
+          >
+            +{hiddenCount}
+          </Badge>
+        )}
+        {tagsExpanded && tags.length > limit && (
+          <Anchor size="xs" onClick={() => setTagsExpanded(false)}>
+            Свернуть
+          </Anchor>
+        )}
+      </Group>
+    )
+  }
 
   /**
    * Преобразует действия объекта в формат ActionButtons
@@ -156,10 +207,12 @@ export const ObjectCard: React.FC<ObjectCardProps> = ({
           </Group>
         )}
 
-        {/* Метаданные */}
+        {/* Метаданные: количество примитивов/материалов */}
         {showMetadata && (
           <MetadataBadges badges={badges} size="sm" />
         )}
+        {/* Теги объекта (кликабельные, с ограничением количества и возможностью раскрыть) */}
+        {showMetadata && renderTags()}
 
         {/* Кнопки действий */}
         {actions.length > 0 && (

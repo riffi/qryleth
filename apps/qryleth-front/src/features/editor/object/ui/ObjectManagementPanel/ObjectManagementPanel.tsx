@@ -3,6 +3,7 @@ import { Tabs, Box } from '@mantine/core';
 import { PrimitiveManager } from '../PrimitiveManager/PrimitiveManager.tsx';
 import { MaterialManager } from '../MaterialManager/MaterialManager.tsx';
 import { LightingControlPanel } from '../LightingControlPanel';
+import ObjectPropertiesPanel from '../PropertiesPanel/ObjectPropertiesPanel';
 
 /**
  * Панель управления объектом с вкладками "Примитивы" и "Материалы".
@@ -10,10 +11,10 @@ import { LightingControlPanel } from '../LightingControlPanel';
  * прокручиваются внутри самой панели, а не всей страницы или окна редактора.
  */
 export const ObjectManagementPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'primitives' | 'materials' | 'lighting'>('primitives');
+  const [activeTab, setActiveTab] = useState<'primitives' | 'materials' | 'lighting' | 'properties'>('primitives');
 
   const handleTabChange = (value: string | null) => {
-    setActiveTab((value as 'primitives' | 'materials' | 'lighting') || 'primitives');
+    setActiveTab((value as 'primitives' | 'materials' | 'lighting' | 'properties') || 'primitives');
   };
 
   return (
@@ -36,6 +37,7 @@ export const ObjectManagementPanel: React.FC = () => {
             <Tabs.Tab value="primitives">Примитивы</Tabs.Tab>
             <Tabs.Tab value="materials">Материалы</Tabs.Tab>
             <Tabs.Tab value="lighting">Освещение</Tabs.Tab>
+            <Tabs.Tab value="properties">Свойства</Tabs.Tab>
           </Tabs.List>
 
           {/* flex:1 + overflow:hidden гарантируют, что содержимое не выходит за рамки панели */}
@@ -56,6 +58,12 @@ export const ObjectManagementPanel: React.FC = () => {
               style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0, padding: 'var(--mantine-spacing-sm)'  }}
           >
             <LightingControlPanel />
+          </Tabs.Panel>
+          <Tabs.Panel
+              value="properties"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}
+          >
+            <ObjectPropertiesPanel />
           </Tabs.Panel>
         </Tabs>
       </Box>

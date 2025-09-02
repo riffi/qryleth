@@ -55,6 +55,17 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   externalPanelState,
   hideHeader = false,
 }) => {
+  // Инициализируем стор метаданных из входного объекта при монтировании/смене объекта
+  useEffect(() => {
+    (async () => {
+      try {
+        const { useObjectMetaStore } = await import('@/features/editor/object/model/objectMetaStore')
+        useObjectMetaStore.getState().loadFromObject(objectData)
+      } catch (e) {
+        console.warn('Не удалось инициализировать метаданные объекта:', e)
+      }
+    })()
+  }, [objectData])
   // Persist‑раскладка ObjectEditor (инициализация и сеттеры ширин панелей)
   const layout = useObjectPanelLayout()
 

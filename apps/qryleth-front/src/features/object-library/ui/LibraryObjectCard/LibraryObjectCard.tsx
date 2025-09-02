@@ -4,6 +4,7 @@ import { ObjectCard } from '@/entities/object/ui'
 import type { ObjectCardAction } from '@/entities/object/ui'
 import type { ObjectRecord } from '@/shared/api/types'
 import { HoverInteractivePreview } from './HoverInteractivePreview'
+import { useLibraryStore } from '../../model/libraryStore'
 
 export interface LibraryObjectCardProps {
   /** Объект из библиотеки */
@@ -43,6 +44,7 @@ export const LibraryObjectCard: React.FC<LibraryObjectCardProps> = ({
 }) => {
   const [hovered, setHovered] = useState(false)
   const [hoverPreviewReady, setHoverPreviewReady] = useState(false)
+  const setSearchQuery = useLibraryStore(s => s.setSearchQuery)
 
   /**
    * Формирует список действий для карточки объекта
@@ -102,6 +104,8 @@ export const LibraryObjectCard: React.FC<LibraryObjectCardProps> = ({
         actions={actions}
         previewOverlay={previewOverlay}
         updatedAt={object.updatedAt}
+        onTagClick={(tag) => setSearchQuery(tag)}
+        tagDisplayLimit={5}
       />
     </div>
   )
