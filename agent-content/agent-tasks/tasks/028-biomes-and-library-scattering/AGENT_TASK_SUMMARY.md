@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, library, scattering, ui, scripting]
 phases:
   total: 5
-  completed: 2
+  completed: 3
 ---
 
 # Биомы: доменная модель, теги библиотеки, скаттеринг и интеграция
@@ -47,7 +47,7 @@ phases:
 
 Отчёт: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ◻️ Фаза 3: Скаттеринг по биомам (ядро)
+### ✅ Фаза 3: Скаттеринг по биомам (ядро)
 - Создать модуль `features/scene/lib/biomes/`:
   - `BiomeAreaUtils.ts` — попадание точки, вычисление расстояния до границы и fade‑коэффициента; поддержать формы: rect (с optional rotationY), circle, polygon; использовать `shared/types/geo2d` и функции из `shared/lib/math` (напр. `clamp`).
   - `RandomSampling.ts` — равномерная выборка точек по площади области с учётом edge‑веса (fade/bias).
@@ -56,13 +56,31 @@ phases:
 - Выход ядра: чистые функции без побочных эффектов, не модифицируют store (возвращают результат скаттеринга).
 - Документация в начале каждого метода на русском языке.
 
+Отчёт: [phases/phase_3_summary.md](phases/phase_3_summary.md)
+
 Критерии приёмки:
 - Поддержаны обе схемы распределения: `random` и `poisson`.
 - Учитываются `edge.fadeWidth`, `edge.fadeCurve: linear|smoothstep` и `edgeBias (-1..1)`.
 - Результаты детерминированы по `seed`.
 - Используются shared типы/функции; дублирования математики нет.
 
-### ◻️ Фаза 4: UI «Биомы» в SceneObjectManager (SceneEditor)
+### ◻️ Фаза 4: Интеграция в sceneAPI и ScriptingPanel
+
+— sceneAPI
+- Методы: `getBiomes()`, `addBiome()`, `updateBiome()`, `removeBiome()`, `scatterBiome(biomeUuid)`, `regenerateBiomeInstances(biomeUuid)`, `getInstancesByBiomeUuid(biomeUuid)`.
+- Сохранение/загрузка `biomes` уже поддерживаются через `SceneData`; проверить сериализацию и совместимость.
+- Размещение инстансов: создавать `SceneObjectInstance` с `biomeUuid`; реиспользовать существующие `SceneObject` по `libraryUuid` или добавлять при необходимости.
+
+— ScriptingPanel
+- Инструменты для управления биомами: создание/обновление/удаление, запуск скаттеринга/регенерации, выборка сводок.
+- Обновить `methodDocs` и примеры: особое внимание к различию `libraryUuid` и scene `uuid` (object/instance).
+- Строго использовать shared типы (geo2d, vector, transform) и математику из `shared/lib`.
+
+Критерии приёмки:
+- Полный набор API в `sceneAPI` и инструменты в `ScriptingPanel` работают согласованно.
+- Все математические функции используют shared типы/утилиты; дублирования нет.
+
+### ◻️ Фаза 5: UI «Биомы» в SceneObjectManager (SceneEditor)
 
 — UI в правой панели SceneEditor (SceneObjectManager)
 - Раздел «Биомы»:
@@ -79,7 +97,7 @@ phases:
   - Все вычисления предпросмотра/проверок — на shared типах/функциях.
 - Контекстное меню на биоме:
   - «Редактировать…», «Переименовать…», «Дублировать», «Сгенерировать», «Регенерировать», «Скрыть/Показать», «Выбрать инстансы биома», «Очистить инстансы», «Удалить биом».
-  - «Сгенерировать» триггерит вызов SceneAPI (см. фазу 5); «Регенерировать» — удаляет инстансы `biomeUuid` и повторно генерирует.
+  - Все операции с биомами из UI (создание/обновление/удаление, генерация/регенерация, выборка инстансов) выполнять через `sceneAPI`, не изменяя store напрямую.
 - 3D‑оверлей областей (R3F):
   - Выделение выбранного биома; отрисовка контура/заливки для rect (с rotationY), circle, polygon; отображение fade‑зоны.
   - Математика — строго через shared (`shared/types/geo2d`, `shared/types/vector3`, `shared/lib/math/*`).
@@ -87,22 +105,6 @@ phases:
 Критерии приёмки:
 - Раздел «Биомы» в SceneObjectManager реализован: список, модалка, контекстное меню, связь со store.
 - 3D‑оверлей корректен для всех поддерживаемых областей и fade‑зоны.
-
-### ◻️ Фаза 5: Интеграция в sceneAPI и ScriptingPanel
-
-— sceneAPI
-- Методы: `getBiomes()`, `addBiome()`, `updateBiome()`, `removeBiome()`, `scatterBiome(biomeUuid)`, `regenerateBiomeInstances(biomeUuid)`, `getInstancesByBiomeUuid(biomeUuid)`.
-- Сохранение/загрузка `biomes` уже поддерживаются через `SceneData`; проверить сериализацию и совместимость.
-- Размещение инстансов: создавать `SceneObjectInstance` с `biomeUuid`; реиспользовать существующие `SceneObject` по `libraryUuid` или добавлять при необходимости.
-
-— ScriptingPanel
-- Инструменты для управления биомами: создание/обновление/удаление, запуск скаттеринга/регенерации, выборка сводок.
-- Обновить `methodDocs` и примеры: особое внимание к различию `libraryUuid` и scene `uuid` (object/instance).
-- Строго использовать shared типы (geo2d, vector, transform) и математику из `shared/lib`.
-
-Критерии приёмки:
-- Полный набор API в `sceneAPI` и инструменты в `ScriptingPanel` работают согласованно.
-- Все математические функции используют shared типы/утилиты; дублирования нет.
 
 ## Технические ограничения и принципы
 - Следовать [design-principles.md](../../../../docs/architecture/design-principles.md).
