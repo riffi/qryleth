@@ -325,8 +325,8 @@ export const SceneLayerModals: React.FC = () => {
                 // Создаем GfxTerrainConfig для heightmap
                 const terrainConfig: GfxTerrainConfig = {
                     worldWidth: layerFormData.width || 100,
-                    // Глубина слоя маппится на высоту мира террейна (ось Z)
-                    worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || 100,
+                    // Глубина слоя (ось Z)
+                    worldDepth: ((layerFormData as any).depth ?? (layerFormData as any).height) || 100,
                     // Центр террейна — строим вокруг указанной точки
                     center: [centerX || 0, centerZ || 0],
                     edgeFade: 0,
@@ -391,7 +391,7 @@ export const SceneLayerModals: React.FC = () => {
 
             const terrainConfig: import('@/entities/terrain').GfxTerrainConfig = {
                 worldWidth: w,
-                worldHeight: d,
+                worldDepth: d,
                 center: [centerX || 0, centerZ || 0],
                 edgeFade: 0.15,
                 source: {
@@ -468,7 +468,7 @@ export const SceneLayerModals: React.FC = () => {
 
             const newTerrain: GfxTerrainConfig = {
                 worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
-                worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
+                worldDepth: ((layerFormData as any).depth ?? (layerFormData as any).height) || (currentTerrain as any)?.worldDepth || 100,
                 center: [centerX ?? (currentTerrain?.center?.[0] ?? 0), centerZ ?? (currentTerrain?.center?.[1] ?? 0)],
                 edgeFade: currentTerrain?.edgeFade ?? 0.15,
                 seaLevel: currentTerrain?.seaLevel,
@@ -538,7 +538,7 @@ export const SceneLayerModals: React.FC = () => {
 
             const newTerrain: GfxTerrainConfig = {
                 worldWidth: layerFormData.width || currentTerrain?.worldWidth || 100,
-                worldHeight: ((layerFormData as any).depth ?? (layerFormData as any).height) || currentTerrain?.worldHeight || 100,
+                worldDepth: ((layerFormData as any).depth ?? (layerFormData as any).height) || (currentTerrain as any)?.worldDepth || 100,
                 center: [centerX ?? (currentTerrain?.center?.[0] ?? 0), centerZ ?? (currentTerrain?.center?.[1] ?? 0)],
                 edgeFade: currentTerrain?.edgeFade ?? 0,
                 seaLevel: currentTerrain?.seaLevel,

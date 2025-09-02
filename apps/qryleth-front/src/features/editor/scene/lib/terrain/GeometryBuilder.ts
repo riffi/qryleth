@@ -25,7 +25,9 @@ export function buildGfxTerrainGeometry(cfg: GfxTerrainConfig, sampler: GfxHeigh
   const segments = decideSegments(cfg)
 
   // Создаём плоскость с одинаковым числом сегментов по X/Z
-  const geom = new THREE.PlaneGeometry(cfg.worldWidth, cfg.worldHeight, segments, segments)
+  // Второй параметр — глубина по оси Z (worldDepth), ранее именовалась worldHeight
+  const depth = (cfg as any).worldDepth ?? (cfg as any).worldHeight
+  const geom = new THREE.PlaneGeometry(cfg.worldWidth, depth, segments, segments)
   geom.rotateX(-Math.PI / 2) // горизонтальная ориентация (XZ-плоскость)
 
   const positionArray = geom.attributes.position.array as Float32Array

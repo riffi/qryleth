@@ -61,7 +61,7 @@ describe('LandscapeLayer (integration)', () => {
       depth: 10,
       terrain: {
         worldWidth: 10,
-        worldHeight: 10,
+        worldDepth: 10,
         source: { kind: 'perlin', params: { seed: 1, octaveCount: 1, amplitude: 0, persistence: 0.5, width: 8, height: 8 } }
       }
     }
@@ -82,7 +82,7 @@ describe('LandscapeLayer (integration)', () => {
       depth: 10,
       terrain: {
         worldWidth: 10,
-        worldHeight: 10,
+        worldDepth: 10,
         source: { kind: 'heightmap', params: { assetId: 'a', imgWidth: 2, imgHeight: 2, min: 0, max: 1 } }
       }
     }

@@ -52,7 +52,7 @@ export const FlyoverControls: React.FC = () => {
       }
 
       const W = t.worldWidth
-      const H = t.worldHeight
+      const H = (t as any).worldDepth
       const cx = t.center?.[0] ?? 0
       const cz = t.center?.[1] ?? 0
 

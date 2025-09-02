@@ -14,8 +14,8 @@ describe('ProceduralTerrainGenerator', () => {
       ]
     }
     const gen = new ProceduralTerrainGenerator()
-    const ops1 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldHeight: layer.height })
-    const ops2 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldHeight: layer.height })
+    const ops1 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldDepth: layer.height })
+    const ops2 = await gen.generateOpsFromPool(pool, 4242, { worldWidth: layer.width, worldDepth: layer.height })
     expect(ops1.length).toBe(ops2.length)
     for (let i = 0; i < ops1.length; i++) {
       expect(ops1[i].id).toEqual(ops2[i].id)
@@ -32,7 +32,7 @@ describe('ProceduralTerrainGenerator', () => {
       ]
     }
     const gen = new ProceduralTerrainGenerator()
-    const ops = await gen.generateOpsFromPool(pool, 7, { worldWidth: layer.width, worldHeight: layer.height })
+    const ops = await gen.generateOpsFromPool(pool, 7, { worldWidth: layer.width, worldDepth: layer.height })
     expect(ops.length).toBeLessThanOrEqual(3)
   })
 
@@ -46,7 +46,7 @@ describe('ProceduralTerrainGenerator', () => {
     const gen = new ProceduralTerrainGenerator()
     const cfg = await gen.generateTerrain(spec)
     expect(cfg.worldWidth).toBe(layer.width)
-    expect(cfg.worldHeight).toBe(layer.height)
+    expect(cfg.worldDepth).toBe(layer.height)
     expect(cfg.source.kind).toBe('perlin')
     expect(cfg.ops && cfg.ops.length).toBeGreaterThan(0)
 
@@ -68,8 +68,8 @@ describe('ProceduralTerrainGenerator', () => {
     } as any
     const cfgDepth = await gen.generateTerrain(specDepth)
     expect(cfgDepth.worldWidth).toBe(120)
-    // worldHeight хранит глубину Z (совместимость)
-    expect(cfgDepth.worldHeight).toBe(80)
+    // worldDepth хранит глубину Z
+    expect(cfgDepth.worldDepth).toBe(80)
 
     const specHeight: GfxProceduralTerrainSpec = {
       world: { width: 120, height: 80, edgeFade: 0.05 } as any,
@@ -79,7 +79,7 @@ describe('ProceduralTerrainGenerator', () => {
     } as any
     const cfgHeight = await gen.generateTerrain(specHeight)
     expect(cfgHeight.worldWidth).toBe(120)
-    expect(cfgHeight.worldHeight).toBe(80)
+    expect(cfgHeight.worldDepth).toBe(80)
   })
 
   it('generateOpsFromPool: принимает worldDepth и работает с fallback на worldHeight', async () => {

@@ -8,7 +8,7 @@
  * @param x — мировая координата X
  * @param z — мировая координата Z
  * @param worldWidth — ширина мира по X
- * @param worldHeight — ширина мира по Z
+ * @param worldDepth — глубина мира по Z
  * @param edgeFade — доля от края для затухания (0..1)
  * @returns множитель [0..1]
  */
@@ -16,17 +16,16 @@ export function calculateEdgeFade(
   x: number,
   z: number,
   worldWidth: number,
-  worldHeight: number,
+  worldDepth: number,
   edgeFade: number
 ): number {
   const halfW = worldWidth / 2
-  const halfH = worldHeight / 2
+  const halfH = worldDepth / 2
   const distLeft = (x + halfW) / worldWidth
   const distRight = (halfW - x) / worldWidth
-  const distTop = (z + halfH) / worldHeight
-  const distBottom = (halfH - z) / worldHeight
+  const distTop = (z + halfH) / worldDepth
+  const distBottom = (halfH - z) / worldDepth
   const edgeDistance = Math.min(distLeft, distRight, distTop, distBottom)
   const fade = Math.max(0, Math.min(1, edgeDistance / edgeFade))
   return fade
 }
-

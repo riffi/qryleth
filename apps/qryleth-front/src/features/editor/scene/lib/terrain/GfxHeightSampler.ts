@@ -58,6 +58,10 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * генерация геометрии использовала реальные высоты без ожидания.
    */
   constructor(config: GfxTerrainConfig) {
+    // Нормализуем конфигурацию: поддержка legacy-поля worldHeight как алиаса глубины
+    if ((config as any).worldDepth == null && (config as any).worldHeight != null) {
+      (config as any).worldDepth = (config as any).worldHeight
+    }
     this.config = config;
     // Если источник — heightmap, пробуем подставить кэшированные данные:
     // 1) сначала числовое поле высот (heights),
@@ -134,7 +138,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         xLocal,
         zLocal,
         this.config.worldWidth,
-        this.config.worldHeight,
+        this.config.worldDepth,
         this.config.edgeFade
       )
       const baseLevel = this.getSourceBaseLevel()
@@ -219,7 +223,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    */
   private updateSampleStepBasedOnSource(): void {
     const worldW = Math.max(1e-6, this.config.worldWidth)
-    const worldH = Math.max(1e-6, this.config.worldHeight)
+    const worldH = Math.max(1e-6, this.config.worldDepth)
     const worldMin = Math.min(worldW, worldH)
 
     let gridW = 2
@@ -297,7 +301,8 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns функция для получения высоты из Perlin noise
    */
   private createPerlinSource(params: GfxPerlinParams) {
-    return createPerlinSource(params, { worldWidth: this.config.worldWidth, worldHeight: this.config.worldHeight })
+    // Создаёт источник Перлин-шума с корректной передачей размера по Z как worldDepth
+    return createPerlinSource(params, { worldWidth: this.config.worldWidth, worldDepth: this.config.worldDepth })
   }
 
   /** Возвращает true, если источник высот готов для корректных выборок. */
@@ -353,7 +358,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
           x,
           z,
           this.config.worldWidth,
-          this.config.worldHeight,
+          this.config.worldDepth,
           params,
           this.heightsField.heights,
           this.heightsField.width,
@@ -385,7 +390,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
         x,
         z,
         this.config.worldWidth,
-        this.config.worldHeight,
+        this.config.worldDepth,
         params,
         this.heightmapImageData!
       );

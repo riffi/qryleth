@@ -52,7 +52,7 @@ export function createSceneApiBridge() {
     generateTerrainOpsFromPool: (
       pool: import('@/entities/terrain').GfxTerrainOpPool,
       seed: number,
-      opts?: import('@/entities/terrain').GfxOpsGenerationOptions & { worldWidth?: number; worldHeight?: number }
+      opts?: import('@/entities/terrain').GfxOpsGenerationOptions & { worldWidth?: number; worldDepth?: number; worldHeight?: number }
     ) => SceneAPI.generateTerrainOpsFromPool(pool, seed, opts),
     createProceduralLayer: (
       spec: import('@/entities/terrain').GfxProceduralTerrainSpec,

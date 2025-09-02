@@ -4,19 +4,19 @@
  * @param x — мировая координата X
  * @param z — мировая координата Z
  * @param worldWidth — ширина мира по X
- * @param worldHeight — ширина мира по Z
+ * @param worldDepth — глубина мира по Z
  * @returns кортеж [u, v] без учета wrap (повтор/обрезка применяется отдельно)
  */
 export function worldToUV(
   x: number,
   z: number,
   worldWidth: number,
-  worldHeight: number
+  worldDepth: number
 ): [number, number] {
   const halfW = worldWidth / 2
-  const halfH = worldHeight / 2
+  const halfH = worldDepth / 2
   const u = (x + halfW) / worldWidth
-  const v = (z + halfH) / worldHeight
+  const v = (z + halfH) / worldDepth
   return [u, v]
 }
 
@@ -49,4 +49,3 @@ export function applyWrap(
       return [Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v))]
   }
 }
-

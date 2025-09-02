@@ -17,7 +17,7 @@ describe('GeometryBuilder', () => {
   it('decideSegments: heightmap → учитывает (imgWidth-1, imgHeight-1) с ограничениями', () => {
     const cfg: GfxTerrainConfig = {
       worldWidth: 10,
-      worldHeight: 10,
+      worldDepth: 10,
       source: { kind: 'heightmap', params: { assetId: 'a', imgWidth: 33, imgHeight: 17, min: 0, max: 1 } }
     }
     const s = decideSegments(cfg)
@@ -28,7 +28,7 @@ describe('GeometryBuilder', () => {
   it('decideSegments: perlin → учитывает (width-1, height-1) с нижней границей 10', () => {
     const cfg: GfxTerrainConfig = {
       worldWidth: 10,
-      worldHeight: 10,
+      worldDepth: 10,
       source: { kind: 'perlin', params: { seed: 1, octaveCount: 1, amplitude: 1, persistence: 0.5, width: 8, height: 8 } }
     }
     const s = decideSegments(cfg)
@@ -39,7 +39,7 @@ describe('GeometryBuilder', () => {
   it('buildGfxTerrainGeometry: создаёт плоскость нужного размера', () => {
     const cfg: GfxTerrainConfig = {
       worldWidth: 20,
-      worldHeight: 10,
+      worldDepth: 10,
       source: { kind: 'perlin', params: { seed: 1, octaveCount: 1, amplitude: 0, persistence: 0.5, width: 10, height: 10 } }
     }
     const geom = buildGfxTerrainGeometry(cfg, flatSampler)
@@ -47,8 +47,7 @@ describe('GeometryBuilder', () => {
     const bb = geom.boundingBox!
     expect(bb.min.x).toBeCloseTo(-cfg.worldWidth / 2, 6)
     expect(bb.max.x).toBeCloseTo(cfg.worldWidth / 2, 6)
-    expect(bb.min.z).toBeCloseTo(-cfg.worldHeight / 2, 6)
-    expect(bb.max.z).toBeCloseTo(cfg.worldHeight / 2, 6)
+    expect(bb.min.z).toBeCloseTo(-cfg.worldDepth / 2, 6)
+    expect(bb.max.z).toBeCloseTo(cfg.worldDepth / 2, 6)
   })
 })
-

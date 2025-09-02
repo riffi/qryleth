@@ -31,7 +31,7 @@ export const generateRandomNoCollisionPosition = (options: RandomNoCollisionPara
   }
 
   const worldW = landscapeLayer ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10) : 10
-  const worldH = landscapeLayer ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.height ?? 10) : 10
+  const worldH = landscapeLayer ? (landscapeLayer.terrain?.worldDepth ?? 10) : 10
   const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
   const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
   const defaultBounds = {
@@ -78,4 +78,3 @@ export const generateRandomNoCollisionPosition = (options: RandomNoCollisionPara
   const y = landscapeLayer ? queryHeightAtCoordinate(landscapeLayer, x, z) - (newObjectBoundingBox.min[1] * scaleY) : 0
   return [x, y, z]
 }
-

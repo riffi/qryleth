@@ -127,8 +127,14 @@ export interface GfxAdaptiveTessellationConfig {
 export interface GfxTerrainConfig {
   /** Ширина области в мировых координатах */
   worldWidth: number;
-  /** Высота области в мировых координатах */
-  worldHeight: number;
+  /**
+   * Глубина области в мировых координатах (ось Z).
+   *
+   * Исторически это поле называлось worldHeight, что вводило в заблуждение,
+   * поскольку речь идёт не о вертикальной «высоте» (ось Y), а о размере по Z.
+   * Теперь используется корректное название worldDepth.
+   */
+  worldDepth: number;
   /**
    * Центр террейна в мировых координатах [x, z].
    *

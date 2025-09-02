@@ -9,7 +9,7 @@ describe('TerrainFactory', () => {
     expect(cfg1.worldWidth).toBeGreaterThan(0)
     expect(cfg1.ops && cfg1.ops.length).toBeGreaterThan(0)
     expect(cfg1.worldWidth).toBe(cfg2.worldWidth)
-    expect(cfg1.worldHeight).toBe(cfg2.worldHeight)
+    expect((cfg1 as any).worldDepth).toBe((cfg2 as any).worldDepth)
     expect(cfg1.ops!.map(o => o.id)).toEqual(cfg2.ops!.map(o => o.id))
 
     const sampler = createGfxHeightSampler(cfg1)
@@ -36,4 +36,3 @@ describe('TerrainFactory', () => {
     expect(d.base.width).toBeGreaterThan(0)
   })
 })
-

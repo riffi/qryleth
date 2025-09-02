@@ -10,7 +10,7 @@ describe('GfxHeightSampler', () => {
   it('Perlin источник: isReady=true и ready() мгновенно', async () => {
     const cfg: GfxTerrainConfig = {
       worldWidth: 10,
-      worldHeight: 10,
+      worldDepth: 10,
       source: { kind: 'perlin', params: { seed: 42, octaveCount: 2, amplitude: 0.1, persistence: 0.5, width: 16, height: 16 } }
     }
     const sampler = createGfxHeightSampler(cfg)
@@ -24,7 +24,7 @@ describe('GfxHeightSampler', () => {
 
     const cfg: GfxTerrainConfig = {
       worldWidth: 2,
-      worldHeight: 2,
+      worldDepth: 2,
       source: { kind: 'heightmap', params: { assetId, imgWidth: 2, imgHeight: 2, min: 0, max: 1, wrap: 'clamp' } }
     }
     const sampler = createGfxHeightSampler(cfg)
@@ -46,7 +46,7 @@ describe('GfxHeightSampler', () => {
 
     const cfg: GfxTerrainConfig = {
       worldWidth: 2,
-      worldHeight: 2,
+      worldDepth: 2,
       source: { kind: 'heightmap', params: { assetId, imgWidth: 2, imgHeight: 2, min: 0, max: 1 } }
     }
     const sampler = createGfxHeightSampler(cfg)
@@ -59,7 +59,7 @@ describe('GfxHeightSampler', () => {
     setCachedHeightsField(assetId, { heights: new Float32Array([0, 0, 0, 0]), width: 2, height: 2 })
     const cfg: GfxTerrainConfig = {
       worldWidth: 2,
-      worldHeight: 2,
+      worldDepth: 2,
       source: { kind: 'heightmap', params: { assetId, imgWidth: 2, imgHeight: 2, min: 0, max: 0 } } // плоская
     }
     const sampler = createGfxHeightSampler(cfg)
@@ -69,4 +69,3 @@ describe('GfxHeightSampler', () => {
     expect(n[2]).toBeCloseTo(0, 6)
   })
 })
-

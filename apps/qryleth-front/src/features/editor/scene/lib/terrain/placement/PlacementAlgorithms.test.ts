@@ -4,26 +4,26 @@ import { placeUniform, placePoisson, placeGridJitter, placeRing, placePoints } f
 
 describe('PlacementAlgorithms', () => {
   const worldWidth = 100
-  const worldHeight = 80
+  const worldDepth = 80
 
   it('uniform: детерминированность и попадание в мир', () => {
     const rng1 = createRng(12345)
     const rng2 = createRng(12345)
-    const pts1 = placeUniform(20, rng1, { worldWidth, worldHeight })
-    const pts2 = placeUniform(20, rng2, { worldWidth, worldHeight })
+    const pts1 = placeUniform(20, rng1, { worldWidth, worldDepth })
+    const pts2 = placeUniform(20, rng2, { worldWidth, worldDepth })
     expect(pts1.length).toBe(20)
     expect(pts2.length).toBe(20)
     for (let i = 0; i < 20; i++) {
       expect(pts1[i]).toEqual(pts2[i])
       expect(Math.abs(pts1[i].x)).toBeLessThanOrEqual(worldWidth / 2)
-      expect(Math.abs(pts1[i].z)).toBeLessThanOrEqual(worldHeight / 2)
+      expect(Math.abs(pts1[i].z)).toBeLessThanOrEqual(worldDepth / 2)
     }
   })
 
   it('poisson: точки не ближе minDistance', () => {
     const rng = createRng(777)
     const minD = 5
-    const pts = placePoisson(25, minD, rng, { worldWidth, worldHeight })
+    const pts = placePoisson(25, minD, rng, { worldWidth, worldDepth })
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         const dx = pts[i].x - pts[j].x
@@ -38,11 +38,11 @@ describe('PlacementAlgorithms', () => {
     const rng = createRng(42)
     const count = 10
     const cell = 10
-    const pts = placeGridJitter(count, cell, 0.5, rng, { worldWidth, worldHeight })
+    const pts = placeGridJitter(count, cell, 0.5, rng, { worldWidth, worldDepth })
     expect(pts.length).toBe(count)
     for (const p of pts) {
       expect(Math.abs(p.x)).toBeLessThanOrEqual(worldWidth / 2 + 1e-6)
-      expect(Math.abs(p.z)).toBeLessThanOrEqual(worldHeight / 2 + 1e-6)
+      expect(Math.abs(p.z)).toBeLessThanOrEqual(worldDepth / 2 + 1e-6)
     }
   })
 
@@ -52,7 +52,7 @@ describe('PlacementAlgorithms', () => {
     const cz = -7
     const rMin = 10
     const rMax = 20
-    const pts = placeRing(16, cx, cz, rMin, rMax, rng, { worldWidth, worldHeight })
+    const pts = placeRing(16, cx, cz, rMin, rMax, rng, { worldWidth, worldDepth })
     // допускаем некоторое число отфильтрованных точек у границ мира
     expect(pts.length).toBeGreaterThan(10)
     for (const p of pts) {
@@ -60,17 +60,17 @@ describe('PlacementAlgorithms', () => {
       expect(d).toBeGreaterThanOrEqual(rMin - 1e-6)
       expect(d).toBeLessThanOrEqual(rMax + 1e-6)
       expect(Math.abs(p.x)).toBeLessThanOrEqual(worldWidth / 2 + 1e-6)
-      expect(Math.abs(p.z)).toBeLessThanOrEqual(worldHeight / 2 + 1e-6)
+      expect(Math.abs(p.z)).toBeLessThanOrEqual(worldDepth / 2 + 1e-6)
     }
   })
 
   it('placePoints: диспетчер по типу', () => {
     const rng = createRng(2025)
-    const uniformPts = placePoints({ type: 'uniform' }, 5, rng, { worldWidth, worldHeight })
+    const uniformPts = placePoints({ type: 'uniform' }, 5, rng, { worldWidth, worldDepth })
     expect(uniformPts.length).toBe(5)
 
     const rng2 = createRng(2025)
-    const poissonPts = placePoints({ type: 'poisson', minDistance: 4 }, 8, rng2, { worldWidth, worldHeight })
+    const poissonPts = placePoints({ type: 'poisson', minDistance: 4 }, 8, rng2, { worldWidth, worldDepth })
     expect(poissonPts.length).toBeGreaterThan(0)
   })
 
@@ -81,7 +81,7 @@ describe('PlacementAlgorithms', () => {
       { type: 'uniform', area: { kind: 'rect', x: -50, z: 30, width: 100, depth: 10 } },
       20,
       rng,
-      { worldWidth, worldHeight }
+      { worldWidth, worldDepth }
     )
     expect(ptsDepth.length).toBe(20)
     for (const p of ptsDepth) {
@@ -99,7 +99,7 @@ describe('PlacementAlgorithms', () => {
       { type: 'uniform', area: { kind: 'rect', x: -10, z: -5, width: 20, depth: 10 } },
       30,
       rng,
-      { worldWidth: W, worldHeight: H }
+      { worldWidth: W, worldDepth: H }
     )
     expect(pts.length).toBe(30)
     for (const p of pts) {

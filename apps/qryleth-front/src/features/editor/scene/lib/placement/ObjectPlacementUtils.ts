@@ -71,7 +71,7 @@ export const generateObjectPlacement = (options: PlacementOptions): PlacementRes
     ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10)
     : 10
   const worldH = landscapeLayer
-    ? (landscapeLayer.terrain?.worldHeight ?? landscapeLayer.depth ?? 10)
+    ? (landscapeLayer.terrain?.worldDepth ?? landscapeLayer.depth ?? 10)
     : 10
   const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
   const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
@@ -406,7 +406,7 @@ export const adjustAllInstancesForPerlinTerrain = (
   // Для Landscape слоя термин «глубина» хранится в поле depth.
   // Приоритет: берём реальные размеры из конфигурации террейна, затем поля слоя (width/depth|height).
   const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
-  const layerDepth = terrainLayer.terrain?.worldHeight ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
+  const layerDepth = terrainLayer.terrain?.worldDepth ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
   const halfWidth = layerWidth / 2
   const halfDepth = layerDepth / 2
 
@@ -486,7 +486,7 @@ export const adjustAllInstancesForTerrainAsync = async (
   }
 
   const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
-  const layerDepth = terrainLayer.terrain?.worldHeight ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
+  const layerDepth = terrainLayer.terrain?.worldDepth ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
   const halfWidth = layerWidth / 2
   const halfDepth = layerDepth / 2
 

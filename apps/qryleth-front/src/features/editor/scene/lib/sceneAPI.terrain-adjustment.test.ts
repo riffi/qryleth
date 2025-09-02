@@ -23,7 +23,7 @@ describe('Terrain Layer Detection for Object Adjustment', () => {
       shape: GfxLayerShape.Terrain,
       terrain: {
         worldWidth: 10,
-        worldHeight: 10,
+        worldDepth: 10,
         edgeFade: 0.15,
         source: {
           kind: 'perlin',

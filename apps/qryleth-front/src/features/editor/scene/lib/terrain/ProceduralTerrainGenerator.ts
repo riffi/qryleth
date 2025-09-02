@@ -264,7 +264,7 @@ export class ProceduralTerrainGenerator {
 
     const config: GfxTerrainConfig = {
       worldWidth,
-      worldHeight: worldDepth,
+      worldDepth,
       edgeFade: layerConf.edgeFade,
       // Пробрасываем центр слоя из спецификации (если задан)
       center: layerConf.center,

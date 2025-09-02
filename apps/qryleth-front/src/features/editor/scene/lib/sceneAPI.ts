@@ -178,31 +178,32 @@ export class SceneAPI {
   static async generateTerrainOpsFromPool(
     pool: GfxTerrainOpPool,
     seed?: number,
-    opts?: GfxOpsGenerationOptions & { worldWidth?: number; worldHeight?: number }
+    opts?: GfxOpsGenerationOptions & { worldWidth?: number; worldDepth?: number; worldHeight?: number }
   ): Promise<GfxTerrainOp[]> {
     const gen = new ProceduralTerrainGenerator()
 
     // Определяем размеры мира: из opts или из первого подходящего слоя
     let worldWidth = opts?.worldWidth
-    let worldHeight = opts?.worldHeight
+    // Новый параметр — worldDepth; поддерживаем worldHeight как legacy алиас
+    let worldDepth = (opts as any)?.worldDepth ?? (opts as any)?.worldHeight
 
-    if (!worldWidth || !worldHeight) {
+    if (!worldWidth || !worldDepth) {
       const layer = SceneAPI.pickLandscapeLayer()
-      if (layer?.terrain?.worldWidth && layer?.terrain?.worldHeight) {
+      if (layer?.terrain?.worldWidth && (layer?.terrain as any)?.worldDepth) {
         worldWidth = layer.terrain.worldWidth
-        worldHeight = layer.terrain.worldHeight
+        worldDepth = (layer.terrain as any).worldDepth
       }
     }
 
-    if (!worldWidth || !worldHeight) {
-      throw new Error('generateTerrainOpsFromPool: не заданы worldWidth/worldHeight и не найден Terrain-слой')
+    if (!worldWidth || !worldDepth) {
+      throw new Error('generateTerrainOpsFromPool: не заданы worldWidth/worldDepth и не найден Terrain-слой')
     }
 
     // Если seed не передан — генерируем автоматически для недетерминированного сценария
     const actualSeed = seed ?? generateRandomSeed()
     return gen.generateOpsFromPool(pool, actualSeed, {
       worldWidth,
-      worldHeight,
+      worldDepth,
       area: opts?.area,
       sampler: opts?.sampler
     })
@@ -655,7 +656,7 @@ export class SceneAPI {
         const gridH = d > 200 ? 200 : d
         const defaultTerrain: import('@/entities/terrain').GfxTerrainConfig = {
           worldWidth: w,
-          worldHeight: d,
+          worldDepth: d,
           edgeFade: 0.15,
           source: {
             kind: 'perlin',

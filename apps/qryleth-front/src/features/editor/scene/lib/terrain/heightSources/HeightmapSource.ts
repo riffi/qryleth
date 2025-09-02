@@ -14,7 +14,7 @@ import { sampleHeightsFieldBilinear, sampleImageDataBilinear } from '@/features/
  * @param x — мировая X
  * @param z — мировая Z
  * @param worldWidth — ширина мира X
- * @param worldHeight — ширина мира Z
+ * @param worldDepth — глубина мира Z
  * @param params — параметры heightmap (min/max, wrap)
  * @param heights — массив высот [0..1]
  * @param width — ширина решётки высот
@@ -24,13 +24,13 @@ export function sampleHeightFromHeightsField(
   x: number,
   z: number,
   worldWidth: number,
-  worldHeight: number,
+  worldDepth: number,
   params: GfxHeightmapParams,
   heights: Float32Array,
   width: number,
   height: number
 ): number {
-  let [u, v] = worldToUV(x, z, worldWidth, worldHeight)
+  let [u, v] = worldToUV(x, z, worldWidth, worldDepth)
   ;[u, v] = applyWrap(u, v, params.wrap || 'clamp')
   const px = u * (width - 1)
   const py = v * (height - 1)
@@ -44,7 +44,7 @@ export function sampleHeightFromHeightsField(
  * @param x — мировая X
  * @param z — мировая Z
  * @param worldWidth — ширина мира X
- * @param worldHeight — ширина мира Z
+ * @param worldDepth — глубина мира Z
  * @param params — параметры heightmap (min/max, wrap, imgWidth/imgHeight — справочные)
  * @param imageData — пиксельные данные PNG
  */
@@ -52,11 +52,11 @@ export function sampleHeightFromImageData(
   x: number,
   z: number,
   worldWidth: number,
-  worldHeight: number,
+  worldDepth: number,
   params: GfxHeightmapParams,
   imageData: ImageData
 ): number {
-  let [u, v] = worldToUV(x, z, worldWidth, worldHeight)
+  let [u, v] = worldToUV(x, z, worldWidth, worldDepth)
   ;[u, v] = applyWrap(u, v, params.wrap || 'clamp')
   const px = u * (imageData.width - 1)
   const py = v * (imageData.height - 1)

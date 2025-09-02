@@ -11,7 +11,7 @@ import type { GfxPerlinParams } from '@/entities/terrain'
  * - Итоговая высота масштабируется коэффициентом 4 для совместимости с прежней реализацией.
  *
  * @param params — параметры генерации Перлин-шума (seed, octaveCount, amplitude, persistence, width, height)
- * @param world — размеры мира { worldWidth, worldHeight }
+ * @param world — размеры мира { worldWidth, worldDepth }
  * @returns функция (x,z)=>y, выдающая высоту по мировым координатам
  */
 /**
@@ -24,12 +24,12 @@ import type { GfxPerlinParams } from '@/entities/terrain'
  *   это позволяет опускать/поднимать базу рельефа относительно Y=0.
  *
  * @param params — параметры генерации Перлин-шума (seed, octaveCount, amplitude, persistence, width, height, heightOffset?)
- * @param world — размеры мира { worldWidth, worldHeight }
+ * @param world — размеры мира { worldWidth, worldDepth }
  * @returns функция (x,z)=>y, выдающая высоту по мировым координатам
  */
 export function createPerlinSource(
   params: GfxPerlinParams,
-  world: { worldWidth: number; worldHeight: number }
+  world: { worldWidth: number; worldDepth: number }
 ) {
   const noise = generatePerlinNoise(params.width + 1, params.height + 1, {
     octaveCount: params.octaveCount,
@@ -40,9 +40,9 @@ export function createPerlinSource(
 
   return (x: number, z: number): number => {
     const halfW = world.worldWidth / 2
-    const halfH = world.worldHeight / 2
+    const halfH = world.worldDepth / 2
     const u = (x + halfW) / world.worldWidth
-    const v = (z + halfH) / world.worldHeight
+    const v = (z + halfH) / world.worldDepth
     const ix = Math.max(0, Math.min(params.width, Math.floor(u * params.width)))
     const iz = Math.max(0, Math.min(params.height, Math.floor(v * params.height)))
     const idx = iz * (params.width + 1) + ix

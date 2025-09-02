@@ -127,7 +127,7 @@ export function useAIScriptGenerator() {
       '',
       '13) generateTerrainOpsFromPool(pool: GfxTerrainOpPool, seed?: number, opts?): Promise<GfxTerrainOp[]>',
       '    - Назначение: сгенерировать массив операций рельефа по пулу рецептов.',
-      '    - opts: { worldWidth: number, worldHeight: number, area?: {kind: "rect"|"circle", ...}, sampler?: GfxHeightSampler }',
+      '    - opts: { worldWidth: number, worldDepth: number, area?: {kind: "rect"|"circle", ...}, sampler?: GfxHeightSampler }',
       '',
       '14) createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success: boolean, layerId?: string, error?: string }>',
       '    - Назначение: создать слой Landscape/Terrain по спецификации и скорректировать инстансы под рельеф.',
