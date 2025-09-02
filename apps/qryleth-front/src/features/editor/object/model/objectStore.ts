@@ -270,14 +270,25 @@ export const useObjectStore = create<ObjectStore>()(
     setTransformMode: (mode: TransformMode) => set({ transformMode: mode }),
     // Инвертирует состояние видимости сетки
     toggleGridVisibility: () => set(state => ({ gridVisible: !state.gridVisible })),
-    // Выбирает примитив по индексу
-    selectPrimitive: (index: number) => set({ selectedPrimitiveIds: [index] }),
+    /**
+     * Выбирает примитив по индексу.
+     * Важно: выбор примитива сбрасывает выбор материала, чтобы исключить одновременный выбор
+     * (взаимоисключающий режим «примитивы vs материал»).
+     */
+    selectPrimitive: (index: number) => set({ selectedPrimitiveIds: [index], selectedMaterialUuid: null }),
+    /**
+     * Переключает выбор примитива по индексу.
+     * Если после переключения выбран хотя бы один примитив — сбрасываем выбор материала.
+     */
     togglePrimitiveSelection: (index: number) =>
       set(state => {
         const ids = state.selectedPrimitiveIds.includes(index)
           ? state.selectedPrimitiveIds.filter(id => id !== index)
           : [...state.selectedPrimitiveIds, index]
-        return { selectedPrimitiveIds: ids }
+        return {
+          selectedPrimitiveIds: ids,
+          selectedMaterialUuid: ids.length > 0 ? null : state.selectedMaterialUuid,
+        }
       }),
     // Инвертирует видимость примитива по индексу
     // Если примитив скрыт, он станет видимым и наоборот
@@ -287,7 +298,15 @@ export const useObjectStore = create<ObjectStore>()(
           i === index ? { ...p, visible: p.visible === false ? true : !p.visible } : p
         )
       })),
-    setSelectedPrimitives: (indices: number[]) => set({ selectedPrimitiveIds: indices }),
+    /**
+     * Устанавливает массив выбранных примитивов.
+     * Если список не пуст — сбрасываем выбранный материал (взаимоисключающий режим).
+     */
+    setSelectedPrimitives: (indices: number[]) =>
+      set(state => ({
+        selectedPrimitiveIds: indices,
+        selectedMaterialUuid: indices.length > 0 ? null : state.selectedMaterialUuid,
+      })),
     // Записывает ID наведённого примитива
     setHoveredPrimitive: (index: number | null) => set({ hoveredPrimitiveId: index }),
     // Снимает выделение
@@ -348,8 +367,15 @@ export const useObjectStore = create<ObjectStore>()(
         }
       }),
 
+    /**
+     * Выбирает материал для редактирования.
+     * Если выбран материал (не null) — сбрасываем выбор примитивов (взаимоисключающий режим).
+     */
     selectMaterial: (materialUuid: string | null) =>
-      set({ selectedMaterialUuid: materialUuid }),
+      set(state => ({
+        selectedMaterialUuid: materialUuid,
+        selectedPrimitiveIds: materialUuid ? [] : state.selectedPrimitiveIds,
+      })),
 
     isMaterialNameUnique: (name: string, excludeUuid?: string) => {
       const state = get()

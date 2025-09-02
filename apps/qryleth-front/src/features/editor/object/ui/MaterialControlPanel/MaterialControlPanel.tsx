@@ -78,7 +78,8 @@ export const MaterialControlPanel: React.FC = () => {
       <Paper
         shadow="sm"
         p="md"
-        style={{ width: 260, height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
+        // Панель материалов должна занимать всю доступную ширину левой панели
+        style={{ width: '100%', height: '100%', borderRadius: 0 }}
       >
         <Text size="sm" c="dimmed">
           Выберите материал для редактирования
@@ -91,7 +92,8 @@ export const MaterialControlPanel: React.FC = () => {
     <Paper
       shadow="sm"
       p="md"
-      style={{ width: 260, height: '100%', borderRadius: 0, borderRight: '1px solid var(--mantine-color-gray-8)' }}
+      // Занимаем всю ширину родительской левой панели (которая управляет своей шириной)
+      style={{ width: '100%', height: '100%', borderRadius: 0 }}
     >
       <Stack gap="sm" style={{ height: '100%' }}>
         <Group>

@@ -4,6 +4,8 @@ import { ObjectEditorR3F } from '@/features/editor/object'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditorLayout } from './Layout'
 import { ObjectChatInterface } from '@/features/editor/object/ui/ChatInterface'
+import { LeftToolbar as ObjectLeftToolbar, RightToolbar as ObjectRightToolbar } from '@/features/object-toolbar'
+import { useSelectedItemType, useSelectedMaterialUuid } from '@/features/editor/object/model/objectStore'
 
 export interface ObjectEditorProps {
   /**
@@ -61,6 +63,11 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   // Подбираем источник состояния панелей: внешнее (если передано) или собственное глобальное.
   const internalGlobalPanels = useGlobalPanelState()
   const panelStateBridge = useMemo(() => externalLayoutState ?? internalGlobalPanels, [externalLayoutState, internalGlobalPanels])
+
+  // Доступность действия «Свойства»: показываем только при выборе примитива или материала
+  const selectedItemType = useSelectedItemType()
+  const selectedMaterialUuid = useSelectedMaterialUuid()
+  const showPropertiesAction = selectedItemType === 'primitive' || !!selectedMaterialUuid
 
   /**
    * Формирует компонент ObjectChatInterface с привязкой к состоянию панелей и экшенам стора.
@@ -146,6 +153,18 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
       hideHeader={mode === 'embedded'}
       chatComponent={chatComponent}
     >
+      {/* Тулбары в стиле SceneEditor: вертикальные слева/справа для управления панелями */}
+      <ObjectLeftToolbar
+        chatCollapsed={panelStateBridge.panelState?.leftPanel !== 'chat'}
+        onToggleChat={() => panelStateBridge.togglePanel?.('chat')}
+        propertiesCollapsed={panelStateBridge.panelState?.leftPanel !== 'properties'}
+        onToggleProperties={() => panelStateBridge.togglePanel?.('properties')}
+        showPropertiesAction={showPropertiesAction}
+      />
+      <ObjectRightToolbar
+        managerCollapsed={panelStateBridge.panelState?.rightPanel !== 'manager'}
+        onToggleManager={() => panelStateBridge.togglePanel?.('manager')}
+      />
       <ObjectEditorR3F objectData={objectData} />
     </ObjectEditorLayout>
   )

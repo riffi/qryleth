@@ -6,6 +6,7 @@ import {
   useSelectedGroupUuids,
   useSelectedItemType
 } from '@/features/editor/object/model/objectStore'
+import { useObjectSelectedPrimitiveIds } from '@/features/editor/object/model/objectStore'
 import type { GfxObject } from '@/entities/object'
 import { useObjectPanelLayout } from '@/features/object-layout/hooks/useObjectPanelLayout'
 import { ObjectScene3D } from '@/features/editor/object/ui/renderer/ObjectScene3D'
@@ -134,17 +135,21 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
   const internalPanelState = usePanelState()
-  const { panelState, showPanel } = externalPanelState || internalPanelState
+  const { panelState, hidePanel } = externalPanelState || internalPanelState
+
+  // Текущее количество выбранных примитивов
+  const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
 
   /**
-   * При выборе конкретного материала/группы — автоматически переключаем левую панель на «Свойства»,
-   * чтобы пользователь сразу видел контекстные настройки.
+   * Если пользователь полностью снял выделение (нет примитивов, нет материала, нет группы)
+   * и при этом открыта панель «Свойства» — скрываем её, чтобы не показывать пустой контент.
    */
   useEffect(() => {
-    if ((selectedMaterialUuid || selectedGroupUuids.length > 0) && panelState.leftPanel === 'chat') {
-      showPanel('properties')
+    const nothingSelected = selectedPrimitiveIds.length === 0 && !selectedMaterialUuid && selectedGroupUuids.length === 0
+    if (panelState.leftPanel === 'properties' && nothingSelected) {
+      hidePanel?.('properties')
     }
-  }, [selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, showPanel])
+  }, [selectedPrimitiveIds.length, selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, hidePanel])
 
   /**
    * Рендерит левую панель: чат (если передан chatComponent) или свойства (материал/группа/примитив).
@@ -269,4 +274,3 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     </Box>
   )
 }
-
