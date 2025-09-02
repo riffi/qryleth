@@ -135,7 +135,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   const selectedGroupUuids = useSelectedGroupUuids()
   const selectedItemType = useSelectedItemType()
   const internalPanelState = usePanelState()
-  const { panelState, hidePanel } = externalPanelState || internalPanelState
+  const { panelState, hidePanel, showPanel } = externalPanelState || internalPanelState
 
   // Текущее количество выбранных примитивов
   const selectedPrimitiveIds = useObjectSelectedPrimitiveIds()
@@ -150,6 +150,18 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       hidePanel?.('properties')
     }
   }, [selectedPrimitiveIds.length, selectedMaterialUuid, selectedGroupUuids.length, panelState.leftPanel, hidePanel])
+
+  /**
+   * Авто‑открытие панели «Свойства», когда пользователь сделал выбор (примитив/материал/группа),
+   * но все левые панели скрыты. Если открыт чат — ничего не делаем.
+   */
+  useEffect(() => {
+    const hasSelection = !!selectedMaterialUuid || selectedItemType === 'primitive' || selectedGroupUuids.length > 0
+    const noLeftPanel = panelState.leftPanel === null
+    if (noLeftPanel && hasSelection) {
+      showPanel?.('properties')
+    }
+  }, [panelState.leftPanel, selectedMaterialUuid, selectedItemType, selectedGroupUuids.length, showPanel])
 
   /**
    * Рендерит левую панель: чат (если передан chatComponent) или свойства (материал/группа/примитив).

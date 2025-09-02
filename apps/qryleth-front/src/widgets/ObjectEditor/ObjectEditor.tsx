@@ -67,7 +67,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   // Доступность действия «Свойства»: показываем только при выборе примитива или материала
   const selectedItemType = useSelectedItemType()
   const selectedMaterialUuid = useSelectedMaterialUuid()
-  const showPropertiesAction = selectedItemType === 'primitive' || !!selectedMaterialUuid
+  // Кнопка «Свойства» доступна при выборе примитива, группы (одной или нескольких) или материала
+  const showPropertiesAction = selectedItemType === 'primitive' || selectedItemType === 'group' || !!selectedMaterialUuid
 
   /**
    * Формирует компонент ObjectChatInterface с привязкой к состоянию панелей и экшенам стора.
