@@ -70,6 +70,11 @@ phases:
 - Методы: `getBiomes()`, `addBiome()`, `updateBiome()`, `removeBiome()`, `scatterBiome(biomeUuid)`, `regenerateBiomeInstances(biomeUuid)`, `getInstancesByBiomeUuid(biomeUuid)`.
 - Сохранение/загрузка `biomes` уже поддерживаются через `SceneData`; проверить сериализацию и совместимость.
 - Размещение инстансов: создавать `SceneObjectInstance` с `biomeUuid`; реиспользовать существующие `SceneObject` по `libraryUuid` или добавлять при необходимости.
+ - Автоподстройка высоты по террейну (обязательно): после создания инстансов из placements выровнять их Y через `ObjectPlacementUtils`:
+   - Использовать `adjustAllInstancesForTerrainAsync(instances, terrainLayer, objectsWithBBoxes)` или синхронный вариант `adjustInstancesForTerrain(...)`.
+   - Файлы: `features/editor/scene/lib/placement/ObjectPlacementUtils.ts`, `features/editor/scene/lib/placement/terrainAdapter.ts` (GfxHeightSampler).
+   - Важно: передавать массив объектов сцены с `boundingBox`, чтобы нижняя грань объекта корректно становилась на поверхность. Террейн‑слой брать из активного landscape `SceneLayer`.
+   - Математика/высоты — через унифицированный `GfxHeightSampler`; никаких локальных реализаций в скаттеринге.
 
 — ScriptingPanel
 - Инструменты для управления биомами: создание/обновление/удаление, запуск скаттеринга/регенерации, выборка сводок.
