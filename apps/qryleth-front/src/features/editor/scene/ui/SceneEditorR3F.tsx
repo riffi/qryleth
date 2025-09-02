@@ -3,7 +3,6 @@ import {
   Box,
   Paper,
   Container,
-  Badge,
   ActionIcon,
   Tooltip,
   Group,
@@ -20,7 +19,7 @@ import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 // import from object-editor удалены: редактор поднимается на уровень виджета
 import { useSceneToolRegistration } from '@/features/editor/scene/lib/ai'
 import { notifications } from '@mantine/notifications'
-import { IconCheck, IconX, IconDeviceFloppy } from '@tabler/icons-react'
+import { IconCheck, IconX } from '@tabler/icons-react'
 import {
   useSceneStore,
   useViewMode,
@@ -31,7 +30,7 @@ import {
 } from '../model/sceneStore'
 import { useSceneHistory } from '@/features/editor/scene/lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
-import MainLayout from '@/widgets/layouts/MainLayout'
+// MainLayout убран из фичи; обёртка осуществляется на уровне виджета SceneEditor
 import { UiMode } from '@/shared/types/ui'
 import type { SceneStatus } from '@/entities/scene/types'
 import {
@@ -44,7 +43,7 @@ import {
   IconPlayerStop
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
-import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
+import { ViewModeSegment, DragHandleVertical } from '@/shared/ui'
 import { useScenePanelLayout } from '@/features/editor/scene/layout'
 // Тулбары передаются из виджета как компоненты (фича scene-toolbar)
 
@@ -442,78 +441,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
 
   return (
     <>
-      <MainLayout
-        headerVisible={!isPlay}
-        navbarVisible={!isPlay}
-        rightSection={(
-          <>
-            {/* Кнопка сохранения сцены (primary) + Play справа от неё */}
-            {!isPlay && (
-              <Group gap={8} wrap="nowrap" align="center">
-                <Group gap={6} wrap="nowrap" align="center">
-                  {/* Инлайн-редактирование названия сцены через shared компонент InlineEdit */}
-                  <InlineEdit
-                    value={sceneNameDraft}
-                    onChange={handleSceneNameChange}
-                    onEditStart={() => setIsEditingSceneName(true)}
-                    onEditEnd={handleSceneNameBlur}
-                    size="xs"
-                    ariaLabel={'Название сцены'}
-                    placeholder={'Название сцены'}
-                    minInputWidth={160}
-                  />
-                  {/* Компактный индикатор статуса рядом с названием */}
-                  <Badge color={getStatusColor(sceneMetaData.status as SceneStatus)} variant="light" size="sm">
-                    {getStatusText(sceneMetaData.status as SceneStatus)}
-                  </Badge>
-                </Group>
-
-                {sceneMetaData.status !== 'saved' && <Tooltip label="Сохранить (Ctrl/Cmd+S)" withArrow>
-                    <ActionIcon
-                        size="md"
-                        variant={'subtle'}
-                        color={'blue'}
-                        onClick={handleSaveSceneToLibrary}
-                        aria-label={'Сохранить'}
-                    >
-                      <IconDeviceFloppy size={24} />
-                    </ActionIcon>
-                  </Tooltip>
-                }
-              </Group>
-            )}
-
-            <Divider ml="md" mr="md" orientation="vertical"  />
-
-            <Tooltip label="Отменить (Ctrl+Z)">
-              <ActionIcon variant="subtle" size="sm" onClick={undo} disabled={!canUndo}>
-                <IconArrowBack size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
-
-            <Tooltip label="Вернуть (Ctrl+Y)">
-              <ActionIcon variant="subtle" size="sm" onClick={redo} disabled={!canRedo}>
-                <IconArrowForward size="1.5rem" />
-              </ActionIcon>
-            </Tooltip>
-            <Divider ml="md" mr="md" orientation="vertical"  />
-
-
-            {!isPlay && (
-                <Tooltip label="Войти в режим просмотра (Play)" withArrow>
-                  <Button
-                    variant={"gradient"}
-                    style={{height: '32px'}}
-                    onClick={() => togglePlay()}
-                    rightSection={<IconPlayerPlay size={18} />}
-                  >
-                    Play
-                  </Button>
-                </Tooltip>
-            )}
-          </>
-        )}
-      >
         <Container
           size="xl"
           fluid
@@ -709,7 +636,6 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
           />
         )}
       </Container>
-      </MainLayout>
 
       {/* Подтверждение удаления инстанса */}
       <Modal

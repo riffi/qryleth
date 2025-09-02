@@ -13,7 +13,7 @@ import {
   IconRipple
 } from '@tabler/icons-react'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
-import type { ObjectInfo } from './types.ts'
+import type { ObjectInfo } from './SceneObjectItem.tsx'
 import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneObjectManager } from './SceneObjectManagerContext.tsx'
 import { GfxLayerType } from '@/entities/layer'
@@ -154,13 +154,9 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
                       leftSection={<IconEdit size={14}/>}
                       onClick={() => openEditLayerModal(layer)}
                   >
-                    Переименовать
+                    {layer.type === GfxLayerType.Landscape ? 'Изменить' : 'Переименовать'}
                   </Menu.Item>
-                  {layer.type === GfxLayerType.Landscape && (
-                      <Menu.Item onClick={() => openEditLayerModal(layer)}>
-                        Изменить
-                      </Menu.Item>
-                  )}
+
                   {layer.id !== 'objects' && (
                       <Menu.Item
                           leftSection={<IconTrash size={14}/>}

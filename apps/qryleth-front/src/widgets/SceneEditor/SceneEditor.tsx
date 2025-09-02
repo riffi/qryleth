@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { SceneEditorR3F } from '@/features/editor/scene/ui'
+import { SceneEditorR3F, SceneHeaderRight } from '@/features/editor/scene/ui'
 import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/editor/scene/toolbar'
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
@@ -8,6 +8,8 @@ import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import MainLayout from '@/widgets/layouts/MainLayout'
+import { UiMode } from '@/shared/types/ui'
 import { notifications } from '@mantine/notifications'
 
 export interface SceneEditorProps {
@@ -41,6 +43,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
   const setViewMode = useSceneStore(s => s.setViewMode)
   const togglePlay = useSceneStore(s => s.togglePlay)
   usePlayHotkeys({ uiMode, onExitPlay: () => togglePlay(), onSetViewMode: (m) => setViewMode(m as any) })
+  const isPlay = uiMode === UiMode.Play
 
   const handleSaveRequest = (payload: { uuid?: string; name?: string }) => {
     if (payload.uuid) {
@@ -107,7 +110,17 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
   }
 
   return (
-    <>
+    <MainLayout
+      headerVisible={!isPlay}
+      navbarVisible={!isPlay}
+      rightSection={(
+        <SceneHeaderRight
+          isPlay={isPlay}
+          onTogglePlay={togglePlay}
+          onSaveSceneRequest={handleSaveRequest}
+        />
+      )}
+    >
       <SceneEditorR3F
         uuid={uuid}
         isNew={isNew}
@@ -151,7 +164,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
         onSave={handleSaveNew}
         currentSceneName={pendingSave?.name}
       />
-    </>
+    </MainLayout>
   )
 }
 
