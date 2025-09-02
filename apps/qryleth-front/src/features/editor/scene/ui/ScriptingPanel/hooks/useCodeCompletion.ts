@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { CompletionContext } from '@codemirror/autocomplete'
-import { SceneAPI } from '@/features/scene/lib/sceneAPI'
+import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
 import { analyzeVariableTypes, extractVariablesFromScript } from '../utils/codeAnalysis'
 import { API_RETURN_TYPES } from '../constants/apiReturnTypes'
 import { getSceneApiCompletions, getConsoleCompletions, getBaseCompletions, getKeywords } from '../constants/completionData'

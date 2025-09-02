@@ -8,9 +8,9 @@ import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/entities/scene/types'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
-import { correctLLMGeneratedObject } from '@/features/scene/lib/correction/LLMGeneratedObjectCorrector'
+import { correctLLMGeneratedObject } from '@/features/editor/scene/lib/correction/LLMGeneratedObjectCorrector'
 import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
-  type PlacementStrategyConfig, PlacementStrategy } from '@/features/scene/lib/placement/ObjectPlacementUtils'
+  type PlacementStrategyConfig, PlacementStrategy } from '@/features/editor/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type {
   GfxProceduralTerrainSpec,
@@ -19,8 +19,8 @@ import type {
   GfxTerrainOp,
   GfxOpsGenerationOptions
 } from '@/entities/terrain'
-import { ProceduralTerrainGenerator } from '@/features/scene/lib/terrain/ProceduralTerrainGenerator'
-import { generateRandomSeed } from '@/features/scene/lib/terrain/utils/PRNGUtils'
+import { ProceduralTerrainGenerator } from '@/features/editor/scene/lib/terrain/ProceduralTerrainGenerator'
+import { generateRandomSeed } from '@/features/editor/scene/lib/terrain/utils/PRNGUtils'
 import type { Vector3 } from '@/shared/types'
 import { db, type ObjectRecord } from '@/shared/lib/database'
 import {

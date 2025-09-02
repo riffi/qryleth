@@ -4,7 +4,7 @@ import type { ChatMessage, ChatConfig } from '@/shared/entities/chat'
 import { getOrCreateLangChainChatService, LangChainChatService } from '@/shared/lib/langchain'
 import { getActiveConnection, upsertConnection } from '@/shared/lib/openAISettings'
 import type { OpenAISettingsConnection } from '@/shared/lib/openAISettings'
-import { createAddNewObjectTool } from '@/features/scene/lib/ai/tools'
+import { createAddNewObjectTool } from '@/features/editor/scene/lib/ai/tools'
 import type { GfxObjectWithTransform } from '@/entities'
 import { nanoid } from 'nanoid'
 

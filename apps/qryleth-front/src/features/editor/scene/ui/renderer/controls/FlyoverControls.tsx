@@ -3,7 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from '../../../model/sceneStore'
 import { GfxLayerShape, GfxLayerType } from '@/entities/layer'
-import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
+import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 
 interface FlyoverTarget {
   /** Мировые координаты самой высокой точки */
@@ -140,4 +140,3 @@ export const FlyoverControls: React.FC = () => {
 
   return null
 }
-

@@ -1,6 +1,6 @@
 import type { GfxHeightmapParams } from '@/entities/terrain'
-import { worldToUV, applyWrap } from '@/features/scene/lib/terrain/sampling/uv'
-import { sampleHeightsFieldBilinear, sampleImageDataBilinear } from '@/features/scene/lib/terrain/sampling/bilinear'
+import { worldToUV, applyWrap } from '@/features/editor/scene/lib/terrain/sampling/uv'
+import { sampleHeightsFieldBilinear, sampleImageDataBilinear } from '@/features/editor/scene/lib/terrain/sampling/bilinear'
 
 /**
  * Утилиты для выборки высоты из heightmap-источника.
@@ -63,4 +63,3 @@ export function sampleHeightFromImageData(
   const h01 = sampleImageDataBilinear(imageData, px, py)
   return params.min + (params.max - params.min) * h01
 }
-

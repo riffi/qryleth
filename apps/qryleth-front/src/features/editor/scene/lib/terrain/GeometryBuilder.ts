@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { GfxHeightSampler, GfxTerrainConfig } from '@/entities/terrain'
-import { TERRAIN_MAX_SEGMENTS } from '../../config/terrain'
+import { TERRAIN_MAX_SEGMENTS } from '@/features/scene/config/terrain'
 
 /**
  * Построение THREE.js-геометрии террейна на основе сэмплера высот.

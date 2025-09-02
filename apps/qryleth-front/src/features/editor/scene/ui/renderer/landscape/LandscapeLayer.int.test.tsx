@@ -17,7 +17,7 @@ vi.mock('@/features/scene/model/sceneStore.ts', () => {
 })
 
 // Мокаем создание сэмплера, чтобы управлять готовностью для heightmap-кейса
-vi.mock('@/features/scene/lib/terrain/GfxHeightSampler.ts', () => {
+vi.mock('@/features/editor/scene/lib/terrain/GfxHeightSampler.ts', () => {
   return {
     createGfxHeightSampler: (cfg: any) => {
       if (cfg.source.kind === 'heightmap') {

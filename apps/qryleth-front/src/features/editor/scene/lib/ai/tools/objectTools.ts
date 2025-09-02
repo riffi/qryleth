@@ -4,8 +4,8 @@ import {v4 as uuidv4} from 'uuid'
 import type {GfxObject} from '@/entities/object/model/types'
 import type {GfxPrimitive} from '@/entities'
 import {generatePrimitiveName} from '@/entities/primitive'
-import {SceneAPI} from '@/features/scene/lib/sceneAPI.ts'
-import {PlacementStrategy} from "@/features/scene/lib/placement/ObjectPlacementUtils.ts";
+import {SceneAPI} from '@/features/editor/scene/lib/sceneAPI.ts'
+import {PlacementStrategy} from "@/features/editor/scene/lib/placement/ObjectPlacementUtils.ts";
 
 // Схемы валидации для геометрии примитивов
 const BoxGeometrySchema = z.object({

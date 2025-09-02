@@ -15,7 +15,7 @@ import {
   Box
 } from '@mantine/core'
 import { IconSearch, IconCalendar, IconPhoto, IconCheck } from '@tabler/icons-react'
-import { createTerrainAssetPreviewUrl, getAllTerrainAssetsSummary, revokeTerrainAssetPreviewUrl } from '@/features/scene/lib/terrain/HeightmapUtils'
+import { createTerrainAssetPreviewUrl, getAllTerrainAssetsSummary, revokeTerrainAssetPreviewUrl } from '@/features/editor/scene/lib/terrain/HeightmapUtils'
 
 interface TerrainAssetPickerModalProps {
   opened: boolean

@@ -10,7 +10,7 @@ import {
   useSceneStore
 } from '@/features/scene'
 // События сцены: импорт через алиас scene/lib для устойчивости путей
-import { useSceneEvents } from '@/features/scene/lib/hooks/useSceneEvents'
+import { useSceneEvents } from '@/features/editor/scene/lib/hooks/useSceneEvents'
 
 export const SceneObjects: React.FC = () => {
   const objects = useSceneObjects()

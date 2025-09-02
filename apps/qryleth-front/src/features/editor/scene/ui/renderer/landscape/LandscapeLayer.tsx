@@ -4,9 +4,9 @@ import type { SceneLayer } from '@/entities/scene/types.ts'
 import { useSceneStore } from '@/features/scene/model/sceneStore.ts'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/scene/constants.ts'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
-import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler.ts'
-import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder.ts'
-import { MultiColorProcessor} from '@/features/scene/lib/terrain/MultiColorProcessor.ts'
+import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler.ts'
+import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder.ts'
+import { MultiColorProcessor} from '@/features/editor/scene/lib/terrain/MultiColorProcessor.ts'
 
 export interface LandscapeLayerProps {
   layer: SceneLayer

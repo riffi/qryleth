@@ -18,7 +18,7 @@ import { Scene3D } from './renderer/Scene3D.tsx'
 import { SceneObjectManager } from './objectManager/SceneObjectManager.tsx'
 import { ScriptingPanel } from './ScriptingPanel/ScriptingPanel.tsx'
 // import from object-editor удалены: редактор поднимается на уровень виджета
-import { useSceneToolRegistration } from '@/features/scene'
+import { useSceneToolRegistration } from '@/features/editor/scene/lib/ai'
 import { notifications } from '@mantine/notifications'
 import { IconCheck, IconX, IconDeviceFloppy } from '@tabler/icons-react'
 import {
@@ -29,7 +29,7 @@ import {
   useGridVisible,
   // useSceneLayers
 } from '../model/sceneStore'
-import { useSceneHistory } from '@/features/scene/lib/hooks/useSceneHistory'
+import { useSceneHistory } from '@/features/editor/scene/lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { UiMode } from '@/shared/types/ui'

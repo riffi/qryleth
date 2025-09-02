@@ -2,7 +2,7 @@ import type {Vector3} from '@/shared/types/vector3'
 import type {BoundingBox} from '@/shared/types/boundingBox'
 import type {SceneLayer, SceneObjectInstance} from '@/entities/scene/types'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
-import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
+import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import { transformBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
 

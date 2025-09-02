@@ -1,5 +1,5 @@
 import React from 'react'
-import { addNewObjectTool } from '@/features/scene/lib/ai/tools'
+import { addNewObjectTool } from '@/features/editor/scene/lib/ai/tools'
 import type {GfxObjectWithTransform} from "@/entities"
 
 interface SceneToolCallbacksProps {

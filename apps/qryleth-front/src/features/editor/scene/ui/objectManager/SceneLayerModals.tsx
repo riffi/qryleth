@@ -29,8 +29,8 @@ import {
     revokeTerrainAssetPreviewUrl,
     getAllTerrainAssetsSummary,
     getTerrainAssetInfo
-} from '@/features/scene/lib/terrain/HeightmapUtils'
-import { SceneAPI } from '@/features/scene/lib/sceneAPI'
+} from '@/features/editor/scene/lib/terrain/HeightmapUtils'
+import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
 import type { GfxTerrainConfig, GfxHeightmapParams } from '@/entities/terrain'
 import { TerrainAssetPickerModal } from './TerrainAssetPickerModal'
 

@@ -12,7 +12,7 @@ import { WaterLayers } from './landscape/WaterLayers.tsx'
 import { useSceneStore, useGridVisible } from '../../model/sceneStore.ts'
 import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
-import { useKeyboardShortcuts } from '@/features/scene/lib/hooks/useKeyboardShortcuts'
+import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
 import {EffectComposer, FXAA, SMAA} from "@react-three/postprocessing";
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'

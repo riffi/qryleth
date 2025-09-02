@@ -1,4 +1,4 @@
-import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from '@/features/scene/lib/terrain/HeightmapUtils'
+import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from '@/features/editor/scene/lib/terrain/HeightmapUtils'
 
 /**
  * Кэши и загрузчики данных heightmap (ImageData и числовое поле высот).
