@@ -288,7 +288,7 @@ import type {
 } from '@/shared/types/ui'
 ```
 
-Подробная документация в [UI типы](ui-types.md), [Общие типы](shared-types.md) и [Сущности](entities.md).
+См. также разделы: [Слои сцены](layers.md), [Террейн](terrain.md) и [Сторы](../stores/README.md).
 
 ---
 
@@ -437,7 +437,6 @@ app/         ← can import from all layers / может импортирова�
 
 ## Связанная документация
 
-- [Entities Types](entities.md) - Domain entity types
-- [Shared Types](shared-types.md) - Common utility types
-- [UI Types](ui-types.md) - User interface types
-- [Store Types](../stores/README.md) - State management types
+- [Слои сцены](layers.md)
+- [Террейн](terrain.md)
+- [Сторы](../stores/README.md)

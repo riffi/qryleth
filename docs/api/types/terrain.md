@@ -143,8 +143,7 @@ export interface GfxHeightSampler {
 - Реализация: `src/features/editor/scene/lib/terrain/GfxHeightSampler.ts`
 - Создание: `createGfxHeightSampler(cfg: GfxTerrainConfig)`
 - Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/editor/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
- - Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/editor/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
-   Геометрия не клампит значение высоты к 0 — отрицательные высоты поддерживаются.
+  Геометрия не клампит значение высоты к 0 — отрицательные высоты поддерживаются.
 
 ### Жизненный цикл сэмплера
 
