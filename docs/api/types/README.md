@@ -114,16 +114,38 @@ interface PrimitiveCommon {
 
 ### GfxMaterial
 
-Универсальная структура материала, используемая как глобально, так и на уровне объекта:
+Материал объекта в терминах PBR, совместим с Three.js MeshStandardMaterial. Поддерживает глобальные материалы.
 
 ```typescript
 interface GfxMaterial {
-  uuid: string;          // Уникальный идентификатор
-  name: string;          // Отображаемое имя
-  color?: string;        // Базовый цвет (hex)
-  opacity?: number;      // Прозрачность (0–1)
-  emissive?: string;     // Цвет излучения (hex)
-  emissiveIntensity?: number; // Интенсивность излучения
+  /** Уникальный идентификатор материала */
+  uuid: string
+  /** Название материала */
+  name: string
+  /** Тип материала для категоризации */
+  type: 'metal' | 'dielectric' | 'glass' | 'emissive' | 'custom'
+
+  /** Свойства материала совместимые с MeshStandardMaterial */
+  properties: {
+    color: string                // цвет (hex)
+    opacity?: number             // 0.0–1.0
+    transparent?: boolean
+    metalness?: number           // 0.0–1.0
+    roughness?: number           // 0.0–1.0
+    emissive?: string            // цвет эмиссии (hex)
+    emissiveIntensity?: number
+    ior?: number                 // индекс преломления
+    envMapIntensity?: number
+    side?: 'front' | 'back' | 'double'
+    alphaTest?: number
+    castShadow?: boolean
+    receiveShadow?: boolean
+  }
+
+  /** Глобальный материал (доступен во всех сценах) */
+  isGlobal: boolean
+  /** Описание материала */
+  description?: string
 }
 ```
 
@@ -210,6 +232,11 @@ interface GfxObject {
   // Существующие поля
   materials?: GfxMaterial[];        // Материалы объекта
   boundingBox?: BoundingBox;
+  /** Локальное освещение, перемещающееся вместе с объектом */
+  localLights?: {
+    point: PointLightSettings[]
+    spot: SpotLightSettings[]
+  }
 }
 ```
 
@@ -239,6 +266,78 @@ const houseObject: GfxObject = {
     'foundation-primitive': 'foundation-group',
     'wall-primitive': 'walls-group'
   }
+}
+```
+
+### GfxObjectInstance
+
+Экземпляр объекта в сцене с собственной трансформацией.
+
+```typescript
+interface GfxObjectInstance {
+  uuid: string
+  objectUuid: string
+  transform?: Transform
+}
+```
+
+---
+
+### LightingSettings
+
+Корневые настройки освещения и окружения сцены.
+
+```typescript
+interface LightingSettings {
+  ambient?: AmbientLightSettings
+  directional?: DirectionalLightSettings
+  ambientOcclusion?: {
+    enabled?: boolean
+    intensity?: number
+    radius?: number
+  }
+  fog?: FogSettings
+  sky?: SkySettings
+  backgroundColor?: string
+  exposure?: number
+}
+```
+
+См. подробные типы источников света в исходниках: `apps/qryleth-front/src/entities/lighting/model/types.ts`.
+
+---
+
+### Типы сцены (Scene)
+
+```typescript
+interface SceneObject extends GfxObject {
+  layerId?: string
+  visible?: boolean           // видимость всех инстансов объекта
+  libraryUuid?: string        // UUID в библиотеке, если добавлен из неё
+}
+
+interface SceneObjectInstance extends GfxObjectInstance {
+  visible?: boolean
+}
+
+interface SceneLayer extends GfxLayer {
+  visible: boolean
+  position: number
+}
+
+interface SceneData {
+  objects: SceneObject[]
+  objectInstances: SceneObjectInstance[]
+  layers: SceneLayer[]
+  lighting: LightingSettings
+}
+
+type SceneStatus = 'draft' | 'saved' | 'modified'
+
+interface SceneMetaData {
+  uuid?: string
+  name: string
+  status: SceneStatus
 }
 ```
 
