@@ -1,4 +1,4 @@
-import { SceneAPI } from '../../../lib/sceneAPI'
+import { SceneAPI } from '@/features/scene/lib/sceneAPI'
 
 /**
  * Возвращает объект‑обёртку для скриптового окружения панели.
@@ -31,19 +31,19 @@ export function createSceneApiBridge() {
       objectUuid: string,
       layerId?: string,
       count?: number,
-      placement?: import('../../../lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
+      placement?: import('@/features/scene/lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
     ) => SceneAPI.addInstances(objectUuid, layerId, count, placement),
     createObject: (
       objectData: import('@/entities/object/model/types').GfxObject,
       layerId?: string,
       count?: number,
-      placement?: import('../../../lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
+      placement?: import('@/features/scene/lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
     ) => SceneAPI.createObject(objectData, layerId, count, placement),
     addObjectFromLibrary: (
       objectUuid: string,
       layerId?: string,
       count?: number,
-      placement?: import('../../../lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
+      placement?: import('@/features/scene/lib/placement/ObjectPlacementUtils').PlacementStrategyConfig
     ) => SceneAPI.addObjectFromLibrary(objectUuid, layerId, count, placement),
 
     // Террейн: процедурная генерация и корректировка

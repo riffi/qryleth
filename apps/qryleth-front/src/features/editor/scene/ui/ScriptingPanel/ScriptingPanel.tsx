@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Box, Group, Textarea, Button, Tooltip } from '@mantine/core'
-import { sceneApi, multiColorApi } from '../../lib/sceneAPI.ts'
+import { sceneApi, multiColorApi } from '@/features/scene/lib/sceneAPI.ts'
 import { ToolbarPanel } from './components/ToolbarPanel.tsx'
 import { ScriptEditor } from './components/ScriptEditor.tsx'
 import { SaveScriptModal } from './components/SaveScriptModal.tsx'

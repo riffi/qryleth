@@ -80,3 +80,4 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
     </EdgeToolbar>
   )
 }
+

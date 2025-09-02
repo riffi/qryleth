@@ -2,7 +2,8 @@ import React, { useRef, useEffect } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useSceneStore } from '../../../model/sceneStore.ts'
-import { useMeshSelection } from '../../../lib/hooks/useMeshSelection.ts'
+// Хук выбора мешей сцены: импорт через алиас фичи scene/lib
+import { useMeshSelection } from '@/features/scene/lib/hooks/useMeshSelection.ts'
 import { InstancedObjectTransform } from '@/shared/r3f/optimization/InstancedObjectTransform'
 
 

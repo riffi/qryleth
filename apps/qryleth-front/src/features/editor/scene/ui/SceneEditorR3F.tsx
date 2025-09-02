@@ -29,7 +29,7 @@ import {
   useGridVisible,
   // useSceneLayers
 } from '../model/sceneStore'
-import { useSceneHistory } from '../lib/hooks/useSceneHistory'
+import { useSceneHistory } from '@/features/scene/lib/hooks/useSceneHistory'
 import { db } from '@/shared/lib/database'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { UiMode } from '@/shared/types/ui'
@@ -45,7 +45,7 @@ import {
 } from '@tabler/icons-react'
 import type { GfxObject } from "@/entities";
 import { ViewModeSegment, DragHandleVertical, InlineEdit } from '@/shared/ui'
-import { useScenePanelLayout } from '@/features/scene-layout'
+import { useScenePanelLayout } from '@/features/editor/scene/layout'
 // Тулбары передаются из виджета как компоненты (фича scene-toolbar)
 
 const getStatusColor = (status: SceneStatus) => {

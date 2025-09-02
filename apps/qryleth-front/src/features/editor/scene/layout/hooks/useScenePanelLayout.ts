@@ -1,5 +1,5 @@
 import React from 'react'
-import { sceneLayoutStore } from '../model/store'
+import { sceneLayoutStore } from '../model/panelLayoutStore'
 
 export type ResizeSide = 'left' | 'right' | null
 
@@ -141,4 +141,3 @@ export function useScenePanelLayout() {
     beginResize,
   }
 }
-

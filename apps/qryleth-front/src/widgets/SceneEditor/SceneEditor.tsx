@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { SceneEditorR3F } from '@/features/scene'
-import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/scene-toolbar'
+import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/editor/scene/toolbar'
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditor } from '@/widgets/ObjectEditor'

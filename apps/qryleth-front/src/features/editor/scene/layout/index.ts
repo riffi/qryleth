@@ -1,3 +1,3 @@
-export * from './model/store'
+export * from './model/panelLayoutStore'
 export * from './hooks/useScenePanelLayout'
 
