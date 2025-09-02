@@ -14,7 +14,7 @@
 
 - **Shared Layer** - содержит базовую инфраструктуру LangChain (`chatService.ts`, `toolRegistry.ts`, `types.ts`)
 - **Features Layer** - каждая feature регистрирует свои AI инструменты независимо:
-  - `features/scene/lib/ai/tools/` - инструменты для работы со сценой
+  - `features/editor/scene/lib/ai/tools/` - инструменты для работы со сценой
   - `features/editor/object/lib/ai/tools/` - инструменты для редактирования объектов
 
 ### Процесс работы
@@ -50,7 +50,7 @@
 
 ### Доступные инструменты
 
-**Scene Tools** (регистрируются в `features/scene`):
+**Scene Tools** (регистрируются в `features/editor/scene`):
 - `add_new_object` - создание новых объектов в сцене
 - `place_instance` - размещение экземпляров объектов
 - `search_objects_in_library` - поиск объектов в библиотеке
@@ -88,7 +88,7 @@ export const sceneToolProvider: ToolProvider = {
   }
 }
 
-// features/scene/ui/SceneEditorR3F.tsx
+// features/editor/scene/ui/SceneEditorR3F.tsx
 export function SceneEditorR3F() {
   useSceneToolRegistration() // Автоматическая регистрация/отмена
   // ...
@@ -114,7 +114,7 @@ ChatInterface была полностью перестроена в соотве
    - **lib/** - базовые хуки (useChat, useChatScroll) и утилиты
 
 2. **Feature-специфичные ChatInterface**:
-   - **SceneChatInterface** (`features/scene/ui/ChatInterface/`)
+   - **SceneChatInterface** (`features/editor/scene/ui/ChatInterface/`)
    - **ObjectChatInterface** (`features/editor/object/ui/ChatInterface/`)
 
 ### SceneChatInterface
@@ -129,7 +129,7 @@ ChatInterface была полностью перестроена в соотве
 
 **Структура:**
 ```
-features/scene/ui/ChatInterface/
+features/editor/scene/ui/ChatInterface/
 ├── SceneChatInterface.tsx      # Главный компонент
 ├── components/
 │   ├── SceneDebugPanel/        # Debug-панель с JSON
@@ -201,8 +201,8 @@ features/editor/object/
 - `src/shared/lib/langchain/types.ts` - Типы для AI системы
 
 **Features Layer:**
-- `src/features/scene/ui/ChatInterface/` - ChatInterface для сцен
-- `src/features/scene/lib/ai/` - AI инструменты для работы со сценой
+- `src/features/editor/scene/ui/ChatInterface/` - ChatInterface для сцен
+- `src/features/editor/scene/lib/ai/` - AI инструменты для работы со сценой
 - `src/features/editor/object/ui/ChatInterface/` - ChatInterface для объектов
 - `src/features/editor/object/toolbar/` - Тулбары управления панелями
 - `src/features/editor/object/layout/` - Состояние панелей и persist‑ширин

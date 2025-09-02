@@ -64,7 +64,7 @@ interface BaseLight {
 ### SceneLighting.tsx
 - Рендерит глобальное освещение сцены
 - Использует хук `useSceneLighting()` из `sceneStore`
-- Находится в `src/features/scene/ui/renderer/lighting/`
+- Находится в `src/features/editor/scene/ui/renderer/lighting/`
 
 ### ObjectSceneLighting.tsx  
 - Рендерит освещение в редакторе объектов
@@ -77,7 +77,7 @@ interface BaseLight {
 - Панель управления освещением в редакторе сцены
 - Поддерживает пресеты освещения
 - Настройка ambient, directional света и цвета фона
-- Находится в `src/features/scene/ui/objectManager/`
+- Находится в `src/features/editor/scene/ui/objectManager/`
 
 ### LightingControlPanel.tsx
 - Панель управления освещением в редакторе объектов
@@ -89,7 +89,7 @@ interface BaseLight {
 ### sceneStore.ts
 - Содержит глобальные настройки освещения сцены
 - Хук `useSceneLighting()` для получения/изменения настроек
-- Находится в `src/features/scene/model/`
+- Находится в `src/features/editor/scene/model/`
 
 ### objectStore.ts
 - Содержит настройки освещения для редактора объектов
@@ -103,13 +103,13 @@ interface BaseLight {
 - `src/entities/object/model/types.ts` - интерфейс GfxObject с поддержкой localLights
 
 ### Компоненты
-- `src/features/scene/ui/renderer/lighting/SceneLighting.tsx`
+- `src/features/editor/scene/ui/renderer/lighting/SceneLighting.tsx`
 - `src/features/editor/object/ui/renderer/lighting/ObjectSceneLighting.tsx`
-- `src/features/scene/ui/objectManager/LightingControls.tsx`
+- `src/features/editor/scene/ui/objectManager/LightingControls.tsx`
 - `src/features/editor/object/ui/LightingControlPanel/LightingControlPanel.tsx`
 
 ### Stores
-- `src/features/scene/model/sceneStore.ts`
+- `src/features/editor/scene/model/sceneStore.ts`
 - `src/features/editor/object/model/objectStore.ts`
 
 ## Примеры использования

@@ -140,10 +140,10 @@ export interface GfxHeightSampler {
 }
 ```
 
-- Реализация: `src/features/scene/lib/terrain/GfxHeightSampler.ts`
+- Реализация: `src/features/editor/scene/lib/terrain/GfxHeightSampler.ts`
 - Создание: `createGfxHeightSampler(cfg: GfxTerrainConfig)`
-- Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
- - Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
+- Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/editor/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
+ - Геометрия: `buildGfxTerrainGeometry(cfg, sampler)` из `src/features/editor/scene/lib/terrain/GeometryBuilder.ts` — формирует `THREE.BufferGeometry` по сэмплеру.
    Геометрия не клампит значение высоты к 0 — отрицательные высоты поддерживаются.
 
 ### Жизненный цикл сэмплера
@@ -165,8 +165,8 @@ export interface GfxHeightSampler {
 ## Использование в рендеринге
 
 ```ts
-import { createGfxHeightSampler } from '@/features/scene/lib/terrain/GfxHeightSampler'
-import { buildGfxTerrainGeometry } from '@/features/scene/lib/terrain/GeometryBuilder'
+import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
+import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 
 // 1) получить конфигурацию террейна
 const sampler = createGfxHeightSampler(layer.terrain)
@@ -174,7 +174,7 @@ await sampler.ready?.() // для heightmap дождаться загрузки 
 const geometry = buildGfxTerrainGeometry(layer.terrain, sampler)
 ```
 
-- Компонент: `src/features/scene/ui/renderer/landscape/LandscapeLayer.tsx`
+- Компонент: `src/features/editor/scene/ui/renderer/landscape/LandscapeLayer.tsx`
 - Поведение:
   - при наличии `layer.terrain` используется напрямую;
   - создание слоя должно обеспечивать валидную конфигурацию террейна через SceneAPI (рендер не модифицирует store).
@@ -190,7 +190,7 @@ const y = sampler.getHeight(x, z)
 const n = sampler.getNormal(x, z)
 ```
 
-- Модуль: `src/features/scene/lib/placement/ObjectPlacementUtils.ts`
+- Модуль: `src/features/editor/scene/lib/placement/ObjectPlacementUtils.ts`
 - Преимущества: отсутствие дублирования логики высот и нормалей между рендерингом и размещением.
 
 ---
@@ -198,7 +198,7 @@ const n = sampler.getNormal(x, z)
 ## Импорт PNG heightmap
 
 - Dexie-таблица: `terrainAssets` (PNG blob, `heightsBuffer`, `heightsHash`).
-- Утилиты: `src/features/scene/lib/terrain/HeightmapUtils.ts`
+- Утилиты: `src/features/editor/scene/lib/terrain/HeightmapUtils.ts`
   - `validatePngFile()`, `uploadTerrainAsset()`, `createTerrainAssetPreviewUrl()` и др.
 - Нормализация: входной PNG масштабируется до ≤200px по большей стороне, затем извлекается массив высот (`Float32Array`).
 - Дедупликация: по SHA‑256 хэшу массива высот (`heightsHash`). При загрузке идентичной карты возвращается уже существующий ассет (новый не создаётся).

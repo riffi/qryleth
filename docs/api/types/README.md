@@ -300,7 +300,7 @@ import type {
 // 1. Barrel exports (preferred) / Предпочтительно
 import type { GfxPrimitive, GfxObject } from '@/entities'
 import type { ViewMode, SelectedObject } from '@/shared/types/ui'
-import type { SceneStore } from '@/features/scene/model'
+import type { SceneStore } from '@/features/editor/scene/model'
 
 // 2. Specific imports (when precision needed) / Когда нужна точность
 import type { GfxPrimitive } from '@/entities/primitive'
@@ -321,7 +321,7 @@ import type { GfxPrimitive } from '../../../entities/primitive'  // ❌
 import { GfxPrimitive } from '@/entities'  // ❌ (if only type)
 
 // 3. Imports from inaccessible layers / Импорты из недоступных слоев
-import type { SceneStore } from '@/features/scene/model'  // ❌ in entities layer
+import type { SceneStore } from '@/features/editor/scene/model'  // ❌ in entities layer
 ```
 
 ---

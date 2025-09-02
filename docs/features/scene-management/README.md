@@ -80,7 +80,7 @@ See [Feature-Sliced Design](../../architecture/feature-sliced-design.md) for det
 - Поддержка полноэкранного режима
 - Debug режим для анализа AI responses
 ### 📜 ScriptingPanel
-**Location**: `src/features/scene/ui/ScriptingPanel/ScriptingPanel.tsx`
+**Location**: `src/features/editor/scene/ui/ScriptingPanel/ScriptingPanel.tsx`
 
 Панель для написания и выполнения пользовательских скриптов.
 
@@ -172,7 +172,7 @@ import type {
 import type {
   SceneStatus,         // Статус загрузки/сохранения сцены
   SceneMetadata        // Метаданные текущей сцены
-} from '@/features/scene/model'
+} from '@/features/editor/scene/model'
 ```
 
 ### Типы управления UI
@@ -426,6 +426,8 @@ useEffect(() => {
 - [Type System](../../api/types/README.md) - Scene-related types
 - [Component Patterns](../../architecture/patterns/component-patterns.md) - React patterns
 - [Keyboard Shortcuts](keyboard-shortcuts.md) - Клавиатурное управление сценой
+ - [Сохранение сцен (scene-persistence)](../scene-persistence/README.md) - SaveModal и чистые функции сохранения
+ - [Play-режим (scene-play-mode)](../scene-play-mode/README.md) - Overlay управления камерой и хоткеи
 
 
 ## Точки расширения

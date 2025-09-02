@@ -46,7 +46,7 @@ const result = await sceneApi.createProceduralLayer({
 
 ```javascript
 // Импорт утилит
-const { multiColorApi } = await import('@/features/scene/lib/sceneAPI.multicolor')
+const { multiColorApi } = await import('@/features/editor/scene/lib/sceneAPI.multicolor')
 
 // Готовые конфигурации
 const mountain = multiColorApi.getMountainHeightConfig()
@@ -92,7 +92,7 @@ multiColorApi.getDesertHeightConfig()
 
 ```javascript
 // Создание горного ландшафта с готовой конфигурацией
-const { multiColorApi } = await import('@/features/scene/lib/sceneAPI.multicolor')
+const { multiColorApi } = await import('@/features/editor/scene/lib/sceneAPI.multicolor')
 
 const result = await sceneApi.createProceduralLayer({
   layer: { width: 200, depth: 200, edgeFade: 0.15 },

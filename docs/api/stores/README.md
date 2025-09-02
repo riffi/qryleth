@@ -14,25 +14,26 @@ Qryleth использует **Zustand** как основное решение 
 
 ```
 src/features/
-├── scene/
-│   └── store/
-│       └── sceneStore.ts      # Scene editor state
-├── object-editor/
-│   └── store/
-│       └── objectStore.ts     # Object editor state  
-└── library/
-    └── store/
-        └── libraryStore.ts    # Library state
+├── editor/
+│   ├── scene/
+│   │   └── model/
+│   │       └── sceneStore.ts       # Scene editor state
+│   └── object/
+│       └── model/
+│           └── objectStore.ts      # Object editor state  
+└── object-library/
+    └── model/
+        └── libraryStore.ts         # Library state
 ```
 
 ---
 
 ## Scene Store / Хранилище сцены
 
-**Location**: `src/features/scene/store/sceneStore.ts`  
+**Location**: `src/features/editor/scene/model/sceneStore.ts`  
 **Purpose**: Manages the 3D scene editor state
 
-**Местоположение**: `src/features/scene/store/sceneStore.ts`  
+**Местоположение**: `src/features/editor/scene/model/sceneStore.ts`  
 **Назначение**: Управляет состоянием редактора 3D сцены
 
 ### State Properties / Свойства состояния
@@ -84,7 +85,7 @@ interface SceneStoreState {
 ### Usage Example / Пример использования
 
 ```typescript
-import { useSceneStore } from '@/features/scene/store'
+import { useSceneStore } from '@/features/editor/scene/model'
 
 const SceneEditor: React.FC = () => {
   const {
@@ -275,7 +276,7 @@ useEffect(() => {
 
 ```typescript
 import { renderHook, act } from '@testing-library/react'
-import { useSceneStore } from '@/features/scene/store'
+import { useSceneStore } from '@/features/editor/scene/model'
 
 describe('SceneStore', () => {
   beforeEach(() => {

@@ -13,8 +13,11 @@ src/
 ├─ app/            # entry‑point, providers, router / точка входа, провайдеры, роутер
 ├─ pages/          # SceneEditor, ObjectEditor, Library (route‑shell) / роут‑шелл
 ├─ features/       # module = scenario / модуль = сценарий
-│  ├─ scene/       # управление сценой
-│  └─ object-editor/ # редактирование объектов
+│  ├─ editor/
+│  │  ├─ scene/   # стек сценового редактора (model/ui/lib/layout/toolbar)
+│  │  └─ object/  # стек редактора объекта (model/ui/lib/layout/toolbar)
+│  ├─ scene-persistence/  # сохранение сцен (чистые функции) + SaveModal
+│  └─ scene-play-mode/    # Play‑overlay и хоткеи Play (1/2/3/4, Esc)
 ├─ widgets/        # крупные самостоятельные блоки UI
 ├─ entities/       # чистые доменные модели (без React)
    ├─ layer
@@ -60,7 +63,7 @@ src/
 
 ## 4. Состояние приложения
 
-* **Zustand** — `features/scene/store/*`  
+* **Zustand** — `features/editor/scene/model/*`  
   *селекторы* уменьшают перерисовки:
 
   ```ts

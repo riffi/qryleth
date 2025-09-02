@@ -7,7 +7,7 @@
 ```text
 src/shared/entities/chat/ui/   # Общие компоненты чата (ChatContainer, ChatInput, ChatMessageItem)
 src/shared/ui/                 # Общие модальные окна и элементы управления
-src/features/scene/ui/         # Компоненты редактора сцен (включая SceneChatInterface)
+src/features/editor/scene/ui/  # Компоненты редактора сцен (включая SceneChatInterface)
 src/features/editor/object/ui/ # Компоненты редактора объектов (включая ObjectChatInterface, панели)
 ```
 
@@ -52,7 +52,7 @@ src/features/editor/object/ui/ # Компоненты редактора объ�
 
 ### Feature-специфичные ChatInterface
 
-- **SceneChatInterface** (`features/scene/ui/ChatInterface/`) - чат для работы со сценами
+- **SceneChatInterface** (`features/editor/scene/ui/ChatInterface/`) - чат для работы со сценами
 - **ObjectChatInterface** (`features/editor/object/ui/ChatInterface/`) - чат для редактирования объектов
 
 ### Система панелей ObjectEditor

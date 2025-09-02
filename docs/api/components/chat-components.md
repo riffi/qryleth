@@ -73,7 +73,7 @@ interface ChatMessageItemProps {
 
 ### SceneChatInterface
 
-**Путь**: `features/scene/ui/ChatInterface/`
+**Путь**: `features/editor/scene/ui/ChatInterface/`
 
 Специализированный чат для работы со сценами.
 
@@ -154,7 +154,7 @@ interface UseChatScrollReturn {
 
 ### useSceneChat
 
-**Путь**: `features/scene/ui/ChatInterface/hooks/useSceneChat.ts`
+**Путь**: `features/editor/scene/ui/ChatInterface/hooks/useSceneChat.ts`
 
 Scene-специфичный хук для работы с чатом.
 

@@ -54,8 +54,8 @@
 **Рефакторинг SceneEditor под FSD (сентябрь 2025):**
 - Введён виджет `widgets/SceneEditor` — точка композиции редактора.
 - Монолит `SceneEditorR3F` разделён по зонам ответственности:
-  - `features/scene-layout` — панели и ресайз (persist фасад).
-  - `features/scene-toolbar` — презентационные тулбары.
+  - `features/editor/scene/layout` — панели и ресайз (persist фасад).
+  - `features/editor/scene/toolbar` — презентационные тулбары.
   - `features/scene-persistence` — SaveModal и чистые функции сохранения.
   - `features/scene-play-mode` — Play‑overlay и хоткеи Play (1/2/3/4, Esc).
 - Доменные типы сцены `SceneStatus`, `SceneMetaData` вынесены в `entities/scene`.

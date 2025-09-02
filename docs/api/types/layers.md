@@ -129,8 +129,8 @@ const landscapeLayers = layers.filter(l => l.type === GfxLayerType.Landscape)
 
 ## Где используется
 
-- `@/features/scene/model/sceneStore` — инициализация слоёв и операции с ними
-- `@/features/scene/ui/objectManager/*` — создание/редактирование слоёв и выбор типа в UI
-- `@/features/scene/ui/renderer/*` — фильтрация и отрисовка слоёв
-- `@/features/scene/lib/*` — размещение объектов с учётом ландшафта, SceneAPI
-- 🆕 `@/features/scene/lib/terrain/*` — `GfxHeightSampler`, `HeightmapUtils`
+- `@/features/editor/scene/model/sceneStore` — инициализация слоёв и операции с ними
+- `@/features/editor/scene/ui/objectManager/*` — создание/редактирование слоёв и выбор типа в UI
+- `@/features/editor/scene/ui/renderer/*` — фильтрация и отрисовка слоёв
+- `@/features/editor/scene/lib/*` — размещение объектов с учётом ландшафта, SceneAPI
+- 🆕 `@/features/editor/scene/lib/terrain/*` — `GfxHeightSampler`, `HeightmapUtils`

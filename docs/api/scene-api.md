@@ -478,6 +478,6 @@ AI инструмент для создания объектов теперь п
   - `getObjectData` - возвращает полную информацию о группах
   - `addPrimitives` - поддерживает создание примитивов с группами
   
-- **SceneEditor tools** (`src/features/scene/lib/ai/tools/`):
+- **SceneEditor tools** (`src/features/editor/scene/lib/ai/tools/`):
   - `add_new_object` - создание объектов с группами на сцене
 

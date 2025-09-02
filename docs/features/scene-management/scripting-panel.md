@@ -578,7 +578,7 @@ export function createSceneApiBridge() {
 ### Использование в приложении
 
 ```tsx
-import { ScriptingPanel } from '@/features/scene/ui/ScriptingPanel'
+import { ScriptingPanel } from '@/features/editor/scene/ui/ScriptingPanel'
 
 function App() {
   return (

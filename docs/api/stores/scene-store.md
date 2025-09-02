@@ -511,7 +511,7 @@ const getSelectedObjectFull = () =>
 
 ```typescript
 import React from 'react'
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import type { ViewMode, RenderMode } from '@/shared/types/ui'
 
 const SceneEditor: React.FC = () => {
@@ -669,7 +669,7 @@ See [Type System Documentation](../types/README.md) for complete type definition
 
 ```typescript
 import { renderHook, act } from '@testing-library/react'
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 
 describe('SceneStore', () => {
   beforeEach(() => {

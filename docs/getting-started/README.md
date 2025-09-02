@@ -215,7 +215,7 @@ import type { GfxPrimitive, GfxObject } from '@/entities'
 import type { ViewMode, SelectedObject } from '@/shared/types/ui'
 
 // Import store types / Импорт типов стора
-import type { SceneStore } from '@/features/scene/model'
+import type { SceneStore } from '@/features/editor/scene/model'
 ```
 
 ### Создание компонентов

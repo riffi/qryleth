@@ -105,8 +105,8 @@ import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
 ```typescript
 // shared/lib/langchain/tools/sceneTools.ts - НАРУШЕНИЕ!
 // shared слой импортирует из features
-import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 ```
 
 **Проблемы:**
@@ -119,8 +119,8 @@ import { useSceneStore } from '@/features/scene/model/sceneStore'
 ```typescript
 // features/scene/lib/ai/tools/sceneTools.ts - ПРАВИЛЬНО!
 // features может импортировать из своей же feature и из shared/entities
-import { SceneAPI } from '@/features/scene/lib/sceneAPI'
-import { useSceneStore } from '@/features/scene/model/sceneStore'
+import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { toolRegistry } from '@/shared/lib/langchain/toolRegistry'
 
 // features/scene/lib/ai/index.ts
@@ -147,7 +147,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 - Сборка редактора сцены выполняется в `widgets/SceneEditor`: виджет импортирует фичи, фичи не импортируют друг друга и не знают о виджете.
 - `SceneEditorR3F` получает презентационные компоненты/колбэки через пропсы:
   - тулбары, overlay Play, onSaveSceneRequest, onRequestEditObject.
-  - Это гарантирует отсутствие кросс‑фича импортов внутри `features/scene`.
+  - Это гарантирует отсутствие кросс‑фича импортов внутри `features/editor/scene`.
 
 ---
 
@@ -171,7 +171,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
    ```
 
 2. **Feature-специфичные ChatInterface**:
-   - `features/scene/ui/ChatInterface/SceneChatInterface` - для работы со сценами
+   - `features/editor/scene/ui/ChatInterface/SceneChatInterface` - для работы со сценами
    - `features/editor/object/ui/ChatInterface/ObjectChatInterface` - для редактирования объектов
 
 ### Миграция от монолитного подхода
@@ -187,7 +187,7 @@ const tools = toolRegistry.getAllTools() // Без прямых импортов
 **После рефакторинга** (соответствие FSD):
 ```typescript
 // shared/entities/chat - базовая функциональность
-// features/scene/ui/ChatInterface - специфично для сцен
+// features/editor/scene/ui/ChatInterface - специфично для сцен
 // features/editor/object/ui/ChatInterface - специфично для объектов
 ```
 
