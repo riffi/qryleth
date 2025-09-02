@@ -23,3 +23,5 @@ export type { InlineEditProps } from './InlineEdit'
 // Граница ошибок
 export { ErrorBoundary } from './ErrorBoundary'
 export type { ErrorFallback } from './ErrorBoundary'
+// Общие тулбары
+export { EdgeToolbar } from './toolbars/EdgeToolbar'

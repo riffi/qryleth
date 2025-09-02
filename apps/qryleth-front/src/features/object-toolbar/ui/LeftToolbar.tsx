@@ -1,5 +1,6 @@
 import React from 'react'
-import { Box, ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { EdgeToolbar } from '@/shared/ui'
 import { IconMessages, IconAdjustments } from '@tabler/icons-react'
 
 interface LeftToolbarProps {
@@ -36,22 +37,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   showPropertiesAction = true,
 }) => {
   return (
-    <Box
-      style={{
-        position: 'absolute',
-        left: 0,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 150,
-        width: 40,
-        background: 'color-mix(in srgb, var(--mantine-color-dark-8) 30%, transparent)',
-        borderRight: 'none',
-        borderTopRightRadius: 8,
-        borderBottomRightRadius: 8,
-        boxShadow: 'none',
-        padding: '8px 0',
-      }}
-    >
+    <EdgeToolbar side={'left'}>
       <Stack gap={2} align="center">
         <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} position="right" withArrow>
           <ActionIcon
@@ -81,6 +67,6 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           </Tooltip>
         )}
       </Stack>
-    </Box>
+    </EdgeToolbar>
   )
 }

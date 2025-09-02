@@ -1,5 +1,6 @@
 import React from 'react'
-import { Box, ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { EdgeToolbar } from '@/shared/ui'
 import { IconMessages, IconCode } from '@tabler/icons-react'
 
 interface LeftToolbarProps {
@@ -41,31 +42,8 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   onToggleScripting,
   offsetLeftPx = 0,
 }) => {
-  /**
-   * Упрощённое правило: одинаковая прозрачность 0.3 для любых состояний,
-   * что эквивалентно 70% цвета в color-mix. Тень выключена всегда.
-   */
-  const bgOpacityPercent = 30
   return (
-    <Box
-      style={{
-        position: 'absolute',
-        // Смещение от левого края контейнера: 0, если панель скрыта; ширина панели + разделитель — если открыта
-        left: offsetLeftPx,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 150,
-        width: 40,
-        background: `color-mix(in srgb, var(--mantine-color-dark-8) ${bgOpacityPercent}%, transparent)`,
-        // Убрали рамку справа по требованию
-        borderRight: 'none',
-        borderTopRightRadius: 8,
-        borderBottomRightRadius: 8,
-        boxShadow: 'none',
-        transition: 'background 160ms ease, box-shadow 160ms ease, left 160ms ease',
-        padding: '8px 0'
-      }}
-    >
+    <EdgeToolbar side={'left'} offsetPx={offsetLeftPx}>
       <Stack gap={2} align="center">
         <Tooltip label={chatCollapsed ? 'Открыть чат' : 'Закрыть чат'} position="right" withArrow>
           <ActionIcon
@@ -99,6 +77,6 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           </ActionIcon>
         </Tooltip>
       </Stack>
-    </Box>
+    </EdgeToolbar>
   )
 }

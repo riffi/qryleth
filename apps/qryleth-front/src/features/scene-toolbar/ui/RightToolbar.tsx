@@ -1,5 +1,6 @@
 import React from 'react'
-import { Box, ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { EdgeToolbar } from '@/shared/ui'
 import { IconFolder } from '@tabler/icons-react'
 
 interface RightToolbarProps {
@@ -30,31 +31,8 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({
   onToggleObjectPanel,
   offsetRightPx = 0,
 }) => {
-  /**
-   * Упрощённое правило: одинаковая прозрачность 0.3 для любых состояний,
-   * что эквивалентно 70% цвета в color-mix. Тень выключена всегда.
-   */
-  const bgOpacityPercent = 30
   return (
-    <Box
-      style={{
-        position: 'absolute',
-        // Смещение от правого края контейнера: 0, если панель скрыта; ширина панели + разделитель — если открыта
-        right: offsetRightPx,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 150,
-        width: 40,
-        background: `color-mix(in srgb, var(--mantine-color-dark-8) ${bgOpacityPercent}%, transparent)`,
-        // Убрали рамку слева по требованию
-        borderLeft: 'none',
-        borderTopLeftRadius: 8,
-        borderBottomLeftRadius: 8,
-        boxShadow: 'none',
-        transition: 'background 160ms ease, box-shadow 160ms ease, right 160ms ease',
-        padding: '8px 0'
-      }}
-    >
+    <EdgeToolbar side={'right'} offsetPx={offsetRightPx}>
       <Stack gap={2} align="center">
         <Tooltip label={objectPanelCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} position="left" withArrow>
           <ActionIcon
@@ -72,6 +50,6 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({
           </ActionIcon>
         </Tooltip>
       </Stack>
-    </Box>
+    </EdgeToolbar>
   )
 }

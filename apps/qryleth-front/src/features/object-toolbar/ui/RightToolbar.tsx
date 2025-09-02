@@ -1,5 +1,6 @@
 import React from 'react'
-import { Box, ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { ActionIcon, Tooltip, Stack } from '@mantine/core'
+import { EdgeToolbar } from '@/shared/ui'
 import { IconFolder } from '@tabler/icons-react'
 
 interface RightToolbarProps {
@@ -15,22 +16,7 @@ interface RightToolbarProps {
  */
 export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager }) => {
   return (
-    <Box
-      style={{
-        position: 'absolute',
-        right: 0,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 150,
-        width: 40,
-        background: 'color-mix(in srgb, var(--mantine-color-dark-8) 30%, transparent)',
-        borderLeft: 'none',
-        borderTopLeftRadius: 8,
-        borderBottomLeftRadius: 8,
-        boxShadow: 'none',
-        padding: '8px 0',
-      }}
-    >
+    <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
         <Tooltip label={managerCollapsed ? 'Открыть менеджер' : 'Закрыть менеджер'} position="left" withArrow>
           <ActionIcon
@@ -45,6 +31,6 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
           </ActionIcon>
         </Tooltip>
       </Stack>
-    </Box>
+    </EdgeToolbar>
   )
 }
