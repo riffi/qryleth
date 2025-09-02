@@ -75,6 +75,21 @@
   - Требование проекта: к каждому методу добавлять подробный комментарий на русском языке.
 - Термины: использовать единообразно (см. `getting-started/terminology.md`).
 
+### Нотация имён типов
+
+- `Gfx*`: базовые графические домены и сущности рендера
+  - Примеры: `GfxPrimitive`, `GfxPrimitiveGroup`, `GfxObject`, `GfxObjectInstance`, `GfxLayer`, `GfxMaterial`, `GfxTerrainConfig`, `GfxHeightSampler`.
+  - Слой: `entities/*` (база доменной модели без UI/Store).
+- `Scene*`: сценовые проекции/агрегаты поверх Gfx‑базы
+  - Примеры: `SceneObject` (расширяет `GfxObject`), `SceneObjectInstance` (расширяет `GfxObjectInstance`), `SceneLayer` (расширяет `GfxLayer`), `SceneData`, `SceneStatus`, `SceneMetaData`.
+  - Слой: `entities/scene/*`.
+- Shared типы (без префикса): математические и UI типы
+  - Примеры: `Vector3`, `Transform`, `BoundingBox`, `ViewMode`, `RenderMode`, `TransformMode`.
+  - Слой: `shared/types/*`.
+- Store/feature типы: отражают область
+  - Примеры: `SceneStoreState`, `ObjectStoreState` (в `features/*/model`).
+- Запрещено: смешивать префиксы (`GfxScene*`), переименовывать сценовые типы под `Gfx*`.
+
 ---
 
 ## Changelog и обновления
@@ -119,4 +134,3 @@
 3. При необходимости добавьте ссылки из обзорных файлов (без копирования содержания).
 4. Обновите `docs/changelog.md`, если изменение заметное для пользователей/архитектуры.
 5. Прогоните проверку ссылок и линтер Markdown (если настроены).
-
