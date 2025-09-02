@@ -168,136 +168,109 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
    * Рендерит левую панель: чат (если передан chatComponent) или свойства (материал/группа/примитив).
    */
   const renderLeftPanel = () => {
-    if (!panelState.leftPanel) return null
-
-    if (panelState.leftPanel === 'chat' && chatComponent) {
-      return (
-        <Paper
-          shadow="sm"
-          radius="md"
-          style={{
-            width: `${leftPanelWidthPx}px`,
-            height: '100%',
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: resizingSide ? undefined : 'width 160ms ease',
-            background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
-            backdropFilter: 'blur(8px)'
-          }}
-        >
-          {/* Заголовок левой панели: Чат */}
-          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
-            <Group>
-              <IconMessages size={20} />
-              <Text fw={500}>Панель чата</Text>
-            </Group>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              onClick={() => hidePanel?.('chat')}
-              aria-label="Скрыть чат"
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          </Group>
-          <Box style={{ flex: 1, minHeight: 0 }}>
-            {chatComponent}
-          </Box>
-        </Paper>
-      )
-    }
-
-    if (panelState.leftPanel === 'properties') {
-      return (
-        <Paper
-          shadow="sm"
-          radius="md"
-          style={{
-            width: `${leftPanelWidthPx}px`,
-            height: '100%',
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: resizingSide ? undefined : 'width 160ms ease',
-            background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
-            backdropFilter: 'blur(8px)'
-          }}
-        >
-          {/* Заголовок левой панели: Свойства */}
-          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
-            <Group>
-              <IconAdjustments size={20} />
-              <Text fw={500}>
-                {selectedMaterialUuid ? 'Свойства материала' : (selectedItemType === 'group' ? 'Свойства группы' : 'Свойства примитива')}
-              </Text>
-            </Group>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              onClick={() => hidePanel?.('properties')}
-              aria-label="Скрыть свойства"
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          </Group>
-          <Box style={{ flex: 1, minHeight: 0 }}>
-            {selectedMaterialUuid ? (
-              <MaterialControlPanel />
-            ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
-              <GroupControlPanel />
-            ) : (
-              <PrimitiveControlPanel />
-            )}
-          </Box>
-        </Paper>
-      )
-    }
-
-    return null
-  }
-
-  /**
-   * Рендерит правую панель: менеджер объектов, когда он активен.
-   */
-  const renderRightPanel = () => {
-    if (!panelState.rightPanel || panelState.rightPanel !== 'manager') return null
+    const isOpen = !!panelState.leftPanel
+    const isChat = panelState.leftPanel === 'chat'
+    const isProps = panelState.leftPanel === 'properties'
 
     return (
       <Paper
         shadow="sm"
         radius="md"
         style={{
-          width: `${rightPanelWidthPx}px`,
+          width: isOpen ? `${leftPanelWidthPx}px` : 0,
+          height: '100%',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: resizingSide ? undefined : 'width 200ms ease, opacity 200ms ease',
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? 'auto' : 'none',
+          background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
+          backdropFilter: 'blur(8px)'
+        }}
+        aria-hidden={!isOpen}
+      >
+        {isOpen && (
+          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+            <Group>
+              {isChat ? <IconMessages size={20} /> : <IconAdjustments size={20} />}
+              <Text fw={500}>
+                {isChat
+                  ? 'Панель чата'
+                  : selectedMaterialUuid
+                    ? 'Свойства материала'
+                    : (selectedItemType === 'group' ? 'Свойства группы' : 'Свойства примитива')}
+              </Text>
+            </Group>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={() => hidePanel?.(isChat ? 'chat' : 'properties')}
+              aria-label={isChat ? 'Скрыть чат' : 'Скрыть свойства'}
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          </Group>
+        )}
+        <Box style={{ flex: 1, minHeight: 0 }}>
+          {isChat && chatComponent}
+          {isProps && (
+            selectedMaterialUuid ? (
+              <MaterialControlPanel />
+            ) : selectedItemType === 'group' && selectedGroupUuids.length === 1 ? (
+              <GroupControlPanel />
+            ) : (
+              <PrimitiveControlPanel />
+            )
+          )}
+        </Box>
+      </Paper>
+    )
+  }
+
+  /**
+   * Рендерит правую панель: менеджер объектов, когда он активен.
+   */
+  const renderRightPanel = () => {
+    const isOpen = panelState.rightPanel === 'manager'
+    return (
+      <Paper
+        shadow="sm"
+        radius="md"
+        style={{
+          width: isOpen ? `${rightPanelWidthPx}px` : 0,
           flexShrink: 0,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          transition: resizingSide ? undefined : 'width 160ms ease',
+          transition: resizingSide ? undefined : 'width 200ms ease, opacity 200ms ease',
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? 'auto' : 'none',
           background: 'color-mix(in srgb, var(--mantine-color-dark-7) 78%, transparent)',
           backdropFilter: 'blur(8px)'
         }}
+        aria-hidden={!isOpen}
       >
-        {/* Заголовок правой панели: Менеджер объектов */}
-        <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
-          <Group>
-            <IconFolder size={20} />
-            <Text fw={500}>Менеджер объектов</Text>
+        {isOpen && (
+          <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+            <Group>
+              <IconFolder size={20} />
+              <Text fw={500}>Менеджер объектов</Text>
+            </Group>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={() => hidePanel?.('manager')}
+              aria-label="Скрыть менеджер"
+            >
+              <IconX size={16} />
+            </ActionIcon>
           </Group>
-          <ActionIcon
-            variant="subtle"
-            size="sm"
-            onClick={() => hidePanel?.('manager')}
-            aria-label="Скрыть менеджер"
-          >
-            <IconX size={16} />
-          </ActionIcon>
-        </Group>
+        )}
         <Box style={{ flex: 1, minHeight: 0 }}>
-          <ObjectManagementPanel />
+          {isOpen && <ObjectManagementPanel />}
         </Box>
       </Paper>
     )
