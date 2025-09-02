@@ -8,26 +8,7 @@
 
 ## 1. Дерево каталогов (feature‑sliced)
 
-```text
-src/
-├─ app/            # entry‑point, providers, router / точка входа, провайдеры, роутер
-├─ pages/          # SceneEditor, ObjectEditor, Library (route‑shell) / роут‑шелл
-├─ features/       # module = scenario / модуль = сценарий
-│  ├─ editor/
-│  │  ├─ scene/   # стек сценового редактора (model/ui/lib/layout/toolbar)
-│  │  └─ object/  # стек редактора объекта (model/ui/lib/layout/toolbar)
-│  ├─ scene-persistence/  # сохранение сцен (чистые функции) + SaveModal
-│  └─ scene-play-mode/    # Play‑overlay и хоткеи Play (1/2/3/4, Esc)
-├─ widgets/        # крупные самостоятельные блоки UI
-├─ entities/       # чистые доменные модели (без React)
-   ├─ layer
-   ├─ lighting
-   ├─ object
-   ├─ objectInstance
-   ├─ primitive
-   ├─ scene
-└─ shared/         # UI atoms, hooks, utilities, theme / ui‑атомы, хуки, утилиты, тема
-```
+Каноническая структура слоёв и правила импортов описаны в разделе: [Feature-Sliced Design](feature-sliced-design.md). В этом документе не дублируем дерево каталогов.
 
 *Правило доступа*: слой может импортировать только то, что **ниже** (или на том же уровне), чтобы избежать циклов.
 

@@ -4,7 +4,7 @@
 
 ---
 
-## Architecture Overview / Обзор архитектуры
+## Обзор архитектуры
 
 Все типы в проекте организованы согласно принципам **Feature-Sliced Design (FSD)**:
 ```
@@ -40,22 +40,22 @@ src/
 **Импорт**: `import type { ... } from '@/entities'`
 
 ```typescript
-// Core domain types / Основные доменные типы
+// Основные доменные типы
 import type { 
-  GfxPrimitive,      // 3D primitives (box, sphere, cylinder, etc.)
-  GfxPrimitiveGroup, // Primitive groups with hierarchy support
-  GfxObject,         // Composite 3D objects
+  GfxPrimitive,      // 3D примитивы (box, sphere, cylinder и т.п.)
+  GfxPrimitiveGroup, // Группы примитивов с поддержкой иерархии
+  GfxObject,         // Составные 3D‑объекты
   GfxObjectInstance, // GfxObject инстансы
-  GfxLayer,          // Scene layers
+  GfxLayer,          // Слои сцены
   // 🆕 Террейн: конфигурация и сэмплер высот
   GfxTerrainConfig,  // Конфигурация террейна слоя (perlin, heightmap, ops)
   GfxHeightSampler,  // Единый интерфейс получения высот/нормалей для рендера и размещения
-  GfxMaterial,       // Material definitions
-  LightingSettings,   // Lighting configuration
+  GfxMaterial,       // Определения материалов
+  LightingSettings,   // Настройки освещения
   SceneData, // данные сцены
 } from '@/entities'
 
-// Specific entity types / Специфичные entity типы
+// Специфичные entity‑типы
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxObject } from '@/entities/object'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
@@ -82,16 +82,16 @@ interface PrimitiveCommon {
   uuid: string;         // 🆕 ОБЯЗАТЕЛЬНОЕ поле для поддержки групп
   name?: string;
   visible?: boolean;    // 🆕 Видимость примитива
-  // Legacy material support (deprecated) / Устаревшая поддержка материалов
+  // Устаревшая поддержка материалов (deprecated)
   material?: {
     color?: string;
     opacity?: number;
     emissive?: string;
     emissiveIntensity?: number;
   };
-  // New material system / Новая система материалов
-  objectMaterialUuid?: string;  // Reference to object material / Ссылка на материал объекта
-  globalMaterialUuid?: string;  // Reference to global material / Ссылка на глобальный материал
+  // Новая система материалов
+  objectMaterialUuid?: string;  // Ссылка на материал объекта
+  globalMaterialUuid?: string;  // Ссылка на глобальный материал
   transform?: {
     position?: Vector3;
     rotation?: Vector3;
@@ -118,12 +118,12 @@ interface PrimitiveCommon {
 
 ```typescript
 interface GfxMaterial {
-  uuid: string;          // Unique identifier / Уникальный идентификатор
-  name: string;          // Display name / Отображаемое имя
-  color?: string;        // Base color (hex) / Базовый цвет
-  opacity?: number;      // Transparency (0-1) / Прозрачность
-  emissive?: string;     // Emissive color (hex) / Цвет излучения
-  emissiveIntensity?: number; // Emissive strength / Интенсивность излучения
+  uuid: string;          // Уникальный идентификатор
+  name: string;          // Отображаемое имя
+  color?: string;        // Базовый цвет (hex)
+  opacity?: number;      // Прозрачность (0–1)
+  emissive?: string;     // Цвет излучения (hex)
+  emissiveIntensity?: number; // Интенсивность излучения
 }
 ```
 
@@ -208,7 +208,7 @@ interface GfxObject {
   primitiveGroupAssignments?: Record<string, string>;      // primitiveUuid -> groupUuid
   
   // Существующие поля
-  materials?: GfxMaterial[];        // Object-specific materials / Материалы объекта
+  materials?: GfxMaterial[];        // Материалы объекта
   boundingBox?: BoundingBox;
 }
 ```
@@ -242,19 +242,19 @@ const houseObject: GfxObject = {
 }
 ```
 
-### 2. 🔧 Core Utilities (`@/shared/types/core`)
+### 2. 🔧 Базовые утилиты (`@/shared/types/core`)
 
 **Назначение**: Базовые утилитарные типы для всего приложения  
 **Импорт**: `import type { ... } from '@/shared/types/core'`
 
 ```typescript
-// Mathematical types / Математические типы
+// Математические типы
 import type { 
-  Vector3,        // [x, y, z] coordinates
-  Transform       // Position, rotation, scale
+  Vector3,        // [x, y, z] координаты
+  Transform       // Позиция, поворот, масштаб
 } from '@/shared/types/core'
 
-// Usage / Использование
+// Использование
 const moveObject = (position: Vector3, offset: Vector3): Vector3 => {
   return [
     position[0] + offset[0],
@@ -265,26 +265,26 @@ const moveObject = (position: Vector3, offset: Vector3): Vector3 => {
 
 const applyTransform = (transform: Transform) => {
   const { position, rotation, scale } = transform
-  // Apply transformation logic
+  // Применение трансформации
 }
 ```
 
-### 3. 🎨 UI Types (`@/shared/types/ui`)
+### 3. 🎨 UI типы (`@/shared/types/ui`)
 
 
 **Назначение**: Типы для пользовательского интерфейса  
 **Импорт**: `import type { ... } from '@/shared/types/ui'`
 
 ```typescript
-// UI state and events / UI состояние и события
+// UI состояние и события
 import type { 
   ViewMode,              // 'orbit' | 'walk' | 'fly'
   RenderMode,            // 'solid' | 'wireframe'
   TransformMode,         // 'translate' | 'rotate' | 'scale'
-  SelectedObject,        // Selected object
-  HoveredObject,         // Object under cursor
-  SceneClickEvent,       // Scene click
-  ObjectTransformEvent   // Object transformation
+  SelectedObject,        // Выбранный объект
+  HoveredObject,         // Объект под курсором
+  SceneClickEvent,       // Клик по сцене
+  ObjectTransformEvent   // Трансформация объекта
 } from '@/shared/types/ui'
 ```
 
@@ -297,31 +297,31 @@ import type {
 ### ✅ Рекомендуемые паттерны
 
 ```typescript
-// 1. Barrel exports (preferred) / Предпочтительно
+// 1. Предпочтительно (barrel exports)
 import type { GfxPrimitive, GfxObject } from '@/entities'
 import type { ViewMode, SelectedObject } from '@/shared/types/ui'
 import type { SceneStore } from '@/features/editor/scene/model'
 
-// 2. Specific imports (when precision needed) / Когда нужна точность
+// 2. Когда нужна точность (точечные импорты)
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { SceneRecord } from '@/shared/api'
 
-// 3. Type-only imports (always for types) / Всегда для типов
-import type { ... } from '...'  // ✅ Correct
-import { type ... } from '...'  // ✅ Also correct
+// 3. Импорты только типов (всегда для типов)
+import type { ... } from '...'  // ✅ Верно
+import { type ... } from '...'  // ✅ Тоже верно
 ```
 
 ### ❌ Избегайте
 
 ```typescript
-// 1. Relative paths / Относительные пути
+// 1. Относительные пути
 import type { GfxPrimitive } from '../../../entities/primitive'  // ❌
 
-// 2. Mixed type/value imports without type keyword
-import { GfxPrimitive } from '@/entities'  // ❌ (if only type)
+// 2. Смешанные импорты тип/значение без ключевого слова type
+import { GfxPrimitive } from '@/entities'  // ❌ (если только тип)
 
-// 3. Imports from inaccessible layers / Импорты из недоступных слоев
-import type { SceneStore } from '@/features/editor/scene/model'  // ❌ in entities layer
+// 3. Импорты из недоступных слоёв
+import type { SceneStore } from '@/features/editor/scene/model'  // ❌ в слое entities
 ```
 
 ---
@@ -333,11 +333,11 @@ import type { SceneStore } from '@/features/editor/scene/model'  // ❌ in entit
 ```
 shared/      ← НЕ МОЖЕТ импортировать слои выше (самодостаточен)
    ↑
-entities/    ← can import shared / может импортировать общие типы из shared
+entities/    ← может импортировать общие типы из shared
    ↑  
-features/    ← can import from shared and entities
+features/    ← может импортировать из shared и entities
    ↑
-app/         ← can import from all layers / может импортировать из всех слоев
+app/         ← может импортировать из всех слоёв
 ```
 
 ### 🚫 Запрещенные импорты
@@ -346,14 +346,14 @@ app/         ← can import from all layers / может импортирова�
 - **shared** → любой слой выше ❌
 - **shared** → entities ❌
 - **shared** → features ❌
-- Circular dependencies / Циклические зависимости ❌
+- Циклические зависимости ❌
 
 ### ✅ Разрешенные импорты
 
 - **entities** → shared ✅ (общие типы)
 - **features** → entities ✅
 - **features** → shared ✅
-- **app** → any layer / любой слой ✅
+- **app** → любой слой ✅
 
 ---
 
@@ -361,12 +361,12 @@ app/         ← can import from all layers / может импортирова�
 
 ### При добавлении новых типов
 
-1. **Determine the layer** according to FSD:
-   - Domain logic → `entities/`
-   - Reusable utilities → `shared/`
-   - Business logic → `features/`
+1. **Определите слой** согласно FSD:
+   - Доменная логика → `entities/`
+   - Переиспользуемые утилиты → `shared/`
+   - Бизнес‑логика → `features/`
 
-2. **Create type in the right place**:
+2. **Создайте тип в нужном месте**:
    ```typescript
    // entities/newEntity/model/types.ts
    export interface NewEntity {
@@ -375,7 +375,7 @@ app/         ← can import from all layers / может импортирова�
    }
    ```
 
-3. **Add to barrel export**:
+3. **Добавьте в barrel‑экспорт**:
    ```typescript
    // entities/newEntity/index.ts
    export type { NewEntity } from './model/types'
@@ -384,7 +384,7 @@ app/         ← can import from all layers / может импортирова�
    export * from './newEntity'
    ```
 
-4. **Update documentation** if necessary
+4. **Обновите документацию** при необходимости
 
 ---
 
@@ -427,11 +427,11 @@ app/         ← can import from all layers / может импортирова�
 
 Унифицированная система типов обеспечивает:
 
-- 🏗️ **Architectural cleanliness** - FSD principles compliance
-- 📦 **Ease of use** - clear barrel exports  
-- 🔄 **Maintainability** - easy to find and update types
-- ⚡ **Performance** - type-only imports
-- 🛡️ **Safety** - prevention of architectural violations
+- 🏗️ **Чистота архитектуры** — соответствие принципам FSD
+- 📦 **Удобство использования** — понятные barrel‑экспорты  
+- 🔄 **Сопровождаемость** — легко находить и обновлять типы
+- ⚡ **Производительность** — импорты только типов
+- 🛡️ **Безопасность** — предотвращение архитектурных нарушений
 
 При возникновении вопросов обращайтесь к этому руководству или к архитектурным принципам в [Принципы проектирования](../../architecture/design-principles.md).
 
