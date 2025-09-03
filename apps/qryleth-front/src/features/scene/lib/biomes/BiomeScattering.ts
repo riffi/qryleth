@@ -65,6 +65,9 @@ export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]):
       const localCfg: GfxBiomeScatteringConfig = {
         ...cfg,
         densityPer100x100: localDensity,
+        // Локальные переопределения алгоритма распределения и минимальной дистанции, если заданы в правиле
+        distribution: (rule?.distribution ?? cfg.distribution) as GfxBiomeScatteringConfig['distribution'],
+        minDistance: (rule?.minDistance ?? cfg.minDistance) as number | undefined,
         edge: localEdge,
         transform: localTransform,
         seed: localSeed,
@@ -97,7 +100,7 @@ function scatterWithConfig(
   if (target <= 0) return []
 
   const points = cfg.distribution === 'poisson'
-    ? samplePoissonDisk(biome.area, cfg.minDistance ?? 1, target, cfg.seed)
+    ? samplePoissonDisk(biome.area, cfg.minDistance ?? 1, target, cfg.seed, cfg.edge)
     : sampleRandomPoints(biome.area, cfg, cfg.seed)
 
   const result: BiomePlacement[] = []

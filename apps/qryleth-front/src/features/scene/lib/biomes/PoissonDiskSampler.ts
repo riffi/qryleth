@@ -1,5 +1,5 @@
-import type { GfxBiomeArea } from '@/entities/biome'
-import { getAreaBounds, pointInsideArea } from './BiomeAreaUtils'
+import type { GfxBiomeArea, GfxBiomeEdgeFalloff } from '@/entities/biome'
+import { getAreaBounds, pointInsideArea, fadeWeight, edgeBiasWeight } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
 /**
@@ -12,12 +12,19 @@ import { createRng } from '@/shared/lib/utils/prng'
  *
  * Упрощённая версия: для стабильности ограничены итерации и размер списков.
  * Функция чистая и детерминированная при заданном seed.
+ *
+ * Дополнительно поддерживается edge‑взвешивание: коэффициент вероятности принятия
+ * кандидата рассчитывается как произведение fadeWeight и edgeBiasWeight, что
+ * позволяет смещать плотность к центру (+bias) или к краям (−bias), аналогично
+ * Random‑семплингу. При отсутствии параметров edge используется равномерное
+ * принятие (как раньше).
  */
 export function samplePoissonDisk(
   area: GfxBiomeArea,
   minDistance: number,
   targetCount: number,
-  seed?: number
+  seed?: number,
+  edge?: GfxBiomeEdgeFalloff
 ): [number, number][] {
   if (minDistance <= 0) return []
   const rng = createRng(seed)
@@ -36,7 +43,7 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-    insertSample(x, z)
+    if (acceptByEdge(x, z)) insertSample(x, z)
   }
 
   const k = 15 // число попыток вокруг активной точки
@@ -52,7 +59,7 @@ export function samplePoissonDisk(
       const x = sx + r * Math.cos(ang)
       const z = sz + r * Math.sin(ang)
       if (!pointInsideArea(area, x, z)) continue
-      if (isFarEnough(x, z)) {
+      if (isFarEnough(x, z) && acceptByEdge(x, z)) {
         insertSample(x, z)
         found = true
         break
@@ -72,7 +79,7 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-    if (isFarEnough(x, z)) insertSample(x, z)
+    if (isFarEnough(x, z) && acceptByEdge(x, z)) insertSample(x, z)
   }
 
   return samples
@@ -105,5 +112,17 @@ export function samplePoissonDisk(
     samples.push([x, z])
     active.push(samples.length - 1)
   }
-}
 
+  /**
+   * Проверка принятия кандидата по edge‑весу.
+   * Если edge не задан — всегда принимать (эквивалент прежнего поведения).
+   */
+  function acceptByEdge(x: number, z: number): boolean {
+    if (!edge) return true
+    const fw = fadeWeight(area, x, z, edge)
+    if (fw <= 0) return false
+    const bw = edgeBiasWeight(area, x, z, edge)
+    const acceptProb = Math.max(0, Math.min(1, fw * bw))
+    return rng() <= acceptProb
+  }
+}
