@@ -61,6 +61,96 @@ interface LayerInfo {
 }
 ```
 
+---
+
+## Биомы
+
+См. доменные типы: ../../api/types/biomes.md
+
+Оглавление:
+- [getBiomes](#getbiomes-gfxbiome)
+- [addBiome](#addbiomebiome--success-boolean-biomeuuid-string)
+- [updateBiome](#updatebiomebiomeuuid-string-updates-partialgfxbiome--success-boolean)
+- [removeBiome](#removebiomebiomeuuid-string--success-boolean)
+- [scatterBiome](#scatterbiomebiomeuuid-string-opts--success-boolean-created-number)
+- [regenerateBiomeInstances](#regeneratebiomeinstancesbiomeuuid-string-opts--success-boolean-deleted-number-created-number)
+- [getInstancesByBiomeUuid](#getinstancesbybiomeuuidbiomeuuid-string-sceneobjectinstance)
+
+### `getBiomes(): GfxBiome[]`
+Возвращает текущий список биомов сцены (копия массива из стора).
+
+```ts
+const biomes = SceneAPI.getBiomes()
+console.log('Всего биомов:', biomes.length)
+```
+
+### `addBiome(biome: GfxBiome): { success: boolean; biomeUuid?: string }`
+Добавляет биом в сцену. Если `biome.uuid` не задан — будет сгенерирован.
+
+```ts
+import type { GfxBiome } from '@/entities/biome'
+
+const biome: GfxBiome = {
+  uuid: undefined as any,
+  name: 'Лесной биом',
+  visible: true,
+  area: { type: 'rect', rect: { x: -100, z: -100, width: 200, depth: 200 } },
+  scattering: { algorithm: 'poisson', spacing: 1.5, seed: 12345 }
+}
+
+const res = SceneAPI.addBiome(biome)
+if (res.success) console.log('Добавлен биом', res.biomeUuid)
+```
+
+### `updateBiome(biomeUuid: string, updates: Partial<GfxBiome>): { success: boolean }`
+Частично обновляет поля биома по UUID.
+
+```ts
+SceneAPI.updateBiome(biomeUuid, {
+  scattering: { spacing: 1.2, source: { anyTags: ['дерево'] } }
+})
+```
+
+### `removeBiome(biomeUuid: string): { success: boolean }`
+Удаляет биом. Существующие инстансы с `biomeUuid` не удаляются автоматически.
+
+```ts
+const r = SceneAPI.removeBiome(biomeUuid)
+```
+
+### `scatterBiome(biomeUuid: string, opts?: { landscapeLayerId?: string }): Promise<{ success: boolean; created: number; warnings?: string[]; error?: string }>`
+Выполняет скаттеринг для биома и добавляет новые инстансы (append). При наличии ландшафтного слоя — выравнивает высоты.
+
+```ts
+// Простейший запуск с авто‑подбором landscape‑слоя
+const scatter = await SceneAPI.scatterBiome(biomeUuid)
+console.log('Создано инстансов:', scatter.created)
+
+// Явный выбор слоя ландшафта
+await SceneAPI.scatterBiome(biomeUuid, { landscapeLayerId: 'terrain-layer-id' })
+```
+
+### `regenerateBiomeInstances(biomeUuid: string, opts?: { landscapeLayerId?: string; forceDelete?: boolean }): Promise<{ success: boolean; deleted: number; created: number; warnings?: string[]; error?: string }>`
+Полная регенерация: удаляет старые инстансы данного биома и создаёт новые по текущим настройкам.
+
+```ts
+// Безусловно заменить старые инстансы, даже если новая генерация пустая
+const regen = await SceneAPI.regenerateBiomeInstances(biomeUuid, { forceDelete: true })
+console.log('Удалено:', regen.deleted, 'Создано:', regen.created)
+```
+
+### `getInstancesByBiomeUuid(biomeUuid: string): SceneObjectInstance[]`
+Возвращает все инстансы сцены, привязанные к указанному биому.
+
+```ts
+const instances = SceneAPI.getInstancesByBiomeUuid(biomeUuid)
+```
+
+Примечания:
+- Типы см. в разделе: ../../api/types/biomes.md
+- Если `scattering.source` не задан — используются все записи библиотеки с равными весами.
+- Для `random` применяется мягкий постфильтр по расстоянию (`spacing * 0.9`), для `poisson` — `minDistance = spacing` и ограничение N_max по hex‑packing.
+
 ## 🆕 Стратегии размещения
 
 ### `PlacementStrategy` (enum)

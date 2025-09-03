@@ -158,6 +158,7 @@ const handleObjectAdded = (object: SceneObject) => {
 - [Обзор системы типов](../../api/types/README.md)
 - [Слои сцены](../../api/types/layers.md)
 - [Террейн](../../api/types/terrain.md)
+- [Биомы](../../api/types/biomes.md)
 
 
 ## Интеграция хранилища
