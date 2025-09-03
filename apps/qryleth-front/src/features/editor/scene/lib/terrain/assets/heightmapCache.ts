@@ -1,4 +1,5 @@
 import { loadTerrainAssetImageData, loadTerrainHeightsFromAsset } from '@/features/editor/scene/lib/terrain/HeightmapUtils'
+import { onAssetInvalidated } from '../events'
 
 /**
  * Кэши и загрузчики данных heightmap (ImageData и числовое поле высот).
@@ -138,6 +139,11 @@ export function clear(): void {
   IMAGE_LOADS.clear()
   HEIGHTS_LOADS.clear()
 }
+
+// Подписка на системные события инвалидирования ассетов.
+// Это позволяет очищать кэши без обратного импорта из HeightmapUtils
+// и избегать динамических импортов одного и того же модуля в разных местах.
+onAssetInvalidated((assetId) => invalidate(assetId))
 
 /**
  * Загрузить ImageData для ассета, используя общий реестр промисов.

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '@/shared/lib/database'
 import type { TerrainAssetRecord } from '@/shared/lib/database'
 import { HEIGHTMAP_MAX_DIMENSION } from '@/features/editor/scene/config/terrain'
+import { emitAssetInvalidated } from './events'
 
 /**
  * Результат валидации PNG файла для использования в качестве heightmap
@@ -283,15 +284,8 @@ export async function getAllTerrainAssetsSummary(): Promise<Array<{
 export async function deleteTerrainAsset(assetId: string): Promise<void> {
   // 1) Удаляем запись ассета из хранилища Dexie
   await db.deleteTerrainAsset(assetId)
-  // 2) Инвалидируем связанные кэши высот и изображений.
-  // ВАЖНО: используем динамический импорт, чтобы не создавать циклическую
-  // зависимость на уровне модулей (heightmapCache уже импортирует этот файл).
-  try {
-    const mod = await import('./assets/heightmapCache')
-    mod.invalidate(assetId)
-  } catch (e) {
-    console.warn('Не удалось инвалидировать кэш heightmap после удаления ассета', e)
-  }
+  // 2) Инвалидируем связанные кэши высот и изображений через событийную шину.
+  emitAssetInvalidated(assetId, 'deleted')
 }
 
 /**
@@ -303,15 +297,8 @@ export async function renameTerrainAsset(assetId: string, newFileName: string): 
   }
   
   await db.updateTerrainAssetName(assetId, newFileName)
-  // Имя файла изменилось — на стороне кэша это не обязательно влияет на данные,
-  // однако для простоты и консистентности очистим кэш по assetId, чтобы избежать
-  // показа устаревших данных (например, превью) при последующих обращениях.
-  try {
-    const mod = await import('./assets/heightmapCache')
-    mod.invalidate(assetId)
-  } catch (e) {
-    console.warn('Не удалось инвалидировать кэш heightmap после переименования ассета', e)
-  }
+  // Имя файла изменилось — очистим кэш через событийную шину для консистентности UI.
+  emitAssetInvalidated(assetId, 'renamed')
 }
 
 /**

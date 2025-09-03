@@ -21,13 +21,6 @@ const biome = {
   scattering: {
     // v2: алгоритм и канонический spacing
     algorithm: 'poisson',
-    spacing: 1.5,
-    edge: { fadeWidth: 8, fadeCurve: 'smoothstep', edgeBias: 0 },
-    transform: {
-      randomYawDeg: [0, 360],
-      randomUniformScale: [0.9, 1.3],
-      randomOffsetXZ: [0.0, 0.6]
-    },
     seed: 12345,
     // Глобальный фильтр (по умолчанию пуст)
     source: { requiredTags: [], anyTags: [], excludeTags: [] }
@@ -37,7 +30,7 @@ const biome = {
       name: 'Деревья',
       scattering: {
         // Можно задать более редкое размещение деревьев
-        spacing: 2.2,
+        spacing: 10,
         edge: { fadeWidth: 6, fadeCurve: 'smoothstep', edgeBias: 0.2 },
         transform: { randomYawDeg: [0, 360], randomUniformScale: [0.95, 1.4], randomOffsetXZ: [0, 0.3] },
         source: { requiredTags: ['дерево'] }
@@ -46,7 +39,7 @@ const biome = {
     {
       name: 'Кустарники',
       scattering: {
-        spacing: 1.6,
+        spacing: 10,
         edge: { fadeWidth: 8, fadeCurve: 'linear', edgeBias: -0.2 }, // больше к краям
         transform: { randomYawDeg: [0, 360], randomUniformScale: [0.8, 1.1], randomOffsetXZ: [0, 0.4] },
         source: { anyTags: ['куст'] }
@@ -55,7 +48,7 @@ const biome = {
     {
       name: 'Травяной покров',
       scattering: {
-        spacing: 1.0,
+        spacing: 10,
         edge: { fadeWidth: 5, fadeCurve: 'smoothstep', edgeBias: 0 },
         transform: { randomYawDeg: [0, 360], randomUniformScale: [0.6, 0.9], randomOffsetXZ: [0, 0.2] },
         source: { anyTags: ['трава'] }

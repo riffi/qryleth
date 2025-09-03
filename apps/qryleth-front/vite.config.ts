@@ -48,10 +48,6 @@ export default defineConfig({
           ) {
             return 'chunk-codemirror'
           }
-          // Router
-          if (id.includes('react-router-dom')) {
-            return 'chunk-router'
-          }
           // Dexie (IndexedDB)
           if (id.includes('dexie')) {
             return 'chunk-dexie'

@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { Suspense, lazy, useState } from 'react'
 import { IconCube, IconEdit, IconTrash } from '@tabler/icons-react'
 import { ObjectCard } from '@/entities/object/ui'
 import type { ObjectCardAction } from '@/entities/object/ui'
 import type { ObjectRecord } from '@/shared/api/types'
-import { HoverInteractivePreview } from './HoverInteractivePreview'
+// Ленивая подгрузка интерактивного превью, чтобы не тянуть three.js в основной бандл библиотеки
+const HoverInteractivePreview = lazy(() => import('./HoverInteractivePreview').then(m => ({ default: m.HoverInteractivePreview })))
 import { useLibraryStore } from '../../model/libraryStore'
 
 export interface LibraryObjectCardProps {
@@ -73,13 +74,17 @@ export const LibraryObjectCard: React.FC<LibraryObjectCardProps> = ({
   ]
 
   /**
-   * Создает интерактивное превью при наведении курсора
+   * Создаёт интерактивное превью при наведении курсора.
+   * Используем React.lazy, чтобы подгружать тяжёлые зависимости (three/R3F)
+   * только по требованию, уменьшая размер основного чанка страницы.
    */
   const previewOverlay = hovered ? (
-    <HoverInteractivePreview
-      gfxObject={object.objectData}
-      onReadyChange={setHoverPreviewReady}
-    />
+    <Suspense fallback={null}>
+      <HoverInteractivePreview
+        gfxObject={object.objectData}
+        onReadyChange={setHoverPreviewReady}
+      />
+    </Suspense>
   ) : undefined
 
   return (
