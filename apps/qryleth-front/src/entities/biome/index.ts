@@ -9,4 +9,3 @@ export type {
   GfxBiomeEdgeFalloff,
   GfxBiomePlacementTransform,
 } from './model/types'
-

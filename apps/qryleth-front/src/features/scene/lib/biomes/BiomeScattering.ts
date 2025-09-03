@@ -1,5 +1,5 @@
 import type { GfxBiome, GfxBiomeScatteringConfig, GfxBiomeSourceFilter } from '@/entities/biome'
-import { estimateTargetCount, sampleRandomPoints } from './RandomSampling'
+import { sampleRandomPoints, estimateMaxCountBySpacing } from './RandomSampling'
 import { samplePoissonDisk } from './PoissonDiskSampler'
 import { createRng, xfnv1a } from '@/shared/lib/utils/prng'
 
@@ -36,53 +36,26 @@ export interface BiomePlacement {
  * @returns массив размещений
  */
 export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]): BiomePlacement[] {
-  const cfg = biome.scattering
-  const filtered = filterSources(cfg, library)
+  const base = biome.scattering
+  const filtered = filterSources(base, library)
   if (filtered.length === 0) return []
 
-  // Если определены страты и правила — обрабатываем их, иначе используем плоский режим
-  const strata = biome.strata?.filter(s => s && Array.isArray(s.rules) && s.rules.length > 0) ?? []
-  if (strata.length === 0) {
-    return scatterWithConfig(biome, cfg, filtered)
-  }
+  // Если есть страты с частичным оверрайдом — обрабатываем их по очереди
+  const strata = biome.strata ?? []
+  if (strata.length === 0) return scatterWithConfig(biome, base, filtered)
 
-  // Распределяем целевую плотность равномерно между всеми правилами всех страт (итерация 1)
-  const totalRules = strata.reduce((sum, s) => sum + s.rules.length, 0)
-  if (totalRules <= 0) return []
-
-  const perRuleDensity = Math.max(0, cfg.densityPer100x100 / totalRules)
   const result: BiomePlacement[] = []
+  const baseSeed = (base.seed ?? 0).toString()
   for (let si = 0; si < strata.length; si++) {
-    const stratum = strata[si]
-    for (let ri = 0; ri < stratum.rules.length; ri++) {
-      const rule = stratum.rules[ri] as any
-      // Итерация 2: локальные параметры на уровне правила с детерминированным seed
-      const localDensity = (rule?.densityPer100x100 ?? perRuleDensity) as number
-      const localEdge = (rule?.edge ?? cfg.edge) as GfxBiomeScatteringConfig['edge']
-      const localTransform = (rule?.transform ?? cfg.transform) as GfxBiomeScatteringConfig['transform']
-      const baseSeed = (cfg.seed ?? 0).toString()
-      const localSeed = xfnv1a(`${baseSeed}:${si}:${ri}`)
-      const localCfg: GfxBiomeScatteringConfig = {
-        ...cfg,
-        densityPer100x100: localDensity,
-        // Локальные переопределения алгоритма распределения и минимальной дистанции, если заданы в правиле
-        distribution: (rule?.distribution ?? cfg.distribution) as GfxBiomeScatteringConfig['distribution'],
-        minDistance: (rule?.minDistance ?? cfg.minDistance) as number | undefined,
-        edge: localEdge,
-        transform: localTransform,
-        seed: localSeed,
-      }
-      // Локальный выбор источников на уровне правила, если задан
-      const localFiltered = (rule && rule.sourceSelection)
-        ? filterSourcesByFilter(rule.sourceSelection as GfxBiomeSourceFilter, library)
-        : filtered
-      if (localFiltered.length === 0) {
-        // Если пул источников пуст — пропускаем данное правило
-        continue
-      }
-      const placements = scatterWithConfig(biome, localCfg, localFiltered)
-      result.push(...placements)
+    const s = strata[si]
+    const localSeed = xfnv1a(`${baseSeed}:${si}`)
+    const localCfg: GfxBiomeScatteringConfig = {
+      ...base,
+      ...(s.scattering ?? {}),
+      seed: localSeed,
     }
+    const placements = scatterWithConfig(biome, localCfg, filterSources(localCfg, library))
+    if (placements.length > 0) result.push(...placements)
   }
   return result
 }
@@ -96,20 +69,25 @@ function scatterWithConfig(
   cfg: GfxBiomeScatteringConfig,
   filteredSources: Array<LibrarySourceItem & { weight: number }>,
 ): BiomePlacement[] {
-  const target = estimateTargetCount(biome.area, cfg.densityPer100x100)
-  if (target <= 0) return []
-
-  const points = cfg.distribution === 'poisson'
-    ? samplePoissonDisk(biome.area, cfg.minDistance ?? 1, target, cfg.seed, cfg.edge)
+  // Если после фильтрации не осталось источников — нечего размещать
+  if (!filteredSources || filteredSources.length === 0) return []
+  const points = cfg.algorithm === 'poisson'
+    ? samplePoissonDisk(
+        biome.area,
+        cfg.spacing,
+        estimateMaxCountBySpacing(biome.area, cfg.spacing),
+        cfg.seed,
+        cfg.edge
+      )
     : sampleRandomPoints(biome.area, cfg, cfg.seed)
 
   const result: BiomePlacement[] = []
   const rng = createRng(cfg.seed)
   for (const [x, z] of points) {
     const src = pickSourceWeighted(filteredSources, cfg, rng())
-    const yaw = randomInRange(cfg.transform.randomYawDeg ?? [0, 360], rng())
-    const scale = randomInRange(cfg.transform.randomUniformScale ?? [1, 1], rng())
-    const off = cfg.transform.randomOffsetXZ ?? [0, 0]
+    const yaw = randomInRange((cfg.transform?.randomYawDeg ?? [0, 360]) as [number, number], rng())
+    const scale = randomInRange((cfg.transform?.randomUniformScale ?? [1, 1]) as [number, number], rng())
+    const off = (cfg.transform?.randomOffsetXZ ?? [0, 0]) as [number, number]
     const ox = (off[0] === 0 && off[1] === 0) ? 0 : lerpSigned(off, rng())
     const oz = (off[0] === 0 && off[1] === 0) ? 0 : lerpSigned(off, rng())
     result.push({ position: [x + ox, 0, z + oz], rotationYDeg: yaw, uniformScale: scale, libraryUuid: src.libraryUuid })
@@ -122,7 +100,8 @@ function scatterWithConfig(
  * Веса из фильтра складываются: прямые веса по UUID и по тегам.
  */
 function filterSources(cfg: GfxBiomeScatteringConfig, library: LibrarySourceItem[]): Array<LibrarySourceItem & { weight: number } > {
-  return filterSourcesByFilter(cfg.sources, library)
+  if (!cfg.source) return library.map(item => ({ ...item, weight: 1 }))
+  return filterSourcesByFilter(cfg.source, library)
 }
 
 /**

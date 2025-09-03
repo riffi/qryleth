@@ -1,4 +1,4 @@
-import type { GfxBiome, GfxBiomeArea, GfxBiomeScatteringConfig } from '@/entities/biome'
+import type { GfxBiomeArea, GfxBiomeScatteringConfig } from '@/entities/biome'
 import { getAreaBounds, pointInsideArea, fadeWeight, edgeBiasWeight, estimateArea } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
@@ -12,10 +12,11 @@ import { createRng } from '@/shared/lib/utils/prng'
  *
  * Функция чистая и детерминированная при заданном seed.
  */
-export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringConfig, seed?: number): [number, number][] {
+export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringConfig, seed?: number, softFactor = 0.9): [number, number][] {
   const rng = createRng(seed ?? cfg.seed)
-  const target = estimateTargetCount(area, cfg.densityPer100x100)
+  const target = estimateMaxCountBySpacing(area, cfg.spacing)
   const bounds = getAreaBounds(area)
+  const edge = cfg.edge ?? { fadeWidth: 0, edgeBias: 0, fadeCurve: 'linear' as const }
 
   const points: [number, number][] = []
   // Ограничитель попыток, чтобы избежать бесконечного цикла на «узких» областях
@@ -27,21 +28,38 @@ export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringCo
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
 
-    const fw = fadeWeight(area, x, z, cfg.edge)
+    const fw = fadeWeight(area, x, z, edge)
     if (fw <= 0) continue
-    const bw = edgeBiasWeight(area, x, z, cfg.edge)
+    const bw = edgeBiasWeight(area, x, z, edge)
     const acceptProb = Math.max(0, Math.min(1, fw * bw))
-    if (rng() <= acceptProb) points.push([x, z])
+    if (rng() > acceptProb) continue
+
+    // Мягкий пост‑фильтр по расстоянию: spacing * t
+    const minDist = (cfg.spacing || 0) * softFactor
+    if (minDist > 0) {
+      let ok = true
+      for (let i = 0; i < points.length; i++) {
+        const [px, pz] = points[i]
+        const dx = px - x
+        const dz = pz - z
+        if (dx * dx + dz * dz < minDist * minDist) { ok = false; break }
+      }
+      if (!ok) continue
+    }
+    points.push([x, z])
   }
   return points
 }
 
 /**
- * Оценка целевого числа точек по плотности на 100×100 и площади области.
+ * Оценка верхней границы числа точек по площади области и spacing (hex‑packing).
+ * η ≈ 0.9069, площадь «зоны влияния» точки: A = π · (spacing/2)^2.
  */
-export function estimateTargetCount(area: GfxBiomeArea, densityPer100: number): number {
-  const areaSize = estimateArea(area)
-  const factor = areaSize / (100 * 100)
-  return Math.max(0, Math.round(densityPer100 * factor))
+export function estimateMaxCountBySpacing(area: GfxBiomeArea, spacing: number): number {
+  if (!spacing || spacing <= 0) return 0
+  const S = estimateArea(area)
+  const eta = 0.9069
+  const A = Math.PI * Math.pow(spacing / 2, 2)
+  const n = Math.round((eta * S) / A)
+  return Math.max(0, n)
 }
-
