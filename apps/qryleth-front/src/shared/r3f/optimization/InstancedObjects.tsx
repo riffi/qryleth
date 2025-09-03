@@ -341,7 +341,7 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
 
   const handleInstanceClick = useCallback((event: any) => {
     if (!onClick || !ref.current) return
-    
+
     // Get the instanceId from the event
     const instanceId = event.instanceId
     if (instanceId !== undefined && instanceId < instances.length) {
@@ -364,7 +364,7 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
 
   const handleInstanceHover = useCallback((event: any) => {
     if (!onHover || !ref.current) return
-    
+
     const instanceId = event.instanceId
     if (instanceId !== undefined && instanceId < instances.length) {
       const instance = instances[instanceId]
@@ -389,6 +389,11 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
       limit={1000} // Maximum instances
       range={instances.length}
       ref={ref}
+      // ВАЖНО: по умолчанию Three.js отключает тени для мешей (castShadow=false).
+      // Для InstancedMesh это также справедливо, поэтому явно включаем отбрасывание теней,
+      // чтобы инстансы объектов корректно отбрасывали тени на ландшафтные слои (receiveShadow у террейна уже включён).
+      castShadow
+      receiveShadow
       onClick={handleInstanceClick}
       onPointerOver={handleInstanceHover}
     >

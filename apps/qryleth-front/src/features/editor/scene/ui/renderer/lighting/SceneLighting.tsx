@@ -61,7 +61,21 @@ export const SceneLighting: React.FC = () => {
         castShadow={castShadow}
         shadow-mapSize-width={shadowMapSize[0]}
         shadow-mapSize-height={shadowMapSize[1]}
-        shadow-camera-far={shadowCameraFar}
+        // Расширяем ортографическую камеру теней, чтобы покрыть ландшафт.
+        // По умолчанию у DirectionalLightShadow очень маленькие границы (-5..5),
+        // из-за чего тени могут не попадать на террейн при крупных сценах.
+        shadow-camera-left={-512}
+        shadow-camera-right={512}
+        shadow-camera-top={512}
+        shadow-camera-bottom={-512}
+        shadow-camera-near={0.5}
+        shadow-camera-far={shadowCameraFar ?? 1000}
+        // Слегка смещаем расчёт глубины, чтобы избежать артефактов (shadow acne)
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.3}
+        // Направляем цель света в центр сцены (или в указанную точку),
+        // чтобы камера теней ориентировалась на область интереса.
+        target-position={directional?.target ?? [0, 0, 0]}
       />
     </>
   )
