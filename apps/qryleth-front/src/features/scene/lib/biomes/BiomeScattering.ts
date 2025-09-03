@@ -41,6 +41,40 @@ export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]):
   const filtered = filterSources(cfg, library)
   if (filtered.length === 0) return []
 
+  // Если определены страты и правила — обрабатываем их, иначе используем плоский режим
+  const strata = biome.strata?.filter(s => s && Array.isArray(s.rules) && s.rules.length > 0) ?? []
+  if (strata.length === 0) {
+    return scatterWithConfig(biome, cfg, filtered, rng)
+  }
+
+  // Распределяем целевую плотность равномерно между всеми правилами всех страт (итерация 1)
+  const totalRules = strata.reduce((sum, s) => sum + s.rules.length, 0)
+  if (totalRules <= 0) return []
+
+  const perRuleDensity = Math.max(0, cfg.densityPer100x100 / totalRules)
+  const result: BiomePlacement[] = []
+  for (let si = 0; si < strata.length; si++) {
+    const stratum = strata[si]
+    for (let ri = 0; ri < stratum.rules.length; ri++) {
+      // На итерации 1 используем глобальные параметры биома, переопределяя только плотность на правило
+      const localCfg: GfxBiomeScatteringConfig = { ...cfg, densityPer100x100: perRuleDensity }
+      const placements = scatterWithConfig(biome, localCfg, filtered, rng)
+      result.push(...placements)
+    }
+  }
+  return result
+}
+
+/**
+ * Вспомогательная функция генерации размещений с заданной конфигурацией скаттеринга.
+ * Используется как для плоского режима, так и для скелета стратификации.
+ */
+function scatterWithConfig(
+  biome: GfxBiome,
+  cfg: GfxBiomeScatteringConfig,
+  filteredSources: Array<LibrarySourceItem & { weight: number }>,
+  rng: () => number
+): BiomePlacement[] {
   const target = estimateTargetCount(biome.area, cfg.densityPer100x100)
   if (target <= 0) return []
 
@@ -50,7 +84,7 @@ export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]):
 
   const result: BiomePlacement[] = []
   for (const [x, z] of points) {
-    const src = pickSourceWeighted(filtered, cfg, rng())
+    const src = pickSourceWeighted(filteredSources, cfg, rng())
     const yaw = randomInRange(cfg.transform.randomYawDeg ?? [0, 360], rng())
     const scale = randomInRange(cfg.transform.randomUniformScale ?? [1, 1], rng())
     const off = cfg.transform.randomOffsetXZ ?? [0, 0]
@@ -114,4 +148,3 @@ function lerpSigned([min, max]: [number, number], r: number): number {
   const v = min + (max - min) * t
   return sign * v
 }
-

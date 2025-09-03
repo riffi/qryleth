@@ -1,5 +1,4 @@
 ---
-id: 28
 epic: null
 title: "Биомы: доменная модель, теги библиотеки, скаттеринг и интеграция"
 status: in-progress
@@ -8,11 +7,9 @@ updated: 2025-09-02
 owner: team-graphics
 tags: [gfx, biomes, library, scattering, ui, scripting]
 phases:
-  total: 5
-  completed: 3
+  total: 8
+  completed: 4
 ---
-
-# Биомы: доменная модель, теги библиотеки, скаттеринг и интеграция
 
 ## Контекст
 В рамках сцены требуется поддержать «биомы» — логические области на плоскости XZ, где выполняется скаттеринг объектов из библиотеки по тегам и весам. Биом включает форму области (rect/circle/polygon), параметры плотности и распределения (random/poisson), поведение у границ (fade/bias), seed и настройки случайных трансформаций. Инстансы, созданные биомом, должны ссылаться на `biomeUuid`.
@@ -64,7 +61,53 @@ phases:
 - Результаты детерминированы по `seed`.
 - Используются shared типы/функции; дублирования математики нет.
 
-### ◻️ Фаза 4: Интеграция в sceneAPI и ScriptingPanel
+### ✅ Фаза 4: Стратифицированные биомы — Итерация 1 (GfxBiomeStratum & GfxBiomePlacementRule)
+
+Что сделать:
+- Расширить модель `GfxBiome` массивом `strata: GfxBiomeStratum[]`.
+- Определить доменные типы `GfxBiomeStratum` и более конкретный `GfxBiomePlacementRule` (вместо абстрактного RuleSet) в `entities/biome` и экспортировать их через barrel.
+- Обновить оркестратор: проход по всем `strata`, внутри — по всем `rules: GfxBiomePlacementRule[]` с агрегацией результатов в единый список placements.
+
+Отчёт: [phases/phase_4_summary.md](phases/phase_4_summary.md)
+
+Вход:
+- Биом в новом формате (`strata: GfxBiomeStratum[]`, у страты `rules: GfxBiomePlacementRule[]`).
+- Параметры сцены: `seed`, библиотека (список `{ libraryUuid, tags[] }`).
+
+Выход:
+- Единый список placements (формат как ранее: `{ position, rotationYDeg, uniformScale, libraryUuid }`).
+
+Критерии приёмки:
+- Биом с 2–3 стратами/правилами даёт совокупный список точек.
+- В логах/отладке видно, какая страта и какое правило сработало.
+
+### ◻️ Фаза 5: Стратифицированные биомы — Итерация 2 (Локальные параметры GfxBiomePlacementRule)
+
+Что сделать:
+- В каждом `GfxBiomePlacementRule` задать локальные параметры (переопределяют параметры биома):
+  - `densityPer100x100`, `edgeFalloff` (`fadeWidth`, `curve`, `bias`), `transform` (`yawDeg[min,max]`, `uniformScale[min,max]`, `offsetXZ[min,max]`).
+- Сэмплинг и трансформации должны читать параметры из `GfxBiomePlacementRule`.
+- Детерминизм: `seed = hash(biomeSeed, stratumIndex, ruleIndex)` (использовать `xfnv1a`/`createRng` из shared).
+
+Критерии приёмки:
+- Разные слои (например, деревья и трава) в одном биоме имеют разную плотность и fade.
+- Разные диапазоны scale/yaw визуально заметны на сцене.
+- Один и тот же seed → стабильный результат.
+
+### ◻️ Фаза 6: Стратифицированные биомы — Итерация 3 (Выбор источников per GfxBiomePlacementRule)
+
+Что сделать:
+- В `GfxBiomePlacementRule` добавить `sourceSelection`:
+  - `requiredTags[]`, `anyTags[]`, `excludeTags[]`, `includeLibraryUuids[]`.
+  - `weightsByTag{ tag->weight }`, `weightsByUuid{ uuid->weight }`.
+- Выбор источников выполнять локально в рамках `GfxBiomePlacementRule`: фильтрация → нормализация весов → weighted random.
+
+Критерии приёмки:
+- Разные правила (`GfxBiomePlacementRule`) выбирают разные группы объектов (деревья ≠ кусты ≠ трава).
+- Изменение весов меняет распределение выбранных моделей.
+- Если фильтры обнулили пул — оркестратор возвращает явную ошибку (и пропускает конкретное правило или весь стратиум — по настройке).
+
+### ◻️ Фаза 7: Интеграция в sceneAPI и ScriptingPanel
 
 — sceneAPI
 - Методы: `getBiomes()`, `addBiome()`, `updateBiome()`, `removeBiome()`, `scatterBiome(biomeUuid)`, `regenerateBiomeInstances(biomeUuid)`, `getInstancesByBiomeUuid(biomeUuid)`.
@@ -85,7 +128,7 @@ phases:
 - Полный набор API в `sceneAPI` и инструменты в `ScriptingPanel` работают согласованно.
 - Все математические функции используют shared типы/утилиты; дублирования нет.
 
-### ◻️ Фаза 5: UI «Биомы» в SceneObjectManager (SceneEditor)
+### ◻️ Фаза 8: UI «Биомы» в SceneObjectManager (SceneEditor)
 
 — UI в правой панели SceneEditor (SceneObjectManager)
 - Раздел «Биомы»:
@@ -102,7 +145,7 @@ phases:
   - Все вычисления предпросмотра/проверок — на shared типах/функциях.
 - Контекстное меню на биоме:
   - «Редактировать…», «Переименовать…», «Дублировать», «Сгенерировать», «Регенерировать», «Скрыть/Показать», «Выбрать инстансы биома», «Очистить инстансы», «Удалить биом».
-  - Все операции с биомами из UI (создание/обновление/удаление, генерация/регенерация, выборка инстансов) выполнять через `sceneAPI`, не изменяя store напрямую.
+  - Все операции с биомами из UI (создание/обновление/удаление, генерация/регенерация, выборка инстансов) выполнять через `sceneAPI` (см. фазу 7), не изменяя store напрямую.
 - 3D‑оверлей областей (R3F):
   - Выделение выбранного биома; отрисовка контура/заливки для rect (с rotationY), circle, polygon; отображение fade‑зоны.
   - Математика — строго через shared (`shared/types/geo2d`, `shared/types/vector3`, `shared/lib/math/*`).
@@ -116,3 +159,5 @@ phases:
 - ≤ 15 файлов на фазу, сборка/линт/тесты — зелёные.
 - Чистые функции в ядре скаттеринга; UI и API — тонкие слои над ядром.
 - Общие математические утилиты — только из shared; при нехватке добавить в `shared/lib/math`.
+
+---
