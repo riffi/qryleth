@@ -1,5 +1,5 @@
 import type { GfxBiomeArea, GfxBiomeScatteringConfig } from '@/entities/biome'
-import { getAreaBounds, pointInsideArea, edgeAcceptanceProbability, estimateAcceptanceFraction, estimateArea } from './BiomeAreaUtils'
+import { getAreaBounds, pointInsideArea, localMinDistance, estimateVariableSpacingDensityFraction, estimateArea } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
 /**
@@ -16,8 +16,8 @@ import { createRng } from '@/shared/lib/utils/prng'
 export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringConfig, seed?: number, softFactor = 0.9): [number, number][] {
   const rng = createRng(seed ?? cfg.seed)
   const baseTarget = estimateMaxCountBySpacing(area, cfg.spacing)
-  // Корректируем целевое количество точек по среднему коэффициенту принятия
-  const frac = estimateAcceptanceFraction(area, cfg.edge)
+  // Корректируем целевое количество точек под переменный spacing (fade‑зона разрежена)
+  const frac = estimateVariableSpacingDensityFraction(area, cfg.spacing, cfg.edge)
   const target = Math.max(0, Math.round(baseTarget * frac))
   const bounds = getAreaBounds(area)
   const edge = cfg.edge ?? { fadeWidth: 0, edgeBias: 0, fadeCurve: 'linear' as const }
@@ -31,11 +31,10 @@ export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringCo
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-    const acceptProb = edgeAcceptanceProbability(area, x, z, edge)
-    if (rng() > acceptProb) continue
+    // Для положительного edgeBias плотность регулируется локальным spacing, без дополнительной вероятности
 
     // Мягкий пост‑фильтр по расстоянию: spacing * t
-    const minDist = (cfg.spacing || 0) * softFactor
+    const minDist = (localMinDistance(area, x, z, cfg.spacing || 0, cfg.edge) || 0) * softFactor
     if (minDist > 0) {
       let ok = true
       for (let i = 0; i < points.length; i++) {

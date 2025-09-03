@@ -151,6 +151,60 @@ export function estimateAcceptanceFraction(area: GfxBiomeArea, edge?: GfxBiomeEd
 }
 
 /**
+ * Локальный минимальный интервал между точками (локальный spacing),
+ * который увеличивается при приближении к краю в зоне fade.
+ *
+ * Формула: spacing_local = spacing / s(t)^alpha,
+ *  t = d / fadeWidth (0..1), s = smoothstep(t) при fadeCurve='smoothstep', иначе t.
+ *  alpha = bias / (1 - bias). При bias=0 → alpha=0 → spacing_local = spacing (равномерно).
+ *  При bias=0.5 → alpha=1 → spacing_local = spacing / s(t).
+ *  При bias→1 → alpha→∞ → spacing_local → ∞ в любой точке полосы fade (точки не ставятся).
+ */
+export function localMinDistance(area: GfxBiomeArea, x: number, z: number, spacing: number, edge?: GfxBiomeEdgeFalloff): number {
+  if (!edge || (edge.edgeBias ?? 0) <= 0 || !edge.fadeWidth || edge.fadeWidth <= 0) return spacing
+  const d = signedDistanceToEdge(area, x, z)
+  if (d <= 0) return spacing * 1e6 // вне области — заведомо «запретить»
+  if (d >= edge.fadeWidth) return spacing
+  const bias = clamp(edge.edgeBias ?? 0, 0, 0.999999)
+  const alpha = bias / (1 - bias) // 0..∞
+  const t0 = clamp(d / edge.fadeWidth, 0, 1)
+  const t = edge.fadeCurve === 'smoothstep' ? smoothstep(t0) : t0
+  const s = Math.max(1e-6, Math.pow(t, alpha))
+  const local = spacing / s
+  // Ограничим сверху чтобы избежать численной раздачи: фактически «бесконечно»
+  return Math.min(local, spacing * 1e6)
+}
+
+/**
+ * Оценка средней плотности для адаптивного spacing: возвращает коэффициент
+ * (0..1), на который надо умножить baseTarget (по базовому spacing), чтобы
+ * получить ожидаемое количество точек при переменном spacing.
+ * Плотность ≈ 1 / spacing_local^2, поэтому используем (spacing / local)^2.
+ */
+export function estimateVariableSpacingDensityFraction(area: GfxBiomeArea, spacing: number, edge?: GfxBiomeEdgeFalloff): number {
+  if (!edge || (edge.edgeBias ?? 0) <= 0 || !edge.fadeWidth || edge.fadeWidth <= 0) return 1
+  const bounds = getAreaBounds(area)
+  const N = 36
+  let inside = 0
+  let acc = 0
+  for (let i = 0; i < N; i++) {
+    const u = (i + 0.5) / N
+    const x = bounds.minX + (bounds.maxX - bounds.minX) * u
+    for (let j = 0; j < N; j++) {
+      const v = (j + 0.5) / N
+      const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * v
+      if (!pointInsideArea(area, x, z)) continue
+      inside++
+      const local = localMinDistance(area, x, z, spacing, edge)
+      const scale = Math.min(1, Math.max(0, (spacing / local) ** 2))
+      acc += scale
+    }
+  }
+  if (inside === 0) return 1
+  return clamp(acc / inside, 0, 1)
+}
+
+/**
  * Оценка площади области (для расчёта целевого числа точек по плотности).
  * Прямоугольник: width*depth; круг: PI*r^2; многоугольник: полигональная площадь (shoelace).
  */

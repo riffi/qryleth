@@ -1,5 +1,5 @@
 import type { GfxBiomeArea, GfxBiomeEdgeFalloff } from '@/entities/biome'
-import { getAreaBounds, pointInsideArea, edgeAcceptanceProbability, estimateAcceptanceFraction } from './BiomeAreaUtils'
+import { getAreaBounds, pointInsideArea, localMinDistance, estimateVariableSpacingDensityFraction } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
 /**
@@ -31,12 +31,13 @@ export function samplePoissonDisk(
 
   // Корректируем целевое число точек с учётом edge‑профиля,
   // иначе алгоритм будет «добивать» край, чтобы достичь targetCount
-  if (edge && (edge.edgeBias ?? 0) !== 0) {
-    const frac = estimateAcceptanceFraction(area, edge)
+  if (edge && (edge.edgeBias ?? 0) > 0) {
+    const frac = estimateVariableSpacingDensityFraction(area, minDistance, edge)
     targetCount = Math.max(0, Math.round(targetCount * frac))
   }
 
-  const cellSize = minDistance / Math.SQRT2
+  const baseSpacing = minDistance
+  const cellSize = baseSpacing / Math.SQRT2
   const cols = Math.max(1, Math.ceil((bounds.maxX - bounds.minX) / cellSize))
   const rows = Math.max(1, Math.ceil((bounds.maxZ - bounds.minZ) / cellSize))
   const grid: (number[] | null)[][] = Array.from({ length: cols }, () => Array(rows).fill(null))
@@ -49,7 +50,7 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-    if (acceptByEdge(x, z)) insertSample(x, z)
+    if (isFarEnough(x, z)) insertSample(x, z)
   }
 
   const k = 15 // число попыток вокруг активной точки
@@ -61,11 +62,16 @@ export function samplePoissonDisk(
     let found = false
     for (let i = 0; i < k; i++) {
       const ang = 2 * Math.PI * rng()
-      const r = minDistance * (1 + rng())
+      // Используем локальный spacing в точке кандидата
+      // Генерим радиус от локального до 2×локального
+      const tryX = sx + (baseSpacing) * Math.cos(ang) // предварительный вектор направления
+      const tryZ = sz + (baseSpacing) * Math.sin(ang)
+      const localR = localMinDistance(area, tryX, tryZ, baseSpacing, edge)
+      const r = localR * (1 + rng())
       const x = sx + r * Math.cos(ang)
       const z = sz + r * Math.sin(ang)
       if (!pointInsideArea(area, x, z)) continue
-      if (isFarEnough(x, z) && acceptByEdge(x, z)) {
+      if (isFarEnough(x, z)) {
         insertSample(x, z)
         found = true
         break
@@ -85,7 +91,7 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-    if (isFarEnough(x, z) && acceptByEdge(x, z)) insertSample(x, z)
+    if (isFarEnough(x, z)) insertSample(x, z)
   }
 
   return samples
@@ -98,15 +104,17 @@ export function samplePoissonDisk(
 
   function isFarEnough(x: number, z: number): boolean {
     const [gx, gz] = gridIndex(x, z)
-    const r = 2 // проверяем клетки в радиусе ~2-3
-    for (let ix = gx - r; ix <= gx + r; ix++) {
+    const localR = localMinDistance(area, x, z, baseSpacing, edge)
+    const rCells = Math.ceil(localR / cellSize) + 1
+    for (let ix = gx - rCells; ix <= gx + rCells; ix++) {
       if (ix < 0 || ix >= cols) continue
-      for (let iz = gz - r; iz <= gz + r; iz++) {
+      for (let iz = gz - rCells; iz <= gz + rCells; iz++) {
         if (iz < 0 || iz >= rows) continue
         const cell = grid[ix][iz]
         if (!cell) continue
         const [px, pz] = cell as [number, number]
-        if ((px - x) * (px - x) + (pz - z) * (pz - z) < minDistance * minDistance) return false
+        const minR = Math.max(localR, localMinDistance(area, px, pz, baseSpacing, edge))
+        if ((px - x) * (px - x) + (pz - z) * (pz - z) < minR * minR) return false
       }
     }
     return true
@@ -119,13 +127,6 @@ export function samplePoissonDisk(
     active.push(samples.length - 1)
   }
 
-  /**
-   * Проверка принятия кандидата по edge‑весу.
-   * Если edge не задан — всегда принимать (эквивалент прежнего поведения).
-   */
-  function acceptByEdge(x: number, z: number): boolean {
-    if (!edge) return true
-    const acceptProb = edgeAcceptanceProbability(area, x, z, edge)
-    return rng() <= acceptProb
-  }
+  // При положительном edgeBias эффект края реализован через переменный локальный spacing,
+  // поэтому дополнительная стохастическая фильтрация не требуется.
 }
