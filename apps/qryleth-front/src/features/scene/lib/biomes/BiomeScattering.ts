@@ -1,7 +1,7 @@
-import type { GfxBiome, GfxBiomeScatteringConfig } from '@/entities/biome'
+import type { GfxBiome, GfxBiomeScatteringConfig, GfxBiomeSourceFilter } from '@/entities/biome'
 import { estimateTargetCount, sampleRandomPoints } from './RandomSampling'
 import { samplePoissonDisk } from './PoissonDiskSampler'
-import { createRng } from '@/shared/lib/utils/prng'
+import { createRng, xfnv1a } from '@/shared/lib/utils/prng'
 
 /**
  * Тип источника для скаттеринга, соответствующий записи в библиотеке.
@@ -37,14 +37,13 @@ export interface BiomePlacement {
  */
 export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]): BiomePlacement[] {
   const cfg = biome.scattering
-  const rng = createRng(cfg.seed)
   const filtered = filterSources(cfg, library)
   if (filtered.length === 0) return []
 
   // Если определены страты и правила — обрабатываем их, иначе используем плоский режим
   const strata = biome.strata?.filter(s => s && Array.isArray(s.rules) && s.rules.length > 0) ?? []
   if (strata.length === 0) {
-    return scatterWithConfig(biome, cfg, filtered, rng)
+    return scatterWithConfig(biome, cfg, filtered)
   }
 
   // Распределяем целевую плотность равномерно между всеми правилами всех страт (итерация 1)
@@ -56,9 +55,29 @@ export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]):
   for (let si = 0; si < strata.length; si++) {
     const stratum = strata[si]
     for (let ri = 0; ri < stratum.rules.length; ri++) {
-      // На итерации 1 используем глобальные параметры биома, переопределяя только плотность на правило
-      const localCfg: GfxBiomeScatteringConfig = { ...cfg, densityPer100x100: perRuleDensity }
-      const placements = scatterWithConfig(biome, localCfg, filtered, rng)
+      const rule = stratum.rules[ri] as any
+      // Итерация 2: локальные параметры на уровне правила с детерминированным seed
+      const localDensity = (rule?.densityPer100x100 ?? perRuleDensity) as number
+      const localEdge = (rule?.edge ?? cfg.edge) as GfxBiomeScatteringConfig['edge']
+      const localTransform = (rule?.transform ?? cfg.transform) as GfxBiomeScatteringConfig['transform']
+      const baseSeed = (cfg.seed ?? 0).toString()
+      const localSeed = xfnv1a(`${baseSeed}:${si}:${ri}`)
+      const localCfg: GfxBiomeScatteringConfig = {
+        ...cfg,
+        densityPer100x100: localDensity,
+        edge: localEdge,
+        transform: localTransform,
+        seed: localSeed,
+      }
+      // Локальный выбор источников на уровне правила, если задан
+      const localFiltered = (rule && rule.sourceSelection)
+        ? filterSourcesByFilter(rule.sourceSelection as GfxBiomeSourceFilter, library)
+        : filtered
+      if (localFiltered.length === 0) {
+        // Если пул источников пуст — пропускаем данное правило
+        continue
+      }
+      const placements = scatterWithConfig(biome, localCfg, localFiltered)
       result.push(...placements)
     }
   }
@@ -73,7 +92,6 @@ function scatterWithConfig(
   biome: GfxBiome,
   cfg: GfxBiomeScatteringConfig,
   filteredSources: Array<LibrarySourceItem & { weight: number }>,
-  rng: () => number
 ): BiomePlacement[] {
   const target = estimateTargetCount(biome.area, cfg.densityPer100x100)
   if (target <= 0) return []
@@ -83,6 +101,7 @@ function scatterWithConfig(
     : sampleRandomPoints(biome.area, cfg, cfg.seed)
 
   const result: BiomePlacement[] = []
+  const rng = createRng(cfg.seed)
   for (const [x, z] of points) {
     const src = pickSourceWeighted(filteredSources, cfg, rng())
     const yaw = randomInRange(cfg.transform.randomYawDeg ?? [0, 360], rng())
@@ -100,12 +119,20 @@ function scatterWithConfig(
  * Веса из фильтра складываются: прямые веса по UUID и по тегам.
  */
 function filterSources(cfg: GfxBiomeScatteringConfig, library: LibrarySourceItem[]): Array<LibrarySourceItem & { weight: number } > {
-  const required = new Set((cfg.sources.requiredTags ?? []).map(t => t.toLowerCase()))
-  const any = new Set((cfg.sources.anyTags ?? []).map(t => t.toLowerCase()))
-  const exclude = new Set((cfg.sources.excludeTags ?? []).map(t => t.toLowerCase()))
-  const includeUuids = new Set(cfg.sources.includeLibraryUuids ?? [])
-  const wByUuid = cfg.sources.weightsByLibraryUuid ?? {}
-  const wByTag = cfg.sources.weightsByTag ?? {}
+  return filterSourcesByFilter(cfg.sources, library)
+}
+
+/**
+ * Применяет фильтр источников (теги/исключения/include/веса) к библиотеке и возвращает взвешенный список.
+ * Используется как для глобального фильтра биома, так и для локального фильтра правила.
+ */
+function filterSourcesByFilter(filter: GfxBiomeSourceFilter, library: LibrarySourceItem[]): Array<LibrarySourceItem & { weight: number } > {
+  const required = new Set((filter.requiredTags ?? []).map(t => t.toLowerCase()))
+  const any = new Set((filter.anyTags ?? []).map(t => t.toLowerCase()))
+  const exclude = new Set((filter.excludeTags ?? []).map(t => t.toLowerCase()))
+  const includeUuids = new Set(filter.includeLibraryUuids ?? [])
+  const wByUuid = filter.weightsByLibraryUuid ?? {}
+  const wByTag = filter.weightsByTag ?? {}
 
   const res: Array<LibrarySourceItem & { weight: number }> = []
   for (const item of library) {

@@ -8,7 +8,7 @@ owner: team-graphics
 tags: [gfx, biomes, library, scattering, ui, scripting]
 phases:
   total: 8
-  completed: 4
+  completed: 6
 ---
 
 ## Контекст
@@ -81,7 +81,9 @@ phases:
 - Биом с 2–3 стратами/правилами даёт совокупный список точек.
 - В логах/отладке видно, какая страта и какое правило сработало.
 
-### ◻️ Фаза 5: Стратифицированные биомы — Итерация 2 (Локальные параметры GfxBiomePlacementRule)
+### ✅ Фаза 5: Стратифицированные биомы — Итерация 2 (Локальные параметры GfxBiomePlacementRule)
+
+Отчёт: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 Что сделать:
 - В каждом `GfxBiomePlacementRule` задать локальные параметры (переопределяют параметры биома):
@@ -94,7 +96,9 @@ phases:
 - Разные диапазоны scale/yaw визуально заметны на сцене.
 - Один и тот же seed → стабильный результат.
 
-### ◻️ Фаза 6: Стратифицированные биомы — Итерация 3 (Выбор источников per GfxBiomePlacementRule)
+### ✅ Фаза 6: Стратифицированные биомы — Итерация 3 (Выбор источников per GfxBiomePlacementRule)
+
+Отчёт: [phases/phase_6_summary.md](phases/phase_6_summary.md)
 
 Что сделать:
 - В `GfxBiomePlacementRule` добавить `sourceSelection`:
