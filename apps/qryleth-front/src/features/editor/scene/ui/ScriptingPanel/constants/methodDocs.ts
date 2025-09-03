@@ -168,6 +168,51 @@ export const METHOD_DOCS: Record<string, string> = {
   seed: 42
 }, { name: 'Мой террейн', visible: true, color: '#228B22' })
 Описание: Создает террейн в сцене и выравнивает объекты. Поддерживает color для задания цвета слою`,
+
+  // ===== Биомы =====
+  getBiomes: `getBiomes(): GfxBiome[]
+Возвращает: массив биомов сцены (доменные типы с area/scattering/strata)
+Описание: Получить список всех биомов из сцены`,
+
+  addBiome: `addBiome(biome: GfxBiome): { success: boolean, biomeUuid?: string }
+Параметры:
+  biome: GfxBiome — полный объект биома (если uuid не задан — будет сгенерирован)
+Возвращает: { success, biomeUuid? }
+Описание: Добавляет биом в сцену`,
+
+  updateBiome: `updateBiome(biomeUuid: string, updates: Partial<GfxBiome>): { success: boolean }
+Параметры:
+  biomeUuid: string — UUID биома
+  updates: Partial<GfxBiome> — частичное обновление полей
+Возвращает: { success }
+Описание: Обновляет биом по UUID`,
+
+  removeBiome: `removeBiome(biomeUuid: string): { success: boolean }
+Параметры:
+  biomeUuid: string — UUID биома
+Возвращает: { success }
+Описание: Удаляет биом (инстансы не трогаются)`,
+
+  getInstancesByBiomeUuid: `getInstancesByBiomeUuid(biomeUuid: string): SceneObjectInstance[]
+Параметры:
+  biomeUuid: string — UUID биома
+Возвращает: массив инстансов, у которых instance.biomeUuid === biomeUuid
+Описание: Получить инстансы, принадлежащие конкретному биому`,
+
+  scatterBiome: `scatterBiome(biomeUuid: string, opts?: { landscapeLayerId?: string }): Promise<{ success, created, warnings?, error? }>
+Параметры:
+  biomeUuid: string — UUID биома
+  opts.landscapeLayerId?: string — ID слоя террейна для выравнивания (по умолчанию берётся подходящий Landscape)
+Возвращает: { success, created: number, warnings?: string[], error?: string }
+Описание: Выполняет скаттеринг для биома и ДОБАВЛЯЕТ новые инстансы поверх существующих. Высота Y выравнивается по террейну`,
+
+  regenerateBiomeInstances: `regenerateBiomeInstances(biomeUuid: string, opts?: { landscapeLayerId?: string, forceDelete?: boolean }): Promise<{ success, deleted, created, warnings?, error? }>
+Параметры:
+  biomeUuid: string — UUID биома
+  opts.landscapeLayerId?: string — ID слоя террейна
+  opts.forceDelete?: boolean — если true, удалит старые инстансы даже при пустом результате генерации
+Возвращает: { success, deleted: number, created: number, warnings?: string[], error?: string }
+Описание: Пере‑генерирует инстансы биома: удаляет старые и создаёт новые. По умолчанию, если генерация даёт 0 и forceDelete не указан — старые инстансы сохраняются`
 }
 
 /**
@@ -199,4 +244,12 @@ export const getSceneApiMethodList = (): string[] => [
   'searchObjectsInLibrary',
   'addObjectFromLibrary',
   'adjustInstancesForPerlinTerrain',
+  // Биомы
+  'getBiomes',
+  'addBiome',
+  'updateBiome',
+  'removeBiome',
+  'getInstancesByBiomeUuid',
+  'scatterBiome',
+  'regenerateBiomeInstances',
 ]

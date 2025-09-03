@@ -8,7 +8,7 @@ owner: team-graphics
 tags: [gfx, biomes, library, scattering, ui, scripting]
 phases:
   total: 8
-  completed: 6
+  completed: 7
 ---
 
 ## Контекст
@@ -111,7 +111,8 @@ phases:
 - Изменение весов меняет распределение выбранных моделей.
 - Если фильтры обнулили пул — оркестратор возвращает явную ошибку (и пропускает конкретное правило или весь стратиум — по настройке).
 
-### ◻️ Фаза 7: Интеграция в sceneAPI и ScriptingPanel
+### ✅ Фаза 7: Интеграция в sceneAPI и ScriptingPanel
+Отчёт: [phases/phase_7_summary.md](phases/phase_7_summary.md)
 
 — sceneAPI
 - Методы: `getBiomes()`, `addBiome()`, `updateBiome()`, `removeBiome()`, `scatterBiome(biomeUuid)`, `regenerateBiomeInstances(biomeUuid)`, `getInstancesByBiomeUuid(biomeUuid)`.

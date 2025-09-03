@@ -2,6 +2,7 @@ import type { TemplateGroup, TemplateData } from './types'
 import { quickStartGroup } from './groups/quickStart'
 import { landscapesGroup } from './groups/landscapes'
 import { utilitiesGroup } from './groups/utilities'
+import { biomesGroup } from './groups/biomes'
 export { getDefaultScript } from './defaultScript'
 
 /**
@@ -17,6 +18,7 @@ export { getDefaultScript } from './defaultScript'
 export const getTemplateGroups = (): TemplateGroup[] => [
   quickStartGroup,
   landscapesGroup,
+  biomesGroup,
   utilitiesGroup
 ]
 

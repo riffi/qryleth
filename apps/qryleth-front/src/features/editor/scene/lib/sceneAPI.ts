@@ -6,6 +6,9 @@
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/entities/scene/types'
+import type { GfxBiome } from '@/entities/biome'
+import { scatterBiomePure, type BiomePlacement } from '@/features/scene/lib/biomes/BiomeScattering'
+import { degToRad } from '@/shared/lib/math/number'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/editor/scene/lib/correction/LLMGeneratedObjectCorrector'
@@ -149,6 +152,208 @@ export interface AddInstancesResult {
  * Scene API class для предоставления методов агентам
  */
 export class SceneAPI {
+  // =============================
+  // Биомы: CRUD и операции скаттеринга (Фаза 7)
+  // =============================
+
+  /** Получить список биомов сцены */
+  static getBiomes(): GfxBiome[] {
+    return [...(useSceneStore.getState().biomes || [])]
+  }
+
+  /** Добавить биом в сцену */
+  static addBiome(biome: GfxBiome): { success: boolean; biomeUuid?: string } {
+    const state = useSceneStore.getState()
+    try {
+      const uuid = biome.uuid || generateUUID()
+      state.addBiome({ ...biome, uuid })
+      return { success: true, biomeUuid: uuid }
+    } catch (e) {
+      return { success: false }
+    }
+  }
+
+  /** Обновить биом по UUID */
+  static updateBiome(biomeUuid: string, updates: Partial<GfxBiome>): { success: boolean } {
+    const state = useSceneStore.getState()
+    try {
+      state.updateBiome(biomeUuid, updates)
+      return { success: true }
+    } catch (e) {
+      return { success: false }
+    }
+  }
+
+  /** Удалить биом по UUID (инстансы не трогаем — ответственность вызывающей стороны) */
+  static removeBiome(biomeUuid: string): { success: boolean } {
+    const state = useSceneStore.getState()
+    try {
+      state.removeBiome(biomeUuid)
+      return { success: true }
+    } catch (e) {
+      return { success: false }
+    }
+  }
+
+  /** Получить инстансы сцены, привязанные к биому */
+  static getInstancesByBiomeUuid(biomeUuid: string): SceneObjectInstance[] {
+    const state = useSceneStore.getState()
+    return state.objectInstances.filter(i => i.biomeUuid === biomeUuid)
+  }
+
+  /**
+   * Выполнить скаттеринг для указанного биома: добавляет новые инстансы поверх существующих.
+   * Применяет автоподстройку по террейну через adjustAllInstancesForTerrainAsync.
+   */
+  static async scatterBiome(
+    biomeUuid: string,
+    opts?: { landscapeLayerId?: string }
+  ): Promise<{ success: boolean; created: number; warnings?: string[]; error?: string }> {
+    try {
+      const state = useSceneStore.getState()
+      const biome = (state.biomes || []).find(b => b.uuid === biomeUuid)
+      if (!biome) return { success: false, created: 0, error: `Biome ${biomeUuid} not found` }
+
+      // Библиотека объектов для ядра скаттеринга
+      const libraryRecords = await db.getAllObjects()
+      const library = libraryRecords.map(rec => ({
+        libraryUuid: rec.uuid,
+        tags: (rec.tags || rec.objectData.tags || []).map(t => t.toLowerCase())
+      })) as Array<{ libraryUuid: string; tags: string[] }>
+
+      // Генерация размещений
+      const placements = scatterBiomePure(biome, library)
+      if (placements.length === 0) return { success: true, created: 0, warnings: ['No placements generated'] }
+
+      // Убедиться, что для каждого libraryUuid есть объект в сцене
+      const objectsByLibraryUuid = await SceneAPI.ensureSceneObjectsForLibrary(placements.map(p => p.libraryUuid))
+
+      // Построить инстансы (Y скорректируем ниже)
+      const newInstances: SceneObjectInstance[] = placements.map(p => {
+        const objUuid = objectsByLibraryUuid.get(p.libraryUuid)!
+        return {
+          uuid: generateUUID(),
+          objectUuid: objUuid,
+          biomeUuid,
+          transform: {
+            position: [p.position[0], 0, p.position[2]],
+            rotation: [0, degToRad(p.rotationYDeg), 0],
+            scale: [p.uniformScale, p.uniformScale, p.uniformScale]
+          },
+          visible: true
+        }
+      })
+
+      // Автоподстройка по террейну
+      const terrainLayer = opts?.landscapeLayerId
+        ? state.layers.find(l => l.id === opts!.landscapeLayerId)
+        : SceneAPI.pickLandscapeLayer()
+
+      let adjusted = newInstances
+      if (terrainLayer) {
+        const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
+        adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
+      }
+
+      // Добавить в store
+      adjusted.forEach(inst => state.addObjectInstance(inst))
+      return { success: true, created: adjusted.length }
+    } catch (e) {
+      return { success: false, created: 0, error: e instanceof Error ? e.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Полная регенерация инстансов биома: удалить старые и создать новые.
+   * Если dry-run генерация даёт 0 — по умолчанию сохраняем старые (если не передан forceDelete).
+   */
+  static async regenerateBiomeInstances(
+    biomeUuid: string,
+    opts?: { landscapeLayerId?: string; forceDelete?: boolean }
+  ): Promise<{ success: boolean; deleted: number; created: number; warnings?: string[]; error?: string }> {
+    try {
+      const state = useSceneStore.getState()
+      const biome = (state.biomes || []).find(b => b.uuid === biomeUuid)
+      if (!biome) return { success: false, deleted: 0, created: 0, error: `Biome ${biomeUuid} not found` }
+      const libraryRecords = await db.getAllObjects()
+      const library = libraryRecords.map(rec => ({
+        libraryUuid: rec.uuid,
+        tags: (rec.tags || rec.objectData.tags || []).map(t => t.toLowerCase())
+      }))
+      const placements = scatterBiomePure(biome, library as any)
+      const existing = SceneAPI.getInstancesByBiomeUuid(biomeUuid)
+
+      if (placements.length === 0 && !opts?.forceDelete) {
+        return { success: true, deleted: 0, created: 0, warnings: ['No placements generated; kept existing'] }
+      }
+
+      // Удаляем старые
+      if (existing.length > 0) {
+        const remaining = state.objectInstances.filter(i => i.biomeUuid !== biomeUuid)
+        state.setObjectInstances(remaining)
+      }
+
+      // Если нечего генерировать — выходим
+      if (placements.length === 0) return { success: true, deleted: existing.length, created: 0 }
+
+      // Обеспечить объекты и создать инстансы
+      const objectsByLibraryUuid = await SceneAPI.ensureSceneObjectsForLibrary(placements.map(p => p.libraryUuid))
+      const terrainLayer = opts?.landscapeLayerId
+        ? state.layers.find(l => l.id === opts!.landscapeLayerId)
+        : SceneAPI.pickLandscapeLayer()
+
+      const newInstances: SceneObjectInstance[] = placements.map(p => ({
+        uuid: generateUUID(),
+        objectUuid: objectsByLibraryUuid.get(p.libraryUuid)!,
+        biomeUuid,
+        transform: {
+          position: [p.position[0], 0, p.position[2]],
+          rotation: [0, degToRad(p.rotationYDeg), 0],
+          scale: [p.uniformScale, p.uniformScale, p.uniformScale]
+        },
+        visible: true
+      }))
+
+      let adjusted = newInstances
+      if (terrainLayer) {
+        const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
+        adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
+      }
+      adjusted.forEach(inst => state.addObjectInstance(inst))
+      return { success: true, deleted: existing.length, created: adjusted.length }
+    } catch (e) {
+      return { success: false, deleted: 0, created: 0, error: e instanceof Error ? e.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Убедиться, что для каждого libraryUuid существует объект в сцене.
+   * При необходимости создаёт объект на основе записи библиотеки и возвращает map libraryUuid → scene objectUuid.
+   */
+  private static async ensureSceneObjectsForLibrary(libraryUuids: string[]): Promise<Map<string, string>> {
+    const state = useSceneStore.getState()
+    const map = new Map<string, string>()
+    const unique = Array.from(new Set(libraryUuids))
+    for (const libUuid of unique) {
+      const existing = state.objects.find(o => o.libraryUuid === libUuid)
+      if (existing) { map.set(libUuid, existing.uuid); continue }
+      const rec = await db.getObject(libUuid)
+      if (!rec) continue
+      const objectUuid = generateUUID()
+      const obj: SceneObject = {
+        uuid: objectUuid,
+        name: rec.name,
+        primitives: rec.objectData.primitives,
+        materials: rec.objectData.materials || [],
+        boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: rec.objectData.primitives } as any),
+        layerId: 'objects',
+        libraryUuid: rec.uuid
+      }
+      state.addObject(obj)
+      map.set(libUuid, objectUuid)
+    }
+    return map
+  }
   /**
    * Сгенерировать конфигурацию террейна по спецификации процедурной генерации.
    *
