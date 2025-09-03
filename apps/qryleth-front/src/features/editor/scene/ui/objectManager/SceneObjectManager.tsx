@@ -18,9 +18,11 @@ import {
     ScrollArea,
     ActionIcon,
     Tooltip,
-    Divider
+    Divider,
+    Box,
+    Menu
 } from '@mantine/core'
-import { IconPlus, IconCheck } from '@tabler/icons-react'
+import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrees, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 // Заголовок сцены с мета-информацией переносится в хедер страницы.
@@ -73,6 +75,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
     const objectInstances = useSceneStore(state => state.objectInstances)
+    const biomes = useSceneStore(state => state.biomes)
+    const updateBiome = useSceneStore(state => state.updateBiome)
     const storeLayers = useSceneLayersOptimized()
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
@@ -90,6 +94,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         toggleLayerVisibility: storeToggleLayerVisibility,
         toggleObjectVisibility: storeToggleObjectVisibility,
         moveObjectToLayer: storeMoveObjectToLayer,
+        setObjectInstances,
     } = useSceneActions()
 
     const objects = React.useMemo<ObjectInfo[]>(() => {
@@ -111,6 +116,21 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const selectedObject = storeSelectedObject
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
+
+    /**
+     * Возвращает количество инстансов, принадлежащих каждому биому.
+     * Ключ словаря — uuid биома, значение — число инстансов.
+     * Используем мемоизацию по списку инстансов.
+     */
+    const biomeInstanceCounts = React.useMemo<Record<string, number>>(() => {
+        const counts: Record<string, number> = {}
+        for (const inst of objectInstances) {
+            if (inst.biomeUuid) {
+                counts[inst.biomeUuid] = (counts[inst.biomeUuid] || 0) + 1
+            }
+        }
+        return counts
+    }, [objectInstances])
 
     const toggleLayerExpanded = (layerId: string) => {
         setExpandedLayers(prev => {
@@ -429,9 +449,42 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         updateLighting(newLighting)
     }
 
+    /**
+     * Переключает видимость указанного биома по его UUID.
+     * Обновляет поле visible у биома через Zustand store.
+     * Если биом не найден — ничего не делает.
+     */
+    const handleToggleBiomeVisibility = (biomeUuid: string) => {
+        const biome = biomes.find(b => b.uuid === biomeUuid)
+        if (!biome) return
+        updateBiome(biomeUuid, { visible: biome.visible === false ? true : !biome.visible })
+    }
+
     const handleSaveSceneToLibraryInternal = () => {
         if (onSaveSceneToLibrary) return onSaveSceneToLibrary()
         exportScene(`scene-${Date.now()}.json`)
+    }
+
+    /**
+     * Удаляет биом и все инстансы, привязанные к нему.
+     *
+     * 1) Фильтрует из хранилища все инстансы с данным `biomeUuid`
+     * 2) Удаляет сам биом через SceneAPI (обновляет Zustand)
+     * 3) Показывает уведомление об успехе либо ошибке
+     */
+    const handleDeleteBiome = (biomeUuid: string) => {
+        try {
+            const remaining = useSceneStore.getState().objectInstances.filter(i => i.biomeUuid !== biomeUuid)
+            setObjectInstances(remaining)
+            const res = SceneAPI.removeBiome(biomeUuid)
+            if (!res.success) {
+                notifications.show({ title: 'Ошибка', message: 'Не удалось удалить биом', color: 'red' })
+                return
+            }
+            notifications.show({ title: 'Готово', message: 'Биом и его инстансы удалены', color: 'green', icon: <IconCheck size="1rem" /> })
+        } catch (e) {
+            notifications.show({ title: 'Ошибка', message: 'Не удалось удалить биом', color: 'red' })
+        }
     }
 
     // Drag & Drop handlers
@@ -549,7 +602,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     </Group>
 
                     <ScrollArea
-                        style={{ flex: 1 }}
+                        style={{ maxHeight: 260 }}
                         onClick={() => setContextMenuOpened(false)}
                     >
                         <Stack gap={0}>
@@ -586,26 +639,84 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         </Stack>
                     </ScrollArea>
 
-                    {objects.length > 0 && (
-                        <>
-                            <Divider />
-                            <Text size="xs" c="dimmed" ta="center">
-                                Всего объектов: {totalObjects}
-                            </Text>
-                            <Text size="xs" c="dimmed" ta="center">
-                                Перетащите объект в слой или ПКМ для выбора слоя
-                            </Text>
 
-                            {selectedObject && (
-                                <>
-                                    <Divider />
-                                    <Text size="xs" c="dimmed" ta="center">
-                                        Esc отмена выбора
-                                    </Text>
-                                </>
+                    <Divider />
+
+                    <Group justify="space-between" align="center">
+                        <Text size="xs" fw={500} c="dimmed">
+                            Биомы
+                        </Text>
+                        <Group gap="xs">
+                            <Tooltip label="Создать новый биом">
+                                <ActionIcon size="sm" variant="light" color="blue" disabled>
+                                    <IconPlus size={14} />
+                                </ActionIcon>
+                            </Tooltip>
+                        </Group>
+                    </Group>
+
+                    <ScrollArea style={{ maxHeight: 200 }}>
+                        <Stack gap={0}>
+                            {(biomes && biomes.length > 0) ? (
+                                biomes.map(biome => (
+                                    <Box
+                                        key={biome.uuid}
+                                        style={{
+                                            backgroundColor: 'transparent',
+                                            marginBottom: '0px',
+                                            borderRadius: '4px',
+                                            padding: '8px 4px',
+                                            border: '1px solid transparent',
+                                            cursor: 'default',
+                                            transition: 'all 0.1s ease'
+                                        }}
+                                    >
+                                        <Group justify="space-between" align="center" gap="xs">
+                                            <Group gap="xs" style={{ flex: 1 }}>
+                                                <IconTrees size={14} color={'var(--mantine-color-green-5)'} />
+                                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
+                                                    {biome.name || 'Без имени'}
+                                                </Text>
+                                                <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
+                                                    ({biomeInstanceCounts[biome.uuid] || 0})
+                                                </Text>
+                                            </Group>
+                                            <Group gap="xs">
+                                                <ActionIcon
+                                                    size="xs"
+                                                    variant="transparent"
+                                                    onClick={() => handleToggleBiomeVisibility(biome.uuid)}
+                                                    style={{ width: 16, height: 16, minWidth: 16 }}
+                                                >
+                                                    {biome.visible !== false ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                                                </ActionIcon>
+                                                <Menu shadow="md" width={200}>
+                                                    <Menu.Target>
+                                                        <ActionIcon
+                                                            size="xs"
+                                                            variant="transparent"
+                                                            style={{ width: 16, height: 16, minWidth: 16 }}
+                                                        >
+                                                            <Text size="xs" fw={700}>⋮</Text>
+                                                        </ActionIcon>
+                                                    </Menu.Target>
+                                                    <Menu.Dropdown>
+                                                        <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => handleDeleteBiome(biome.uuid)}>
+                                                            Удалить биом
+                                                        </Menu.Item>
+                                                    </Menu.Dropdown>
+                                                </Menu>
+                                            </Group>
+                                        </Group>
+                                    </Box>
+                                ))
+                            ) : (
+                                <Text size="xs" c="dimmed" ta="center" py="sm">
+                                    Биомы отсутствуют
+                                </Text>
                             )}
-                        </>
-                    )}
+                        </Stack>
+                    </ScrollArea>
                 </Stack>
             </Paper>
 

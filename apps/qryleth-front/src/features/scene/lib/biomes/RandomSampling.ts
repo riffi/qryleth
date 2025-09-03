@@ -1,5 +1,5 @@
 import type { GfxBiomeArea, GfxBiomeScatteringConfig } from '@/entities/biome'
-import { getAreaBounds, pointInsideArea, fadeWeight, edgeBiasWeight, estimateArea } from './BiomeAreaUtils'
+import { getAreaBounds, pointInsideArea, edgeAcceptanceProbability, estimateAcceptanceFraction, estimateArea } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
 /**
@@ -14,7 +14,10 @@ import { createRng } from '@/shared/lib/utils/prng'
  */
 export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringConfig, seed?: number, softFactor = 0.9): [number, number][] {
   const rng = createRng(seed ?? cfg.seed)
-  const target = estimateMaxCountBySpacing(area, cfg.spacing)
+  const baseTarget = estimateMaxCountBySpacing(area, cfg.spacing)
+  // Корректируем целевое количество точек по среднему коэффициенту принятия
+  const frac = estimateAcceptanceFraction(area, cfg.edge)
+  const target = Math.max(0, Math.round(baseTarget * frac))
   const bounds = getAreaBounds(area)
   const edge = cfg.edge ?? { fadeWidth: 0, edgeBias: 0, fadeCurve: 'linear' as const }
 
@@ -27,11 +30,7 @@ export function sampleRandomPoints(area: GfxBiomeArea, cfg: GfxBiomeScatteringCo
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
-
-    const fw = fadeWeight(area, x, z, edge)
-    if (fw <= 0) continue
-    const bw = edgeBiasWeight(area, x, z, edge)
-    const acceptProb = Math.max(0, Math.min(1, fw * bw))
+    const acceptProb = edgeAcceptanceProbability(area, x, z, edge)
     if (rng() > acceptProb) continue
 
     // Мягкий пост‑фильтр по расстоянию: spacing * t

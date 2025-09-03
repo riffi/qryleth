@@ -1,5 +1,5 @@
 import type { GfxBiomeArea, GfxBiomeEdgeFalloff } from '@/entities/biome'
-import { getAreaBounds, pointInsideArea, fadeWeight, edgeBiasWeight } from './BiomeAreaUtils'
+import { getAreaBounds, pointInsideArea, edgeAcceptanceProbability, estimateAcceptanceFraction } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 
 /**
@@ -29,6 +29,13 @@ export function samplePoissonDisk(
   if (minDistance <= 0) return []
   const rng = createRng(seed)
   const bounds = getAreaBounds(area)
+
+  // Корректируем целевое число точек с учётом edge‑профиля,
+  // иначе алгоритм будет «добивать» край, чтобы достичь targetCount
+  if (edge && (edge.edgeBias ?? 0) !== 0) {
+    const frac = estimateAcceptanceFraction(area, edge)
+    targetCount = Math.max(0, Math.round(targetCount * frac))
+  }
 
   const cellSize = minDistance / Math.SQRT2
   const cols = Math.max(1, Math.ceil((bounds.maxX - bounds.minX) / cellSize))
@@ -119,10 +126,7 @@ export function samplePoissonDisk(
    */
   function acceptByEdge(x: number, z: number): boolean {
     if (!edge) return true
-    const fw = fadeWeight(area, x, z, edge)
-    if (fw <= 0) return false
-    const bw = edgeBiasWeight(area, x, z, edge)
-    const acceptProb = Math.max(0, Math.min(1, fw * bw))
+    const acceptProb = edgeAcceptanceProbability(area, x, z, edge)
     return rng() <= acceptProb
   }
 }

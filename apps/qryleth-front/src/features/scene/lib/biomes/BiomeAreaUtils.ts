@@ -68,14 +68,72 @@ export function fadeWeight(area: GfxBiomeArea, x: number, z: number, edge: GfxBi
  * Для отрицательных — используем e.
  */
 export function edgeBiasWeight(area: GfxBiomeArea, x: number, z: number, edge: GfxBiomeEdgeFalloff): number {
+  // Сохраняем для обратной совместимости: возвращает вес «склонности» без учёта fade‑маски
   const d = signedDistanceToEdge(area, x, z)
   const fw = edge.fadeWidth > 0 ? clamp(d / edge.fadeWidth, 0, 1) : (d >= 0 ? 1 : 0)
   const e = 1 - fw // близость к краю: 1 у самой границы, 0 в глубине области
   const bias = clamp(edge.edgeBias ?? 0, -1, 1)
   if (bias === 0) return 1
-  // Смесь: к центру (bias>0) → (1-e), к краю (bias<0) → e
   const affinity = bias > 0 ? (1 - e) : e
   return 1 * (1 - Math.abs(bias)) + affinity * Math.abs(bias)
+}
+
+/**
+ * Итоговая вероятность принятия точки с учётом edge‑параметров (0..1).
+ * Новая интерпретация силы bias:
+ * - edgeBias = 0 → равномерное распределение (без эффекта края)
+ * - edgeBias = 0.5 → наполовину выраженный fade у края
+ * - edgeBias = 1 → полный fade у края
+ * Отрицательные значения сохраняют поддержку и «смещают» к краю:
+ * - edgeBias = -1 → сильное предпочтение у кромки
+ */
+export function edgeAcceptanceProbability(area: GfxBiomeArea, x: number, z: number, edge: GfxBiomeEdgeFalloff): number {
+  const d = signedDistanceToEdge(area, x, z)
+  const fw = edge.fadeWidth > 0 ? clamp(d / edge.fadeWidth, 0, 1) : (d >= 0 ? 1 : 0)
+  const t = edge.fadeCurve === 'linear' || !edge.fadeCurve ? fw : smoothstep(fw) // 0 у кромки → 1 в центре
+  const e = 1 - t // 1 у кромки → 0 в центре
+  const bias = clamp(edge.edgeBias ?? 0, -1, 1)
+
+  if (bias === 0) return 1 // ровное распределение
+
+  const k = Math.abs(bias)
+  if (bias > 0) {
+    // Смешиваем uniform и центр‑fade: 0 → uniform, 1 → t
+    return clamp((1 - k) * 1 + k * t, 0, 1)
+  } else {
+    // Смешиваем uniform и edge‑affinity: 0 → uniform, 1 → e
+    return clamp((1 - k) * 1 + k * e, 0, 1)
+  }
+}
+
+/**
+ * Оценивает «эффективную площадь» области при текущем edge‑профиле.
+ * Возвращает коэффициент [0..1], на который целесообразно умножать целевое
+ * число точек (targetCount) для получения корректной плотности.
+ *
+ * Реализация: регулярная сетка по bounding box области, учитываются
+ * только узлы, попадающие внутрь области; усредняется вероятность
+ * edgeAcceptanceProbability.
+ */
+export function estimateAcceptanceFraction(area: GfxBiomeArea, edge?: GfxBiomeEdgeFalloff): number {
+  if (!edge || (edge.edgeBias ?? 0) === 0) return 1
+  const bounds = getAreaBounds(area)
+  const N = 36 // баланс качества/производительности
+  let inside = 0
+  let sum = 0
+  for (let i = 0; i < N; i++) {
+    const u = (i + 0.5) / N
+    const x = bounds.minX + (bounds.maxX - bounds.minX) * u
+    for (let j = 0; j < N; j++) {
+      const v = (j + 0.5) / N
+      const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * v
+      if (!pointInsideArea(area, x, z)) continue
+      inside++
+      sum += edgeAcceptanceProbability(area, x, z, edge)
+    }
+  }
+  if (inside === 0) return 1
+  return clamp(sum / inside, 0, 1)
 }
 
 /**
@@ -240,4 +298,3 @@ function pointToSegmentDistance(px: number, pz: number, x0: number, z0: number, 
   const projx = x0 + t * vx, projz = z0 + t * vz
   return Math.hypot(px - projx, pz - projz)
 }
-
