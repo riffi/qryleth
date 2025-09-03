@@ -88,22 +88,36 @@ export function edgeBiasWeight(area: GfxBiomeArea, x: number, z: number, edge: G
  * - edgeBias = -1 → сильное предпочтение у кромки
  */
 export function edgeAcceptanceProbability(area: GfxBiomeArea, x: number, z: number, edge: GfxBiomeEdgeFalloff): number {
+  // Требования:
+  // - edgeBias = 0  → полностью равномерно (без эффекта края)
+  // - edgeBias ∈ (0..1) → внутри fade‑полосы [0..fadeWidth] вероятность растёт от 0 у кромки до 1 на внутренней границе;
+  //   чем больше edgeBias, тем резче переход (edgeBias=1 → «жёсткая» ступень, вся полоса вырезается)
+  // - вне fade‑полосы (d >= fadeWidth) вероятность = 1
+
   const d = signedDistanceToEdge(area, x, z)
-  const fw = edge.fadeWidth > 0 ? clamp(d / edge.fadeWidth, 0, 1) : (d >= 0 ? 1 : 0)
-  const t = edge.fadeCurve === 'linear' || !edge.fadeCurve ? fw : smoothstep(fw) // 0 у кромки → 1 в центре
-  const e = 1 - t // 1 у кромки → 0 в центре
+  // Если нет fadeWidth — равномерно
+  if (!(edge.fadeWidth > 0)) return d >= 0 ? 1 : 0
+
   const bias = clamp(edge.edgeBias ?? 0, -1, 1)
+  // Негативный bias сейчас не оговорён заказчиком — оставим равномерность,
+  // при необходимости можно ввести «склонность к кромке» аналогичным образом
+  if (bias <= 0) return d >= 0 ? 1 : 0
 
-  if (bias === 0) return 1 // ровное распределение
+  // Нормализованный прогресс внутри fade‑полосы: 0 у кромки → 1 на внутренней границе
+  const t0 = clamp(d / edge.fadeWidth, 0, 1)
+  const t = (edge.fadeCurve === 'smoothstep') ? smoothstep(t0) : t0
 
-  const k = Math.abs(bias)
-  if (bias > 0) {
-    // Смешиваем uniform и центр‑fade: 0 → uniform, 1 → t
-    return clamp((1 - k) * 1 + k * t, 0, 1)
-  } else {
-    // Смешиваем uniform и edge‑affinity: 0 → uniform, 1 → e
-    return clamp((1 - k) * 1 + k * e, 0, 1)
-  }
+  // edgeBias управляет «крутизной» кривой: 0 → плоско (uniform), 0.5 → мягкий переход, 1 → жёсткая ступень
+  // Используем экспоненциальную форму: acceptance = t^alpha,
+  // где alpha = 1/(1-bias) - 1. Свойства:
+  //  - bias=0   → alpha=0  → t^0 = 1 (равномерно)
+  //  - bias=0.5 → alpha=1  → t^1 (линейный рост от 0 к 1)
+  //  - bias→1   → alpha→∞  → ступень (0 в полосе, 1 на внутренней границе)
+  const alpha = (1 / (1 - bias)) - 1
+
+  const acceptanceInFade = Math.pow(t, Math.max(0, alpha))
+  // Вне полосы всегда единица
+  return (t0 >= 1) ? 1 : clamp(acceptanceInFade, 0, 1)
 }
 
 /**
