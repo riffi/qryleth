@@ -161,18 +161,33 @@ export function estimateAcceptanceFraction(area: GfxBiomeArea, edge?: GfxBiomeEd
  *  При bias→1 → alpha→∞ → spacing_local → ∞ в любой точке полосы fade (точки не ставятся).
  */
 export function localMinDistance(area: GfxBiomeArea, x: number, z: number, spacing: number, edge?: GfxBiomeEdgeFalloff): number {
-  if (!edge || (edge.edgeBias ?? 0) <= 0 || !edge.fadeWidth || edge.fadeWidth <= 0) return spacing
+  if (!edge || !edge.fadeWidth || edge.fadeWidth <= 0) return spacing
   const d = signedDistanceToEdge(area, x, z)
-  if (d <= 0) return spacing * 1e6 // вне области — заведомо «запретить»
+  if (d <= 0) return spacing * 1e6 // вне области — запретить
   if (d >= edge.fadeWidth) return spacing
-  const bias = clamp(edge.edgeBias ?? 0, 0, 0.999999)
-  const alpha = bias / (1 - bias) // 0..∞
+  const eb = clamp(edge.edgeBias ?? 0, -0.999999, 0.999999)
   const t0 = clamp(d / edge.fadeWidth, 0, 1)
   const t = edge.fadeCurve === 'smoothstep' ? smoothstep(t0) : t0
-  const s = Math.max(1e-6, Math.pow(t, alpha))
-  const local = spacing / s
-  // Ограничим сверху чтобы избежать численной раздачи: фактически «бесконечно»
-  return Math.min(local, spacing * 1e6)
+
+  if (eb === 0) return spacing
+
+  if (eb > 0) {
+    // Смещение к центру: увеличиваем локальный интервал к краю
+    const alpha = eb / (1 - eb) // 0..∞
+    const s = Math.max(1e-6, Math.pow(t, alpha))
+    const local = spacing / s
+    return Math.min(local, spacing * 1e6)
+  } else {
+    // Смещение к кромке: уменьшаем локальный интервал к краю,
+    // но не ниже динамического минимума, зависящего от |bias|.
+    // Чем больше |bias|, тем ниже минимум, но не меньше 0.5*spacing при |bias|=1.
+    const k = -eb // (0..1)
+    const beta = k / (1 - k) // 0..∞
+    const s = Math.max(1e-6, Math.pow(t, beta))
+    const minFactor = 1 - 0.5 * k // k=1 → 0.5; k=0.8 → 0.6; k=0 → 1
+    const local = Math.max(spacing * minFactor, spacing * s)
+    return local
+  }
 }
 
 /**
@@ -182,7 +197,7 @@ export function localMinDistance(area: GfxBiomeArea, x: number, z: number, spaci
  * Плотность ≈ 1 / spacing_local^2, поэтому используем (spacing / local)^2.
  */
 export function estimateVariableSpacingDensityFraction(area: GfxBiomeArea, spacing: number, edge?: GfxBiomeEdgeFalloff): number {
-  if (!edge || (edge.edgeBias ?? 0) <= 0 || !edge.fadeWidth || edge.fadeWidth <= 0) return 1
+  if (!edge || !edge.fadeWidth || edge.fadeWidth <= 0 || spacing <= 0) return 1
   const bounds = getAreaBounds(area)
   const N = 36
   let inside = 0
@@ -196,12 +211,14 @@ export function estimateVariableSpacingDensityFraction(area: GfxBiomeArea, spaci
       if (!pointInsideArea(area, x, z)) continue
       inside++
       const local = localMinDistance(area, x, z, spacing, edge)
-      const scale = Math.min(1, Math.max(0, (spacing / local) ** 2))
+      const ratio = spacing / Math.max(1e-6, local)
+      const scale = Math.max(0, Math.min(10, ratio * ratio))
       acc += scale
     }
   }
   if (inside === 0) return 1
-  return clamp(acc / inside, 0, 1)
+  // Для положительного bias средняя плотность <= 1, для отрицательного — может быть > 1
+  return acc / inside
 }
 
 /**

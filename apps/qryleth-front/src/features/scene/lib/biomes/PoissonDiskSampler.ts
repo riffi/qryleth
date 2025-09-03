@@ -31,7 +31,7 @@ export function samplePoissonDisk(
 
   // Корректируем целевое число точек с учётом edge‑профиля,
   // иначе алгоритм будет «добивать» край, чтобы достичь targetCount
-  if (edge && (edge.edgeBias ?? 0) > 0) {
+  if (edge && (edge.edgeBias ?? 0) !== 0) {
     const frac = estimateVariableSpacingDensityFraction(area, minDistance, edge)
     targetCount = Math.max(0, Math.round(targetCount * frac))
   }
@@ -45,8 +45,9 @@ export function samplePoissonDisk(
   const samples: [number, number][] = []
   const active: number[] = []
 
-  // Инициализация: находим первую допустимую точку случайным образом
-  for (let tries = 0; tries < 1000 && samples.length === 0; tries++) {
+  // Инициализация несколькими затравками, чтобы уменьшить локальные кластеры
+  const initialSeeds = Math.max(1, Math.min(5, Math.floor(targetCount / 80) + 1))
+  for (let tries = 0; tries < 2000 && samples.length < initialSeeds; tries++) {
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
@@ -67,7 +68,10 @@ export function samplePoissonDisk(
       const tryX = sx + (baseSpacing) * Math.cos(ang) // предварительный вектор направления
       const tryZ = sz + (baseSpacing) * Math.sin(ang)
       const localR = localMinDistance(area, tryX, tryZ, baseSpacing, edge)
-      const r = localR * (1 + rng())
+      // Минимальная длина шага — чтобы избежать «микрокластеров» при очень малом localR
+      const MIN_STEP_FACTOR = 0.6 // 60% от базового интервала
+      const stepBase = Math.max(localR, baseSpacing * MIN_STEP_FACTOR)
+      const r = stepBase * (1 + rng())
       const x = sx + r * Math.cos(ang)
       const z = sz + r * Math.sin(ang)
       if (!pointInsideArea(area, x, z)) continue
