@@ -28,7 +28,13 @@ const biome = {
     algorithm: 'poisson',
     spacing: 1.5,
     edge: { fadeWidth: 8, fadeCurve: 'smoothstep', edgeBias: 0 },
-    transform: { randomYawDeg: [0, 360], randomUniformScale: [0.9, 1.3], randomOffsetXZ: [0, 0.6] },
+    transform: {
+      randomYawDeg: [0, 360],
+      randomUniformScale: [0.9, 1.3],
+      randomOffsetXZ: [0, 0.6],
+      // Мягкий автоповорот по нормали: слегка наклоняем инстансы по склону
+      alignToSurfaceNormal: { maxDeviationDeg: 18, curvatureInfluence: 0.3 }
+    },
     seed: 12345,
     source: { anyTags: ['дерево', 'куст', 'трава'] }
   },
@@ -87,7 +93,13 @@ const forest = {
     algorithm: 'poisson',
     spacing: 1.4,
     edge: { fadeWidth: 6, fadeCurve: 'smoothstep', edgeBias: 0 },
-    transform: { randomYawDeg: [0, 360], randomUniformScale: [0.9, 1.3], randomOffsetXZ: [0, 0.4] },
+    transform: {
+      randomYawDeg: [0, 360],
+      randomUniformScale: [0.9, 1.3],
+      randomOffsetXZ: [0, 0.4],
+      // Базовая настройка: небольшой наклон по нормали для естественности
+      alignToSurfaceNormal: { maxDeviationDeg: 16, curvatureInfluence: 0.3 }
+    },
     seed: 2025,
     source: { anyTags: ['дерево','куст','трава'] }
   },
@@ -119,7 +131,13 @@ const rocks = {
     algorithm: 'poisson',
     spacing: 2.0,
     edge: { fadeWidth: 6, fadeCurve: 'linear', edgeBias: 0 },
-    transform: { randomYawDeg: [0, 360], randomUniformScale: [0.8, 1.3], randomOffsetXZ: [0, 0.5] },
+    transform: {
+      randomYawDeg: [0, 360],
+      randomUniformScale: [0.8, 1.3],
+      randomOffsetXZ: [0, 0.5],
+      // Валун может сильнее наклоняться по уклону, но на изломах — слабее
+      alignToSurfaceNormal: { maxDeviationDeg: 28, curvatureInfluence: 0.6 }
+    },
     seed: 9876,
     source: { anyTags: ['камень','валун','rock','boulder'] }
   }

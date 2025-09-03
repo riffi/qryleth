@@ -130,6 +130,12 @@ console.log('Создано инстансов:', scatter.created)
 await SceneAPI.scatterBiome(biomeUuid, { landscapeLayerId: 'terrain-layer-id' })
 ```
 
+Дополнительно (если в `scattering.transform` задан `alignToSurfaceNormal`):
+- После выравнивания по высоте система наклоняет инстансы по нормали поверхности в их точках.
+- Y‑поворот (рыскание), сгенерированный скаттерингом, сохраняется; добавляются только X/Z‑наклоны.
+- Ограничение наклона: 0° нормали → 0°, 90° → `maxDeviationDeg` (если не задан, используется значение по умолчанию ≈30°).
+- Влияние кривизны: эффективный предел наклона = `degToRad(maxDeviationDeg) * (1 - curvature * curvatureInfluence)`.
+
 ### `regenerateBiomeInstances(biomeUuid: string, opts?: { landscapeLayerId?: string; forceDelete?: boolean }): Promise<{ success: boolean; deleted: number; created: number; warnings?: string[]; error?: string }>`
 Полная регенерация: удаляет старые инстансы данного биома и создаёт новые по текущим настройкам.
 
@@ -138,6 +144,9 @@ await SceneAPI.scatterBiome(biomeUuid, { landscapeLayerId: 'terrain-layer-id' })
 const regen = await SceneAPI.regenerateBiomeInstances(biomeUuid, { forceDelete: true })
 console.log('Удалено:', regen.deleted, 'Создано:', regen.created)
 ```
+
+Замечание об автоповороте:
+- Логика наклона по нормали идентична `scatterBiome`: применяется, если у биома/страты указан `transform.alignToSurfaceNormal`.
 
 ### `getInstancesByBiomeUuid(biomeUuid: string): SceneObjectInstance[]`
 Возвращает все инстансы сцены, привязанные к указанному биому.

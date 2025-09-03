@@ -32,7 +32,14 @@ const biome = {
         // Можно задать более редкое размещение деревьев
         spacing: 10,
         edge: { fadeWidth: 6, fadeCurve: 'smoothstep', edgeBias: 0.2 },
-        transform: { randomYawDeg: [0, 360], randomUniformScale: [0.95, 1.4], randomOffsetXZ: [0, 0.3] },
+        transform: {
+          randomYawDeg: [0, 360],
+          randomUniformScale: [0.95, 1.4],
+          randomOffsetXZ: [0, 0.3],
+          // Новый параметр: автоповорот по нормали к поверхности
+          // Деревья могут слегка наклоняться по склонам, но без экстремума
+          alignToSurfaceNormal: { maxDeviationDeg: 22, curvatureInfluence: 0.5 }
+        },
         source: { requiredTags: ['дерево'] }
       }
     },
@@ -41,7 +48,13 @@ const biome = {
       scattering: {
         spacing: 10,
         edge: { fadeWidth: 8, fadeCurve: 'linear', edgeBias: -0.2 }, // больше к краям
-        transform: { randomYawDeg: [0, 360], randomUniformScale: [0.8, 1.1], randomOffsetXZ: [0, 0.4] },
+        transform: {
+          randomYawDeg: [0, 360],
+          randomUniformScale: [0.8, 1.1],
+          randomOffsetXZ: [0, 0.4],
+          // Кусты могут позволить чуть больший наклон, но сглаживаем на изломах
+          alignToSurfaceNormal: { maxDeviationDeg: 18, curvatureInfluence: 0.4 }
+        },
         source: { anyTags: ['куст'] }
       }
     },
@@ -50,7 +63,13 @@ const biome = {
       scattering: {
         spacing: 10,
         edge: { fadeWidth: 5, fadeCurve: 'smoothstep', edgeBias: 0 },
-        transform: { randomYawDeg: [0, 360], randomUniformScale: [0.6, 0.9], randomOffsetXZ: [0, 0.2] },
+        transform: {
+          randomYawDeg: [0, 360],
+          randomUniformScale: [0.6, 0.9],
+          randomOffsetXZ: [0, 0.2],
+          // Для травы наклон минимальный, кривизну учитываем слабо
+          alignToSurfaceNormal: { maxDeviationDeg: 8, curvatureInfluence: 0.2 }
+        },
         source: { anyTags: ['трава'] }
       }
     }

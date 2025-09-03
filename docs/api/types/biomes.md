@@ -71,6 +71,23 @@ Strata: `GfxBiomeStratum = { name: string; scattering?: Partial<GfxBiomeScatteri
 - randomYawDeg?: `[min,max]` — поворот вокруг Y (градусы).
 - randomUniformScale?: `[min,max]` — равномерный масштаб.
 - randomOffsetXZ?: `[min,max]` — локальные случайные смещения по XZ.
+- alignToSurfaceNormal?: `{ maxDeviationDeg?: number; curvatureInfluence?: number }` — автоповорот по нормали поверхности террейна (наклоны вокруг X/Z):
+  - maxDeviationDeg: максимальный наклон в градусах при 90° исходной нормали. Фактический наклон масштабируется линейно: 0° нормали → 0°, 90° → `maxDeviationDeg`. Если не задан — берётся значение по умолчанию подсистемы (≈30°).
+  - curvatureInfluence: влияние кривизны поверхности [0..1] на наклон. 0 — игнорировать кривизну; 1 — максимально подавлять наклон на сильно изогнутых участках. Эффективный предел: `maxDegRad * (1 - curvature * curvatureInfluence)`.
+
+Примечания:
+- Поворот вокруг Y, заданный генератором скаттеринга (`rotationYDeg`), сохраняется. Автоповорот добавляет только наклоны по X/Z.
+- Вычисления используют `GfxHeightSampler.getNormal(x,z)` и функцию `normalToRotation` (мягкое ограничение наклона без «упора в максимум»).
+
+Пример:
+```ts
+transform: {
+  randomYawDeg: [0, 360],
+  randomUniformScale: [0.9, 1.3],
+  randomOffsetXZ: [0, 0.3],
+  alignToSurfaceNormal: { maxDeviationDeg: 20, curvatureInfluence: 0.4 }
+}
+```
 
 ---
 

@@ -34,6 +34,63 @@ import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { MultiColorAPI } from './sceneAPI.multicolor'
+import { getHeightSamplerForLayer } from '@/features/editor/scene/lib/placement/terrainAdapter'
+import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
+import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUtils'
+
+/**
+ * Применяет автоповорот инстансов по нормали поверхности террейна.
+ *
+ * Для каждого инстанса берётся нормаль в его позиции (X,Z), вычисляется углы
+ * наклона (rx, rz) с ограничением максимального наклона. Дополнительно угол
+ * ограничивается с учётом кривизны поверхности (если задано влияние).
+ *
+ * Поворот вокруг Y, заданный в размещении (rotationYDeg), сохраняется и не
+ * изменяется — добавляются только наклоны вокруг X и Z.
+ *
+ * Важно: функция предполагает, что данные heightmap/terrain готовы к чтению
+ * (например, после adjustAllInstancesForTerrainAsync, который дожидается загрузки).
+ */
+function applySurfaceNormalRotation(
+  instances: SceneObjectInstance[],
+  placements: BiomePlacement[],
+  terrainLayer?: SceneLayer
+): SceneObjectInstance[] {
+  if (!terrainLayer) return instances
+  const sampler = getHeightSamplerForLayer(terrainLayer)
+  if (!sampler) return instances
+
+  return instances.map((inst, i) => {
+    const p = placements[i]
+    const alignCfg = p.alignToSurfaceNormal
+    if (!alignCfg || !inst.transform?.position) return inst
+
+    const [x, , z] = inst.transform.position
+    const normal = sampler.getNormal(x, z)
+
+    // Опционально ослабляем максимальный наклон с учётом кривизны
+    const maxDeg = alignCfg.maxDeviationDeg
+    const influence = Math.max(0, Math.min(1, alignCfg.curvatureInfluence ?? 0))
+    const curvature = influence > 0 ? calculateCurvature(sampler, x, z) : 0
+    const effectiveMaxRad = typeof maxDeg === 'number'
+      ? degToRad(maxDeg) * (1 - curvature * influence)
+      : undefined
+
+    const [rx, , rz] = normalToRotationShared(normal, effectiveMaxRad)
+    const prevRot = inst.transform.rotation ?? [0, 0, 0]
+    return {
+      ...inst,
+      transform: {
+        ...inst.transform,
+        rotation: [
+          (prevRot[0] || 0) + rx,
+          prevRot[1] || 0,
+          (prevRot[2] || 0) + rz
+        ] as [number, number, number]
+      }
+    }
+  })
+}
 
 /**
  * Simplified scene object info for agent tools
@@ -253,6 +310,8 @@ export class SceneAPI {
       if (terrainLayer) {
         const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
         adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
+        // Применим наклон по нормали, если он задан в трансформе биома/страты (прокинут в placements)
+        adjusted = applySurfaceNormalRotation(adjusted, placements, terrainLayer)
       }
 
       // Добавить в store
@@ -318,6 +377,7 @@ export class SceneAPI {
       if (terrainLayer) {
         const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
         adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
+        adjusted = applySurfaceNormalRotation(adjusted, placements, terrainLayer)
       }
       adjusted.forEach(inst => state.addObjectInstance(inst))
       return { success: true, deleted: existing.length, created: adjusted.length }

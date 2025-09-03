@@ -23,6 +23,16 @@ export interface BiomePlacement {
   rotationYDeg: number
   uniformScale: number
   libraryUuid: string
+  /**
+   * Опциональные параметры автоповорота по нормали к поверхности.
+   * Прокидываются из transform.alignToSurfaceNormal выбранной конфигурации
+   * (глобальной или страты), чтобы на этапе применения к сцене можно было
+   * корректно наклонить объект с учётом локальных переопределений.
+   */
+  alignToSurfaceNormal?: {
+    maxDeviationDeg?: number
+    curvatureInfluence?: number
+  }
 }
 
 /**
@@ -90,7 +100,13 @@ function scatterWithConfig(
     const off = (cfg.transform?.randomOffsetXZ ?? [0, 0]) as [number, number]
     const ox = (off[0] === 0 && off[1] === 0) ? 0 : lerpSigned(off, rng())
     const oz = (off[0] === 0 && off[1] === 0) ? 0 : lerpSigned(off, rng())
-    result.push({ position: [x + ox, 0, z + oz], rotationYDeg: yaw, uniformScale: scale, libraryUuid: src.libraryUuid })
+    result.push({
+      position: [x + ox, 0, z + oz],
+      rotationYDeg: yaw,
+      uniformScale: scale,
+      libraryUuid: src.libraryUuid,
+      alignToSurfaceNormal: cfg.transform?.alignToSurfaceNormal
+    })
   }
   return result
 }
