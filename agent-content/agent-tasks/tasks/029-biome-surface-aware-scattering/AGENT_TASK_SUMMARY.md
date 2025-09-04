@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, terrain, scattering, sampling, performance]
 phases:
   total: 7
-  completed: 3
+  completed: 4
 ---
 
 # Биомы: скаттеринг с учётом поверхности террейна (высота/склон/кривизна)
@@ -94,7 +94,7 @@ phases:
 
 Отчёт: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
-### ⏳ Фаза 4: Интеграция маски в генераторы точек
+### ✅ Фаза 4: Интеграция маски в генераторы точек
 - RandomSampling:
   - После проверки области — применять `surface.mode`:
     - `reject`: отбраковка при `W < threshold` (например, 0.5 при `soft=0`).
@@ -106,6 +106,8 @@ phases:
   - Применять `reject/weight` после теста дистанции.
   - Скорректировать `targetCount` аналогично Random.
 - Детальные комментарии (RU) в изменённых методах.
+
+Отчёт: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
 ### ⏳ Фаза 5: Оркестрация и интеграция SceneAPI
 - В `BiomeScattering.scatterBiomePure` и вызовы семплеров добавить опциональный `surfaceCtx`.

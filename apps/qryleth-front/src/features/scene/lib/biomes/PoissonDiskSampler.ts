@@ -1,6 +1,8 @@
-import type { GfxBiomeArea, GfxBiomeEdgeFalloff } from '@/entities/biome'
+import type { GfxBiomeArea, GfxBiomeEdgeFalloff, GfxBiomeSurfaceMask } from '@/entities/biome'
 import { getAreaBounds, pointInsideArea, localMinDistance, estimateVariableSpacingDensityFraction } from './BiomeAreaUtils'
 import { createRng } from '@/shared/lib/utils/prng'
+import type { SurfaceContext } from './SurfaceMask'
+import { createSurfaceMaskEvaluator } from './SurfaceMask'
 
 /**
  * Poisson‑disk выборка точек (blue noise) в пределах произвольной области.
@@ -18,12 +20,18 @@ import { createRng } from '@/shared/lib/utils/prng'
  * Для стабилизации плотности targetCount предварительно корректируется по
  * estimateAcceptanceFraction, чтобы алгоритм не «добивал» край.
  */
+/**
+ * Poisson‑disk выборка с учётом edge и опциональной surface‑маски.
+ *
+ * Доп. параметр options позволяет активировать режимы 'reject'/'weight'/'spacing'.
+ */
 export function samplePoissonDisk(
   area: GfxBiomeArea,
   minDistance: number,
   targetCount: number,
   seed?: number,
-  edge?: GfxBiomeEdgeFalloff
+  edge?: GfxBiomeEdgeFalloff,
+  options?: { surfaceMask?: GfxBiomeSurfaceMask; surfaceCtx?: SurfaceContext }
 ): [number, number][] {
   if (minDistance <= 0) return []
   const rng = createRng(seed)
@@ -34,6 +42,40 @@ export function samplePoissonDisk(
   if (edge && (edge.edgeBias ?? 0) !== 0) {
     const frac = estimateVariableSpacingDensityFraction(area, minDistance, edge)
     targetCount = Math.max(0, Math.round(targetCount * frac))
+  }
+
+  // Опциональная корректировка по surface‑маске (усреднение по сетке)
+  const useSurface = options?.surfaceMask && options?.surfaceCtx
+  const modes = new Set(options?.surfaceMask?.mode || [])
+  let evaluator: ReturnType<typeof createSurfaceMaskEvaluator> | undefined
+  if (useSurface) {
+    evaluator = createSurfaceMaskEvaluator(area, options!.surfaceMask!, options!.surfaceCtx!, 48)
+    const bounds = getAreaBounds(area)
+    const N = 24
+    let inside = 0
+    let accAccept = 0
+    let accSpacing = 0
+    for (let i = 0; i < N; i++) {
+      const u = (i + 0.5) / N
+      const x = bounds.minX + (bounds.maxX - bounds.minX) * u
+      for (let j = 0; j < N; j++) {
+        const v = (j + 0.5) / N
+        const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * v
+        if (!pointInsideArea(area, x, z)) continue
+        inside++
+        const W = evaluator.weightAt(x, z)
+        const SF = evaluator.spacingFactorAt(x, z)
+        let p = 1
+        if (modes.has('reject')) p *= (W > 0.5 ? 1 : 0)
+        if (modes.has('weight')) p *= W
+        accAccept += p
+        accSpacing += modes.has('spacing') ? 1 / Math.max(1e-6, SF * SF) : 1
+      }
+    }
+    if (inside > 0) {
+      const fracSurface = (accAccept / inside) * (accSpacing / inside)
+      targetCount = Math.max(0, Math.round(targetCount * fracSurface))
+    }
   }
 
   const baseSpacing = minDistance
@@ -51,6 +93,11 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
+    if (useSurface && evaluator) {
+      const W = evaluator.weightAt(x, z)
+      if (modes.has('reject') && W <= 0.5) continue
+      if (modes.has('weight') && rng() > W) continue
+    }
     if (isFarEnough(x, z)) insertSample(x, z)
   }
 
@@ -68,13 +115,19 @@ export function samplePoissonDisk(
       const tryX = sx + (baseSpacing) * Math.cos(ang) // предварительный вектор направления
       const tryZ = sz + (baseSpacing) * Math.sin(ang)
       const localR = localMinDistance(area, tryX, tryZ, baseSpacing, edge)
+      const spacingFactorTry = (useSurface && evaluator && modes.has('spacing')) ? evaluator.spacingFactorAt(tryX, tryZ) : 1
       // Минимальная длина шага — чтобы избежать «микрокластеров» при очень малом localR
       const MIN_STEP_FACTOR = 0.6 // 60% от базового интервала
-      const stepBase = Math.max(localR, baseSpacing * MIN_STEP_FACTOR)
+      const stepBase = Math.max(localR * spacingFactorTry, baseSpacing * MIN_STEP_FACTOR)
       const r = stepBase * (1 + rng())
       const x = sx + r * Math.cos(ang)
       const z = sz + r * Math.sin(ang)
       if (!pointInsideArea(area, x, z)) continue
+      if (useSurface && evaluator) {
+        const W = evaluator.weightAt(x, z)
+        if (modes.has('reject') && W <= 0.5) continue
+        if (modes.has('weight') && rng() > W) continue
+      }
       if (isFarEnough(x, z)) {
         insertSample(x, z)
         found = true
@@ -95,6 +148,11 @@ export function samplePoissonDisk(
     const x = bounds.minX + (bounds.maxX - bounds.minX) * rng()
     const z = bounds.minZ + (bounds.maxZ - bounds.minZ) * rng()
     if (!pointInsideArea(area, x, z)) continue
+    if (useSurface && evaluator) {
+      const W = evaluator.weightAt(x, z)
+      if (modes.has('reject') && W <= 0.5) continue
+      if (modes.has('weight') && rng() > W) continue
+    }
     if (isFarEnough(x, z)) insertSample(x, z)
   }
 
@@ -109,7 +167,8 @@ export function samplePoissonDisk(
   function isFarEnough(x: number, z: number): boolean {
     const [gx, gz] = gridIndex(x, z)
     const localR = localMinDistance(area, x, z, baseSpacing, edge)
-    const rCells = Math.ceil(localR / cellSize) + 1
+    const spacingFactor = (useSurface && evaluator && modes.has('spacing')) ? evaluator.spacingFactorAt(x, z) : 1
+    const rCells = Math.ceil((localR * spacingFactor) / cellSize) + 1
     for (let ix = gx - rCells; ix <= gx + rCells; ix++) {
       if (ix < 0 || ix >= cols) continue
       for (let iz = gz - rCells; iz <= gz + rCells; iz++) {
@@ -117,7 +176,9 @@ export function samplePoissonDisk(
         const cell = grid[ix][iz]
         if (!cell) continue
         const [px, pz] = cell as [number, number]
-        const minR = Math.max(localR, localMinDistance(area, px, pz, baseSpacing, edge))
+        const neighborR = localMinDistance(area, px, pz, baseSpacing, edge)
+        const neighborSF = (useSurface && evaluator && modes.has('spacing')) ? evaluator.spacingFactorAt(px, pz) : 1
+        const minR = Math.max(localR * spacingFactor, neighborR * neighborSF)
         if ((px - x) * (px - x) + (pz - z) * (pz - z) < minR * minR) return false
       }
     }
