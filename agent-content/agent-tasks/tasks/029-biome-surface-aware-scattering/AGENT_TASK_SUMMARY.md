@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, terrain, scattering, sampling, performance]
 phases:
   total: 7
-  completed: 1
+  completed: 2
 ---
 
 # Биомы: скаттеринг с учётом поверхности террейна (высота/склон/кривизна)
@@ -74,12 +74,14 @@ phases:
 
 Отчёт: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
-### ⏳ Фаза 2: Выбор террейн-слоя по координате
+### ✅ Фаза 2: Выбор террейн-слоя по координате
 - Реализовать `getTerrainSamplerAt(x,z): GfxHeightSampler | null` на базе списка `SceneLayer`:
   - Приоритет: `shape=Terrain` → другие `Landscape`; затем по порядку слоёв.
   - Проверять AABB слоя по `terrain.worldWidth/worldDepth` и `terrain.center`.
 - Вернуть `seaLevel` для слоя (если потребуется для reference='seaLevel').
 - Документировать функцию и ограничения. Вне террейна — считать «нет слоя».
+
+Отчёт: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
 ### ⏳ Фаза 3: Поверхностная маска — расчёт локального веса/фактора
 - Ввести чистые утилиты расчёта `W(x,z)∈[0..1]` и `spacingFactor(x,z)`:
