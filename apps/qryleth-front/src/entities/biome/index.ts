@@ -5,6 +5,7 @@ export type {
   GfxBiomeCircleArea,
   GfxBiomePolygonArea,
   GfxBiomeScatteringConfig,
+  GfxBiomeSurfaceMask,
   GfxBiomeSourceFilter,
   GfxBiomeEdgeFalloff,
   GfxBiomePlacementTransform,

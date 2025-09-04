@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, terrain, scattering, sampling, performance]
 phases:
   total: 7
-  completed: 0
+  completed: 1
 ---
 
 # Биомы: скаттеринг с учётом поверхности террейна (высота/склон/кривизна)
@@ -59,7 +59,7 @@ phases:
 
 ## Список фаз
 
-### ⏳ Фаза 1: Расширение доменной модели биома (типизация)
+### ✅ Фаза 1: Расширение доменной модели биома (типизация)
 - Добавить в `GfxBiomeScatteringConfig` поле `surface?: GfxBiomeSurfaceMask`.
 - Описать `GfxBiomeSurfaceMask`:
   - `height?: { range?: [number, number]; soft?: number; reference?: 'world' | 'seaLevel' | number }`
@@ -71,6 +71,8 @@ phases:
   - `spacingScale?: { minFactor?: number; maxFactor?: number }`
 - Экспорт типов из `entities/biome/index.ts`.
 - Обновить док-блоки типов (RU) и краткую справку в docs (если требуется).
+
+Отчёт: [phases/phase_1_summary.md](phases/phase_1_summary.md)
 
 ### ⏳ Фаза 2: Выбор террейн-слоя по координате
 - Реализовать `getTerrainSamplerAt(x,z): GfxHeightSampler | null` на базе списка `SceneLayer`:
