@@ -138,8 +138,12 @@ export function evaluateSurfaceAtPoint(
   // Наклон: угол между нормалью и осью Y (в градусах)
   if (mask.slopeDeg) {
     const n = sampler.getNormal(x, z)
-    const ny = clamp(n[1], -1, 1)
-    const slopeDeg = Math.acos(ny) * 180 / Math.PI
+    // ВАЖНО: нормаль от сэмплера может смотреть вниз (ny < 0) из-за порядка векторов.
+    // Параметр «наклон» должен быть инвариантен к направлению полушария, поэтому
+    // используем абсолютное значение ny. Тогда плоская поверхность (|ny|≈1) даёт 0°,
+    // а крутые склоны (|ny|≈0) — ~90°.
+    const nyAbs = Math.abs(clamp(n[1], -1, 1))
+    const slopeDeg = Math.acos(nyAbs) * 180 / Math.PI
     const [smin, smax] = mask.slopeDeg.range ?? [-Infinity, Infinity]
     const sw = rangeWeight(slopeDeg, smin, smax, mask.slopeDeg.soft ?? 0)
     factors.push({ key: 's', value: sw })
@@ -253,4 +257,3 @@ export function createSurfaceMaskEvaluator(
     spacingFactorAt,
   }
 }
-
