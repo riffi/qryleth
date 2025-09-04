@@ -67,6 +67,15 @@ export interface SceneStoreState {
    * мерцаний и частично применённого состояния.
    */
   isTerrainApplying: boolean
+
+  /**
+   * Флаг видимости хелпера камеры теней направленного света.
+   *
+   * Когда включён — в сцене отображается THREE.CameraHelper для теневой
+   * ортографической камеры DirectionalLight. Полезно для настройки границ
+   * области теней и отладки смещений/bias.
+   */
+  shadowCameraHelperVisible: boolean
 }
 
 // Store actions interface
@@ -210,6 +219,19 @@ export interface SceneStoreActions {
    * где стало достоверно известно, что высоты доступны (включая путь с кэшем).
    */
   finishTerrainApplying: () => void
+
+  /**
+   * Явно установить видимость хелпера камеры теней DirectionalLight.
+   *
+   * @param visible - true, чтобы показать хелпер; false, чтобы скрыть.
+   */
+  setShadowCameraHelperVisible: (visible: boolean) => void
+
+  /**
+   * Переключить видимость хелпера камеры теней DirectionalLight.
+   * Удобно привязывать к UI-кнопке-тумблеру в панели настроек света.
+   */
+  toggleShadowCameraHelperVisible: () => void
 }
 
 // Combined store type

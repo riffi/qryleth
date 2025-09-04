@@ -12,9 +12,11 @@ import {
     Select,
     Switch,
     SegmentedControl,
-    Slider
+    Slider,
+    Tooltip
 } from '@mantine/core'
-import { IconBulb, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
+import { IconBulb, IconChevronDown, IconChevronRight, IconCamera } from '@tabler/icons-react'
+import { useSceneStore } from '../../model/sceneStore.ts'
 import type { LightingSettings, AmbientLightSettings, DirectionalLightSettings, FogSettings, SkySettings } from '@/entities/lighting'
 import { LIGHTING_PRESETS } from '@/features/editor/scene/model/lighting-presets'
 
@@ -42,7 +44,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
             onLightingChange({
                 ...lighting,
                 ambient: {
-                    ...(lighting.ambient ?? { uuid: 'ambient-light' }),
+                    ...(lighting.ambient ?? {uuid: 'ambient-light'}),
                     [key]: value
                 }
             })
@@ -113,7 +115,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                 setSelectedPreset(presetKey)
                 onLightingChange({
                     ambient: {
-                        ...(lighting?.ambient ?? { uuid: 'ambient-light' }),
+                        ...(lighting?.ambient ?? {uuid: 'ambient-light'}),
                         ...preset.ambient
                     },
                     directional: {
@@ -141,206 +143,237 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                 })
             }
         }
-    }
-
-    // Определяем текущий пресет на основе настроек освещения
-    useEffect(() => {
-        if (lighting) {
-            const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) => {
-                const ambientMatch = preset.ambient.color === lighting.ambient?.color &&
-                    preset.ambient.intensity === lighting.ambient?.intensity
-                const directionalMatch = preset.directional.color === lighting.directional?.color &&
-                    preset.directional.intensity === lighting.directional?.intensity &&
-                    JSON.stringify(preset.directional.position) === JSON.stringify(lighting.directional?.position)
-                const backgroundMatch = preset.backgroundColor === lighting.backgroundColor
-                const skyMatch = lighting.sky && preset.sky &&
-                    preset.sky.turbidity === lighting.sky.turbidity &&
-                    preset.sky.elevation === lighting.sky.elevation &&
-                    preset.sky.azimuth === lighting.sky.azimuth &&
-                    preset.sky.rayleigh === lighting.sky.rayleigh &&
-                    preset.sky.mieCoefficient === lighting.sky.mieCoefficient &&
-                    preset.sky.mieDirectionalG === lighting.sky.mieDirectionalG
-
-                const exposureMatch = preset.exposure === lighting.exposure
-
-                return ambientMatch && directionalMatch && backgroundMatch && skyMatch && exposureMatch
-            })
-            if (currentPreset) {
-                setSelectedPreset(currentPreset[0])
-            } else {
-                setSelectedPreset('') // Кастомные настройки
-            }
         }
-    }, [lighting])
 
-    if (!lighting || !onLightingChange) return null
-
-    return (
-        <>
-            <Group justify="space-between" align="center">
-                <Group gap="sm">
+        /**
+         * Кнопка‑переключатель видимости хелпера камеры теней DirectionalLight.
+         * Иконка меняет состояние в zustand‑store сцены.
+         */
+        const ShadowCameraHelperToggle: React.FC = () => {
+            const visible = useSceneStore((s) => s.shadowCameraHelperVisible)
+            const toggle = useSceneStore((s) => s.toggleShadowCameraHelperVisible)
+            return (
+                <Tooltip
+                    label={visible ? 'Скрыть helper камеры теней' : 'Показать helper камеры теней'}
+                    withArrow>
                     <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        color="gray"
-                        onClick={() => setLightingExpanded(prev => !prev)}
+                        size="xs"
+                        variant={visible ? 'filled' : 'light'}
+                        color={visible ? 'blue' : 'gray'}
+                        onClick={toggle}
+                        aria-label="Toggle shadow camera helper"
                     >
-                        {lightingExpanded ? (
-                            <IconChevronDown size={14} />
-                        ) : (
-                            <IconChevronRight size={14} />
-                        )}
+                        <IconCamera size={14}/>
                     </ActionIcon>
-                    <IconBulb size={16} color="var(--mantine-color-yellow-6)" />
-                    <Text size="xs" fw={500} c="dimmed">
-                        Освещение
-                    </Text>
+                </Tooltip>
+            )
+        }
+
+        // Определяем текущий пресет на основе настроек освещения
+        useEffect(() => {
+            if (lighting) {
+                const currentPreset = Object.entries(LIGHTING_PRESETS).find(([key, preset]) => {
+                    const ambientMatch = preset.ambient.color === lighting.ambient?.color &&
+                        preset.ambient.intensity === lighting.ambient?.intensity
+                    const directionalMatch = preset.directional.color === lighting.directional?.color &&
+                        preset.directional.intensity === lighting.directional?.intensity &&
+                        JSON.stringify(preset.directional.position) === JSON.stringify(lighting.directional?.position)
+                    const backgroundMatch = preset.backgroundColor === lighting.backgroundColor
+                    const skyMatch = lighting.sky && preset.sky &&
+                        preset.sky.turbidity === lighting.sky.turbidity &&
+                        preset.sky.elevation === lighting.sky.elevation &&
+                        preset.sky.azimuth === lighting.sky.azimuth &&
+                        preset.sky.rayleigh === lighting.sky.rayleigh &&
+                        preset.sky.mieCoefficient === lighting.sky.mieCoefficient &&
+                        preset.sky.mieDirectionalG === lighting.sky.mieDirectionalG
+
+                    const exposureMatch = preset.exposure === lighting.exposure
+
+                    return ambientMatch && directionalMatch && backgroundMatch && skyMatch && exposureMatch
+                })
+                if (currentPreset) {
+                    setSelectedPreset(currentPreset[0])
+                } else {
+                    setSelectedPreset('') // Кастомные настройки
+                }
+            }
+        }, [lighting])
+
+        if (!lighting || !onLightingChange) return null
+
+        return (
+            <>
+                <Group justify="space-between" align="center">
+                    <Group gap="sm">
+                        <ActionIcon
+                            size="sm"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => setLightingExpanded(prev => !prev)}
+                        >
+                            {lightingExpanded ? (
+                                <IconChevronDown size={14}/>
+                            ) : (
+                                <IconChevronRight size={14}/>
+                            )}
+                        </ActionIcon>
+                        <IconBulb size={16} color="var(--mantine-color-yellow-6)"/>
+                        <Text size="xs" fw={500} c="dimmed">
+                            Освещение
+                        </Text>
+                    </Group>
                 </Group>
-            </Group>
 
-            <Collapse in={lightingExpanded}>
-                <Stack gap="xs" ml="md">
-                    <Box>
-                        <Text size="xs" fw={500} mb="xs">Пресеты освещения</Text>
-                        <Select
-                            size="xs"
-                            value={selectedPreset}
-                            onChange={handlePresetChange}
-                            data={Object.entries(LIGHTING_PRESETS).map(([key, preset]) => ({
-                                value: key,
-                                label: preset.name
-                            }))}
-                        />
-                    </Box>
-                    <Box>
-                        <Text size="xs" fw={500} mb="xs">Фоновое освещение</Text>
-                        <Group gap="xs">
-                            <ColorInput
+                <Collapse in={lightingExpanded}>
+                    <Stack gap="xs" ml="md">
+                        <Box>
+                            <Text size="xs" fw={500} mb="xs">Пресеты освещения</Text>
+                            <Select
                                 size="xs"
-                                value={lighting.ambient?.color || '#6b7280'}
-                                onChange={(value) => handleAmbientChange('color', value)}
-                                withEyeDropper={false}
-                                style={{ flex: 1 }}
+                                value={selectedPreset}
+                                onChange={handlePresetChange}
+                                data={Object.entries(LIGHTING_PRESETS).map(([key, preset]) => ({
+                                    value: key,
+                                    label: preset.name
+                                }))}
                             />
-                            <NumberInput
-                                size="xs"
-                                value={lighting.ambient?.intensity || 0.4}
-                                onChange={(value) => handleAmbientChange('intensity', value)}
-                                min={0}
-                                max={1}
-                                step={0.1}
-                                style={{ width: 60 }}
-                            />
-                        </Group>
-                    </Box>
-
-                    <Box>
-                        <Text size="xs" fw={500} mb="xs">Направленный свет</Text>
-                        <Group gap="xs">
-                            <ColorInput
-                                size="xs"
-                                value={lighting.directional?.color || '#ffffff'}
-                                onChange={(value) => handleDirectionalChange('color', value)}
-                                withEyeDropper={false}
-                                style={{ flex: 1 }}
-                            />
-                            <NumberInput
-                                size="xs"
-                                value={lighting.directional?.intensity || 0.8}
-                                onChange={(value) => handleDirectionalChange('intensity', value)}
-                                min={0}
-                                max={1}
-                                step={0.1}
-                                style={{ width: 60 }}
-                            />
-                        </Group>
-                    </Box>
-
-                    <Box>
-                        <Text size="xs" fw={500} mb="xs">Фон сцены</Text>
-                        <ColorInput
-                            size="xs"
-                            value={lighting.backgroundColor || '#1a1b1e'}
-                            onChange={(value) => handleBackgroundChange(value)}
-                            withEyeDropper={false}
-                        />
-                    </Box>
-
-                    <Box>
-                        <Group justify="space-between" align="center" mb="xs">
-                            <Text size="xs" fw={500}>Туман</Text>
-                            <Switch
-                                size="xs"
-                                checked={lighting.fog?.enabled || false}
-                                onChange={(event) => handleFogChange('enabled', event.currentTarget.checked)}
-                            />
-                        </Group>
-
-                        {lighting.fog?.enabled && (
-                            <Stack gap="xs">
-                                <SegmentedControl
-                                    size="xs"
-                                    value={lighting.fog?.type || 'linear'}
-                                    onChange={(value) => handleFogChange('type', value as 'linear' | 'exponential')}
-                                    data={[
-                                        { label: 'Линейный', value: 'linear' },
-                                        { label: 'Экспоненциальный', value: 'exponential' }
-                                    ]}
-                                />
-
+                        </Box>
+                        <Box>
+                            <Text size="xs" fw={500} mb="xs">Фоновое освещение</Text>
+                            <Group gap="xs">
                                 <ColorInput
                                     size="xs"
-                                    label="Цвет тумана"
-                                    value={lighting.fog?.color || '#87CEEB'}
-                                    onChange={(value) => handleFogChange('color', value)}
+                                    value={lighting.ambient?.color || '#6b7280'}
+                                    onChange={(value) => handleAmbientChange('color', value)}
                                     withEyeDropper={false}
+                                    style={{flex: 1}}
                                 />
+                                <NumberInput
+                                    size="xs"
+                                    value={lighting.ambient?.intensity || 0.4}
+                                    onChange={(value) => handleAmbientChange('intensity', value)}
+                                    min={0}
+                                    max={1}
+                                    step={0.1}
+                                    style={{width: 60}}
+                                />
+                            </Group>
+                        </Box>
 
-                                {lighting.fog?.type === 'linear' ? (
-                                    <>
+                        <Box>
+                            <Group justify="space-between" align="center" mb="xs">
+                                <Text size="xs" fw={500}>Направленный свет</Text>
+                                <ShadowCameraHelperToggle/>
+                            </Group>
+                            <Group gap="xs">
+                                <ColorInput
+                                    size="xs"
+                                    value={lighting.directional?.color || '#ffffff'}
+                                    onChange={(value) => handleDirectionalChange('color', value)}
+                                    withEyeDropper={false}
+                                    style={{flex: 1}}
+                                />
+                                <NumberInput
+                                    size="xs"
+                                    value={lighting.directional?.intensity || 0.8}
+                                    onChange={(value) => handleDirectionalChange('intensity', value)}
+                                    min={0}
+                                    max={1}
+                                    step={0.1}
+                                    style={{width: 60}}
+                                />
+                            </Group>
+                        </Box>
+
+                        <Box>
+                            <Text size="xs" fw={500} mb="xs">Фон сцены</Text>
+                            <ColorInput
+                                size="xs"
+                                value={lighting.backgroundColor || '#1a1b1e'}
+                                onChange={(value) => handleBackgroundChange(value)}
+                                withEyeDropper={false}
+                            />
+                        </Box>
+
+                        <Box>
+                            <Group justify="space-between" align="center" mb="xs">
+                                <Text size="xs" fw={500}>Туман</Text>
+                                <Switch
+                                    size="xs"
+                                    checked={lighting.fog?.enabled || false}
+                                    onChange={(event) => handleFogChange('enabled', event.currentTarget.checked)}
+                                />
+                            </Group>
+
+                            {lighting.fog?.enabled && (
+                                <Stack gap="xs">
+                                    <SegmentedControl
+                                        size="xs"
+                                        value={lighting.fog?.type || 'linear'}
+                                        onChange={(value) => handleFogChange('type', value as 'linear' | 'exponential')}
+                                        data={[
+                                            {label: 'Линейный', value: 'linear'},
+                                            {label: 'Экспоненциальный', value: 'exponential'}
+                                        ]}
+                                    />
+
+                                    <ColorInput
+                                        size="xs"
+                                        label="Цвет тумана"
+                                        value={lighting.fog?.color || '#87CEEB'}
+                                        onChange={(value) => handleFogChange('color', value)}
+                                        withEyeDropper={false}
+                                    />
+
+                                    {lighting.fog?.type === 'linear' ? (
+                                        <>
+                                            <Box>
+                                                <Text size="xs" mb="xs">Ближняя
+                                                    граница: {lighting.fog?.near || 10}</Text>
+                                                <Slider
+                                                    size="xs"
+                                                    value={lighting.fog?.near || 10}
+                                                    onChange={(value) => handleFogChange('near', value)}
+                                                    min={1}
+                                                    max={200}
+                                                    step={1}
+                                                />
+                                            </Box>
+                                            <Box>
+                                                <Text size="xs" mb="xs">Дальняя
+                                                    граница: {lighting.fog?.far || 100}</Text>
+                                                <Slider
+                                                    size="xs"
+                                                    value={lighting.fog?.far || 100}
+                                                    onChange={(value) => handleFogChange('far', value)}
+                                                    min={50}
+                                                    max={1000}
+                                                    step={10}
+                                                />
+                                            </Box>
+                                        </>
+                                    ) : (
                                         <Box>
-                                            <Text size="xs" mb="xs">Ближняя граница: {lighting.fog?.near || 10}</Text>
+                                            <Text size="xs"
+                                                  mb="xs">Плотность: {lighting.fog?.density?.toFixed(3) || 0.010}</Text>
                                             <Slider
                                                 size="xs"
-                                                value={lighting.fog?.near || 10}
-                                                onChange={(value) => handleFogChange('near', value)}
-                                                min={1}
-                                                max={200}
-                                                step={1}
+                                                value={lighting.fog?.density || 0.01}
+                                                onChange={(value) => handleFogChange('density', value)}
+                                                min={0.0001}
+                                                max={0.01}
+                                                step={0.0001}
                                             />
                                         </Box>
-                                        <Box>
-                                            <Text size="xs" mb="xs">Дальняя граница: {lighting.fog?.far || 100}</Text>
-                                            <Slider
-                                                size="xs"
-                                                value={lighting.fog?.far || 100}
-                                                onChange={(value) => handleFogChange('far', value)}
-                                                min={50}
-                                                max={1000}
-                                                step={10}
-                                            />
-                                        </Box>
-                                    </>
-                                ) : (
-                                    <Box>
-                                        <Text size="xs" mb="xs">Плотность: {lighting.fog?.density?.toFixed(3) || 0.010}</Text>
-                                        <Slider
-                                            size="xs"
-                                            value={lighting.fog?.density || 0.01}
-                                            onChange={(value) => handleFogChange('density', value)}
-                                            min={0.0001}
-                                            max={0.01}
-                                            step={0.0001}
-                                        />
-                                    </Box>
-                                )}
-                            </Stack>
-                        )}
-                    </Box>
-                </Stack>
-            </Collapse>
+                                    )}
+                                </Stack>
+                            )}
+                        </Box>
+                    </Stack>
+                </Collapse>
 
-            <Divider />
-        </>
-    )
-}
+                <Divider/>
+            </>
+        )
+    }
+

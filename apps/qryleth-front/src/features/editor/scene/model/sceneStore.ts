@@ -92,6 +92,8 @@ const initialState: SceneStoreState = {
   cameraPose: undefined,
   // Флаг прелоадера применения heightmap
   isTerrainApplying: false,
+  // Видимость хелпера камеры теней направленного света (DirectionalLight)
+  shadowCameraHelperVisible: false,
 
   // Scene metadata
   sceneMetaData: initialSceneMetaData,
@@ -492,6 +494,22 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     /**
+     * Устанавливает видимость хелпера камеры теней DirectionalLight.
+     * @param visible true — показать хелпер; false — скрыть хелпер.
+     */
+    setShadowCameraHelperVisible: (visible: boolean) => {
+      set({ shadowCameraHelperVisible: visible })
+    },
+
+    /**
+     * Переключает видимость хелпера камеры теней DirectionalLight.
+     * Удобно для привязки к иконке‑тумблеру в панели настроек света.
+     */
+    toggleShadowCameraHelperVisible: () => {
+      set(state => ({ shadowCameraHelperVisible: !state.shadowCameraHelperVisible }))
+    },
+
+    /**
      * Сохраняет текущую позу камеры (позиция, цель/ориентация) для последующего восстановления.
      * Используется при переключении UiMode и смене типа камеры.
      */
@@ -665,6 +683,10 @@ export const useViewMode = () => useSceneStore(state => state.viewMode)
 export const useRenderMode = () => useSceneStore(state => state.renderMode)
 export const useTransformMode = () => useSceneStore(state => state.transformMode)
 export const useGridVisible = () => useSceneStore(state => state.gridVisible)
+/**
+ * Хук-селектор видимости хелпера камеры теней DirectionalLight.
+ */
+export const useShadowCameraHelperVisible = () => useSceneStore(state => state.shadowCameraHelperVisible)
 /**
  * Хук-селектор для статуса применения heightmap.
  * Возвращает true, когда террейн применяет высоты и следует показать прелоадер.

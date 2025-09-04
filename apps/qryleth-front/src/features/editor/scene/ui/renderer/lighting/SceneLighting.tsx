@@ -1,8 +1,8 @@
-import React, {useRef} from 'react'
+import React, {useMemo, useRef} from 'react'
 import { Fog, FogExp2 } from 'three'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSceneLighting } from '../../../model/sceneStore.ts'
+import { useSceneLighting, useSceneStore } from '../../../model/sceneStore.ts'
 
 /**
  * Компонент, рендерящий источники света и атмосферные эффекты в сцене редактора
@@ -11,7 +11,10 @@ import { useSceneLighting } from '../../../model/sceneStore.ts'
 export const SceneLighting: React.FC = () => {
   const lighting = useSceneLighting()
   const { scene } = useThree()
-  const lightRef = useRef()
+  // Реф на направленный источник света
+  const lightRef = useRef<THREE.DirectionalLight>(null)
+  // Флаг видимости хелпера камеры теней из глобального стора сцены
+  const helperVisible = useSceneStore(state => state.shadowCameraHelperVisible)
 
   // Параметры окружающего света
   const ambientColor = lighting.ambient?.color ?? '#87CEEB'
@@ -55,6 +58,21 @@ export const SceneLighting: React.FC = () => {
     }
   }, [scene, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity])
 
+  // Мемоизированный хелпер камеры теней, создаётся при наличии DirectionalLight
+  const shadowCameraHelper = useMemo(() => {
+    // Если реф ещё не привязан или флаг выключен — хелпер не создаём
+    if (!lightRef.current || !helperVisible) return null
+    const cam = lightRef.current.shadow?.camera
+    if (!cam) return null
+    const helper = new THREE.CameraHelper(cam)
+    helper.visible = true
+    return helper
+  // Пересоздаём хелпер при смене камеры теней или переключении флага видимости
+  }, [helperVisible, lightRef.current?.shadow?.camera])
+
+  // Следим за изменением флага видимости и обновляем свойство helper.visible
+  // Нет отдельного эффекта — видимость контролируется в мемо и через условный рендер
+
   return (
     <>
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
@@ -83,10 +101,8 @@ export const SceneLighting: React.FC = () => {
         target-position={[0, 0, 0]}
       />
 
-      {/* Хелпер камеры теней */}
-      {lightRef.current && (
-          <primitive object={new THREE.CameraHelper(lightRef.current.shadow.camera)} />
-      )}
+      {/* Хелпер камеры теней. Показывается по флагу из UI. */}
+      {shadowCameraHelper && <primitive object={shadowCameraHelper} />}
     </>
   )
 }
