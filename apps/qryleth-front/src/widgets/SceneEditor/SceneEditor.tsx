@@ -4,6 +4,7 @@ import { LeftToolbar, RightToolbar, SceneEditorToolBar } from '@/features/editor
 import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditor } from '@/widgets/ObjectEditor'
+import { buildUpdatedObject } from '@/features/editor/object'
 import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
@@ -98,12 +99,17 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
 
   const handleEditorSaveClick = () => {
     if (!editingObjectData) return
-    updateObject(editingObjectData.uuid, {
-      primitives: editingObjectData.primitives,
-      materials: editingObjectData.materials,
-      boundingBox: editingObjectData.boundingBox,
-      primitiveGroups: editingObjectData.primitiveGroups,
-      primitiveGroupAssignments: editingObjectData.primitiveGroupAssignments,
+    // Формируем актуальные данные объекта из стора ObjectEditor,
+    // чтобы не потерять изменения, внесённые в модальном редакторе.
+    const updated = buildUpdatedObject(editingObjectData)
+    updateObject(updated.uuid, {
+      primitives: updated.primitives,
+      materials: updated.materials,
+      boundingBox: updated.boundingBox,
+      primitiveGroups: updated.primitiveGroups,
+      primitiveGroupAssignments: updated.primitiveGroupAssignments,
+      // Дополнительно прокидываем возможные метаданные (например, теги)
+      tags: (updated as any).tags,
     })
     notifications.show({ title: 'Успешно!', message: 'Изменения объекта сохранены', color: 'green' })
     setEditorOpened(false)
