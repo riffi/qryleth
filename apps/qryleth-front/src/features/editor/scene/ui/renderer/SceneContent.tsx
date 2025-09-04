@@ -72,7 +72,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       */}
       <EffectComposer>
         {/* Эффект окклюзии N8AO: работает в линейном пространстве до тонемаппинга */}
-        <N8AO quality={'ultra'} aoRadius={2} aoSamples={20} intensity={2} distanceFalloff={3} denoiseRadius={10} denoiseSamples={10} renderMode={3}/>
+        <N8AO quality={'ultra'} aoRadius={2} aoSamples={20} intensity={2} distanceFalloff={3} denoiseRadius={10} denoiseSamples={10} renderMode={0}/>
         {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
         <Exposure exposure={lighting.exposure ?? 1.0} />
         {/* Финальный тонемаппинг (ACES), экспозиция уже учтена выше */}
