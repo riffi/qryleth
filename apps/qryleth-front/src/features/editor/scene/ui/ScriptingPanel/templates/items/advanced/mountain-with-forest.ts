@@ -68,26 +68,27 @@ const biome = {
   area: { type: 'circle', circle: { x: 0, z: 0, radius: 180 } },
   visible: true,
   scattering: {
-    algorithm: 'random',
-    spacing: 10,
-    seed: 4242,
-    edge: { fadeWidth: 50, fadeCurve: 'smoothstep', edgeBias: 0.5 },
-    surface: {
-      height: { range: [0, 20], soft: 0.5, reference: 'world' },
-      mode: ['reject', 'spacing'],
-      combine: 'mul',
-      weight: { byHeight: 1},
-      spacingScale: { minFactor: 0.75, maxFactor: 1.6 }
+      algorithm: 'poisson',
+      spacing: 3,
+      seed: 4242,
+      edge: { fadeWidth: 50, fadeCurve: 'smoothstep', edgeBias: 0.5 },
+      surface: {
+        slopeDeg: { range: [0, 20], soft: 0.25 },
+        curvature: { range: [0, 0.2], soft: 0.25, step: 1.0 },
+        mode: ['reject', 'weight'],
+        combine: 'mul',
+        weight: { byHeight: 0, bySlope: 0.8, byCurvature: 0.2},
+        spacingScale: { minFactor: 0.75, maxFactor: 2 }
+      },
+      transform: {
+        randomYawDeg: [0, 360],
+        randomUniformScale: [0.95, 1.35],
+        randomOffsetXZ: [0, 3],
+        alignToSurfaceNormal: { maxDeviationDeg: 22, curvatureInfluence: 0.5 }
+      },
+      // Важно: поддержка русских и английских тегов
+      source: { anyTags: ['дерево', 'tree'] }
     },
-    transform: {
-      randomYawDeg: [0, 360],
-      randomUniformScale: [0.95, 1.35],
-      randomOffsetXZ: [0, 3],
-      alignToSurfaceNormal: { maxDeviationDeg: 22, curvatureInfluence: 0.5 }
-    },
-    // Важно: поддержка русских и английских тегов
-    source: { anyTags: ['дерево', 'tree'] }
-  },
   strata: []
 }
 
