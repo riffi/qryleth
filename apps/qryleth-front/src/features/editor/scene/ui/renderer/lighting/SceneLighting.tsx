@@ -1,6 +1,7 @@
-import React from 'react'
+import React, {useRef} from 'react'
 import { Fog, FogExp2 } from 'three'
 import { useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { useSceneLighting } from '../../../model/sceneStore.ts'
 
 /**
@@ -10,10 +11,13 @@ import { useSceneLighting } from '../../../model/sceneStore.ts'
 export const SceneLighting: React.FC = () => {
   const lighting = useSceneLighting()
   const { scene } = useThree()
+  const lightRef = useRef()
 
   // Параметры окружающего света
   const ambientColor = lighting.ambient?.color ?? '#87CEEB'
   const ambientIntensity = lighting.ambient?.intensity ?? 0.6
+
+  const shadowCameraRectSize = 100
 
   // Параметры единственного направленного источника света
   const directional = lighting.directional
@@ -21,7 +25,7 @@ export const SceneLighting: React.FC = () => {
   const directionalIntensity = directional?.intensity ?? 1
   const directionalPosition = directional?.position ?? [500, 150, -1000]
   const castShadow = directional?.castShadow ?? true
-  const shadowMapSize = directional?.shadowProps?.mapSize ?? [2048, 2048]
+  const shadowMapSize = directional?.shadowProps?.mapSize ?? [1048, 1048]
   const shadowCameraFar = directional?.shadowProps?.cameraFar ?? 100
 
   // Параметры тумана
@@ -55,6 +59,7 @@ export const SceneLighting: React.FC = () => {
     <>
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
       <directionalLight
+        ref={lightRef}
         position={directionalPosition}
         color={directionalColor}
         intensity={directionalIntensity}
@@ -64,19 +69,24 @@ export const SceneLighting: React.FC = () => {
         // Расширяем ортографическую камеру теней, чтобы покрыть ландшафт.
         // По умолчанию у DirectionalLightShadow очень маленькие границы (-5..5),
         // из-за чего тени могут не попадать на террейн при крупных сценах.
-        shadow-camera-left={-512}
-        shadow-camera-right={512}
-        shadow-camera-top={512}
-        shadow-camera-bottom={-512}
-        shadow-camera-near={0.5}
-        shadow-camera-far={shadowCameraFar ?? 1000}
+        shadow-camera-left={-shadowCameraRectSize}
+        shadow-camera-right={shadowCameraRectSize}
+        shadow-camera-top={shadowCameraRectSize}
+        shadow-camera-bottom={-shadowCameraRectSize}
+        shadow-camera-near={0.3}
+        shadow-camera-far={300}
         // Слегка смещаем расчёт глубины, чтобы избежать артефактов (shadow acne)
-        shadow-bias={-0.0005}
-        shadow-normalBias={0.3}
+        shadow-bias={-0.0001}
+        shadow-normalBias={-0.001}
         // Направляем цель света в центр сцены (или в указанную точку),
         // чтобы камера теней ориентировалась на область интереса.
-        target-position={directional?.target ?? [0, 0, 0]}
+        target-position={[0, 0, 0]}
       />
+
+      {/* Хелпер камеры теней */}
+      {lightRef.current && (
+          <primitive object={new THREE.CameraHelper(lightRef.current.shadow.camera)} />
+      )}
     </>
   )
 }

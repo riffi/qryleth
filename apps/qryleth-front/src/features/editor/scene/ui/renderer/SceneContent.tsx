@@ -14,7 +14,7 @@ import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
 import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
-import {EffectComposer, FXAA, SMAA} from "@react-three/postprocessing";
+import {EffectComposer, N8AO, SSAO} from "@react-three/postprocessing";
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 
 /**
@@ -107,7 +107,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       />
 
       <EffectComposer>
-        {/*<SMAA />*/}
+        <N8AO/>
       </EffectComposer>
 
 

@@ -8,8 +8,8 @@ import type { LightingSettings } from '@/entities/lighting'
 export const LIGHTING_PRESETS = {
   'bright-day': {
     name: 'Яркий день',
-    ambient: { color: '#87CEEB', intensity: 1 },
-    directional: { color: '#FFD700', intensity: 1.0, position: [50, 100, 50] as [number, number, number] },
+    ambient: { color: '#87CEEB', intensity: 1.2 },
+    directional: { color: '#FFD700', intensity: 1.2, position: [50, 50, 50] as [number, number, number] },
     backgroundColor: '#87CEEB',
     exposure: 1.3,
     sky: {
