@@ -16,7 +16,7 @@ import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeybo
 import { Sky } from '@react-three/drei'
 import {EffectComposer, N8AO, SSAO} from "@react-three/postprocessing";
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
-import { CloudLayer } from './environment/CloudLayer'
+import { CloudLayers } from './environment/CloudLayers'
 
 /**
  * Свойства компонента SceneContent.
@@ -107,8 +107,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         azimuth={lighting.sky?.azimuth ?? 0.25}
       />
 
-      {/* Облака drei: показываем вместе с небом, чтобы не конфликтовать с туманом */}
-      <CloudLayer />
+      {/* Слои облаков (процедурные): при отсутствии слоёв облаков рендер не выполняется */}
+      <CloudLayers />
 
       <EffectComposer>
         <N8AO/>

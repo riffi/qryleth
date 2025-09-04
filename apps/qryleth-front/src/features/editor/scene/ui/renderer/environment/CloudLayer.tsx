@@ -55,7 +55,6 @@ export const CloudLayer: React.FC = () => {
         volume={350}
         opacity={0.2}
         color="white"
-        // speed/growth оставляем 0, чтобы форма облака не пульсировала
         speed={0.2}
         growth={0.5}
       />

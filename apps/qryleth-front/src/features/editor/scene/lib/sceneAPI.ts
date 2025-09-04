@@ -37,6 +37,8 @@ import { MultiColorAPI } from './sceneAPI.multicolor'
 import { getHeightSamplerForLayer, getTerrainSamplerAt } from '@/features/editor/scene/lib/placement/terrainAdapter'
 import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
 import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUtils'
+import type { GfxCloudsConfig, GfxProceduralCloudSpec } from '@/entities/cloud'
+import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/ProceduralCloudGenerator'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -671,6 +673,119 @@ export class SceneAPI {
   static findObjectByName(name: string): SceneObject | null {
     const state = useSceneStore.getState()
     return state.objects.find(obj => obj.name.toLowerCase().includes(name.toLowerCase())) || null
+  }
+
+  // =============================
+  // Окружение: глобальный ветер
+  // =============================
+
+  /** Вернуть текущие параметры ветра сцены (направление [x,z] и скорость) */
+  static getWind(): { direction: [number, number]; speed: number } {
+    return { ...useSceneStore.getState().environment.wind }
+  }
+
+  /** Установить параметры ветра: направление [x,z] и скорость (юниты/сек). Направление нормализуется. */
+  static setWind(direction: [number, number], speed: number): { success: boolean } {
+    try {
+      useSceneStore.getState().setWind(direction, speed)
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  }
+
+  /** Установить только направление ветра (будет нормализовано). */
+  static setWindDirection(direction: [number, number]): { success: boolean } {
+    try { useSceneStore.getState().setWindDirection(direction); return { success: true } } catch { return { success: false } }
+  }
+
+  /** Установить только скорость ветра (неотрицательную). */
+  static setWindSpeed(speed: number): { success: boolean } {
+    try { useSceneStore.getState().setWindSpeed(speed); return { success: true } } catch { return { success: false } }
+  }
+
+  // =============================
+  // Облачные слои: CRUD и генерация
+  // =============================
+
+  /** Получить все слои типа Clouds */
+  static getCloudLayers(): SceneLayer[] {
+    const state = useSceneStore.getState()
+    return state.layers.filter(l => l.type === GfxLayerType.Clouds)
+  }
+
+  /** Создать слой облаков. Если данные не заданы — создаёт пустой слой с именем по умолчанию. */
+  static createCloudLayer(data?: Partial<SceneLayer> & { clouds?: GfxCloudsConfig }): { success: boolean; layerId?: string; error?: string } {
+    try {
+      const base: Omit<SceneLayer, 'id'> = {
+        name: data?.name ?? 'Облака',
+        type: GfxLayerType.Clouds,
+        visible: data?.visible ?? true,
+        position: data?.position ?? useSceneStore.getState().layers.length,
+        clouds: data?.clouds ?? { items: [] }
+      }
+      useSceneStore.getState().createLayer(base)
+      const created = useSceneStore.getState().layers.slice(-1)[0]
+      return created ? { success: true, layerId: created.id } : { success: false, error: 'Failed to create cloud layer' }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown error' }
+    }
+  }
+
+  /** Обновить слой облаков по ID */
+  static updateCloudLayer(layerId: string, updates: Partial<SceneLayer>): { success: boolean; error?: string } {
+    try { useSceneStore.getState().updateLayer(layerId, updates); return { success: true } } catch (e) { return { success: false, error: e instanceof Error ? e.message : 'Unknown error' } }
+  }
+
+  /** Удалить слой облаков по ID */
+  static removeCloudLayer(layerId: string): { success: boolean } {
+    try { useSceneStore.getState().deleteLayer(layerId); return { success: true } } catch { return { success: false } }
+  }
+
+  /**
+   * Сгенерировать облака по спецификации и поместить их в слой.
+   * Если layerId не указан — создаётся новый слой Clouds. При clearBefore === true список items предварительно очищается.
+   * Если spec.area отсутствует — пытаемся вывести её из размеров первого Terrain‑слоя.
+   */
+  static async generateProceduralClouds(
+    spec: GfxProceduralCloudSpec,
+    opts?: { layerId?: string; clearBefore?: boolean }
+  ): Promise<{ success: boolean; created: number; layerId: string; error?: string }> {
+    try {
+      let layer: SceneLayer | undefined
+      if (opts?.layerId) {
+        layer = useSceneStore.getState().layers.find(l => l.id === opts.layerId)
+      }
+      if (!layer) {
+        const created = SceneAPI.createCloudLayer({})
+        if (!created.success || !created.layerId) return { success: false, created: 0, layerId: '', error: created.error || 'Failed to create cloud layer' }
+        layer = useSceneStore.getState().layers.find(l => l.id === created.layerId)
+      }
+      if (!layer) return { success: false, created: 0, layerId: '', error: 'Cloud layer not found' }
+
+      // Область: если не задана — берём размеры мира из terrain-слоя
+      if (!spec.area) {
+        const terrain = SceneAPI.pickLandscapeLayer()
+        if (terrain?.terrain?.worldWidth && (terrain.terrain as any)?.worldDepth) {
+          const w = terrain.terrain.worldWidth
+          const d = (terrain.terrain as any).worldDepth
+          spec = { ...spec, area: { kind: 'rect', xMin: 0, xMax: w, zMin: 0, zMax: d } }
+        } else {
+          return { success: false, created: 0, layerId: layer.id, error: 'Cannot infer area: no Terrain layer with world size' }
+        }
+      }
+
+      const gen = new ProceduralCloudGenerator()
+      const cfg = gen.generateClouds(spec)
+
+      const prev = (layer.clouds?.items ?? [])
+      const items = opts?.clearBefore ? cfg.items : [...prev, ...cfg.items]
+      useSceneStore.getState().updateLayer(layer.id, { clouds: { items } } as any)
+
+      return { success: true, created: cfg.items.length, layerId: layer.id }
+    } catch (e) {
+      return { success: false, created: 0, layerId: opts?.layerId || '', error: e instanceof Error ? e.message : 'Unknown error' }
+    }
   }
 
 

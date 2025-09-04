@@ -77,6 +77,13 @@ const initialState: SceneStoreState = {
   lighting: initialLighting,
   // Биомы сцены (области скаттеринга)
   biomes: [],
+  // Окружение сцены: глобальный ветер по умолчанию дует вдоль +X со скоростью 0.2 юнит/сек
+  environment: {
+    wind: {
+      direction: [1, 0],
+      speed: 0.2,
+    },
+  },
 
   // UI state
   uiMode: UiMode.Edit,
@@ -509,6 +516,46 @@ export const useSceneStore = create<SceneStore>()(
       set(state => ({ shadowCameraHelperVisible: !state.shadowCameraHelperVisible }))
     },
 
+    // =====================
+    // Environment / Wind
+    // =====================
+    /**
+     * Установить глобальные параметры ветра сцены.
+     *
+     * Направление нормализуется к длине 1, чтобы избежать косвенной зависимости
+     * от масштаба вектора. Если передан нулевой вектор, используется [1,0].
+     * Скорость приводится к неотрицательному значению (минимум 0).
+     */
+    setWind: (direction: [number, number], speed: number) => {
+      const [dx, dz] = direction
+      const len = Math.hypot(dx, dz)
+      const dir: [number, number] = len > 1e-6 ? [dx / len, dz / len] : [1, 0]
+      const v = Math.max(0, Number.isFinite(speed) ? speed : 0)
+      set(state => ({ environment: { ...state.environment, wind: { direction: dir, speed: v } } }))
+      get().markSceneAsModified()
+    },
+
+    /**
+     * Установить только направление ветра. Значение автоматически нормализуется.
+     * При нулевом векторе направление сбрасывается на [1,0].
+     */
+    setWindDirection: (direction: [number, number]) => {
+      const [dx, dz] = direction
+      const len = Math.hypot(dx, dz)
+      const dir: [number, number] = len > 1e-6 ? [dx / len, dz / len] : [1, 0]
+      set(state => ({ environment: { ...state.environment, wind: { ...state.environment.wind, direction: dir } } }))
+      get().markSceneAsModified()
+    },
+
+    /**
+     * Установить только скорость ветра. Отрицательные значения приводятся к 0.
+     */
+    setWindSpeed: (speed: number) => {
+      const v = Math.max(0, Number.isFinite(speed) ? speed : 0)
+      set(state => ({ environment: { ...state.environment, wind: { ...state.environment.wind, speed: v } } }))
+      get().markSceneAsModified()
+    },
+
     /**
      * Сохраняет текущую позу камеры (позиция, цель/ориентация) для последующего восстановления.
      * Используется при переключении UiMode и смене типа камеры.
@@ -553,6 +600,13 @@ export const useSceneStore = create<SceneStore>()(
         if (data.layers) state.setLayers(data.layers)
         if (data.biomes) state.setBiomes(data.biomes)
         if (data.lighting) state.setLighting(data.lighting)
+        // Окружение сцены: если в данных отсутствует — оставляем дефолт
+        if (data.environment && data.environment.wind) {
+          const d = data.environment.wind.direction as [number, number] | undefined
+          const s = data.environment.wind.speed as number | undefined
+          if (d && Array.isArray(d) && d.length === 2) state.setWind(d as any, typeof s === 'number' ? s : state.environment.wind.speed)
+          else if (typeof s === 'number') state.setWindSpeed(s)
+        }
 
         // Set scene metadata
         if (sceneName && sceneUuid) {
@@ -582,6 +636,7 @@ export const useSceneStore = create<SceneStore>()(
         layers: state.layers,
         lighting: state.lighting,
         biomes: state.biomes,
+        environment: state.environment,
       }
     },
 
@@ -592,6 +647,9 @@ export const useSceneStore = create<SceneStore>()(
         layers: initialLayers,
         lighting: initialLighting,
         biomes: [],
+        environment: {
+          wind: { direction: [1, 0], speed: 0.2 }
+        },
         selectedObject: null,
         hoveredObject: null,
         sceneMetaData: initialSceneMetaData,
@@ -692,6 +750,12 @@ export const useShadowCameraHelperVisible = () => useSceneStore(state => state.s
  * Возвращает true, когда террейн применяет высоты и следует показать прелоадер.
  */
 export const useIsTerrainApplying = () => useSceneStore(state => state.isTerrainApplying)
+
+/**
+ * Хук-селектор для доступа к параметрам ветра окружения сцены.
+ * Возвращает объект вида { wind: { direction: [x,z], speed } }.
+ */
+export const useSceneWind = () => useSceneStore(state => state.environment.wind)
 
 // Global material access helpers (reads from MaterialRegistry)
 export const useGlobalMaterials = (): GfxMaterial[] => {

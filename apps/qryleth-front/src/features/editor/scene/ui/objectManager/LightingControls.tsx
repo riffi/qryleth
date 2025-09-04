@@ -33,6 +33,8 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
 }) => {
     const [lightingExpanded, setLightingExpanded] = useState(false)
     const [selectedPreset, setSelectedPreset] = useState<string>('bright-day')
+    // Экспозиция управляеся аналогично пресетам — через внешний onLightingChange,
+    // который внутри поднимает в zustand-store полное LightingSettings
 
     /**
      * Изменяет параметр ambient света.
@@ -296,6 +298,30 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                         </Box>
 
                         <Box>
+                            <Text size="xs" fw={500} mb="xs">Экспозиция</Text>
+                            <Group gap="xs" align="center">
+                                <Slider
+                                    style={{ flex: 1 }}
+                                    size="xs"
+                                    value={typeof lighting.exposure === 'number' ? lighting.exposure : 1.0}
+                                    onChange={(value) => onLightingChange && lighting && onLightingChange({ ...lighting, exposure: value })}
+                                    min={0.1}
+                                    max={3}
+                                    step={0.05}
+                                />
+                                <NumberInput
+                                    size="xs"
+                                    value={typeof lighting.exposure === 'number' ? lighting.exposure : 1.0}
+                                    onChange={(value) => onLightingChange && lighting && onLightingChange({ ...lighting, exposure: Number(value) || 1.0 })}
+                                    min={0.1}
+                                    max={3}
+                                    step={0.05}
+                                    style={{ width: 70 }}
+                                />
+                            </Group>
+                        </Box>
+
+                        <Box>
                             <Group justify="space-between" align="center" mb="xs">
                                 <Text size="xs" fw={500}>Туман</Text>
                                 <Switch
@@ -376,4 +402,3 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
             </>
         )
     }
-

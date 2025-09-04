@@ -1,4 +1,5 @@
 import type { GfxTerrainConfig } from '../../terrain';
+import type { GfxCloudsConfig } from '../../cloud';
 
 /**
  * Перечисление типов слоёв графической сцены.
@@ -12,6 +13,8 @@ export enum GfxLayerType {
   Landscape = 'landscape',
   /** Слой воды */
   Water = 'water',
+  /** Слой облаков */
+  Clouds = 'clouds',
 }
 
 /**
@@ -97,6 +100,15 @@ export interface GfxLayer {
    * Используются слоями типа GfxLayerType.Water.
    */
   water?: GfxWaterConfig;
+
+  /**
+   * Конфигурация облачного слоя.
+   * Используется слоями типа GfxLayerType.Clouds и содержит список облаков (items),
+   * визуальные параметры которых обычно вычисляются процедурным генератором из
+   * метапараметров внешнего вида. На этом этапе поле является опциональным для
+   * сохранения обратной совместимости со старыми сценами.
+   */
+  clouds?: GfxCloudsConfig;
 }
 
 /**

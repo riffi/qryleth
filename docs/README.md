@@ -106,3 +106,43 @@
 
 - 024 — terrain-coordinates-refactor: migrations/024-terrain-coordinates-refactor.md
 - 027 — editor-object-namespace-finalize: migrations/027-editor-object-namespace-finalize.md
+
+---
+
+## Облака и глобальный ветер (новое)
+
+- Добавлен новый тип слоя сцены `Clouds` и процедурная генерация облаков на основе метапараметров `appearance` (preset/size/softness/dynamics/color/variance) с детерминированностью по `seed`.
+- Введён глобальный ветер сцены `environment.wind` (`direction: [x,z]`, `speed`), влияющий на дрейф облаков.
+- SceneAPI расширен методами: `getWind`, `setWind`, `setWindDirection`, `setWindSpeed`, `generateProceduralClouds`, а также CRUD для слоёв `Clouds`.
+
+### Примеры использования
+
+```ts
+// Управление ветром сцены
+SceneAPI.setWind([1, 0], 0.2)           // направление X, скорость 0.2 юн/сек
+SceneAPI.setWindDirection([0.5, 0.5])   // нормализуется автоматически
+SceneAPI.setWindSpeed(0.3)              // неотрицательная
+
+// Процедурная генерация облаков (5 штук по умолчанию)
+SceneAPI.generateProceduralClouds({
+  seed: 123,
+  count: 5,
+  // area можно опустить — возьмётся из первого Terrain‑слоя (worldWidth/worldDepth)
+  placement: 'poisson',
+  minDistance: 25,
+  altitudeY: [120, 160],
+  appearance: {
+    stylePreset: 'cumulus',
+    sizeLevel: 3,
+    softnessLevel: 0.7,
+    dynamicsLevel: 0.4,
+    colorTone: 'warm',
+    variance: 0.5
+  },
+  // для точечной настройки конкретных визуальных полей допускается advancedOverrides
+}, { clearBefore: true })
+```
+
+Примечания:
+- Если `area` не указана, подставляется прямоугольная область по размерам первого Terrain‑слоя.
+- Визуальные поля `<Cloud>` вычисляются из `appearance` и попадают в `advancedOverrides` каждого элемента.

@@ -11,7 +11,7 @@ export const LIGHTING_PRESETS = {
     ambient: { color: '#87CEEB', intensity: 1.2 },
     directional: { color: '#FFD700', intensity: 1.2, position: [50, 50, 50] as [number, number, number] },
     backgroundColor: '#87CEEB',
-    exposure: 1.3,
+    exposure: 0.3,
     sky: {
       distance: 450000,
       turbidity: 0.5,
