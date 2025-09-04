@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
+import React from 'react'
 import { SceneLighting } from './lighting/SceneLighting.tsx'
 import { CameraControls } from './controls/CameraControls.tsx'
 import { ObjectTransformGizmo } from './controls/ObjectTransformGizmo.tsx'
@@ -14,9 +13,11 @@ import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
 import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
-import {EffectComposer, N8AO, SSAO} from "@react-three/postprocessing";
+import {EffectComposer, N8AO, ToneMapping} from "@react-three/postprocessing";
+import { ToneMappingMode } from 'postprocessing'
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 import { CloudLayers } from './environment/CloudLayers'
+import { Exposure } from '@/shared/r3f/postprocessing/ExposureEffect'
 
 /**
  * Свойства компонента SceneContent.
@@ -27,21 +28,9 @@ interface SceneContentProps {
   renderProfile: RenderProfile
 }
 
-/**
- * Компонент для обновления exposure рендерера при изменении настроек освещения.
- */
-const ExposureUpdater: React.FC = () => {
-  const { gl } = useThree()
-  const lighting = useSceneStore(state => state.lighting)
-
-  useEffect(() => {
-    if (gl) {
-      gl.toneMappingExposure = lighting.exposure ?? 1.0
-    }
-  }, [gl, lighting.exposure])
-
-  return null
-}
+// Примечание: Ранее здесь обновлялся renderer.toneMappingExposure при изменении настроек освещения.
+// После переноса тонемаппинга в EffectComposer это больше не требуется,
+// так как экспозиция теперь применяется внутри эффекта ToneMapping.
 
 /**
  * Основной компонент содержимого 3D сцены.
@@ -75,8 +64,20 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       {/* Set scene background */}
       <color attach="background" args={[sceneBackground]} />
 
-      {/* Update renderer exposure when lighting changes */}
-      <ExposureUpdater />
+      {/*
+        Постпроцессинг:
+        - N8AO: экранное затенение на основе нормалей (Ambient Occlusion)
+        - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
+        ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
+      */}
+      <EffectComposer>
+        {/* Эффект окклюзии N8AO: работает в линейном пространстве до тонемаппинга */}
+        <N8AO quality={'ultra'} aoRadius={2} aoSamples={20} intensity={2} distanceFalloff={3} denoiseRadius={10} denoiseSamples={10} renderMode={3}/>
+        {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
+        <Exposure exposure={lighting.exposure ?? 1.0} />
+        {/* Финальный тонемаппинг (ACES), экспозиция уже учтена выше */}
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
 
       {/* Core scene components */}
       <SceneLighting />
@@ -109,10 +110,6 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
 
       {/* Слои облаков (процедурные): при отсутствии слоёв облаков рендер не выполняется */}
       <CloudLayers />
-
-      <EffectComposer>
-        <N8AO/>
-      </EffectComposer>
 
 
     </>

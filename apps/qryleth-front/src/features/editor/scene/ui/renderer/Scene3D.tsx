@@ -28,20 +28,22 @@ export const Scene3D: React.FC<Scene3DProps> = ({
 
   return (
     <Box className={className} style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Важно: тонемаппинг перенесён в EffectComposer (SceneContent),
+          поэтому на рендерере отключаем toneMapping (NoToneMapping),
+          чтобы избежать двойного применения и некорректного влияния exposure. */}
       <Canvas
         camera={{
           position: [5, 5, 8],
           fov: 45,
           near: 0.1,
-          far: 1000
+          far: 2000
         }}
         shadows="soft"
         gl={{
           antialias: true,
           alpha: true,
           outputColorSpace: THREE.SRGBColorSpace,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure:  lighting.exposure ?? 1.0,
+          toneMapping: THREE.NoToneMapping,
         }}
         style={{
           background: 'transparent',
@@ -60,9 +62,8 @@ export const Scene3D: React.FC<Scene3DProps> = ({
                 state.gl.shadowMap.type = THREE.PCFSoftShadowMap
               }
 
-              // Set tone mapping
-              state.gl.toneMapping = THREE.ACESFilmicToneMapping
-              state.gl.toneMappingExposure = lighting.exposure ?? 1.0
+              // Отключаем тонемаппинг на рендерере: он выполняется в EffectComposer
+              state.gl.toneMapping = THREE.NoToneMapping
             }
 
             // Notify parent that scene is ready
