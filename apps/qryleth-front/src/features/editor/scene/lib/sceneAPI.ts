@@ -763,13 +763,28 @@ export class SceneAPI {
       }
       if (!layer) return { success: false, created: 0, layerId: '', error: 'Cloud layer not found' }
 
-      // Область: если не задана — берём размеры мира из terrain-слоя
+      // Область: если не задана — берём размеры мира и центр из первого terrain-слоя
       if (!spec.area) {
         const terrain = SceneAPI.pickLandscapeLayer()
         if (terrain?.terrain?.worldWidth && (terrain.terrain as any)?.worldDepth) {
           const w = terrain.terrain.worldWidth
           const d = (terrain.terrain as any).worldDepth
-          spec = { ...spec, area: { kind: 'rect', xMin: 0, xMax: w, zMin: 0, zMax: d } }
+          const c = (terrain.terrain as any).center as [number, number] | undefined
+          const cx = c?.[0] ?? 0
+          const cz = c?.[1] ?? 0
+          const halfW = w / 2
+          const halfD = d / 2
+          // Используем геометрический центр террейна: область строго над террейном
+          spec = {
+            ...spec,
+            area: {
+              kind: 'rect',
+              xMin: cx - halfW,
+              xMax: cx + halfW,
+              zMin: cz - halfD,
+              zMax: cz + halfD
+            }
+          }
         } else {
           return { success: false, created: 0, layerId: layer.id, error: 'Cannot infer area: no Terrain layer with world size' }
         }
