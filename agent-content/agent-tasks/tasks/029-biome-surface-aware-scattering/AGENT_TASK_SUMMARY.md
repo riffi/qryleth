@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, terrain, scattering, sampling, performance]
 phases:
   total: 7
-  completed: 2
+  completed: 3
 ---
 
 # Биомы: скаттеринг с учётом поверхности террейна (высота/склон/кривизна)
@@ -83,7 +83,7 @@ phases:
 
 Отчёт: [phases/phase_2_summary.md](phases/phase_2_summary.md)
 
-### ⏳ Фаза 3: Поверхностная маска — расчёт локального веса/фактора
+### ✅ Фаза 3: Поверхностная маска — расчёт локального веса/фактора
 - Ввести чистые утилиты расчёта `W(x,z)∈[0..1]` и `spacingFactor(x,z)`:
   - Высота: `Y = sampler.getHeight(x,z)` (absolute world Y; опционально `Y - seaLevel`).
   - Наклон: из `sampler.getNormal(x,z)` → угол в градусах.
@@ -91,6 +91,8 @@ phases:
   - Комбинация по `combine` + `weight`.
 - Политика вне террейна: `reject` (W=0).
 - Минимальные кэши: сетка 64×64 внутри bounds биома, билинейная интерполяция значений.
+
+Отчёт: [phases/phase_3_summary.md](phases/phase_3_summary.md)
 
 ### ⏳ Фаза 4: Интеграция маски в генераторы точек
 - RandomSampling:
