@@ -66,7 +66,7 @@ export function samplePoissonDisk(
         const W = evaluator.weightAt(x, z)
         const SF = evaluator.spacingFactorAt(x, z)
         let p = 1
-        if (modes.has('reject')) p *= (W > 0.5 ? 1 : 0)
+        if (modes.has('reject')) p *= (W > 0 ? 1 : 0)
         if (modes.has('weight')) p *= W
         accAccept += p
         accSpacing += modes.has('spacing') ? 1 / Math.max(1e-6, SF * SF) : 1
@@ -95,7 +95,7 @@ export function samplePoissonDisk(
     if (!pointInsideArea(area, x, z)) continue
     if (useSurface && evaluator) {
       const W = evaluator.weightAt(x, z)
-      if (modes.has('reject') && W <= 0.5) continue
+      if (modes.has('reject') && W <= 0) continue
       if (modes.has('weight') && rng() > W) continue
     }
     if (isFarEnough(x, z)) insertSample(x, z)
@@ -125,7 +125,7 @@ export function samplePoissonDisk(
       if (!pointInsideArea(area, x, z)) continue
       if (useSurface && evaluator) {
         const W = evaluator.weightAt(x, z)
-        if (modes.has('reject') && W <= 0.5) continue
+        if (modes.has('reject') && W <= 0) continue
         if (modes.has('weight') && rng() > W) continue
       }
       if (isFarEnough(x, z)) {
@@ -150,7 +150,7 @@ export function samplePoissonDisk(
     if (!pointInsideArea(area, x, z)) continue
     if (useSurface && evaluator) {
       const W = evaluator.weightAt(x, z)
-      if (modes.has('reject') && W <= 0.5) continue
+      if (modes.has('reject') && W <= 0) continue
       if (modes.has('weight') && rng() > W) continue
     }
     if (isFarEnough(x, z)) insertSample(x, z)

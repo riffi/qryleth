@@ -58,7 +58,7 @@ export function sampleRandomPoints(
         const SF = evaluator.spacingFactorAt(x, z)
         // Вероятность принятия кандидата
         let p = 1
-        if (modes.has('reject')) p *= (W > 0.5 ? 1 : 0)
+        if (modes.has('reject')) p *= (W > 0 ? 1 : 0)
         if (modes.has('weight')) p *= W
         accAccept += p
         // Вклад spacing в плотность ~ 1 / spacing^2
@@ -85,7 +85,7 @@ export function sampleRandomPoints(
     // Surface‑маска: жёсткий reject и вероятностный weight
     if (useSurface && evaluator) {
       const W = evaluator.weightAt(x, z)
-      if (modes.has('reject') && W <= 0.5) continue
+      if (modes.has('reject') && W <= 0) continue
       if (modes.has('weight') && rng() > W) continue
     }
     // Для положительного edgeBias плотность регулируется локальным spacing, без дополнительной вероятности

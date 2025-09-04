@@ -7,7 +7,7 @@ import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { generateUUID } from '@/shared/lib/uuid'
 import type { SceneObject, SceneObjectInstance, SceneData, SceneLayer } from '@/entities/scene/types'
 import type { GfxBiome } from '@/entities/biome'
-import { scatterBiomePure, type BiomePlacement } from '@/features/scene/lib/biomes/BiomeScattering'
+import { scatterBiomePureWithSurface, type BiomePlacement } from '@/features/scene/lib/biomes/BiomeScattering'
 import { degToRad } from '@/shared/lib/math/number'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
@@ -34,7 +34,7 @@ import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { MultiColorAPI } from './sceneAPI.multicolor'
-import { getHeightSamplerForLayer } from '@/features/editor/scene/lib/placement/terrainAdapter'
+import { getHeightSamplerForLayer, getTerrainSamplerAt } from '@/features/editor/scene/lib/placement/terrainAdapter'
 import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
 import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUtils'
 
@@ -278,8 +278,40 @@ export class SceneAPI {
         tags: (rec.tags || rec.objectData.tags || []).map(t => t.toLowerCase())
       })) as Array<{ libraryUuid: string; tags: string[] }>
 
+      // Подготовка surface‑контекста при необходимости
+      const baseHasSurface = !!biome.scattering?.surface
+      const strataHasSurface = (biome.strata || []).some(s => !!s.scattering?.surface)
+      const needSurface = baseHasSurface || strataHasSurface
+
+      // Если требуется surface‑оценка — дождаться готовности heightmap‑сэмплеров
+      if (needSurface) {
+        const layerSamplers = state.layers
+          .filter(l => l.type === GfxLayerType.Landscape && !!l.terrain)
+          .map(l => getHeightSamplerForLayer(l))
+          .filter(Boolean) as ReturnType<typeof getHeightSamplerForLayer>[]
+        const waiters: Promise<void>[] = []
+        for (const s of layerSamplers) {
+          const ready = (s as any).isReady?.()
+          if (ready === false && (s as any).ready) {
+            waiters.push((s as any).ready())
+          }
+        }
+        if (waiters.length > 0) {
+          await Promise.all(waiters)
+        }
+      }
+
+      // SurfaceContext: выбрать слой по (x,z); вне террейна — null (жёсткий reject в маске)
+      const surfaceCtx = needSurface ? {
+        getAt: (x: number, z: number) => {
+          const res = getTerrainSamplerAt(state.layers, x, z)
+          if (!res) return null
+          return { sampler: res.sampler, seaLevel: res.seaLevel }
+        }
+      } : undefined
+
       // Генерация размещений
-      const placements = scatterBiomePure(biome, library)
+      const placements = scatterBiomePureWithSurface(biome, library, surfaceCtx)
       if (placements.length === 0) return { success: true, created: 0, warnings: ['No placements generated'] }
 
       // Убедиться, что для каждого libraryUuid есть объект в сцене

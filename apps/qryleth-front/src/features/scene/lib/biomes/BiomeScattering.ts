@@ -2,6 +2,7 @@ import type { GfxBiome, GfxBiomeScatteringConfig, GfxBiomeSourceFilter } from '@
 import { sampleRandomPoints, estimateMaxCountBySpacing } from './RandomSampling'
 import { samplePoissonDisk } from './PoissonDiskSampler'
 import { createRng, xfnv1a } from '@/shared/lib/utils/prng'
+import type { SurfaceContext } from './SurfaceMask'
 
 /**
  * Тип источника для скаттеринга, соответствующий записи в библиотеке.
@@ -46,13 +47,33 @@ export interface BiomePlacement {
  * @returns массив размещений
  */
 export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]): BiomePlacement[] {
+  // Прежняя сигнатура сохранена для обратной совместимости (без surface‑маски)
+  return scatterBiomePureWithSurface(biome, library)
+}
+
+/**
+ * Расширенная версия генерации размещений: поддерживает опциональный контекст поверхности.
+ *
+ * Если `surfaceCtx` не передан или в конфигурации биома/страт не задан `surface`,
+ * функционал учёта рельефа полностью игнорируется (как в текущей реализации).
+ *
+ * @param biome — параметры биома (область, scattering, seed)
+ * @param library — список доступных источников (объектов из библиотеки)
+ * @param surfaceCtx — опциональный контекст поверхности (выбор сэмплера высот по x,z)
+ * @returns массив размещений
+ */
+export function scatterBiomePureWithSurface(
+  biome: GfxBiome,
+  library: LibrarySourceItem[],
+  surfaceCtx?: SurfaceContext
+): BiomePlacement[] {
   const base = biome.scattering
   const filtered = filterSources(base, library)
   if (filtered.length === 0) return []
 
   // Если есть страты с частичным оверрайдом — обрабатываем их по очереди
   const strata = biome.strata ?? []
-  if (strata.length === 0) return scatterWithConfig(biome, base, filtered)
+  if (strata.length === 0) return scatterWithConfig(biome, base, filtered, surfaceCtx)
 
   const result: BiomePlacement[] = []
   const baseSeed = (base.seed ?? 0).toString()
@@ -64,7 +85,7 @@ export function scatterBiomePure(biome: GfxBiome, library: LibrarySourceItem[]):
       ...(s.scattering ?? {}),
       seed: localSeed,
     }
-    const placements = scatterWithConfig(biome, localCfg, filterSources(localCfg, library))
+    const placements = scatterWithConfig(biome, localCfg, filterSources(localCfg, library), surfaceCtx)
     if (placements.length > 0) result.push(...placements)
   }
   return result
@@ -78,18 +99,27 @@ function scatterWithConfig(
   biome: GfxBiome,
   cfg: GfxBiomeScatteringConfig,
   filteredSources: Array<LibrarySourceItem & { weight: number }>,
+  surfaceCtx?: SurfaceContext,
 ): BiomePlacement[] {
   // Если после фильтрации не осталось источников — нечего размещать
   if (!filteredSources || filteredSources.length === 0) return []
+  const useSurface = !!cfg.surface && !!surfaceCtx
   const points = cfg.algorithm === 'poisson'
     ? samplePoissonDisk(
         biome.area,
         cfg.spacing,
         estimateMaxCountBySpacing(biome.area, cfg.spacing),
         cfg.seed,
-        cfg.edge
+        cfg.edge,
+        useSurface ? { surfaceMask: cfg.surface!, surfaceCtx: surfaceCtx! } : undefined
       )
-    : sampleRandomPoints(biome.area, cfg, cfg.seed)
+    : sampleRandomPoints(
+        biome.area,
+        cfg,
+        cfg.seed,
+        undefined,
+        useSurface ? { surfaceMask: cfg.surface!, surfaceCtx: surfaceCtx! } : undefined
+      )
 
   const result: BiomePlacement[] = []
   const rng = createRng(cfg.seed)

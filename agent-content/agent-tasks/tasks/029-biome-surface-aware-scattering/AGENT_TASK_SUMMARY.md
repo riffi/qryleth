@@ -9,7 +9,7 @@ owner: team-graphics
 tags: [gfx, biomes, terrain, scattering, sampling, performance]
 phases:
   total: 7
-  completed: 4
+  completed: 5
 ---
 
 # Биомы: скаттеринг с учётом поверхности террейна (высота/склон/кривизна)
@@ -109,11 +109,13 @@ phases:
 
 Отчёт: [phases/phase_4_summary.md](phases/phase_4_summary.md)
 
-### ⏳ Фаза 5: Оркестрация и интеграция SceneAPI
+### ✅ Фаза 5: Оркестрация и интеграция SceneAPI
 - В `BiomeScattering.scatterBiomePure` и вызовы семплеров добавить опциональный `surfaceCtx`.
 - В `SceneAPI.scatterBiome` сформировать `surfaceCtx` через `getTerrainSamplerAt(x,z)` и передать в скаттеринг.
 - Для heightmap-источников — убедиться, что данные готовы (при необходимости дождаться `sampler.ready?.()`).
 - Сохранить текущий этап выравнивания по высоте и наклон по нормали как пост-этап.
+
+Отчёт: [phases/phase_5_summary.md](phases/phase_5_summary.md)
 
 ### ⏳ Фаза 6: Обновление шаблонов ScriptingPanel (группа «Биомы»)
 - Обновить шаблоны и примеры скриптов для работы с биомами так, чтобы демонстрировать новый `surface`:
