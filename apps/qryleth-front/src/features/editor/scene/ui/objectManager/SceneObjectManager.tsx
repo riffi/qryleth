@@ -82,6 +82,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
     const [addObjectModalOpened, setAddObjectModalOpened] = useState(false)
     const [targetLayerId, setTargetLayerId] = useState<string | null>(null)
+    // Локальная видимость дочерних элементов новых секций (UI-only)
+    const [landscapeItemVisible, setLandscapeItemVisible] = useState<Record<string, boolean>>({})
+    const [waterBodyVisible, setWaterBodyVisible] = useState<Record<string, boolean>>({})
     const handleError = useErrorHandler()
 
     // R3F Zustand store data
@@ -623,7 +626,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     >
                         <Stack gap={0}>
                             {layers && layers.length > 0 ? (
-                                layers.map((layer) => {
+                                layers.filter(l => (l.type as any) === GfxLayerType.Object).map((layer) => {
                                     const layerObjects = getObjectsByLayer(layer.id)
                                     const isLayerExpanded = expandedLayers.has(layer.id)
 
@@ -678,7 +681,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                             onClick={() => toggleLayerExpanded('landscape-content' as any)}
                             style={{ width: 16, height: 16, minWidth: 16 }}
                           >
-                            {expandedLayers.has('landscape-content' as any) ? <IconCheck size={12} style={{ visibility: 'hidden' }} /> : <IconCheck size={12} style={{ visibility: 'hidden' }} />}
+                            {expandedLayers.has('landscape-content' as any) ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
                           </ActionIcon>
                           {/* Иконка ландшафта */}
                           <IconTrees size={14} color={'var(--mantine-color-green-5)'} />
@@ -707,27 +710,40 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     </Box>
                     <Collapse in={expandedLayers.has('landscape-content' as any)}>
                       <Stack gap={4} pl="lg">
-                        {(landscapeContent?.items || []).map(item => (
-                          <Group key={item.id} justify="space-between" px={6} py={4}>
-                            <Text size="xs"><b>{(item as any).name || 'Без имени'}</b> — {item.shape} • {item.size?.width}×{item.size?.depth} @ [{item.center?.[0] ?? 0},{item.center?.[1] ?? 0}]</Text>
-                            <Group gap={6}>
-                              <ActionIcon size="xs" variant="transparent">
-                                <IconEye size={12} />
-                              </ActionIcon>
-                              <Menu shadow="md" width={200}>
-                                <Menu.Target>
-                                  <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                    <Text size="xs" fw={700}>⋮</Text>
+                        {(landscapeContent?.items || []).map(item => {
+                          const visible = landscapeItemVisible[item.id] !== false
+                          return (
+                            <Box key={item.id} style={{ opacity: visible ? 1 : 0.6, transition: 'all 0.1s ease', border: '1px solid transparent', borderRadius: 4, marginBottom: 1, padding: '8px 4px' }}>
+                              <Group justify="space-between" align="center" gap="xs">
+                                <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                                  <IconTrees size={12} color={'var(--mantine-color-green-5)'} style={{ flexShrink: 0 }} />
+                                  <Text size="xs" fw={500} lineClamp={1} style={{ userSelect: 'none', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {(item as any).name || 'Без имени'}
+                                  </Text>
+                                  <Text size="xs" c="dimmed" style={{ fontSize: '10px', flexShrink: 0 }}>
+                                    {item.shape}
+                                  </Text>
+                                </Group>
+                                <Group gap="xs">
+                                  <ActionIcon size="xs" variant="transparent" onClick={() => setLandscapeItemVisible(prev => ({ ...prev, [item.id]: !(prev[item.id] !== false) }))} style={{ width: 16, height: 16, minWidth: 16 }}>
+                                    {visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
                                   </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                  <Menu.Item onClick={() => { setLandscapeModalMode('edit'); setEditingLandscapeId(item.id); setLandscapeModalOpened(true) }}>Редактировать</Menu.Item>
-                                  <Menu.Item color="red" onClick={() => removeLandscapeItem(item.id)}>Удалить</Menu.Item>
-                                </Menu.Dropdown>
-                              </Menu>
-                            </Group>
-                          </Group>
-                        ))}
+                                  <Menu shadow="md" width={200}>
+                                    <Menu.Target>
+                                      <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                        <Text size="xs" fw={700}>⋮</Text>
+                                      </ActionIcon>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                      <Menu.Item onClick={() => { setLandscapeModalMode('edit'); setEditingLandscapeId(item.id); setLandscapeModalOpened(true) }}>Редактировать</Menu.Item>
+                                      <Menu.Item color="red" onClick={() => removeLandscapeItem(item.id)}>Удалить</Menu.Item>
+                                    </Menu.Dropdown>
+                                  </Menu>
+                                </Group>
+                              </Group>
+                            </Box>
+                          )
+                        })}
                         {(!landscapeContent?.items || landscapeContent.items.length === 0) && (
                           <Text size="xs" c="dimmed" ta="center">Нет площадок ландшафта</Text>
                         )}
@@ -785,7 +801,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                                 {(container?.items || []).length > 0 ? (
                                   (container!.items).map(body => (
                                     <Group key={body.id} justify="space-between" px={6} py={4}>
-                                      <Text size="xs">{body.kind} • rect [{(body.surface as any).xMin},{(body.surface as any).zMin}]..[{(body.surface as any).xMax},{(body.surface as any).zMax}], y={body.altitudeY}</Text>
+                                      <Text size="xs"><b>{(body as any).name || 'Без имени'}</b></Text>
                                       <Group gap={6}>
                                         <ActionIcon size="xs" variant="transparent">
                                           <IconEye size={12} />

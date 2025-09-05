@@ -28,9 +28,10 @@ export type GfxWaterSurface =
  */
 export interface GfxWaterBody {
   id: string
+  /** Человекочитаемое имя водного объекта (для UI) */
+  name?: string
   kind: 'sea' | 'lake' | 'river'
   surface: GfxWaterSurface
   altitudeY: number
   water: GfxWaterConfig
 }
-

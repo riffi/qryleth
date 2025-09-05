@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Modal, Stack, Select, NumberInput, Group, Button } from '@mantine/core'
+import { Modal, Stack, Select, NumberInput, Group, Button, TextInput } from '@mantine/core'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import type { GfxWaterBody } from '@/entities/water'
 import { generateUUID } from '@/shared/lib/uuid'
@@ -21,6 +21,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
   const addWaterBody = useSceneStore(state => state.addWaterBody)
   const updateWaterBody = useSceneStore(state => state.updateWaterBody)
 
+  const [name, setName] = useState<string>(initial?.body?.name ?? '')
   const [kind, setKind] = useState<'sea' | 'lake' | 'river'>(initial?.body.kind ?? 'sea')
   const [xMin, setXMin] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.xMin : -50)
   const [xMax, setXMax] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.xMax : 50)
@@ -32,6 +33,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
 
   useEffect(() => {
     if (opened) {
+      setName(initial?.body?.name ?? '')
       setKind(initial?.body.kind ?? 'sea')
       const s = initial?.body.surface
       setXMin(s && s.kind === 'rect' ? s.xMin : -50)
@@ -48,6 +50,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
     if (!targetLayerId) return
     const body: GfxWaterBody = {
       id: generateUUID(),
+      name: (name || '').trim() || undefined,
       kind,
       surface: { kind: 'rect', xMin: Math.min(xMin, xMax), xMax: Math.max(xMin, xMax), zMin: Math.min(zMin, zMax), zMax: Math.max(zMin, zMax) },
       altitudeY,
@@ -60,6 +63,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
   const onUpdate = () => {
     if (!initial?.layerId || !initial?.body?.id) return
     updateWaterBody(initial.layerId, initial.body.id, {
+      name: (name || '').trim() || undefined,
       kind,
       surface: { kind: 'rect', xMin: Math.min(xMin, xMax), xMax: Math.max(xMin, xMax), zMin: Math.min(zMin, zMax), zMax: Math.max(zMin, zMax) },
       altitudeY,
@@ -71,6 +75,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
   return (
     <Modal opened={opened} onClose={onClose} title={mode === 'create' ? 'Добавить водоём' : 'Редактировать водоём'}>
       <Stack>
+        <TextInput label="Название" placeholder="Например: Южная бухта" value={name} onChange={(e) => setName(e.currentTarget.value)} />
         <Select label="Вид" data={[{ value: 'sea', label: 'Море' }, { value: 'lake', label: 'Озеро' }, { value: 'river', label: 'Река' }]} value={kind} onChange={(v) => setKind((v as any) || 'sea')} withinPortal />
         <Group grow>
           <NumberInput label="xMin" value={xMin} onChange={(v) => setXMin(Number(v) || 0)} />
@@ -97,4 +102,3 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
     </Modal>
   )
 }
-
