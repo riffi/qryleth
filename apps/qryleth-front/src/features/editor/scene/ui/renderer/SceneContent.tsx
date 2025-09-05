@@ -8,6 +8,8 @@ import { SceneObjects } from './objects/SceneObjects.tsx'
 import { InstancedTransformProvider } from '@/shared/r3f/optimization/InstancedTransformContext'
 import { LandscapeLayers } from './landscape/LandscapeLayers.tsx'
 import { WaterLayers } from './landscape/WaterLayers.tsx'
+import { LandscapeContentLayers } from './landscape/LandscapeContentLayers'
+import { WaterContentLayers } from './landscape/WaterContentLayers'
 import { useSceneStore, useGridVisible } from '../../model/sceneStore.ts'
 import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
@@ -93,8 +95,11 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
             В режиме Play гизмо скрываются, чтобы они не мешали просмотру/управлению. */}
         {uiMode === UiMode.Edit && <ObjectTransformGizmo />}
       </InstancedTransformProvider>
+      {/* Legacy рендер слоёв ландшафта/воды и новый рендер содержимого контейнеров */}
       <LandscapeLayers />
+      <LandscapeContentLayers />
       <WaterLayers />
+      <WaterContentLayers />
       {/* При активном тумане скрываем скайбокс, чтобы убрать чёткую линию горизонта */}
       <Sky
         visible={!fogEnabled}

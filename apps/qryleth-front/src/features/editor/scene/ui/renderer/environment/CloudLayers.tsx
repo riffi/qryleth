@@ -3,36 +3,34 @@ import { Clouds, Cloud } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { Group } from 'three'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
-import { GfxLayerType } from '@/entities/layer'
 
 /**
- * Компонент рендера всех слоёв облаков сцены.
+ * Компонент рендера облаков новой архитектуры.
  *
- * - Ищет в состоянии сцены слои типа GfxLayerType.Clouds
- * - Для каждого такого слоя рендерит контейнер <Clouds> и набор <Cloud>
- * - Дрейф всех облаков осуществляется по глобальному ветру (environment.wind)
- *   добавлением смещения в плоскости XZ каждый кадр. Для вариативности
- *   допускается коэффициент driftFactor на уровне конкретного облака (если задан в advancedOverrides).
+ * - Источник данных — обязательный контейнер окружения `environmentContent`
+ *   из Zustand store: берём списки наборов облаков (cloudSets) и параметры ветра (wind).
+ * - Для каждого набора рендерим контейнер <Clouds> и набор <Cloud>.
+ * - Дрейф всех облаков осуществляется по ветру окружения: к базовой позиции
+ *   добавляется смещение в плоскости XZ каждый кадр. Для вариативности
+ *   допускается коэффициент driftFactor на уровне конкретного облака (если задан).
  */
 export const CloudLayers: React.FC = () => {
-  const layers = useSceneStore(state => state.layers)
-  const wind = useSceneStore(state => state.environment.wind)
-
-  const cloudLayers = useMemo(() => (layers || []).filter(l => l.type === GfxLayerType.Clouds && (l as any).clouds && (l.visible ?? true)), [layers])
-
-  if (!cloudLayers || cloudLayers.length === 0) return null
+  const env = useSceneStore(state => state.environmentContent)
+  const legacyWind = useSceneStore(state => state.environment.wind)
+  const wind = env.wind ?? legacyWind
+  const cloudSets = env?.cloudSets ?? []
+  if (!cloudSets || cloudSets.length === 0) return null
 
   return (
     <>
-      {cloudLayers.map(layer => (
-        <CloudLayerGroup key={layer.id} layerId={layer.id} items={(layer as any).clouds.items || []} wind={wind} />
+      {cloudSets.map(set => (
+        <CloudLayerGroup key={set.id} items={set.items || []} wind={wind} />
       ))}
     </>
   )
 }
 
 interface CloudLayerGroupProps {
-  layerId: string
   items: Array<{
     id: string
     position: [number, number, number]
