@@ -19,6 +19,7 @@ import { ToneMappingMode } from 'postprocessing'
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 import { CloudLayers } from './environment/CloudLayers'
 import { Exposure } from '@/shared/r3f/postprocessing/ExposureEffect'
+import {AtmosphericTint} from "@/shared/r3f/postprocessing/AtmosphericTint.tsx";
 
 /**
  * Свойства компонента SceneContent.
@@ -76,7 +77,12 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         <N8AO quality={'ultra'} aoRadius={2} aoSamples={20} intensity={2} distanceFalloff={3} denoiseRadius={10} denoiseSamples={10} renderMode={0}/>
         {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
         <Exposure exposure={lighting.exposure ?? 1.0} />
-        {/* Финальный тонемаппинг (ACES), экспозиция уже учтена выше */}
+         {/*Динамическое «уходение» дальних объектов в цвет неба*/}
+        <AtmosphericTint
+            sky={sceneBackground}
+            strength={0.5}   // сила ухода в цвет неба
+            power={1}      // кривая по глубине
+        />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
 
