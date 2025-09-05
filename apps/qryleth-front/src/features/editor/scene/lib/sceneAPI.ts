@@ -38,6 +38,7 @@ import { getHeightSamplerForLayer, getTerrainSamplerAt } from '@/features/editor
 import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
 import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUtils'
 import type { GfxCloudsConfig, GfxProceduralCloudSpec } from '@/entities/cloud'
+import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/ProceduralCloudGenerator'
 
 /**
@@ -676,6 +677,74 @@ export class SceneAPI {
   }
 
   // =============================
+  // Окружение: контейнер без слоя
+  // =============================
+
+  /**
+   * Получить текущий контейнер окружения (новая архитектура) или null, если он не создан.
+   */
+  static getEnvironmentContent(): GfxEnvironmentContent { return useSceneStore.getState().environmentContent }
+
+  /**
+   * Обеспечить наличие единственного слоя окружения и привязанного к нему контейнера.
+   * Если layerId передан — проверяет, что слой существует и имеет тип Environment; в противном случае создаёт новый.
+   * Возвращает найденный/созданный слой окружения.
+   */
+  // ensureEnvironmentLayer удалён: окружение не связано со слоем и всегда присутствует в sceneStore
+
+  // =============================
+  // CRUD содержимого: Environment
+  // =============================
+
+  /** Вернуть контейнер окружения (или null, если не создан). */
+  static getEnvironment(): GfxEnvironmentContent { return useSceneStore.getState().environmentContent }
+
+  /** Установить/сменить слой окружения по ID; создаёт контейнер при отсутствии. */
+  // setEnvironmentLayer удалён: окружение не связано со слоем
+
+  /** Добавить набор облаков в окружение. */
+  static addCloudSetToEnvironment(set: GfxCloudSet): { success: boolean } { try { useSceneStore.getState().addCloudSet(set); return { success: true } } catch { return { success: false } } }
+
+  /** Обновить набор облаков окружения по ID. */
+  static updateEnvironmentCloudSet(setId: string, updates: Partial<GfxCloudSet>): { success: boolean } { try { useSceneStore.getState().updateCloudSet(setId, updates); return { success: true } } catch { return { success: false } } }
+
+  /** Удалить набор облаков окружения по ID. */
+  static removeEnvironmentCloudSet(setId: string): { success: boolean } { try { useSceneStore.getState().removeCloudSet(setId); return { success: true } } catch { return { success: false } } }
+
+  // =============================
+  // CRUD содержимого: Landscape
+  // =============================
+  /** Вернуть контейнер ландшафта (или null). */
+  static getLandscapeContent(): { layerId: string; items: import('@/entities/terrain').GfxLandscape[] } | null { return useSceneStore.getState().landscapeContent ?? null }
+
+  /** Установить/сменить привязанный слой ландшафта по ID. */
+  static setLandscapeLayer(layerId: string): { success: boolean } { try { useSceneStore.getState().setLandscapeLayer(layerId); return { success: true } } catch { return { success: false } } }
+
+  /** Добавить площадку ландшафта. */
+  static addLandscape(item: import('@/entities/terrain').GfxLandscape): { success: boolean } { try { useSceneStore.getState().addLandscapeItem(item); return { success: true } } catch { return { success: false } } }
+
+  /** Обновить площадку ландшафта по ID. */
+  static updateLandscape(id: string, updates: Partial<import('@/entities/terrain').GfxLandscape>): { success: boolean } { try { useSceneStore.getState().updateLandscapeItem(id, updates); return { success: true } } catch { return { success: false } } }
+
+  /** Удалить площадку ландшафта по ID. */
+  static removeLandscape(id: string): { success: boolean } { try { useSceneStore.getState().removeLandscapeItem(id); return { success: true } } catch { return { success: false } } }
+
+  // =============================
+  // CRUD содержимого: Water
+  // =============================
+  /** Вернуть все контейнеры воды. */
+  static getWaterContent(): Array<{ layerId: string; items: import('@/entities/water').GfxWaterBody[] }> { return useSceneStore.getState().waterContent || [] }
+
+  /** Добавить водоём в слой. */
+  static addWaterBody(layerId: string, body: import('@/entities/water').GfxWaterBody): { success: boolean } { try { useSceneStore.getState().addWaterBody(layerId, body); return { success: true } } catch { return { success: false } } }
+
+  /** Обновить водоём в слое по ID. */
+  static updateWaterBody(layerId: string, bodyId: string, updates: Partial<import('@/entities/water').GfxWaterBody>): { success: boolean } { try { useSceneStore.getState().updateWaterBody(layerId, bodyId, updates); return { success: true } } catch { return { success: false } } }
+
+  /** Удалить водоём из слоя по ID. */
+  static removeWaterBody(layerId: string, bodyId: string): { success: boolean } { try { useSceneStore.getState().removeWaterBody(layerId, bodyId); return { success: true } } catch { return { success: false } } }
+
+  // =============================
   // Окружение: глобальный ветер
   // =============================
 
@@ -743,25 +812,18 @@ export class SceneAPI {
   }
 
   /**
-   * Сгенерировать облака по спецификации и поместить их в слой.
-   * Если layerId не указан — создаётся новый слой Clouds. При clearBefore === true список items предварительно очищается.
-   * Если spec.area отсутствует — пытаемся вывести её из размеров первого Terrain‑слоя.
+   * Сгенерировать облака по спецификации и поместить их в контейнер окружения (новая архитектура).
+   *
+   * Поведение:
+   * - При clearBefore === true — очищаются существующие наборы облаков и создаётся один новый CloudSet.
+   * - Если spec.area отсутствует — область инферится из первого Terrain‑слоя (legacy) до миграции на LandscapeContent.
    */
   static async generateProceduralClouds(
     spec: GfxProceduralCloudSpec,
     opts?: { layerId?: string; clearBefore?: boolean }
   ): Promise<{ success: boolean; created: number; layerId: string; error?: string }> {
     try {
-      let layer: SceneLayer | undefined
-      if (opts?.layerId) {
-        layer = useSceneStore.getState().layers.find(l => l.id === opts.layerId)
-      }
-      if (!layer) {
-        const created = SceneAPI.createCloudLayer({})
-        if (!created.success || !created.layerId) return { success: false, created: 0, layerId: '', error: created.error || 'Failed to create cloud layer' }
-        layer = useSceneStore.getState().layers.find(l => l.id === created.layerId)
-      }
-      if (!layer) return { success: false, created: 0, layerId: '', error: 'Cloud layer not found' }
+      // Окружение всегда доступно
 
       // Область: если не задана — берём размеры мира и центр из первого terrain-слоя
       if (!spec.area) {
@@ -786,18 +848,23 @@ export class SceneAPI {
             }
           }
         } else {
-          return { success: false, created: 0, layerId: layer.id, error: 'Cannot infer area: no Terrain layer with world size' }
+          return { success: false, created: 0, layerId: 'environment', error: 'Cannot infer area: no Terrain layer with world size' }
         }
       }
 
       const gen = new ProceduralCloudGenerator()
       const cfg = gen.generateClouds(spec)
 
-      const prev = (layer.clouds?.items ?? [])
-      const items = opts?.clearBefore ? cfg.items : [...prev, ...cfg.items]
-      useSceneStore.getState().updateLayer(layer.id, { clouds: { items } } as any)
+      // Обновление контейнера окружения: добавляем новый CloudSet или очищаем и создаём заново
+      const store = useSceneStore.getState()
+      const env = store.environmentContent
+      if (opts?.clearBefore) {
+        store.setEnvironmentContent({ cloudSets: [], wind: env?.wind })
+      }
+      const set: GfxCloudSet = { id: generateUUID(), items: cfg.items, meta: { seed: spec.seed, appearance: spec.appearance } }
+      store.addCloudSet(set)
 
-      return { success: true, created: cfg.items.length, layerId: layer.id }
+      return { success: true, created: cfg.items.length, layerId: 'environment' }
     } catch (e) {
       return { success: false, created: 0, layerId: opts?.layerId || '', error: e instanceof Error ? e.message : 'Unknown error' }
     }

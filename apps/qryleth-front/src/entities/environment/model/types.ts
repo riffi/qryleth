@@ -77,11 +77,14 @@ export interface GfxSkySettings {
  * @property exposure — экспозиция сцены
  */
 export interface GfxEnvironmentContent {
-  layerId: string
+  /** Наборы облаков окружения */
   cloudSets: GfxCloudSet[]
+  /** Параметры ветра */
   wind?: GfxWindSettings
+  /** Параметры неба/фона */
   sky?: GfxSkySettings
+  /** Параметры тумана */
   fog?: GfxFogSettings
+  /** Экспозиция сцены */
   exposure?: number
 }
-

@@ -47,11 +47,10 @@ export interface SceneData {
    */
   waterContent?: Array<{ layerId: string; items: GfxWaterBody[] }>
   /**
-   * Содержимое окружения сцены (единственный контейнер, привязан к единственному слою типа Environment).
-   *
-   * Включает параметры ветра, неба/тумана/экспозиции и наборы облаков.
+   * Содержимое окружения сцены: обязательный контейнер без привязки к слою.
+   * Содержит параметры ветра, неба/тумана/экспозиции и наборы облаков.
    */
-  environmentContent?: GfxEnvironmentContent | null
+  environmentContent: GfxEnvironmentContent
 }
 
 /**

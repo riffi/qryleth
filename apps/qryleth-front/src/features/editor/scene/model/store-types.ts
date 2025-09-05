@@ -20,6 +20,9 @@ import type {
 import type { SceneObject, SceneObjectInstance, SceneLayer, SceneMetaData } from '@/entities/scene/types'
 import type { GfxBiome } from '@/entities/biome'
 import type { LightingSettings } from '@/entities/lighting/model/types'
+import type { GfxEnvironmentContent, GfxCloudSet, GfxFogSettings, GfxSkySettings } from '@/entities/environment'
+import type { GfxWaterBody } from '@/entities/water'
+import type { GfxLandscape } from '@/entities/terrain'
 
 
 // Scene metadata types вынесены в entities/scene
@@ -93,6 +96,24 @@ export interface SceneStoreState {
       speed: number
     }
   }
+
+  /**
+   * Содержимое ландшафтного слоя (новая архитектура):
+   * единый контейнер, привязанный к единственному слою типа 'landscape'.
+   */
+  landscapeContent?: { layerId: string; items: GfxLandscape[] } | null
+
+  /**
+   * Содержимое водных слоёв (новая архитектура): массив контейнеров,
+   * каждый привязан к конкретному водному слою через layerId.
+   */
+  waterContent?: Array<{ layerId: string; items: GfxWaterBody[] }>
+
+  /**
+   * Содержимое окружения (новая архитектура): единственный контейнер,
+   * привязанный к слою типа 'environment' (ветер, небо, туман, экспозиция, наборы облаков).
+   */
+  environmentContent: GfxEnvironmentContent
 }
 
 // Store actions interface
@@ -278,6 +299,50 @@ export interface SceneStoreActions {
    * @param speed Скорость ветра (юниты/сек)
    */
   setWindSpeed: (speed: number) => void
+
+  // Environment content (new architecture)
+  /** Полностью заменить контейнер окружения (или сбросить в null). */
+  setEnvironmentContent: (content: GfxEnvironmentContent) => void
+  /** Добавить набор облаков в окружение. */
+  addCloudSet: (set: GfxCloudSet) => void
+  /** Обновить набор облаков по его ID. */
+  updateCloudSet: (setId: string, updates: Partial<GfxCloudSet>) => void
+  /** Удалить набор облаков по его ID. */
+  removeCloudSet: (setId: string) => void
+  /** Установить/обновить параметры ветра окружения. */
+  setEnvWind: (direction: [number, number], speed: number) => void
+  /** Установить только направление ветра окружения. */
+  setEnvWindDirection: (direction: [number, number]) => void
+  /** Установить только скорость ветра окружения. */
+  setEnvWindSpeed: (speed: number) => void
+  /** Установить/обновить параметры неба окружения. */
+  setEnvSky: (sky: Partial<GfxSkySettings>) => void
+  /** Установить/обновить параметры тумана окружения. */
+  setEnvFog: (fog: Partial<GfxFogSettings>) => void
+  /** Установить экспозицию окружения. */
+  setEnvExposure: (exposure: number) => void
+
+  // Landscape content (new architecture)
+  /** Полностью заменить контейнер ландшафта или сбросить в null. */
+  setLandscapeContent: (content: { layerId: string; items: GfxLandscape[] } | null) => void
+  /** Установить/сменить привязанный слой ландшафта. */
+  setLandscapeLayer: (layerId: string) => void
+  /** Добавить ландшафтную площадку. */
+  addLandscapeItem: (item: GfxLandscape) => void
+  /** Обновить ландшафтную площадку по её ID. */
+  updateLandscapeItem: (id: string, updates: Partial<GfxLandscape>) => void
+  /** Удалить ландшафтную площадку по её ID. */
+  removeLandscapeItem: (id: string) => void
+
+  // Water content (new architecture)
+  /** Полностью заменить список контейнеров воды. */
+  setWaterContent: (containers: Array<{ layerId: string; items: GfxWaterBody[] }>) => void
+  /** Добавить водоём в контейнер указанного слоя (создаёт контейнер при отсутствии). */
+  addWaterBody: (layerId: string, body: GfxWaterBody) => void
+  /** Обновить водоём по ID в контейнере слоя. */
+  updateWaterBody: (layerId: string, bodyId: string, updates: Partial<GfxWaterBody>) => void
+  /** Удалить водоём по ID из контейнера слоя. */
+  removeWaterBody: (layerId: string, bodyId: string) => void
 }
 
 // Combined store type

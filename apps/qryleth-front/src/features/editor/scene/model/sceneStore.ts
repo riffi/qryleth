@@ -27,6 +27,9 @@ import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUti
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType } from '@/entities/layer'
+import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
+import type { GfxWaterBody } from '@/entities/water'
+import type { GfxLandscape } from '@/entities/terrain'
 
 // Берём значения из пресета по умолчанию ("Яркий день") и дополняем служебными полями
 const initialPreset = getLightingPreset(DEFAULT_LIGHTING_PRESET_KEY)
@@ -78,12 +81,18 @@ const initialState: SceneStoreState = {
   // Биомы сцены (области скаттеринга)
   biomes: [],
   // Окружение сцены: глобальный ветер по умолчанию дует вдоль +X со скоростью 0.2 юнит/сек
+  // ВНИМАНИЕ: legacy-поле. Будет удалено после миграции UI/рендеров на environmentContent
   environment: {
     wind: {
       direction: [1, 0],
       speed: 0.2,
     },
   },
+
+  // Новая архитектура содержимого слоёв
+  landscapeContent: null as { layerId: string; items: GfxLandscape[] } | null,
+  waterContent: [] as Array<{ layerId: string; items: GfxWaterBody[] }>,
+  environmentContent: null as GfxEnvironmentContent | null,
 
   // UI state
   uiMode: UiMode.Edit,
@@ -531,7 +540,10 @@ export const useSceneStore = create<SceneStore>()(
       const len = Math.hypot(dx, dz)
       const dir: [number, number] = len > 1e-6 ? [dx / len, dz / len] : [1, 0]
       const v = Math.max(0, Number.isFinite(speed) ? speed : 0)
-      set(state => ({ environment: { ...state.environment, wind: { direction: dir, speed: v } } }))
+      set(state => ({
+        environment: { ...state.environment, wind: { direction: dir, speed: v } },
+        environmentContent: state.environmentContent ? { ...state.environmentContent, wind: { direction: dir, speed: v } } : state.environmentContent
+      }))
       get().markSceneAsModified()
     },
 
@@ -543,7 +555,10 @@ export const useSceneStore = create<SceneStore>()(
       const [dx, dz] = direction
       const len = Math.hypot(dx, dz)
       const dir: [number, number] = len > 1e-6 ? [dx / len, dz / len] : [1, 0]
-      set(state => ({ environment: { ...state.environment, wind: { ...state.environment.wind, direction: dir } } }))
+      set(state => ({
+        environment: { ...state.environment, wind: { ...state.environment.wind, direction: dir } },
+        environmentContent: state.environmentContent ? { ...state.environmentContent, wind: { ...(state.environmentContent.wind ?? { direction: [1,0] as [number, number], speed: 0 }), direction: dir } } : state.environmentContent
+      }))
       get().markSceneAsModified()
     },
 
@@ -552,8 +567,151 @@ export const useSceneStore = create<SceneStore>()(
      */
     setWindSpeed: (speed: number) => {
       const v = Math.max(0, Number.isFinite(speed) ? speed : 0)
-      set(state => ({ environment: { ...state.environment, wind: { ...state.environment.wind, speed: v } } }))
+      set(state => ({
+        environment: { ...state.environment, wind: { ...state.environment.wind, speed: v } },
+        environmentContent: state.environmentContent ? { ...state.environmentContent, wind: { ...(state.environmentContent.wind ?? { direction: [1,0] as [number, number], speed: 0 }), speed: v } } : state.environmentContent
+      }))
       get().markSceneAsModified()
+    },
+
+    /**
+     * Полностью заменить контейнер окружения или сбросить его в null.
+     * Также синхронизирует legacy environment.wind для обратной совместимости UI в переходный период.
+     */
+    setEnvironmentContent: (content: GfxEnvironmentContent) => {
+      set(state => ({
+        environmentContent: content,
+        environment: content.wind ? { ...state.environment, wind: { ...content.wind } } : state.environment
+      }))
+      get().saveToHistory(); get().markSceneAsModified()
+    },
+    /** Добавить набор облаков в окружение. */
+    addCloudSet: (set: GfxCloudSet) => {
+      const current = get().environmentContent
+      const next: GfxEnvironmentContent = { ...current, cloudSets: [...(current?.cloudSets ?? []), set] }
+      get().setEnvironmentContent(next)
+    },
+    /** Обновить набор облаков по ID. */
+    updateCloudSet: (setId: string, updates: Partial<GfxCloudSet>) => {
+      const current = get().environmentContent
+      const cloudSets = (current.cloudSets ?? []).map(s => s.id === setId ? { ...s, ...updates } : s)
+      get().setEnvironmentContent({ ...current, cloudSets })
+    },
+    /** Удалить набор облаков по ID. */
+    removeCloudSet: (setId: string) => {
+      const current = get().environmentContent
+      const cloudSets = (current.cloudSets ?? []).filter(s => s.id !== setId)
+      get().setEnvironmentContent({ ...current, cloudSets })
+    },
+    /** Установить параметры ветра окружения. Также синхронизирует legacy environment.wind. */
+    setEnvWind: (direction: [number, number], speed: number) => {
+      const [dx, dz] = direction
+      const len = Math.hypot(dx, dz)
+      const dir: [number, number] = len > 1e-6 ? [dx / len, dz / len] : [1, 0]
+      const v = Math.max(0, Number.isFinite(speed) ? speed : 0)
+      const current = get().environmentContent
+      const next = { ...current, wind: { direction: dir, speed: v } }
+      set(state => ({ environmentContent: next, environment: { ...state.environment, wind: { direction: dir, speed: v } } }))
+      get().saveToHistory(); get().markSceneAsModified()
+    },
+    /** Установить только направление ветра окружения. */
+    setEnvWindDirection: (direction: [number, number]) => {
+      const c = get().environmentContent
+      const speed = c?.wind?.speed ?? get().environment.wind.speed
+      get().setEnvWind(direction, speed)
+    },
+    /** Установить только скорость ветра окружения. */
+    setEnvWindSpeed: (speed: number) => {
+      const c = get().environmentContent
+      const dir = c?.wind?.direction ?? get().environment.wind.direction
+      get().setEnvWind(dir, speed)
+    },
+    /** Установить/обновить параметры неба окружения. */
+    setEnvSky: (sky) => {
+      const current = get().environmentContent
+      if (!current) return
+      get().setEnvironmentContent({ ...current, sky: { ...(current.sky ?? {}), ...sky } })
+    },
+    /** Установить/обновить параметры тумана окружения. */
+    setEnvFog: (fog) => {
+      const current = get().environmentContent
+      if (!current) return
+      get().setEnvironmentContent({ ...current, fog: { ...(current.fog ?? { enabled: false, type: 'exponential', color: '#c2dde6' }), ...fog } })
+    },
+    /** Установить экспозицию окружения. */
+    setEnvExposure: (exposure: number) => {
+      const current = get().environmentContent
+      if (!current) return
+      get().setEnvironmentContent({ ...current, exposure })
+    },
+
+    /** Полностью заменить контейнер ландшафта. */
+    setLandscapeContent: (content) => {
+      set({ landscapeContent: content })
+      get().saveToHistory(); get().markSceneAsModified()
+    },
+    /** Установить/сменить связанный слой ландшафта. Создаёт контейнер при отсутствии. */
+    setLandscapeLayer: (layerId: string) => {
+      const current = get().landscapeContent
+      const next = current ? { ...current, layerId } : { layerId, items: [] as GfxLandscape[] }
+      get().setLandscapeContent(next)
+    },
+    /** Добавить площадку ландшафта. */
+    addLandscapeItem: (item) => {
+      const current = get().landscapeContent
+      const next = current ? { ...current, items: [...current.items, item] } : { layerId: 'landscape', items: [item] }
+      get().setLandscapeContent(next)
+    },
+    /** Обновить площадку ландшафта по ID. */
+    updateLandscapeItem: (id, updates) => {
+      const current = get().landscapeContent
+      if (!current) return
+      const items = current.items.map(it => it.id === id ? { ...it, ...updates } : it)
+      get().setLandscapeContent({ ...current, items })
+    },
+    /** Удалить площадку ландшафта по ID. */
+    removeLandscapeItem: (id) => {
+      const current = get().landscapeContent
+      if (!current) return
+      const items = current.items.filter(it => it.id !== id)
+      get().setLandscapeContent({ ...current, items })
+    },
+
+    /** Полностью заменить контейнеры воды. */
+    setWaterContent: (containers) => {
+      set({ waterContent: containers })
+      get().saveToHistory(); get().markSceneAsModified()
+    },
+    /** Добавить водоём в слой (создавая контейнер при отсутствии). */
+    addWaterBody: (layerId, body) => {
+      const list = get().waterContent || []
+      const idx = list.findIndex(c => c.layerId === layerId)
+      if (idx === -1) {
+        get().setWaterContent([ ...list, { layerId, items: [body] } ])
+      } else {
+        const next = list.map((c, i) => i === idx ? { ...c, items: [...c.items, body] } : c)
+        get().setWaterContent(next)
+      }
+    },
+    /** Обновить водоём по ID в контейнере слоя. */
+    updateWaterBody: (layerId, bodyId, updates) => {
+      const list = get().waterContent || []
+      const idx = list.findIndex(c => c.layerId === layerId)
+      if (idx === -1) return
+      const container = list[idx]
+      const items = container.items.map(b => b.id === bodyId ? { ...b, ...updates } : b)
+      const next = list.map((c, i) => i === idx ? { ...c, items } : c)
+      get().setWaterContent(next)
+    },
+    /** Удалить водоём по ID из контейнера слоя. */
+    removeWaterBody: (layerId, bodyId) => {
+      const list = get().waterContent || []
+      const idx = list.findIndex(c => c.layerId === layerId)
+      if (idx === -1) return
+      const container = list[idx]
+      const items = container.items.filter(b => b.id !== bodyId)
+      const next = list.map((c, i) => i === idx ? { ...c, items } : c)
+      get().setWaterContent(next)
     },
 
     /**
@@ -600,8 +758,14 @@ export const useSceneStore = create<SceneStore>()(
         if (data.layers) state.setLayers(data.layers)
         if (data.biomes) state.setBiomes(data.biomes)
         if (data.lighting) state.setLighting(data.lighting)
-        // Окружение сцены: если в данных отсутствует — оставляем дефолт
-        if (data.environment && data.environment.wind) {
+        // Новая архитектура: содержимое слоёв
+        if (data.landscapeContent !== undefined) state.setLandscapeContent(data.landscapeContent)
+        if (data.waterContent !== undefined) state.setWaterContent(data.waterContent)
+        if (data.environmentContent !== undefined) state.setEnvironmentContent(data.environmentContent)
+        else state.setEnvironmentContent({ cloudSets: [], wind: { direction: [1,0], speed: 0.2 } })
+
+        // Legacy окружение сцены (ветер): если в новых данных окружения нет ветра — используем старые поля
+        if (!data.environmentContent?.wind && data.environment && data.environment.wind) {
           const d = data.environment.wind.direction as [number, number] | undefined
           const s = data.environment.wind.speed as number | undefined
           if (d && Array.isArray(d) && d.length === 2) state.setWind(d as any, typeof s === 'number' ? s : state.environment.wind.speed)
@@ -636,7 +800,12 @@ export const useSceneStore = create<SceneStore>()(
         layers: state.layers,
         lighting: state.lighting,
         biomes: state.biomes,
+        // Legacy snapshot
         environment: state.environment,
+        // Новая архитектура содержимого
+        landscapeContent: state.landscapeContent,
+        waterContent: state.waterContent,
+        environmentContent: state.environmentContent,
       }
     },
 
@@ -647,9 +816,14 @@ export const useSceneStore = create<SceneStore>()(
         layers: initialLayers,
         lighting: initialLighting,
         biomes: [],
+        // Legacy окружение (оставляем до завершения миграции рендеров/UI)
         environment: {
           wind: { direction: [1, 0], speed: 0.2 }
         },
+        // Новая архитектура содержимого слоёв
+        landscapeContent: null,
+        waterContent: [],
+        environmentContent: { cloudSets: [], wind: { direction: [1,0], speed: 0.2 } },
         selectedObject: null,
         hoveredObject: null,
         sceneMetaData: initialSceneMetaData,
