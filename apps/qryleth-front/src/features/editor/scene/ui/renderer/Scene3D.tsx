@@ -5,13 +5,16 @@ import * as THREE from 'three'
 import { SceneContent } from './SceneContent.tsx'
 import { useSceneUISync, useSceneRealTimeSync } from '@/features/editor/scene/lib/hooks/useSceneUISync'
 import { useSceneStore, useIsTerrainApplying } from '../../model/sceneStore.ts'
+import { FpsProvider, useFpsContext } from '../../lib/contexts/FpsContext'
+import { FpsDisplay } from './controls/FpsDisplay'
+import { UiMode } from '@/shared/types/ui'
 
 interface Scene3DProps {
   className: string,
   onSceneReady: () => void
 }
 
-export const Scene3D: React.FC<Scene3DProps> = ({
+const Scene3DContent: React.FC<Scene3DProps> = ({
   className,
   onSceneReady
 }) => {
@@ -21,6 +24,10 @@ export const Scene3D: React.FC<Scene3DProps> = ({
   const lighting = useSceneStore(state => state.lighting)
   // Флаг применения heightmap для показа прелоадера поверх канваса
   const isTerrainApplying = useIsTerrainApplying()
+  // Получаем режим UI для отображения FPS только в режиме редактирования
+  const uiMode = useSceneStore(state => state.uiMode)
+  // Получаем FPS из контекста
+  const { fps } = useFpsContext()
 
   // Инициализируем синхронизацию UI и сцены
   useSceneUISync()
@@ -80,6 +87,9 @@ export const Scene3D: React.FC<Scene3DProps> = ({
         </Suspense>
       </Canvas>
 
+      {/* FPS счетчик в правом верхнем углу */}
+      <FpsDisplay fps={fps} />
+
       {/* Прелоадер на время применения heightmap */}
       <LoadingOverlay
         visible={isTerrainApplying}
@@ -99,5 +109,13 @@ export const Scene3D: React.FC<Scene3DProps> = ({
         {/* Loading overlay will be shown while components are loading */}
       </Suspense>
     </Box>
+  )
+}
+
+export const Scene3D: React.FC<Scene3DProps> = (props) => {
+  return (
+    <FpsProvider>
+      <Scene3DContent {...props} />
+    </FpsProvider>
   )
 }

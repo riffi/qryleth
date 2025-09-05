@@ -23,6 +23,7 @@ import {
 } from "@react-three/postprocessing";
 import {ToneMappingMode, VignetteEffect} from 'postprocessing'
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
+import { FpsCounter } from './controls/FpsCounter'
 import { CloudLayers } from './environment/CloudLayers'
 import { Exposure } from '@/shared/r3f/postprocessing/ExposureEffect'
 import {AtmosphericTint} from "@/shared/r3f/postprocessing/AtmosphericTint.tsx";
@@ -116,6 +117,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <Environment gridVisible={gridVisible} />
       {/* Фиксированный экранный индикатор осей X/Y/Z */}
       {uiMode === UiMode.Edit && <ViewportAxesHelper />}
+      {/* Счётчик FPS в углу viewport'а */}
+      <FpsCounter />
 
       {/* Scene objects and landscapes */}
       <InstancedTransformProvider>
