@@ -10,7 +10,7 @@ export * from './SceneEditorR3F.tsx'
 export * from './SceneHeaderRight.tsx'
 export * from './objectManager/SceneHeader.tsx'
 export * from './objectManager/SceneLayerItem.tsx'
-export * from './objectManager/SceneLayerModals.tsx'
+// Legacy SceneLayerModals удалён после перехода на тонкие слои и окна содержимого
 export * from './objectManager/SceneObjectItem.tsx'
 export * from './objectManager/SceneObjectManager.tsx'
 export * from './objectManager/SceneObjectManagerContext.tsx'
@@ -25,8 +25,7 @@ export * from './renderer/controls/ObjectTransformGizmo.tsx'
 // Landscape
 export * from './renderer/landscape/LandscapeLayer'
 export * from './renderer/landscape/LandscapeLayers'
-export * from './renderer/landscape/WaterLayer'
-export * from './renderer/landscape/WaterLayers'
+// Legacy water rendering removed: use WaterContentLayers instead
 
 // Lighting
 export * from './renderer/lighting/SceneLighting'

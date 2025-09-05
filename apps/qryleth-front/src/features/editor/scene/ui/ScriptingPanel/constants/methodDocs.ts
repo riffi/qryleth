@@ -212,7 +212,49 @@ export const METHOD_DOCS: Record<string, string> = {
   opts.landscapeLayerId?: string — ID слоя террейна
   opts.forceDelete?: boolean — если true, удалит старые инстансы даже при пустом результате генерации
 Возвращает: { success, deleted: number, created: number, warnings?: string[], error?: string }
-Описание: Пере‑генерирует инстансы биома: удаляет старые и создаёт новые. По умолчанию, если генерация даёт 0 и forceDelete не указан — старые инстансы сохраняются`
+Описание: Пере‑генерирует инстансы биома: удаляет старые и создаёт новые. По умолчанию, если генерация даёт 0 и forceDelete не указан — старые инстансы сохраняются`,
+
+  // ===== Новая архитектура: Landscape / Water / Environment =====
+  getLandscapeContent: `getLandscapeContent(): { layerId: string, items: GfxLandscape[] } | null
+Возвращает контейнер ландшафта (если настроен), содержащий список площадок (GfxLandscape).`,
+
+  addLandscape: `addLandscape(item: GfxLandscape): { success: boolean }
+Параметры:
+  item: GfxLandscape — площадка ландшафта (shape, size, center, material, terrain?)
+Описание: Добавляет площадку в контейнер ландшафта.`,
+
+  updateLandscape: `updateLandscape(id: string, updates: Partial<GfxLandscape>): { success: boolean }
+Параметры:
+  id: string — идентификатор площадки
+  updates: Partial<GfxLandscape> — изменения
+Описание: Обновляет площадку ландшафта.`,
+
+  removeLandscape: `removeLandscape(id: string): { success: boolean }
+Параметры:
+  id: string — идентификатор площадки
+Описание: Удаляет площадку ландшафта.`,
+
+  getWaterContent: `getWaterContent(): Array<{ layerId: string, items: GfxWaterBody[] }>
+Возвращает список контейнеров воды (по слоям).`,
+
+  addWaterBody: `addWaterBody(layerId: string, body: GfxWaterBody): { success: boolean }
+Параметры:
+  layerId: string — ID водного слоя
+  body: GfxWaterBody — водоём (kind, surface, altitudeY, water)
+Описание: Добавляет водоём в контейнер указанного слоя.`,
+
+  updateWaterBody: `updateWaterBody(layerId: string, bodyId: string, updates: Partial<GfxWaterBody>): { success: boolean }
+Параметры:
+  layerId: string — ID водного слоя
+  bodyId: string — ID водоёма
+  updates: Partial<GfxWaterBody> — изменения
+Описание: Обновляет водоём.`,
+
+  removeWaterBody: `removeWaterBody(layerId: string, bodyId: string): { success: boolean }
+Параметры:
+  layerId: string — ID водного слоя
+  bodyId: string — ID водоёма
+Описание: Удаляет водоём из контейнера слоя.`,
 }
 
 /**
@@ -252,4 +294,13 @@ export const getSceneApiMethodList = (): string[] => [
   'getInstancesByBiomeUuid',
   'scatterBiome',
   'regenerateBiomeInstances',
+  // Новая архитектура: Landscape / Water
+  'getLandscapeContent',
+  'addLandscape',
+  'updateLandscape',
+  'removeLandscape',
+  'getWaterContent',
+  'addWaterBody',
+  'updateWaterBody',
+  'removeWaterBody',
 ]

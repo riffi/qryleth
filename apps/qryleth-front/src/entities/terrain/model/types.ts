@@ -225,6 +225,8 @@ export interface GfxHeightSampler {
 export interface GfxLandscape {
   /** Уникальный идентификатор площадки в пределах слоя */
   id: string
+  /** Человекочитаемое имя площадки (для UI) */
+  name?: string
   /** Форма площадки: плоскость или террейн */
   shape: 'plane' | 'terrain'
   /** Размеры площадки в мировых координатах */

@@ -20,9 +20,10 @@ import {
     Tooltip,
     Divider,
     Box,
-    Menu
+    Menu,
+    Collapse
 } from '@mantine/core'
-import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrees, IconTrash } from '@tabler/icons-react'
+import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrees, IconTrash, IconChevronRight, IconChevronDown, IconRipple } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 // Заголовок сцены с мета-информацией переносится в хедер страницы.
@@ -31,7 +32,10 @@ import { db } from '@/shared/lib/database.ts'
 // поэтому SceneHeader здесь более не используется.
 import { LightingControls } from './LightingControls.tsx'
 import { SceneLayerItem } from './SceneLayerItem.tsx'
-import { SceneLayerModals } from './SceneLayerModals.tsx'
+// Legacy модалки слоёв удалены; используем новые окна для тонких слоёв и содержимого
+import { LayerBasicModal } from './LayerBasicModal'
+import { LandscapeItemModal } from './LandscapeItemModal'
+import { WaterBodyModal } from './WaterBodyModal'
 import { SceneObjectItem } from './SceneObjectItem.tsx'
 import type { ObjectInfo } from './SceneObjectItem.tsx'
 import { SaveObjectDialog } from '@/shared/ui'
@@ -62,6 +66,14 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [layerModalOpened, setLayerModalOpened] = useState(false)
     const [layerModalMode, setLayerModalMode] = useState<SceneLayerModalMode>('create')
     const [layerFormData, setLayerFormData] = useState<SceneLayerFormData>(createEmptySceneLayer())
+    // Новые модалки содержимого
+    const [landscapeModalOpened, setLandscapeModalOpened] = useState(false)
+    const [landscapeModalMode, setLandscapeModalMode] = useState<'create' | 'edit'>('create')
+    const [editingLandscapeId, setEditingLandscapeId] = useState<string | null>(null)
+    const [waterModalOpened, setWaterModalOpened] = useState(false)
+    const [waterModalMode, setWaterModalMode] = useState<'create' | 'edit'>('create')
+    const [waterModalTargetLayerId, setWaterModalTargetLayerId] = useState<string | null>(null)
+    const [editingWater, setEditingWater] = useState<{ layerId: string; bodyId: string } | null>(null)
     const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
     const [contextMenuOpened, setContextMenuOpened] = useState(false)
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -78,6 +90,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const biomes = useSceneStore(state => state.biomes)
     const updateBiome = useSceneStore(state => state.updateBiome)
     const storeLayers = useSceneLayersOptimized()
+    const landscapeContent = useSceneStore(state => state.landscapeContent)
+    const waterContent = useSceneStore(state => state.waterContent)
+    const removeLandscapeItem = useSceneStore(state => state.removeLandscapeItem)
+    const removeWaterBody = useSceneStore(state => state.removeWaterBody)
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
     const sceneMetaData = useSceneStore(state => state.sceneMetaData)
@@ -639,6 +655,165 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         </Stack>
                     </ScrollArea>
 
+                    {/* Новая архитектура: Ландшафт и Вода */}
+                    <Divider my="xs" />
+
+                    {/* Ландшафт: заголовок в стиле слоя */}
+                    <Box
+                      style={{
+                        backgroundColor: 'transparent',
+                        marginBottom: '4px',
+                        borderRadius: '4px',
+                        padding: '8px 4px',
+                        border: '1px solid transparent',
+                        cursor: 'default',
+                        transition: 'all 0.1s ease'
+                      }}
+                    >
+                      <Group justify="space-between" align="center" gap="xs">
+                        <Group gap="xs" style={{ flex: 1 }}>
+                          <ActionIcon
+                            size="xs"
+                            variant="transparent"
+                            onClick={() => toggleLayerExpanded('landscape-content' as any)}
+                            style={{ width: 16, height: 16, minWidth: 16 }}
+                          >
+                            {expandedLayers.has('landscape-content' as any) ? <IconCheck size={12} style={{ visibility: 'hidden' }} /> : <IconCheck size={12} style={{ visibility: 'hidden' }} />}
+                          </ActionIcon>
+                          {/* Иконка ландшафта */}
+                          <IconTrees size={14} color={'var(--mantine-color-green-5)'} />
+                          <Text size="xs" fw={500} style={{ userSelect: 'none' }}>Ландшафт</Text>
+                        </Group>
+                        <Group gap="xs">
+                          {/* Кнопка видимости (не влияет на рендер, только для выравнивания UI) */}
+                          <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                            <IconEye size={12} />
+                          </ActionIcon>
+                          {/* Контекстное меню: добавить площадку */}
+                          <Menu shadow="md" width={220}>
+                            <Menu.Target>
+                              <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                <Text size="xs" fw={700}>⋮</Text>
+                              </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                              <Menu.Item leftSection={<IconPlus size={14} />} onClick={() => { setLandscapeModalMode('create'); setLandscapeModalOpened(true) }}>
+                                Добавить площадку ландшафта
+                              </Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Group>
+                      </Group>
+                    </Box>
+                    <Collapse in={expandedLayers.has('landscape-content' as any)}>
+                      <Stack gap={4} pl="lg">
+                        {(landscapeContent?.items || []).map(item => (
+                          <Group key={item.id} justify="space-between" px={6} py={4}>
+                            <Text size="xs"><b>{(item as any).name || 'Без имени'}</b> — {item.shape} • {item.size?.width}×{item.size?.depth} @ [{item.center?.[0] ?? 0},{item.center?.[1] ?? 0}]</Text>
+                            <Group gap={6}>
+                              <ActionIcon size="xs" variant="transparent">
+                                <IconEye size={12} />
+                              </ActionIcon>
+                              <Menu shadow="md" width={200}>
+                                <Menu.Target>
+                                  <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                    <Text size="xs" fw={700}>⋮</Text>
+                                  </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                  <Menu.Item onClick={() => { setLandscapeModalMode('edit'); setEditingLandscapeId(item.id); setLandscapeModalOpened(true) }}>Редактировать</Menu.Item>
+                                  <Menu.Item color="red" onClick={() => removeLandscapeItem(item.id)}>Удалить</Menu.Item>
+                                </Menu.Dropdown>
+                              </Menu>
+                            </Group>
+                          </Group>
+                        ))}
+                        {(!landscapeContent?.items || landscapeContent.items.length === 0) && (
+                          <Text size="xs" c="dimmed" ta="center">Нет площадок ландшафта</Text>
+                        )}
+                      </Stack>
+                    </Collapse>
+
+                    <Divider my="xs" />
+                    <Group justify="space-between" align="center">
+                      <Text size="xs" fw={500} c="dimmed">Водные слои (новая архитектура)</Text>
+                      <Tooltip label="Создать водный слой">
+                        <ActionIcon size="sm" variant="light" color="blue" onClick={() => { setLayerFormData({ ...createEmptySceneLayer(), type: GfxLayerType.Water, name: 'вода' }); setLayerModalMode('create'); setLayerModalOpened(true) }}>
+                          <IconPlus size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                    <Stack gap={6}>
+                      {(storeLayers || []).filter(l => l.type === GfxLayerType.Water).map(layer => {
+                        const container = (waterContent || []).find(c => c.layerId === layer.id)
+                        return (
+                          <Box key={layer.id} style={{ backgroundColor: 'transparent', borderRadius: 4, border: '1px solid transparent', padding: '8px 4px' }}>
+                            <Group justify="space-between" align="center" gap="xs">
+                              <Group gap="xs" style={{ flex: 1 }}>
+                                <ActionIcon size="xs" variant="transparent" onClick={() => toggleLayerExpanded(layer.id)} style={{ width: 16, height: 16, minWidth: 16 }}>
+                                  {expandedLayers.has(layer.id) ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
+                                </ActionIcon>
+                                {/* Иконка воды */}
+                                <IconRipple size={14} color={'var(--mantine-color-blue-5)'} />
+                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>{layer.name}</Text>
+                              </Group>
+                              <Group gap="xs">
+                                <ActionIcon size="xs" variant="transparent" onClick={() => storeToggleLayerVisibility(layer.id)} style={{ width: 16, height: 16, minWidth: 16 }}>
+                                  {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                                </ActionIcon>
+                                <Menu shadow="md" width={220}>
+                                  <Menu.Target>
+                                    <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                      <Text size="xs" fw={700}>⋮</Text>
+                                    </ActionIcon>
+                                  </Menu.Target>
+                                  <Menu.Dropdown>
+                                    <Menu.Item leftSection={<IconPlus size={14} />} onClick={() => { setWaterModalMode('create'); setWaterModalTargetLayerId(layer.id); setWaterModalOpened(true) }}>
+                                      Добавить водоём
+                                    </Menu.Item>
+                                    <Menu.Item onClick={() => { setLayerFormData({ ...layerFormData, id: layer.id, name: layer.name, type: layer.type as any } as any); setLayerModalMode('edit'); setLayerModalOpened(true) }}>Переименовать</Menu.Item>
+                                    {layer.id !== 'objects' && (
+                                      <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => storeDeleteLayer(layer.id)}>Удалить слой</Menu.Item>
+                                    )}
+                                  </Menu.Dropdown>
+                                </Menu>
+                              </Group>
+                            </Group>
+                            {/* Подсписок водоёмов */}
+                            {expandedLayers.has(layer.id) && (
+                              <Stack gap={4} pl="lg" mt={4}>
+                                {(container?.items || []).length > 0 ? (
+                                  (container!.items).map(body => (
+                                    <Group key={body.id} justify="space-between" px={6} py={4}>
+                                      <Text size="xs">{body.kind} • rect [{(body.surface as any).xMin},{(body.surface as any).zMin}]..[{(body.surface as any).xMax},{(body.surface as any).zMax}], y={body.altitudeY}</Text>
+                                      <Group gap={6}>
+                                        <ActionIcon size="xs" variant="transparent">
+                                          <IconEye size={12} />
+                                        </ActionIcon>
+                                        <Menu shadow="md" width={200}>
+                                          <Menu.Target>
+                                            <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                              <Text size="xs" fw={700}>⋮</Text>
+                                            </ActionIcon>
+                                          </Menu.Target>
+                                          <Menu.Dropdown>
+                                            <Menu.Item onClick={() => { setWaterModalMode('edit'); setEditingWater({ layerId: layer.id, bodyId: body.id }); setWaterModalOpened(true) }}>Редактировать</Menu.Item>
+                                            <Menu.Item color="red" onClick={() => removeWaterBody(layer.id, body.id)}>Удалить</Menu.Item>
+                                          </Menu.Dropdown>
+                                        </Menu>
+                                      </Group>
+                                    </Group>
+                                  ))
+                                ) : (
+                                  <Text size="xs" c="dimmed">Нет водоёмов</Text>
+                                )}
+                              </Stack>
+                            )}
+                          </Box>
+                        )
+                      })}
+                    </Stack>
+
 
                     <Divider />
 
@@ -720,7 +895,31 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 </Stack>
             </Paper>
 
-            <SceneLayerModals />
+            {/* Новые модалки */}
+            <LayerBasicModal
+              opened={layerModalOpened}
+              mode={layerModalMode}
+              initial={{ id: layerFormData.id, name: layerFormData.name, type: layerFormData.type as any }}
+              onClose={() => setLayerModalOpened(false)}
+            />
+
+            <LandscapeItemModal
+              opened={landscapeModalOpened}
+              mode={landscapeModalMode}
+              initial={landscapeModalMode === 'edit' ? (landscapeContent?.items.find(i => i.id === editingLandscapeId) as any) : undefined}
+              onClose={() => { setLandscapeModalOpened(false); setEditingLandscapeId(null) }}
+            />
+
+            <WaterBodyModal
+              opened={waterModalOpened}
+              mode={waterModalMode}
+              targetLayerId={waterModalMode === 'create' ? waterModalTargetLayerId : (editingWater?.layerId ?? null)}
+              initial={waterModalMode === 'edit' && editingWater ? {
+                layerId: editingWater.layerId,
+                body: (waterContent?.find(c => c.layerId === editingWater.layerId)?.items.find(b => b.id === editingWater.bodyId) as any)
+              } : null}
+              onClose={() => { setWaterModalOpened(false); setWaterModalTargetLayerId(null); setEditingWater(null) }}
+            />
 
             <SaveObjectDialog
                 opened={saveObjectModalOpened}

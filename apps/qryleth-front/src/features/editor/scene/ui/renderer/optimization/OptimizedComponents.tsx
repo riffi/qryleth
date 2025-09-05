@@ -2,8 +2,7 @@ import React from 'react'
 import {SceneObjectRenderer, type SceneObjectRendererProps} from '../objects/SceneObjectRenderer.tsx'
 import {LandscapeLayer, type LandscapeLayerProps} from '../landscape/LandscapeLayer.tsx'
 // Тип пропсов берём из старого компонента, а для рендеринга используем новый
-import { WaterLayer, type WaterLayerProps } from '../landscape/WaterLayer.tsx'
-import { AdvancedWaterLayer } from '../landscape/AdvancedWaterLayer.tsx'
+// Legacy Water components removed (switched to waterContent rendering)
 
 // Memoized SceneObject for better performance with primitive groups support
 export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
@@ -86,37 +85,7 @@ export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   }
 )
 
-// Memoized WaterLayer for better performance
-// Обёртка, выбирающая реализацию воды по конфигу слоя
-const WaterLayerSwitcher: React.FC<WaterLayerProps> = (props) => {
-  const waterType = (props.layer as any).water?.type || 'realistic'
-  if (waterType === 'simple') return <WaterLayer {...props} />
-  return <AdvancedWaterLayer {...props} />
-}
-
-export const MemoizedWaterLayer = React.memo<WaterLayerProps>(
-  WaterLayerSwitcher,
-  (prevProps, nextProps) => {
-    // Custom comparison function for water layers
-    const prevDepth = (prevProps.layer as any).depth ?? (prevProps.layer as any).height
-    const nextDepth = (nextProps.layer as any).depth ?? (nextProps.layer as any).height
-    const prevType = (prevProps.layer as any).water?.type || 'realistic'
-    const nextType = (nextProps.layer as any).water?.type || 'realistic'
-    const prevBrightness = (prevProps.layer as any).water?.brightness ?? 1.6
-    const nextBrightness = (nextProps.layer as any).water?.brightness ?? 1.6
-    return (
-      prevProps.layer.id === nextProps.layer.id &&
-      prevProps.layer.visible === nextProps.layer.visible &&
-      prevProps.layer.width === nextProps.layer.width &&
-      prevDepth === nextDepth &&
-      // Смена типа воды должна инициировать перерисовку (переключаем компонент)
-      prevType === nextType &&
-      // Важно: изменение яркости воды должно обновлять рендер
-      prevBrightness === nextBrightness
-    )
-  }
-)
 
 MemoizedSceneObject.displayName = 'MemoizedSceneObject'
 MemoizedLandscapeLayer.displayName = 'MemoizedLandscapeLayer'
-MemoizedWaterLayer.displayName = 'MemoizedWaterLayer'
+// Water memoized components removed
