@@ -4,7 +4,7 @@ import { PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { UiMode } from '@/shared/types/ui'
-import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
+import { GfxLayerType } from '@/entities/layer'
 
 export const WalkControls: React.FC = () => {
   const { camera, gl, scene } = useThree()
@@ -115,37 +115,26 @@ export const WalkControls: React.FC = () => {
       controlsRef.current.moveForward(-velocity.current.z * delta)
     }
 
-    // Adjust camera height based on perlin landscape
-    const layers = useSceneStore.getState().layers
-    const perlinLayerIds = layers
-      .filter(l => l.type === GfxLayerType.Landscape && l.shape === GfxLayerShape.Terrain)
-      .map(l => l.id)
+    // Adjust camera height based on landscapeContent (new architecture)
+    const content = useSceneStore.getState().landscapeContent
+    const allowedLayerIds = content?.layerId ? new Set([content.layerId]) : null
 
-    if (perlinLayerIds.length > 0) {
-      const meshes: THREE.Object3D[] = []
-      scene.traverse(obj => {
-        if (
-          obj.userData?.layerType === GfxLayerType.Landscape &&
-          perlinLayerIds.includes(obj.userData.layerId)
-        ) {
-          meshes.push(obj)
+    const targets: THREE.Object3D[] = []
+    scene.traverse(obj => {
+      if (obj.userData?.layerType === GfxLayerType.Landscape) {
+        if (!allowedLayerIds || allowedLayerIds.has(obj.userData.layerId)) {
+          targets.push(obj)
         }
-      })
-
-      if (meshes.length > 0) {
-        raycaster.current.set(
-          new THREE.Vector3(camera.position.x, 1000, camera.position.z),
-          new THREE.Vector3(0, -1, 0)
-        )
-        const intersects = raycaster.current.intersectObjects(meshes, true)
-        if (intersects.length > 0) {
-          camera.position.y = intersects[0].point.y + 1.8
-        } else {
-          camera.position.y = 1.8
-        }
-      } else {
-        camera.position.y = 1.8
       }
+    })
+
+    if (targets.length > 0) {
+      raycaster.current.set(
+        new THREE.Vector3(camera.position.x, 1000, camera.position.z),
+        new THREE.Vector3(0, -1, 0)
+      )
+      const intersects = raycaster.current.intersectObjects(targets, true)
+      camera.position.y = (intersects[0]?.point.y ?? 0) + 1.8
     } else {
       camera.position.y = 1.8
     }
