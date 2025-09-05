@@ -22,7 +22,11 @@ interface ObjectItemProps {
  * Компонент отображения отдельного объекта сцены
  * с возможностью управления и контекстным меню
  */
-export const SceneObjectItem: React.FC<ObjectItemProps> = ({
+/**
+ * Компонент отображения отдельного объекта сцены.
+ * Оборачивается в React.memo для уменьшения количества ререндеров.
+ */
+const SceneObjectItemComponent: React.FC<ObjectItemProps> = ({
     obj,
     isSelected,
 }) => {
@@ -190,3 +194,8 @@ export const SceneObjectItem: React.FC<ObjectItemProps> = ({
         </Box>
     )
 }
+
+/**
+ * Мемоизированная версия элемента объекта сцены.
+ */
+export const SceneObjectItem = React.memo(SceneObjectItemComponent)

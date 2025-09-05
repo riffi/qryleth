@@ -19,6 +19,8 @@ export const WalkControls: React.FC = () => {
   const velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
   const raycaster = useRef(new THREE.Raycaster())
+  const targetsRef = useRef<THREE.Object3D[]>([])
+  const landscapeLayerId = useSceneStore(s => s.landscapeContent?.layerId)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -87,6 +89,25 @@ export const WalkControls: React.FC = () => {
     }
   }, [camera, gl])
 
+  /**
+   * Предварительно собираем цели для рейкастинга по слоям ландшафта
+   * только при изменении сцены или активного слоя ландшафта.
+   * Это существенно сокращает стоимость на кадр по сравнению с traverse() каждый кадр.
+   */
+  useEffect(() => {
+    const allowedLayerIds = landscapeLayerId ? new Set([landscapeLayerId]) : null
+    const nextTargets: THREE.Object3D[] = []
+    scene.traverse(obj => {
+      if (obj.userData?.layerType === GfxLayerType.Landscape) {
+        if (!allowedLayerIds || allowedLayerIds.has(obj.userData.layerId)) {
+          nextTargets.push(obj)
+        }
+      }
+    })
+    targetsRef.current = nextTargets
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene, landscapeLayerId])
+
   useFrame((state, delta) => {
     if (!controlsRef.current || !controlsRef.current.isLocked) return
 
@@ -115,19 +136,8 @@ export const WalkControls: React.FC = () => {
       controlsRef.current.moveForward(-velocity.current.z * delta)
     }
 
-    // Adjust camera height based on landscapeContent (new architecture)
-    const content = useSceneStore.getState().landscapeContent
-    const allowedLayerIds = content?.layerId ? new Set([content.layerId]) : null
-
-    const targets: THREE.Object3D[] = []
-    scene.traverse(obj => {
-      if (obj.userData?.layerType === GfxLayerType.Landscape) {
-        if (!allowedLayerIds || allowedLayerIds.has(obj.userData.layerId)) {
-          targets.push(obj)
-        }
-      }
-    })
-
+    // Adjust camera height based on pre-collected landscape targets
+    const targets = targetsRef.current
     if (targets.length > 0) {
       raycaster.current.set(
         new THREE.Vector3(camera.position.x, 1000, camera.position.z),

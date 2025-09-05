@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
     useSceneStore
 } from '../../model/sceneStore.ts'
@@ -151,17 +151,18 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         return counts
     }, [objectInstances])
 
-    const toggleLayerExpanded = (layerId: string) => {
+    /**
+     * Переключает состояние «развернуто/свернуто» для заданного слоя.
+     * Мемоизировано, чтобы ссылка на обработчик была стабильной между рендерами.
+     */
+    const toggleLayerExpanded = useCallback((layerId: string) => {
         setExpandedLayers(prev => {
             const newSet = new Set(prev)
-            if (newSet.has(layerId)) {
-                newSet.delete(layerId)
-            } else {
-                newSet.add(layerId)
-            }
+            if (newSet.has(layerId)) newSet.delete(layerId)
+            else newSet.add(layerId)
             return newSet
         })
-    }
+    }, [])
 
 
     // handleCreateLayer / handleUpdateLayer удалены — создание/редактирование выполняет LayerBasicModal
@@ -170,7 +171,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * Открыть модальное окно редактирования слоя и заполнить поля текущими значениями.
      * Цвет слоя также подставляется в поле выбора цвета.
      */
-    const openEditLayerModal = (layer: SceneLayer) => {
+    /**
+     * Открывает модалку редактирования слоя и подставляет его значения в форму.
+     */
+    const openEditLayerModal = useCallback((layer: SceneLayer) => {
       setLayerFormData({
         id: layer.id,
         name: layer.name,
@@ -180,35 +184,24 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
       } as any)
       setLayerModalMode('edit')
       setLayerModalOpened(true)
-    }
+    }, [])
 
     // Handlers using Zustand store
-    const handleToggleVisibility = (objectUuid: string) => {
-        storeToggleObjectVisibility(objectUuid)
-    }
-
-    const handleRemoveObject = (objectUuid: string) => {
+    /**
+     * Удаляет объект и очищает выделение. Мемоизирован для стабильной ссылки.
+     */
+    const handleRemoveObject = useCallback((objectUuid: string) => {
         removeObject(objectUuid)
         clearSelection()
-    }
+    }, [removeObject, clearSelection])
 
-
-    const handleHighlightObject = (objectUuid: string, instanceId?: string) => {
-        setHoveredObject(objectUuid, instanceId)
-    }
-
-    const handleClearHighlight = () => {
-        clearHover()
-    }
-
-    const handleSelectObject = (objectUuid: string, instanceId?: string) => {
-        storeSelectObject(objectUuid, instanceId)
-    }
-
-    const handleSaveObjectToLibrary = (objectUuid: string) => {
+    /**
+     * Открывает модалку сохранения объекта в библиотеку.
+     */
+    const handleSaveObjectToLibrary = useCallback((objectUuid: string) => {
         setSavingObjectUuid(objectUuid)
         setSaveObjectModalOpened(true)
-    }
+    }, [])
 
     /**
      * Сохраняет выбранный объект в библиотеку
@@ -299,7 +292,10 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * и BoundingBox, чтобы сохранить полную структуру объекта.
      * @param objectUuid UUID объекта, который требуется выгрузить
      */
-    const handleExportObject = (objectUuid: string) => {
+    /**
+     * Экспортирует объект в JSON.
+     */
+    const handleExportObject = useCallback((objectUuid: string) => {
         const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
         if (!object) return
 
@@ -307,14 +303,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         const data = JSON.parse(JSON.stringify(object))
 
         downloadJson(`${object.name}-${object.uuid}.json`, data)
-    }
+    }, [])
 
     /**
      * Копирует объект в буфер обмена в формате JSON,
      * добавляя все связанные материалы и BoundingBox.
      * @param objectUuid UUID объекта, который требуется скопировать
      */
-    const handleCopyObject = async (objectUuid: string) => {
+    /**
+     * Копирует JSON объекта в буфер обмена.
+     */
+    const handleCopyObject = useCallback(async (objectUuid: string) => {
         const object = useSceneStore.getState().objects.find(o => o.uuid === objectUuid)
         if (!object) return
 
@@ -322,24 +321,33 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         const data = JSON.parse(JSON.stringify(object))
 
         await copyJsonToClipboard(data)
-    }
+    }, [])
 
-    const handleEditObject = (objectUuid: string, instanceId?: string) => {
+    /**
+     * Переход к редактированию объекта (делегируется наружу при наличии коллбэка).
+     */
+    const handleEditObject = useCallback((objectUuid: string, instanceId?: string) => {
         if (onEditObject) return onEditObject(objectUuid, instanceId)
         storeSelectObject(objectUuid, instanceId)
         console.log('Object edit not implemented', { objectUuid, instanceId })
-    }
+    }, [onEditObject, storeSelectObject])
 
-    const handleAddObjectFromLibrary = (layerId: string) => {
+    /**
+     * Открывает модалку выбора объекта из библиотеки для указанного слоя.
+     */
+    const handleAddObjectFromLibrary = useCallback((layerId: string) => {
         setTargetLayerId(layerId)
         setAddObjectModalOpened(true)
-    }
+    }, [])
 
     /**
      * Добавить выбранный объект библиотеки в сцену и сохранить его UUID
      * в поле libraryUuid для последующей идентификации
      */
-    const handleAddObjectToScene = async (object: ObjectRecord) => {
+    /**
+     * Добавляет выбранный объект библиотеки в сцену в целевой слой.
+     */
+    const handleAddObjectToScene = useCallback(async (object: ObjectRecord) => {
         if (!targetLayerId) return
 
         try {
@@ -375,27 +383,30 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 color: 'red'
             })
         }
-    }
+    }, [targetLayerId])
 
-    const handleLightingChange = (newLighting: LightingSettings) => {
+    /**
+     * Обновляет настройки освещения сцены.
+     */
+    const handleLightingChange = useCallback((newLighting: LightingSettings) => {
         updateLighting(newLighting)
-    }
+    }, [updateLighting])
 
     /**
      * Переключает видимость указанного биома по его UUID.
      * Обновляет поле visible у биома через Zustand store.
      * Если биом не найден — ничего не делает.
      */
-    const handleToggleBiomeVisibility = (biomeUuid: string) => {
+    const handleToggleBiomeVisibility = useCallback((biomeUuid: string) => {
         const biome = biomes.find(b => b.uuid === biomeUuid)
         if (!biome) return
         updateBiome(biomeUuid, { visible: biome.visible === false ? true : !biome.visible })
-    }
+    }, [biomes, updateBiome])
 
-    const handleSaveSceneToLibraryInternal = () => {
+    const handleSaveSceneToLibraryInternal = useCallback(() => {
         if (onSaveSceneToLibrary) return onSaveSceneToLibrary()
         exportScene(`scene-${Date.now()}.json`)
-    }
+    }, [onSaveSceneToLibrary])
 
     /**
      * Удаляет биом и все инстансы, привязанные к нему.
@@ -404,7 +415,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * 2) Удаляет сам биом через SceneAPI (обновляет Zustand)
      * 3) Показывает уведомление об успехе либо ошибке
      */
-    const handleDeleteBiome = (biomeUuid: string) => {
+    const handleDeleteBiome = useCallback((biomeUuid: string) => {
         try {
             const remaining = useSceneStore.getState().objectInstances.filter(i => i.biomeUuid !== biomeUuid)
             setObjectInstances(remaining)
@@ -417,24 +428,24 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         } catch (e) {
             notifications.show({ title: 'Ошибка', message: 'Не удалось удалить биом', color: 'red' })
         }
-    }
+    }, [setObjectInstances])
 
     // Drag & Drop handlers
-    const handleDragStart = (e: React.DragEvent, objectUuid: string) => {
+    const handleDragStart = useCallback((e: React.DragEvent, objectUuid: string) => {
         e.dataTransfer.setData('text/plain', objectUuid)
-    }
+    }, [])
 
-    const handleDragOver = (e: React.DragEvent, layerId: string) => {
+    const handleDragOver = useCallback((e: React.DragEvent, layerId: string) => {
         e.preventDefault()
         setDragOverLayerId(layerId)
-    }
+    }, [])
 
-    const handleDragLeave = (e: React.DragEvent) => {
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
         e.preventDefault()
         setDragOverLayerId(null)
-    }
+    }, [])
 
-    const handleDrop = (e: React.DragEvent, layerId: string) => {
+    const handleDrop = useCallback((e: React.DragEvent, layerId: string) => {
         e.preventDefault()
         const objectUuid = e.dataTransfer.getData('text/plain')
 
@@ -443,63 +454,105 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         }
 
         setDragOverLayerId(null)
-    }
+    }, [storeMoveObjectToLayer])
 
     // Context Menu handlers
-    const handleContextMenu = (e: React.MouseEvent, objectUuid: string) => {
+    const handleContextMenu = useCallback((e: React.MouseEvent, objectUuid: string) => {
         e.preventDefault()
         setContextMenuPosition({ x: e.clientX, y: e.clientY })
         setContextMenuObjectUuid(objectUuid)
         setContextMenuOpened(true)
-    }
+    }, [])
 
-    const handleMoveToLayer = (layerId: string) => {
+    const handleMoveToLayer = useCallback((layerId: string) => {
         if (contextMenuObjectUuid !== null) {
             storeMoveObjectToLayer(contextMenuObjectUuid, layerId)
         }
         setContextMenuOpened(false)
         setContextMenuObjectUuid(null)
-    }
+    }, [contextMenuObjectUuid, storeMoveObjectToLayer])
 
-    const getObjectsByLayer = (layerId: string) => {
-        return objects.filter((obj) => {
-            return obj.layerId === layerId || (!obj.layerId && layerId === 'objects')
-        })
-    }
+    /**
+     * Предрасчёт и группировка объектов по слоям.
+     * Возвращает стабильные по ссылке массивы для каждого layerId,
+     * что уменьшает перерендеры мемоизированных дочерних компонентов.
+     */
+    const objectsByLayer = useMemo(() => {
+        const map = new Map<string, ObjectInfo[]>()
+        for (const obj of objects) {
+            const lid = obj.layerId || 'objects'
+            if (!map.has(lid)) map.set(lid, [])
+            map.get(lid)!.push(obj)
+        }
+        return map
+    }, [objects])
 
     return (
         <SceneObjectManagerProvider
-            layerModalOpened={layerModalOpened}
-            setLayerModalOpened={setLayerModalOpened}
-            layerModalMode={layerModalMode}
-            setLayerModalMode={setLayerModalMode}
-            layerFormData={layerFormData}
-            setLayerFormData={setLayerFormData}
-            // handleCreateLayer/handleUpdateLayer удалены из контекста
-            contextMenuOpened={contextMenuOpened}
-            setContextMenuOpened={setContextMenuOpened}
-            contextMenuPosition={contextMenuPosition}
-            layers={layers}
-            handleMoveToLayer={handleMoveToLayer}
-            toggleLayerExpanded={toggleLayerExpanded}
-            toggleLayerVisibility={storeToggleLayerVisibility}
-            openEditLayerModal={openEditLayerModal}
-            deleteLayer={storeDeleteLayer}
-            highlightObject={handleHighlightObject}
-            clearHighlight={handleClearHighlight}
-            selectObject={handleSelectObject}
-            toggleObjectVisibility={handleToggleVisibility}
-            removeObject={handleRemoveObject}
-            saveObjectToLibrary={handleSaveObjectToLibrary}
-            editObject={handleEditObject}
-            dragStart={handleDragStart}
-            contextMenu={handleContextMenu}
-            dragOver={handleDragOver}
-            dragLeave={handleDragLeave}
-            drop={handleDrop}
-            addObjectFromLibrary={handleAddObjectFromLibrary}
-            exportObject={handleExportObject}
-            copyObject={handleCopyObject}
+            value={useMemo(() => ({
+                layerModalOpened,
+                setLayerModalOpened,
+                layerModalMode,
+                setLayerModalMode,
+                layerFormData,
+                setLayerFormData,
+                contextMenuOpened,
+                setContextMenuOpened,
+                contextMenuPosition,
+                layers,
+                handleMoveToLayer,
+                toggleLayerExpanded,
+                toggleLayerVisibility: storeToggleLayerVisibility,
+                openEditLayerModal,
+                deleteLayer: storeDeleteLayer,
+                // Передаём стабильные экшены прямо из стора
+                highlightObject: setHoveredObject,
+                clearHighlight: clearHover,
+                selectObject: storeSelectObject,
+                toggleObjectVisibility: storeToggleObjectVisibility,
+                removeObject: handleRemoveObject,
+                saveObjectToLibrary: handleSaveObjectToLibrary,
+                editObject: onEditObject,
+                dragStart: handleDragStart,
+                contextMenu: handleContextMenu,
+                dragOver: handleDragOver,
+                dragLeave: handleDragLeave,
+                drop: handleDrop,
+                addObjectFromLibrary: handleAddObjectFromLibrary,
+                exportObject: handleExportObject,
+                copyObject: handleCopyObject,
+            }), [
+                layerModalOpened,
+                setLayerModalOpened,
+                layerModalMode,
+                setLayerModalMode,
+                layerFormData,
+                setLayerFormData,
+                contextMenuOpened,
+                setContextMenuOpened,
+                contextMenuPosition,
+                layers,
+                handleMoveToLayer,
+                toggleLayerExpanded,
+                storeToggleLayerVisibility,
+                openEditLayerModal,
+                storeDeleteLayer,
+                setHoveredObject,
+                clearHover,
+                storeSelectObject,
+                storeToggleObjectVisibility,
+                handleRemoveObject,
+                handleSaveObjectToLibrary,
+                onEditObject,
+                handleDragStart,
+                handleContextMenu,
+                handleDragOver,
+                handleDragLeave,
+                handleDrop,
+                handleAddObjectFromLibrary,
+                handleExportObject,
+                handleCopyObject,
+            ])}
         >
         <>
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
@@ -539,7 +592,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         <Stack gap={0}>
                             {layers && layers.length > 0 ? (
                                 layers.filter(l => (l.type as any) === GfxLayerType.Object).map((layer) => {
-                                    const layerObjects = getObjectsByLayer(layer.id)
+                                    const layerObjects = objectsByLayer.get(layer.id) || []
                                     const isLayerExpanded = expandedLayers.has(layer.id)
 
                                     return (

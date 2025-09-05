@@ -27,7 +27,11 @@ interface LayerItemProps {
   dragOverLayerId: string | null
 }
 
-export const SceneLayerItem: React.FC<LayerItemProps> = ({
+/**
+ * Компонент элемента списка слоёв.
+ * Мемоизирован для предотвращения лишних перерисовок при неизменных пропсах.
+ */
+const SceneLayerItemComponent: React.FC<LayerItemProps> = ({
                                                            layer,
                                                            layerObjects,
                                                            isExpanded,
@@ -50,6 +54,10 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
    * - Для обычных «объектных» слоёв используется стандартная иконка слоёв.
    * - Для слоёв типа `landscape` отображается иконка гор (условный рельеф).
    * - Для слоёв типа `water` отображается иконка волн (условная вода).
+   */
+  /**
+   * Возвращает иконку слоя по его типу. Мемоизируем по типу,
+   * чтобы не пересоздавать React-элементы на каждый рендер.
    */
   const getLayerIcon = (): React.ReactNode => {
     if (layer.type === GfxLayerType.Landscape) {
@@ -194,3 +202,9 @@ export const SceneLayerItem: React.FC<LayerItemProps> = ({
       </div>
   )
 }
+
+/**
+ * Оборачиваем в React.memo, чтобы перерисовывать элемент
+ * только при реальном изменении входных пропсов (по ссылкам/значениям).
+ */
+export const SceneLayerItem = React.memo(SceneLayerItemComponent)

@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 import type { SceneObjectManagerContextValue } from './types.ts'
 
 /**
@@ -25,9 +25,19 @@ export const useSceneObjectManager = (): SceneObjectManagerContextValue => {
  * Принимает значение контекста и делает его доступным детям.
  */
 export const SceneObjectManagerProvider: React.FC<
-    React.PropsWithChildren<SceneObjectManagerContextValue>
-> = ({ children, ...value }) => (
-    <SceneObjectManagerContext.Provider value={value}>
-        {children}
+  React.PropsWithChildren<{ value: SceneObjectManagerContextValue }>
+> = ({ children, value }) => {
+  /**
+   * Мемоизируем значение контекста для предотвращения каскадных перерендеров
+   * всех потребителей при неизменных данных. Контекст будет обновляться
+   * только при изменении ссылки на объект `value`, который формируется выше по дереву
+   * (в SceneObjectManager) через useMemo/useCallback.
+   */
+  const memoValue = useMemo(() => value, [value])
+
+  return (
+    <SceneObjectManagerContext.Provider value={memoValue}>
+      {children}
     </SceneObjectManagerContext.Provider>
-)
+  )
+}
