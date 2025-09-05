@@ -25,7 +25,8 @@
       "Bash(npm start)",
       "Bash(dir \"C:\\work\\my\\qryleth\\src\\entities\" /b)",
       "Bash(npm install:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Read(/C:\\work\\my\\qryleth\\apps\\qryleth-front\\src\\features\\editor\\scene\\ui\\objectManager/**)"
     ],
     "deny": [],
     "additionalDirectories": [

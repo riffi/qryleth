@@ -665,7 +665,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     <Box
                       style={{
                         backgroundColor: 'transparent',
-                        marginBottom: '4px',
+                        marginBottom: '0px',
                         borderRadius: '4px',
                         padding: '8px 4px',
                         border: '1px solid transparent',
@@ -709,11 +709,11 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                       </Group>
                     </Box>
                     <Collapse in={expandedLayers.has('landscape-content' as any)}>
-                      <Stack gap={4} pl="lg">
+                      <Stack gap="0px" pl="lg" mt={0}>
                         {(landscapeContent?.items || []).map(item => {
                           const visible = landscapeItemVisible[item.id] !== false
                           return (
-                            <Box key={item.id} style={{ opacity: visible ? 1 : 0.6, transition: 'all 0.1s ease', border: '1px solid transparent', borderRadius: 4, marginBottom: 1, padding: '8px 4px' }}>
+                            <Box key={item.id} style={{ opacity: visible ? 1 : 0.6, transition: 'all 0.1s ease', border: '1px solid transparent', borderRadius: '4px', marginBottom: '0px', padding: '0px 4px' }}>
                               <Group justify="space-between" align="center" gap="xs">
                                 <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                                   <IconTrees size={12} color={'var(--mantine-color-green-5)'} style={{ flexShrink: 0 }} />
@@ -759,11 +759,11 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         </ActionIcon>
                       </Tooltip>
                     </Group>
-                    <Stack gap={6}>
+                    <Stack gap="0px" style={{width: '100%'}}>
                       {(storeLayers || []).filter(l => l.type === GfxLayerType.Water).map(layer => {
                         const container = (waterContent || []).find(c => c.layerId === layer.id)
                         return (
-                          <Box key={layer.id} style={{ backgroundColor: 'transparent', borderRadius: 4, border: '1px solid transparent', padding: '8px 4px' }}>
+                          <Box key={layer.id} style={{ backgroundColor: 'transparent', borderRadius: '4px', border: '1px solid transparent', marginBottom: '0px', padding: '8px 4px' }}>
                             <Group justify="space-between" align="center" gap="xs">
                               <Group gap="xs" style={{ flex: 1 }}>
                                 <ActionIcon size="xs" variant="transparent" onClick={() => toggleLayerExpanded(layer.id)} style={{ width: 16, height: 16, minWidth: 16 }}>
@@ -797,28 +797,30 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                             </Group>
                             {/* Подсписок водоёмов */}
                             {expandedLayers.has(layer.id) && (
-                              <Stack gap={4} pl="lg" mt={4}>
+                              <Stack gap="0px" pl="lg" mt={0} style={{width:'100%'}}>
                                 {(container?.items || []).length > 0 ? (
                                   (container!.items).map(body => (
-                                    <Group key={body.id} justify="space-between" px={6} py={4}>
-                                      <Text size="xs"><b>{(body as any).name || 'Без имени'}</b></Text>
-                                      <Group gap={6}>
-                                        <ActionIcon size="xs" variant="transparent">
-                                          <IconEye size={12} />
-                                        </ActionIcon>
-                                        <Menu shadow="md" width={200}>
-                                          <Menu.Target>
-                                            <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                              <Text size="xs" fw={700}>⋮</Text>
-                                            </ActionIcon>
-                                          </Menu.Target>
-                                          <Menu.Dropdown>
-                                            <Menu.Item onClick={() => { setWaterModalMode('edit'); setEditingWater({ layerId: layer.id, bodyId: body.id }); setWaterModalOpened(true) }}>Редактировать</Menu.Item>
-                                            <Menu.Item color="red" onClick={() => removeWaterBody(layer.id, body.id)}>Удалить</Menu.Item>
-                                          </Menu.Dropdown>
-                                        </Menu>
+                                    <Box key={body.id} style={{ backgroundColor: 'transparent', borderRadius: '4px', border: '1px solid transparent', marginBottom: '0px', padding: '8px 0px', transition: 'all 0.1s ease', width: '100%' }}>
+                                      <Group justify="space-between" align="center" gap="xs">
+                                        <Text size="xs" fw={500} style={{ userSelect: 'none' }}>{(body as any).name || 'Без имени'}</Text>
+                                        <Group gap="xs">
+                                          <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                            <IconEye size={12} />
+                                          </ActionIcon>
+                                          <Menu shadow="md" width={200}>
+                                            <Menu.Target>
+                                              <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
+                                                <Text size="xs" fw={700}>⋮</Text>
+                                              </ActionIcon>
+                                            </Menu.Target>
+                                            <Menu.Dropdown>
+                                              <Menu.Item onClick={() => { setWaterModalMode('edit'); setEditingWater({ layerId: layer.id, bodyId: body.id }); setWaterModalOpened(true) }}>Редактировать</Menu.Item>
+                                              <Menu.Item color="red" onClick={() => removeWaterBody(layer.id, body.id)}>Удалить</Menu.Item>
+                                            </Menu.Dropdown>
+                                          </Menu>
+                                        </Group>
                                       </Group>
-                                    </Group>
+                                    </Box>
                                   ))
                                 ) : (
                                   <Text size="xs" c="dimmed">Нет водоёмов</Text>
