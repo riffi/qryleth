@@ -42,6 +42,7 @@ import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/ProceduralCloudGenerator'
 import type { GfxLandscape } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
+import type { GfxHeightSampler } from '@/entities/terrain'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -67,16 +68,17 @@ function applySurfaceNormalRotation(
 
     const [x, , z] = inst.transform.position
     let normal: [number, number, number] = [0, 1, 0]
+    let samplerRef: GfxHeightSampler | null = null
     const picked = pickLandscapeItemAt(x, z)
     if (picked?.item) {
       const sampler = getHeightSamplerForLandscapeItem(picked.item)
-      if (sampler) normal = sampler.getNormal(x, z)
+      if (sampler) { normal = sampler.getNormal(x, z); samplerRef = sampler }
     }
 
     // Опционально ослабляем максимальный наклон с учётом кривизны
     const maxDeg = alignCfg.maxDeviationDeg
     const influence = Math.max(0, Math.min(1, alignCfg.curvatureInfluence ?? 0))
-    const curvature = influence > 0 ? calculateCurvature(sampler, x, z) : 0
+    const curvature = influence > 0 && samplerRef ? calculateCurvature(samplerRef, x, z) : 0
     const effectiveMaxRad = typeof maxDeg === 'number'
       ? degToRad(maxDeg) * (1 - curvature * influence)
       : undefined
@@ -1287,9 +1289,6 @@ export class SceneAPI {
 
       // Добавить объект в store
       addObject(newObject)
-
-      // Найти landscape слой для размещения
-      const landscapeLayer = SceneAPI.pickLandscapeLayer()
 
       // Собрать существующие экземпляры для избежания коллизий
       const existingInstances = SceneAPI.collectExistingInstancesWithBounds()
