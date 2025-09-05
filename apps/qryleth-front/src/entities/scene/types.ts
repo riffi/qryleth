@@ -3,6 +3,9 @@ import type {GfxObjectInstance} from "../objectInstance";
 import type {GfxLayer} from "@/entities/layer";
 import type {GfxObject} from "@/entities/object";
 import type { GfxBiome } from '@/entities/biome'
+import type { GfxEnvironmentContent } from '@/entities/environment'
+import type { GfxWaterBody } from '@/entities/water'
+import type { GfxLandscape } from '@/entities/terrain'
 
 export interface SceneObject extends GfxObject{
   layerId?: string;
@@ -30,6 +33,25 @@ export interface SceneData {
   lighting: LightingSettings
   /** Биомы сцены (области скаттеринга и их параметры) */
   biomes: GfxBiome[]
+  /**
+   * Содержимое ландшафтного слоя (единый контейнер, привязан к единственному слою типа Landscape).
+   *
+   * В новой архитектуре ландшафт описывается массивом площадок (террейнов/плоскостей),
+   * хранящихся отдельно от тонкого слоя. `layerId` должен указывать на слой с `type: 'landscape'`.
+   */
+  landscapeContent?: { layerId: string; items: GfxLandscape[] } | null
+  /**
+   * Содержимое водных слоёв: массив контейнеров, каждый привязан к своему слою.
+   *
+   * Допускается любое число водных слоёв; внутри каждого — множество водоёмов (реки/озёра/море).
+   */
+  waterContent?: Array<{ layerId: string; items: GfxWaterBody[] }>
+  /**
+   * Содержимое окружения сцены (единственный контейнер, привязан к единственному слою типа Environment).
+   *
+   * Включает параметры ветра, неба/тумана/экспозиции и наборы облаков.
+   */
+  environmentContent?: GfxEnvironmentContent | null
 }
 
 /**

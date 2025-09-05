@@ -13,6 +13,10 @@ export type {
   GfxHeightSampler
 } from './model/types';
 
+export type {
+  GfxLandscape
+} from './model/types'
+
 // Экспорт типов процедурной генерации террейна
 export type {
   GfxProceduralPerlinParams,
