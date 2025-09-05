@@ -14,8 +14,14 @@ import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
 import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
 import { Sky } from '@react-three/drei'
-import {EffectComposer, N8AO, ToneMapping} from "@react-three/postprocessing";
-import { ToneMappingMode } from 'postprocessing'
+import {
+  EffectComposer,
+  N8AO,
+  TiltShift,
+  TiltShift2,
+  ToneMapping
+} from "@react-three/postprocessing";
+import {ToneMappingMode, VignetteEffect} from 'postprocessing'
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 import { CloudLayers } from './environment/CloudLayers'
 import { Exposure } from '@/shared/r3f/postprocessing/ExposureEffect'
@@ -61,6 +67,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
     ? (lighting.fog?.color || lighting.backgroundColor || '#87CEEB')
     : (lighting.backgroundColor || '#87CEEB')
 
+  const isViewProfile = renderProfile === RenderProfile.View
+
   return (
     <>
       {/* Set scene background */}
@@ -72,17 +80,33 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
         ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
       */}
-      <EffectComposer>
-        {/* Эффект окклюзии N8AO: работает в линейном пространстве до тонемаппинга */}
-        <N8AO quality={'ultra'} aoRadius={2} aoSamples={20} intensity={2} distanceFalloff={3} denoiseRadius={10} denoiseSamples={10} renderMode={0}/>
+      <EffectComposer multisampling={isViewProfile ? 8 : 0}>
+        {/*
+          В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
+          оставляя только экспозицию и тонемаппинг для корректной картинки.
+          Это снижает draw calls в режиме редактирования.
+        */}
+        {isViewProfile && (
+          <N8AO
+            quality={'ultra'}
+            aoRadius={2}
+            aoSamples={20}
+            intensity={2}
+            distanceFalloff={3}
+            denoiseRadius={10}
+            denoiseSamples={10}
+            renderMode={0}
+          />
+        )}
         {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
         <Exposure exposure={lighting.exposure ?? 1.0} />
-         {/*Динамическое «уходение» дальних объектов в цвет неба*/}
-        <AtmosphericTint
+        {isViewProfile && (
+          <AtmosphericTint
             sky={sceneBackground}
-            strength={0.5}   // сила ухода в цвет неба
-            power={1}      // кривая по глубине
-        />
+            strength={0.5}
+            power={1}
+          />
+        )}
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
 
