@@ -12,7 +12,7 @@ console.log('Этап 1: Создание базового ландшафта...
 
 // multiColorApi теперь доступен глобально вместе с sceneApi
 
-const baseResult = await sceneApi.createProceduralLayer({
+const baseResult = await sceneApi.createProceduralLandscape({
   layer: { width: 300, depth: 300, edgeFade: 0.1 },
   base: { 
     seed: 1000, 
@@ -74,4 +74,3 @@ if (objects.length > 0) {
 
 console.log('✓ Многоэтапное создание завершено!')`
 }
-

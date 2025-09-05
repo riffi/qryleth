@@ -55,9 +55,7 @@ export interface SceneObjectManagerContextValue {
     /** Установить данные формы слоя */
     setLayerFormData: (data: SceneLayerFormData) => void
     /** Создать новый слой сцены */
-    handleCreateLayer: () => void
-    /** Сохранить изменения слоя */
-    handleUpdateLayer: () => void
+    // удалено: создание/редактирование слоя теперь в LayerBasicModal
 
     // --- Context menu ---
     contextMenuOpened: boolean

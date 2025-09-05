@@ -1,6 +1,5 @@
-import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants.ts'
 import type { SceneLayer } from '@/entities/scene/types'
-import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
+import { GfxLayerType } from '@/entities/layer'
 
 /**
  * Режим работы модального окна слоя сцены.
@@ -13,21 +12,11 @@ export type SceneLayerModalMode = 'create' | 'edit'
  * Используется для инициализации формы создания или редактирования слоя.
  */
 export const createEmptySceneLayer = (): SceneLayer => ({
-    id: '',
-    name: '',
-    // По умолчанию создаётся «объектный» слой
-    type: GfxLayerType.Object,
-    width: 10,
-    /**
-     * Глубина слоя (ось Z), ранее называлась height в старых версиях.
-     * Значение задаётся в условных метрах.
-     */
-    depth: 10,
-    shape: GfxLayerShape.Plane,
-    color: DEFAULT_LANDSCAPE_COLOR,
-    // Настройки воды по умолчанию (используются, если тип слоя Water)
-    water: { type: 'realistic', brightness: 1 },
-    visible: true,
-    position: 0
-})
+  id: '',
+  name: '',
+  // По умолчанию создаётся «объектный» тонкий слой
+  type: GfxLayerType.Object,
+  visible: true,
+  position: 0,
+} as any)
 

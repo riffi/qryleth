@@ -49,7 +49,7 @@ objects.forEach(obj => {
 
 ```javascript
 // Создать холмистый ландшафт за 30 секунд
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   // Новый рекомендуемый блок параметров слоя террейна
   layer: { width: 200, depth: 200, edgeFade: 0.1, center: [0, 0] },
   base: { 
@@ -199,7 +199,7 @@ const islandSpec = {
   seed: 2024
 }
 
-const island = await sceneApi.createProceduralLayer(islandSpec, {
+const island = await sceneApi.createProceduralLandscape(islandSpec, {
   name: 'Вулканический остров',
   visible: true
 })
@@ -290,10 +290,10 @@ console.log('Остров создан:', island.success ? '✅' : '❌', island
 
 ### Процедурные террейны
 
-- **`createProceduralLayer(spec, layerData?)`** - 🌟 **главный метод** создания террейнов
+- **`createProceduralLandscape(spec, opts?)`** - 🌟 **главный метод** создания террейнов (новая схема)
 - **`generateProceduralTerrain(spec)`** - генерация конфигурации без создания слоя
 - **`generateTerrainOpsFromPool(pool, seed?, opts?)`** - генерация операций рельефа (seed опционален)
-- **`adjustInstancesForPerlinTerrain(terrainLayerId)`** - выравнивание объектов по террейну
+// `adjustInstancesForPerlinTerrain(terrainLayerId)` — удалён в новой архитектуре
 
 ---
 
@@ -607,7 +607,7 @@ const newCategory = {
 const mySpec = {
   // конфигурация
 }
-const result = await sceneApi.createProceduralLayer(mySpec)
+const result = await sceneApi.createProceduralLandscape(mySpec)
 console.log(result)`
 }
 ```

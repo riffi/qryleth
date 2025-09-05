@@ -8,7 +8,7 @@ export const simpleHillsTemplate: TemplateData = {
   name: 'Простые холмы',
   description: 'Базовая генерация холмов за 30 секунд: один слой, без доп. операций.',
   code: `// Создать базовые холмы за 30 секунд
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   // Координаты центрированы: X ∈ [-width/2..+width/2], Z ∈ [-depth/2..+depth/2]
   world: { width: 200, depth: 200, edgeFade: 0.1 },
   base: { 
@@ -28,4 +28,3 @@ const result = await sceneApi.createProceduralLayer({
 
 console.log('Результат:', result)`
 }
-

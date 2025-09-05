@@ -71,16 +71,11 @@ export const MemoizedSceneObject = React.memo<SceneObjectRendererProps>(
 export const MemoizedLandscapeLayer = React.memo<LandscapeLayerProps>(
   LandscapeLayer,
   (prevProps, nextProps) => {
-    // Custom comparison function for landscape layers
+    // Новая архитектура: компонент рендерит содержимое landscapeContent, привязанное к layer.id.
+    // Достаточно отслеживать видимость и id слоя (привязку), остальные поля слоя игнорируются.
     return (
       prevProps.layer.id === nextProps.layer.id &&
-      prevProps.layer.visible === nextProps.layer.visible &&
-      prevProps.layer.width === nextProps.layer.width &&
-      ((prevProps.layer as any).depth ?? (prevProps.layer as any).height) === ((nextProps.layer as any).depth ?? (nextProps.layer as any).height) &&
-      prevProps.layer.shape === nextProps.layer.shape &&
-      prevProps.layer.color === nextProps.layer.color && // учитывать изменение цвета слоя
-      // Важно: учитывать изменения конфигурации террейна (в т.ч. heightmap)
-      prevProps.layer.terrain === nextProps.layer.terrain
+      prevProps.layer.visible === nextProps.layer.visible
     )
   }
 )

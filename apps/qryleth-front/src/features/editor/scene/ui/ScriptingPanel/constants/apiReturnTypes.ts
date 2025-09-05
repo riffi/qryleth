@@ -121,12 +121,5 @@ export const API_RETURN_TYPES: Record<string, TypeSchema> = {
       'instanceUuid': { type: 'string', description: 'UUID созданного экземпляра' },
       'error': { type: 'string', description: 'Сообщение об ошибке' }
     }
-  },
-  'adjustInstancesForPerlinTerrain': {
-    properties: {
-      'success': { type: 'boolean', description: 'Успешность операции' },
-      'adjustedCount': { type: 'number', description: 'Количество настроенных экземпляров' },
-      'error': { type: 'string', description: 'Сообщение об ошибке' }
-    }
   }
 }

@@ -65,12 +65,11 @@ const mountainRangeSpec = {
   seed: 7777
 }
 
-const mountains = await sceneApi.createProceduralLayer(mountainRangeSpec, {
+const mountains = await sceneApi.createProceduralLandscape(mountainRangeSpec, {
   name: 'Горный массив Драконьи Зубы',
   visible: true,
-  color: '#8B7D6B' // Серо-коричневый цвет горного массива
+  material: { color: '#8B7D6B' } // Серо-коричневый цвет горного массива
 })
 
 console.log('Горный массив создан:', mountains)`
 }
-

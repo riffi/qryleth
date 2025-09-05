@@ -28,10 +28,10 @@ const stripeValleySpec = {
   seed: 4204
 }
 
-const stripeValley = await sceneApi.createProceduralLayer(stripeValleySpec, {
+const stripeValley = await sceneApi.createProceduralLandscape(stripeValleySpec, {
   name: 'Полоса долины (coverArea)',
   visible: true,
-  color: '#6B8E23' // Оливково-зеленый цвет долины
+  material: { color: '#6B8E23' } // Оливково-зеленый цвет долины
 })
 
 console.log('Создана полоса долины:', stripeValley)`

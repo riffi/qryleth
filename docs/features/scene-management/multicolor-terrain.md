@@ -31,14 +31,14 @@ const multiColor: GfxMultiColorConfig = {
 ### Основной метод
 
 ```javascript
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   layer: { width: 200, depth: 200 },
   base: { seed: 1000, octaveCount: 4, amplitude: 10 },
   pool: { recipes: [] },
   seed: 1000
 }, {
   name: 'Многоцветный ландшафт',
-  multiColor: multiColorConfig // <- новый параметр
+  material: { multiColor: multiColorConfig } // <- новая схема
 })
 ```
 
@@ -94,7 +94,7 @@ multiColorApi.getDesertHeightConfig()
 // Создание горного ландшафта с готовой конфигурацией
 const { multiColorApi } = await import('@/features/editor/scene/lib/sceneAPI.multicolor')
 
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   layer: { width: 200, depth: 200, edgeFade: 0.15 },
   base: { 
     seed: 2000, 
@@ -106,14 +106,14 @@ const result = await sceneApi.createProceduralLayer({
   seed: 2000
 }, { 
   name: 'Горный ландшафт',
-  multiColor: multiColorApi.getMountainHeightConfig()
+  material: { multiColor: multiColorApi.getMountainHeightConfig() }
 })
 ```
 
 ### Комбинирование с операциями террейна
 
 ```javascript
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   layer: { width: 180, depth: 180, edgeFade: 0.2 },
   base: { 
     seed: 4000, 
@@ -135,7 +135,7 @@ const result = await sceneApi.createProceduralLayer({
   seed: 4000
 }, { 
   name: 'Тропический остров',
-  multiColor: multiColorApi.createTropicalConfig(-8, 25)
+  material: { multiColor: multiColorApi.createTropicalConfig(-8, 25) }
 })
 ```
 

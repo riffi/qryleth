@@ -12,7 +12,7 @@ import { degToRad } from '@/shared/lib/math/number'
 import type { Transform } from '@/shared/types/transform'
 import type { GfxObjectWithTransform } from '@/entities/object/model/types'
 import { correctLLMGeneratedObject } from '@/features/editor/scene/lib/correction/LLMGeneratedObjectCorrector'
-import { placeInstance, adjustAllInstancesForPerlinTerrain, adjustAllInstancesForTerrainAsync,
+import { placeInstance, adjustAllInstancesForLandscapeContentAsync,
   type PlacementStrategyConfig, PlacementStrategy } from '@/features/editor/scene/lib/placement/ObjectPlacementUtils'
 import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import type {
@@ -34,12 +34,14 @@ import type { BoundingBox } from '@/shared/types'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { MultiColorAPI } from './sceneAPI.multicolor'
-import { getHeightSamplerForLayer, getTerrainSamplerAt } from '@/features/editor/scene/lib/placement/terrainAdapter'
+import { getTerrainSamplerAt, pickLandscapeItemAt, getHeightSamplerForLandscapeItem } from '@/features/editor/scene/lib/placement/terrainAdapter'
 import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
 import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUtils'
 import type { GfxCloudsConfig, GfxProceduralCloudSpec } from '@/entities/cloud'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/ProceduralCloudGenerator'
+import type { GfxLandscape } from '@/entities/terrain'
+import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -52,24 +54,24 @@ import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/Pro
  * изменяется — добавляются только наклоны вокруг X и Z.
  *
  * Важно: функция предполагает, что данные heightmap/terrain готовы к чтению
- * (например, после adjustAllInstancesForTerrainAsync, который дожидается загрузки).
+ * (например, после adjustAllInstancesForLandscapeContentAsync, который дожидается загрузки).
  */
 function applySurfaceNormalRotation(
   instances: SceneObjectInstance[],
-  placements: BiomePlacement[],
-  terrainLayer?: SceneLayer
+  placements: BiomePlacement[]
 ): SceneObjectInstance[] {
-  if (!terrainLayer) return instances
-  const sampler = getHeightSamplerForLayer(terrainLayer)
-  if (!sampler) return instances
-
   return instances.map((inst, i) => {
     const p = placements[i]
     const alignCfg = p.alignToSurfaceNormal
     if (!alignCfg || !inst.transform?.position) return inst
 
     const [x, , z] = inst.transform.position
-    const normal = sampler.getNormal(x, z)
+    let normal: [number, number, number] = [0, 1, 0]
+    const picked = pickLandscapeItemAt(x, z)
+    if (picked?.item) {
+      const sampler = getHeightSamplerForLandscapeItem(picked.item)
+      if (sampler) normal = sampler.getNormal(x, z)
+    }
 
     // Опционально ослабляем максимальный наклон с учётом кривизны
     const maxDeg = alignCfg.maxDeviationDeg
@@ -263,7 +265,7 @@ export class SceneAPI {
 
   /**
    * Выполнить скаттеринг для указанного биома: добавляет новые инстансы поверх существующих.
-   * Применяет автоподстройку по террейну через adjustAllInstancesForTerrainAsync.
+   * Применяет автоподстройку по террейну через новую схему landscapeContent.
    */
   static async scatterBiome(
     biomeUuid: string,
@@ -286,22 +288,18 @@ export class SceneAPI {
       const strataHasSurface = (biome.strata || []).some(s => !!s.scattering?.surface)
       const needSurface = baseHasSurface || strataHasSurface
 
-      // Если требуется surface‑оценка — дождаться готовности heightmap‑сэмплеров
+      // Если требуется surface‑оценка — дождаться готовности heightmap‑сэмплеров (новая схема)
       if (needSurface) {
-        const layerSamplers = state.layers
-          .filter(l => l.type === GfxLayerType.Landscape && !!l.terrain)
-          .map(l => getHeightSamplerForLayer(l))
-          .filter(Boolean) as ReturnType<typeof getHeightSamplerForLayer>[]
+        const content = state.landscapeContent
+        const items = content?.items?.filter(i => i.shape === 'terrain' && i.terrain) || []
         const waiters: Promise<void>[] = []
-        for (const s of layerSamplers) {
-          const ready = (s as any).isReady?.()
-          if (ready === false && (s as any).ready) {
-            waiters.push((s as any).ready())
+        for (const it of items) {
+          const sampler = createGfxHeightSampler(it.terrain!)
+          if (it.terrain!.source.kind === 'heightmap' && sampler?.isReady && sampler?.isReady() === false && sampler.ready) {
+            waiters.push(sampler.ready())
           }
         }
-        if (waiters.length > 0) {
-          await Promise.all(waiters)
-        }
+        if (waiters.length > 0) await Promise.all(waiters)
       }
 
       // SurfaceContext: выбрать слой по (x,z); вне террейна — null (жёсткий reject в маске)
@@ -336,18 +334,11 @@ export class SceneAPI {
         }
       })
 
-      // Автоподстройка по террейну
-      const terrainLayer = opts?.landscapeLayerId
-        ? state.layers.find(l => l.id === opts!.landscapeLayerId)
-        : SceneAPI.pickLandscapeLayer()
-
-      let adjusted = newInstances
-      if (terrainLayer) {
-        const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
-        adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
-        // Применим наклон по нормали, если он задан в трансформе биома/страты (прокинут в placements)
-        adjusted = applySurfaceNormalRotation(adjusted, placements, terrainLayer)
-      }
+      // Автоподстройка по террейну (новая схема)
+      const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
+      let adjusted = await adjustAllInstancesForLandscapeContentAsync(newInstances, objectsForBounds)
+      // Применим наклон по нормали, если он задан в трансформе биома/страты (прокинут в placements)
+      adjusted = applySurfaceNormalRotation(adjusted, placements)
 
       // Добавить в store
       adjusted.forEach(inst => state.addObjectInstance(inst))
@@ -392,10 +383,6 @@ export class SceneAPI {
 
       // Обеспечить объекты и создать инстансы
       const objectsByLibraryUuid = await SceneAPI.ensureSceneObjectsForLibrary(placements.map(p => p.libraryUuid))
-      const terrainLayer = opts?.landscapeLayerId
-        ? state.layers.find(l => l.id === opts!.landscapeLayerId)
-        : SceneAPI.pickLandscapeLayer()
-
       const newInstances: SceneObjectInstance[] = placements.map(p => ({
         uuid: generateUUID(),
         objectUuid: objectsByLibraryUuid.get(p.libraryUuid)!,
@@ -408,12 +395,9 @@ export class SceneAPI {
         visible: true
       }))
 
-      let adjusted = newInstances
-      if (terrainLayer) {
-        const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
-        adjusted = await adjustAllInstancesForTerrainAsync(newInstances, terrainLayer, objectsForBounds)
-        adjusted = applySurfaceNormalRotation(adjusted, placements, terrainLayer)
-      }
+      const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
+      let adjusted = await adjustAllInstancesForLandscapeContentAsync(newInstances, objectsForBounds)
+      adjusted = applySurfaceNormalRotation(adjusted, placements)
       adjusted.forEach(inst => state.addObjectInstance(inst))
       return { success: true, deleted: existing.length, created: adjusted.length }
     } catch (e) {
@@ -488,10 +472,12 @@ export class SceneAPI {
     let worldDepth = (opts as any)?.worldDepth ?? (opts as any)?.worldHeight
 
     if (!worldWidth || !worldDepth) {
-      const layer = SceneAPI.pickLandscapeLayer()
-      if (layer?.terrain?.worldWidth && (layer?.terrain as any)?.worldDepth) {
-        worldWidth = layer.terrain.worldWidth
-        worldDepth = (layer.terrain as any).worldDepth
+      // Используем только новую схему (landscapeContent)
+      const content = useSceneStore.getState().landscapeContent
+      const item = content?.items?.find(i => i.shape === 'terrain' && i.terrain)
+      if (item?.terrain?.worldWidth && (item.terrain as any)?.worldDepth) {
+        worldWidth = item.terrain.worldWidth
+        worldDepth = (item.terrain as any).worldDepth
       }
     }
 
@@ -521,55 +507,12 @@ export class SceneAPI {
    * Поддерживает задание цвета слою террейна через параметр `color` или
    * многоцветной конфигурации через параметр `multiColor`.
    */
-  static async createProceduralLayer(
-    spec: GfxProceduralTerrainSpec,
-    layerData?: Partial<SceneLayer>
-  ): Promise<{ success: boolean; layerId?: string; error?: string }> {
-    try {
-      // Базовая конфигурация террейна по спецификации
-      const terrainBase = await SceneAPI.generateProceduralTerrain(spec)
-      // Позволяем переопределить отдельные поля террейна (например, center) через layerData.terrain
-      const terrain: GfxTerrainConfig = { ...terrainBase, ...(layerData?.terrain ?? {}) }
-
-      const base: Omit<SceneLayer, 'id'> = {
-        name: layerData?.name ?? 'Процедурный ландшафт',
-        type: GfxLayerType.Landscape,
-        shape: GfxLayerShape.Terrain,
-        // width/depth берём из spec.layer
-        width: spec.layer?.width,
-        // Для слоя используем термин «depth» вместо «height»
-        depth: spec.layer?.depth,
-        terrain,
-        visible: layerData?.visible ?? true,
-        position: layerData?.position ?? useSceneStore.getState().layers.length,
-        // Поддержка цвета террейна
-        color: layerData?.color,
-        // Поддержка многоцветной окраски
-        multiColor: layerData?.multiColor
-      }
-
-      const merged: Omit<SceneLayer, 'id'> = { ...base, ...layerData, terrain }
-
-      // Создание слоя с автоматической корректировкой инстансов; уведомления отключаем для тестов/скриптов
-      const result = await SceneAPI.createLayerWithAdjustment(merged, terrain, { showNotifications: false })
-      return { success: result.success, layerId: result.layerId, error: result.error }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }
-  }
+  // createProceduralLayer удалён — используйте createProceduralLandscape (новая схема)
   /**
    * Выбрать подходящий landscape-слой для размещения объектов.
    * В приоритете слой с формой `Terrain`, иначе будет выбран любой слой типа `Landscape`.
    */
-  private static pickLandscapeLayer(): SceneLayer | undefined {
-    const state = useSceneStore.getState()
-    return state.layers.find(layer =>
-      layer.type === GfxLayerType.Landscape && layer.shape === GfxLayerShape.Terrain
-    ) || state.layers.find(layer => layer.type === GfxLayerType.Landscape)
-  }
+  // pickLandscapeLayer удалён: новая архитектура не опирается на «толстые» слои
 
   /**
    * Подготовить список уже существующих экземпляров с их BoundingBox для проверки коллизий.
@@ -674,6 +617,116 @@ export class SceneAPI {
   static findObjectByName(name: string): SceneObject | null {
     const state = useSceneStore.getState()
     return state.objects.find(obj => obj.name.toLowerCase().includes(name.toLowerCase())) || null
+  }
+
+  /**
+   * Создать ландшафт по новой схеме (landscapeContent) и связать его с единственным слоем типа Landscape.
+   *
+   * Новый метод полностью повторяет суть createProceduralLayer, но вместо «толстого» слоя
+   * создаёт элемент ландшафта (GfxLandscape) внутри контейнера landscapeContent и гарантирует,
+   * что существует ровно один тонкий слой типа GfxLayerType.Landscape, с которым связан контейнер.
+   *
+   * Поведение:
+   * - генерирует GfxTerrainConfig по спецификации (spec);
+   * - обеспечивает наличие единственного landscape‑слоя (создаёт при отсутствии);
+   * - добавляет площадку ландшафта shape='terrain' в landscapeContent.items;
+   * - пытается скорректировать Y‑позиции существующих инстансов под рельеф новой площадки.
+   *
+   * Возвращает ID слоя ландшафта, с которым связан контейнер.
+   */
+  static async createProceduralLandscape(
+    spec: GfxProceduralTerrainSpec,
+    opts?: {
+      /** Человекочитаемое имя площадки (для UI). */
+      name?: string
+      /** Центр площадки XZ, переопределяет terrain.center. */
+      center?: [number, number]
+      /** Размер площадки, переопределяет размеры из terrain.worldWidth/worldDepth. */
+      size?: { width: number; depth: number }
+      /** Материал площадки: одноцветный или многоцветный по высоте. */
+      material?: { color?: string; multiColor?: import('@/entities/layer').GfxMultiColorConfig }
+    }
+  ): Promise<{ success: boolean; layerId?: string; error?: string }> {
+    try {
+      // 1) Сгенерировать конфигурацию террейна по спецификации
+      const terrain = await SceneAPI.generateProceduralTerrain(spec)
+
+      // 2) Обеспечить наличие единственного слоя ландшафта и связанного контейнера
+      const layerId = SceneAPI.ensureLandscapeLayer()
+      useSceneStore.getState().setLandscapeLayer(layerId)
+
+      // 3) Сформировать элемент ландшафта и добавить его в контейнер
+      const size = opts?.size ?? { width: terrain.worldWidth, depth: (terrain as any).worldDepth }
+      const center: [number, number] | undefined = opts?.center ?? terrain.center
+      const item: GfxLandscape = {
+        id: generateUUID(),
+        name: opts?.name ?? 'Процедурный ландшафт',
+        shape: 'terrain',
+        size,
+        center,
+        terrain,
+        material: opts?.material
+      }
+      useSceneStore.getState().addLandscapeItem(item)
+
+      // 4) Попробовать скорректировать существующие инстансы по высоте ландшафта новой площадки
+      await SceneAPI.adjustInstancesForLandscapeItem(item)
+
+      return { success: true, layerId }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
+  /**
+   * Обеспечивает наличие единственного слоя типа Landscape.
+   * Если он отсутствует — создаёт новый тонкий слой и возвращает его ID.
+   */
+  private static ensureLandscapeLayer(): string {
+    const state = useSceneStore.getState()
+    const existing = state.layers.find(l => l.type === GfxLayerType.Landscape)
+    if (existing) return existing.id
+    state.createLayer({ name: 'Ландшафт', type: GfxLayerType.Landscape, visible: true, position: state.layers.length })
+    const created = useSceneStore.getState().layers.slice(-1)[0]
+    if (!created) throw new Error('Не удалось создать слой ландшафта')
+    return created.id
+  }
+
+  /**
+   * Корректировка Y‑координаты всех существующих инстансов под рельеф указанной площадки ландшафта.
+   * Работает по новой схеме без привязки к «толстому» слою.
+   */
+  private static async adjustInstancesForLandscapeItem(item: GfxLandscape): Promise<void> {
+    if (item.shape !== 'terrain' || !item.terrain) return
+    const sampler = createGfxHeightSampler(item.terrain)
+    // Ожидаем готовности heightmap, если требуется
+    await sampler.ready?.()
+
+    const halfW = (item.size?.width ?? 1) / 2
+    const halfD = (item.size?.depth ?? 1) / 2
+    const cx = item.center?.[0] ?? 0
+    const cz = item.center?.[1] ?? 0
+
+    const state = useSceneStore.getState()
+    const objectsForBounds = state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox }))
+    const updated = state.objectInstances.map(inst => {
+      const pos = inst.transform?.position
+      if (!pos) return inst
+      const [x, y, z] = pos
+      // Приводим к локальным координатам площадки
+      const lx = x - cx
+      const lz = z - cz
+      if (lx < -halfW || lx > halfW || lz < -halfD || lz > halfD) return inst
+      let terrainY = sampler.getHeight(x, z)
+      const ob = objectsForBounds.find(o => o.uuid === inst.objectUuid)
+      if (ob?.boundingBox) {
+        const scale = inst.transform?.scale || [1, 1, 1]
+        const bottomOffset = ob.boundingBox.min[1] * scale[1]
+        terrainY = terrainY - bottomOffset
+      }
+      return { ...inst, transform: { ...inst.transform, position: [x, terrainY, z] as [number, number, number] } }
+    })
+    state.setObjectInstances(updated)
   }
 
   // =============================
@@ -825,30 +878,23 @@ export class SceneAPI {
     try {
       // Окружение всегда доступно
 
-      // Область: если не задана — берём размеры мира и центр из первого terrain-слоя
+      // Область: если не задана — берём размеры мира и центр из первой terrain‑площадки landscapeContent
       if (!spec.area) {
-        const terrain = SceneAPI.pickLandscapeLayer()
-        if (terrain?.terrain?.worldWidth && (terrain.terrain as any)?.worldDepth) {
-          const w = terrain.terrain.worldWidth
-          const d = (terrain.terrain as any).worldDepth
-          const c = (terrain.terrain as any).center as [number, number] | undefined
-          const cx = c?.[0] ?? 0
-          const cz = c?.[1] ?? 0
+        const content = useSceneStore.getState().landscapeContent
+        const first = content?.items?.find(i => i.shape === 'terrain' && i.terrain)
+        if (first?.terrain?.worldWidth && (first.terrain as any)?.worldDepth) {
+          const w = first.terrain.worldWidth
+          const d = (first.terrain as any).worldDepth
+          const cx = first.center?.[0] ?? first.terrain.center?.[0] ?? 0
+          const cz = first.center?.[1] ?? first.terrain.center?.[1] ?? 0
           const halfW = w / 2
           const halfD = d / 2
-          // Используем геометрический центр террейна: область строго над террейном
           spec = {
             ...spec,
-            area: {
-              kind: 'rect',
-              xMin: cx - halfW,
-              xMax: cx + halfW,
-              zMin: cz - halfD,
-              zMax: cz + halfD
-            }
+            area: { kind: 'rect', xMin: cx - halfW, xMax: cx + halfW, zMin: cz - halfD, zMax: cz + halfD }
           }
         } else {
-          return { success: false, created: 0, layerId: 'environment', error: 'Cannot infer area: no Terrain layer with world size' }
+          return { success: false, created: 0, layerId: 'environment', error: 'Cannot infer area: no landscapeContent terrain' }
         }
       }
 
@@ -995,117 +1041,7 @@ export class SceneAPI {
     }
   }
 
-  /**
-   * Adjust all object instances for terrain when a terrain layer is added
-   * Работает только с новой архитектурой (legacy удалён)
-   */
-  static adjustInstancesForPerlinTerrain(terrainLayerId: string): { success: boolean; adjustedCount?: number; error?: string } {
-    try {
-      const state = useSceneStore.getState()
-      const { objectInstances, layers, setObjectInstances } = state
-
-      // Find the terrain layer (new architecture only)
-      const terrainLayer = layers.find(layer =>
-        layer.id === terrainLayerId &&
-        layer.type === GfxLayerType.Landscape &&
-        layer.shape === GfxLayerShape.Terrain &&
-        layer.terrain
-      )
-
-      if (!terrainLayer) {
-        return {
-          success: false,
-          error: `Terrain layer with ID ${terrainLayerId} not found or has no terrain data`
-        }
-      }
-
-      // Adjust all instances using the updated function that supports all terrain types
-      const adjustedInstances = adjustAllInstancesForPerlinTerrain(
-        objectInstances,
-        terrainLayer,
-        state.objects.map(obj => ({
-          uuid: obj.uuid,
-          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj)
-        }))
-      )
-
-      // Count how many were actually adjusted
-      const adjustedCount = adjustedInstances.filter((instance, index) => {
-        const original = objectInstances[index]
-        return instance.transform?.position?.[1] !== original.transform?.position?.[1]
-      }).length
-
-      // Update the store
-      setObjectInstances(adjustedInstances)
-
-      return {
-        success: true,
-        adjustedCount
-      }
-
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to adjust instances for terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }
-    }
-  }
-
-  /**
-   * Асинхронная версия функции корректировки экземпляров объектов для террейна.
-   * Ожидает полной загрузки данных heightmap перед выравниванием инстансов.
-   */
-  static async adjustInstancesForTerrainAsync(terrainLayerId: string): Promise<{ success: boolean; adjustedCount?: number; error?: string }> {
-    try {
-      const state = useSceneStore.getState()
-      const { objectInstances, layers, setObjectInstances } = state
-
-      // Find the terrain layer (new architecture only)
-      const terrainLayer = layers.find(layer =>
-        layer.id === terrainLayerId &&
-        layer.type === GfxLayerType.Landscape &&
-        layer.shape === GfxLayerShape.Terrain &&
-        layer.terrain
-      )
-
-      if (!terrainLayer) {
-        return {
-          success: false,
-          error: `Terrain layer with ID ${terrainLayerId} not found or has no terrain data`
-        }
-      }
-
-      // Используем асинхронную версию для корректного ожидания загрузки heightmap данных
-      const adjustedInstances = await adjustAllInstancesForTerrainAsync(
-        objectInstances,
-        terrainLayer,
-        state.objects.map(obj => ({
-          uuid: obj.uuid,
-          boundingBox: obj.boundingBox || calculateObjectBoundingBox(obj)
-        }))
-      )
-
-      // Count how many were actually adjusted
-      const adjustedCount = adjustedInstances.filter((instance, index) => {
-        const original = objectInstances[index]
-        return instance.transform?.position?.[1] !== original.transform?.position?.[1]
-      }).length
-
-      // Update the store
-      setObjectInstances(adjustedInstances)
-
-      return {
-        success: true,
-        adjustedCount
-      }
-
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to adjust instances for terrain: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }
-    }
-  }
+  // adjustInstancesForPerlinTerrain / adjustInstancesForTerrainAsync удалены — используйте adjustAllInstancesForLandscapeContentAsync
 
   /**
    * Создать слой с автоматическим выравниванием объектов по террейну (если применимо).
@@ -1254,9 +1190,6 @@ export class SceneAPI {
       // Получить bounding box объекта
       const objectBoundingBox = existingObject.boundingBox || calculateObjectBoundingBox(existingObject)
 
-      // Найти landscape слой для размещения
-      const landscapeLayer = SceneAPI.pickLandscapeLayer()
-
       // Собрать существующие экземпляры для избежания коллизий
       const existingInstances = SceneAPI.collectExistingInstancesWithBounds()
 
@@ -1264,7 +1197,6 @@ export class SceneAPI {
       const createdInstances = placeInstance(
         objectUuid,
         {
-          landscapeLayer,
           alignToTerrainHeight: true,
           alignToTerrainRotation: true,
           objectBoundingBox,
@@ -1366,7 +1298,6 @@ export class SceneAPI {
       const createdInstances = placeInstance(
         objectUuid,
         {
-          landscapeLayer,
           alignToTerrainHeight: true,
           alignToTerrainRotation: true,
           objectBoundingBox: boundingBox,

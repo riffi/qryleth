@@ -43,7 +43,7 @@
 
 ```javascript
 // Создать простые холмы за 30 секунд
-const result = await sceneApi.createProceduralLayer({
+const result = await sceneApi.createProceduralLandscape({
   // Новый рекомендуемый блок параметров слоя
   layer: { width: 200, depth: 200, edgeFade: 0.1, center: [0, 0] },
   base: { 
@@ -59,7 +59,7 @@ const result = await sceneApi.createProceduralLayer({
 }, { 
   name: 'Мои первые холмы', 
   visible: true,
-  color: '#228B22' // Зеленый цвет холмов
+  material: { color: '#228B22' } // Зеленый цвет холмов
 })
 
 console.log('Результат:', result)
@@ -136,7 +136,7 @@ const valleySpec = {
   seed: 1001
 }
 
-const layer = await sceneApi.createProceduralLayer(valleySpec, {
+const layer = await sceneApi.createProceduralLandscape(valleySpec, {
   name: 'Долина Драконов',
   visible: true
 })
@@ -198,7 +198,7 @@ const islandSpec = {
   seed: 2024
 }
 
-const island = await sceneApi.createProceduralLayer(islandSpec, {
+const island = await sceneApi.createProceduralLandscape(islandSpec, {
   name: 'Вулканический остров',
   visible: true
 })
@@ -266,7 +266,7 @@ const archipelagoSpec = {
   seed: 3333
 }
 
-const archipelago = await sceneApi.createProceduralLayer(archipelagoSpec, {
+const archipelago = await sceneApi.createProceduralLandscape(archipelagoSpec, {
   name: 'Тропический архипелаг',
   visible: true
 })
@@ -318,7 +318,7 @@ const hillsSpec = {
   seed: 4444
 }
 
-const hills = await sceneApi.createProceduralLayer(hillsSpec, {
+const hills = await sceneApi.createProceduralLandscape(hillsSpec, {
   name: 'Пасторальные холмы',
   visible: true
 })
@@ -336,11 +336,11 @@ console.log('Созданы холмы:', hills)
 
 В **Scripting Panel** вам доступен объект `sceneApi` с методами для управления террейнами:
 
-#### `sceneApi.createProceduralLayer(spec, layerData?)`
+#### `sceneApi.createProceduralLandscape(spec, opts?)`
 **Основной метод** — создает слой террейна и размещает объекты.
 
 ```javascript
-const result = await sceneApi.createProceduralLayer(
+const result = await sceneApi.createProceduralLandscape(
   spec,      // спецификация террейна (объект ниже)
   layerData  // опциональные данные слоя: { name?, visible?, position?, color? }
 )
@@ -733,7 +733,7 @@ const coastalSpec = {
   seed: 2025
 }
 
-const coast = await sceneApi.createProceduralLayer(coastalSpec, { name: 'Касательные утёсы' })
+const coast = await sceneApi.createProceduralLandscape(coastalSpec, { name: 'Касательные утёсы' })
 ```
 
 Пример: «лучи лавы» — радиальные гряды к центру кратера
@@ -761,7 +761,7 @@ const lavaRaysSpec = {
   seed: 913
 }
 
-const lavaRays = await sceneApi.createProceduralLayer(lavaRaysSpec, { name: 'Радиальные «лучи лавы»' })
+const lavaRays = await sceneApi.createProceduralLandscape(lavaRaysSpec, { name: 'Радиальные «лучи лавы»' })
 ```
 
 ### Реалистичный горный массив
@@ -826,7 +826,7 @@ const mountainRangeSpec = {
   seed: 7777
 }
 
-const mountains = await sceneApi.createProceduralLayer(mountainRangeSpec, {
+const mountains = await sceneApi.createProceduralLandscape(mountainRangeSpec, {
   name: 'Горный массив Драконьи Зубы',
   visible: true
 })
@@ -898,7 +898,7 @@ const coastalSpec = {
   seed: 9999
 }
 
-const coast = await sceneApi.createProceduralLayer(coastalSpec, {
+const coast = await sceneApi.createProceduralLandscape(coastalSpec, {
   name: 'Изрезанное побережье',
   visible: true
 })
@@ -930,11 +930,11 @@ console.log('Слои:', layers)
 
 ```javascript
 // После создания террейна выровнять все объекты
-const terrainResult = await sceneApi.createProceduralLayer(spec, { name: 'Новый террейн' })
+const terrainResult = await sceneApi.createProceduralLandscape(spec, { name: 'Новый террейн' })
 
 if (terrainResult.success && terrainResult.layerId) {
   // Выровнять объекты по новому террейну
-  const adjustResult = sceneApi.adjustInstancesForPerlinTerrain(terrainResult.layerId)
+  // Выравнивание выполняется автоматически; отдельный метод удалён в новой архитектуре
   console.log('Выравнивание объектов:', adjustResult)
 }
 ```
@@ -972,7 +972,7 @@ const ops = await sceneApi.generateTerrainOpsFromPool(pool, seed, options)
 console.log(`Будет создано ${ops.length} операций:`, ops)
 
 // Проверить результат создания
-const result = await sceneApi.createProceduralLayer(spec, layerData)
+const result = await sceneApi.createProceduralLandscape(spec, { name: layerData?.name, material: layerData?.color ? { color: layerData.color } : undefined })
 if (result.success) {
   console.log(`✓ Террейн создан с ID: ${result.layerId}`)
 } else {
@@ -1004,7 +1004,7 @@ const testSpec = {
 
 ```javascript
 // Этап 1: Создать базовый ландшафт
-const baseResult = await sceneApi.createProceduralLayer({
+const baseResult = await sceneApi.createProceduralLandscape({
   layer: { width: 300, depth: 300 },
   base: { seed: 1000, octaveCount: 4, amplitude: 5, persistence: 0.4, width: 128, height: 128 },
   pool: { recipes: [] },
@@ -1047,8 +1047,8 @@ const myFavoriteSpec = {
 }
 
 // Использовать в любой момент:
-const terrain1 = await sceneApi.createProceduralLayer(myFavoriteSpec, { name: 'Копия ландшафта 1' })
-const terrain2 = await sceneApi.createProceduralLayer({...myFavoriteSpec, seed: 6666}, { name: 'Вариация' })
+const terrain1 = await sceneApi.createProceduralLandscape(myFavoriteSpec, { name: 'Копия ландшафта 1' })
+const terrain2 = await sceneApi.createProceduralLandscape({...myFavoriteSpec, seed: 6666}, { name: 'Вариация' })
 ```
 
 ---

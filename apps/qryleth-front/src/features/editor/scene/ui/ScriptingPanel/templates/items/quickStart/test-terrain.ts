@@ -28,11 +28,10 @@ const testSpec = {
   seed: 123
 }
 
-const test = await sceneApi.createProceduralLayer(testSpec, { 
+const test = await sceneApi.createProceduralLandscape(testSpec, { 
   name: 'Тест', 
   visible: true 
 })
 
 console.log('Тестовый террейн:', test)`
 }
-

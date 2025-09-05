@@ -41,7 +41,7 @@ for (const test of testSizes) {
   }
   
   try {
-    const result = await sceneApi.createProceduralLayer(spec, { 
+    const result = await sceneApi.createProceduralLandscape(spec, { 
       name: 'Тест ' + test.name.toLowerCase(), 
       visible: true 
     })
@@ -61,4 +61,3 @@ for (const test of testSizes) {
 
 console.log('\nТест производительности завершен!')`
 }
-

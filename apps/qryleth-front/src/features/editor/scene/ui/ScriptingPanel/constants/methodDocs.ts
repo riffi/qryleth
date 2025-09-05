@@ -134,11 +134,7 @@ export const METHOD_DOCS: Record<string, string> = {
 Возвращает: Promise<{success: boolean, objectUuid?: string, instanceUuid?: string, error?: string}>
 Описание: Импортировать объект из библиотеки и разместить экземпляры по стратегии`,
 
-  adjustInstancesForPerlinTerrain: `adjustInstancesForPerlinTerrain(perlinLayerId: string): TerrainAdjustResult
-Параметры:
-  perlinLayerId: string - ID слоя с Perlin ландшафтом
-Возвращает: {success: boolean, adjustedCount?: number, error?: string}
-Описание: Привязать экземпляры к ландшафту Perlin`,
+  
 
   // Методы террейна (были описаны ранее в completionData.ts)
   generateProceduralTerrain: `generateProceduralTerrain(spec): Promise<GfxTerrainConfig>
@@ -159,15 +155,28 @@ export const METHOD_DOCS: Record<string, string> = {
 }, undefined, { worldWidth: 200, worldDepth: 200 }) // сид сгенерируется автоматически
 Описание: Генерирует только операции модификации рельефа; если seed не указан — создаётся автоматически`,
 
-  createProceduralLayer: `createProceduralLayer(spec, layerData?): Promise<{ success, layerId?, error? }>
-🌟 ГЛАВНЫЙ МЕТОД для создания террейнов!
-Пример: await sceneApi.createProceduralLayer({
-  world: { width: 200, depth: 200 },
-  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64, heightOffset: 0 },
+  createProceduralLandscape: `createProceduralLandscape(spec, opts?): Promise<{ success, layerId?, error? }>
+🌟 ГЛАВНЫЙ МЕТОД создания ландшафта (новая схема)!
+Создаёт элемент ландшафта (shape: 'terrain') в контейнере landscapeContent и обеспечивает единственный слой типа 'landscape'.
+Параметры:
+  spec: GfxProceduralTerrainSpec — спецификация генерации рельефа (мир, база, рецепты, seed)
+  opts?: {
+    name?: string,                      // имя площадки ландшафта
+    center?: [number, number],          // центр площадки XZ (переопределит terrain.center)
+    size?: { width: number, depth: number }, // размеры площадки (переопределят terrain.worldWidth/worldDepth)
+    material?: { color?: string, multiColor?: GfxMultiColorConfig } // материал площадки
+  }
+Пример: await sceneApi.createProceduralLandscape({
+  layer: { width: 200, depth: 200 },
+  base: { seed: 42, octaveCount: 4, amplitude: 8, persistence: 0.5, width: 64, height: 64 },
   pool: { recipes: [{ kind: 'hill', count: 10, placement: { type: 'uniform' }, radius: 15, intensity: 5 }] },
   seed: 42
-}, { name: 'Мой террейн', visible: true, color: '#228B22' })
-Описание: Создает террейн в сцене и выравнивает объекты. Поддерживает color для задания цвета слою`,
+}, { name: 'Мой террейн', material: { color: '#228B22' } })
+Описание: Создаёт ландшафт в новой архитектуре и корректирует позиции объектов по рельефу.`,
+
+  createProceduralLayer: `createProceduralLayer(spec, layerData?): Promise<{ success, layerId?, error? }>
+ПОМЕТКА: legacy‑метод для старой схемы «толстых» слоёв.
+Описание: создаёт слой с террейном внутри и корректирует объекты. Новым скриптам рекомендуется использовать createProceduralLandscape()`,
 
   // ===== Биомы =====
   getBiomes: `getBiomes(): GfxBiome[]
@@ -278,14 +287,13 @@ export const getSceneApiMethodList = (): string[] => [
   'addInstances',
   'generateProceduralTerrain',
   'generateTerrainOpsFromPool',
-  'createProceduralLayer',
+  'createProceduralLandscape',
   'getSceneStats',
   'createObject',
   'getAvailableLayers',
   'canAddInstance',
   'searchObjectsInLibrary',
   'addObjectFromLibrary',
-  'adjustInstancesForPerlinTerrain',
   // Биомы
   'getBiomes',
   'addBiome',

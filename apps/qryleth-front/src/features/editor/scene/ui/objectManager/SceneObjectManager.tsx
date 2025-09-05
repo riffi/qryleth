@@ -45,7 +45,6 @@ import type { LightingSettings } from '@/entities/lighting'
 import type {ObjectRecord} from "@/shared/api";
 import { downloadJson } from '@/shared/lib/downloadJson.ts'
 import { copyJsonToClipboard } from '@/shared/lib/copyJsonToClipboard.ts'
-import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants.ts'
 import { SceneAPI } from '@/features/editor/scene/lib/sceneAPI'
 import { generateObjectPreview } from '@/features/editor/object/lib'
 import type {
@@ -56,7 +55,7 @@ import type {
 import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import type {SceneLayer} from "@/entities";
-import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
+import { GfxLayerType } from '@/entities/layer'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -65,7 +64,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
     const [layerModalOpened, setLayerModalOpened] = useState(false)
     const [layerModalMode, setLayerModalMode] = useState<SceneLayerModalMode>('create')
-    const [layerFormData, setLayerFormData] = useState<SceneLayerFormData>(createEmptySceneLayer())
+    const [layerFormData, setLayerFormData] = useState<SceneLayerFormData>(createEmptySceneLayer() as any)
     // Новые модалки содержимого
     const [landscapeModalOpened, setLandscapeModalOpened] = useState(false)
     const [landscapeModalMode, setLandscapeModalMode] = useState<'create' | 'edit'>('create')
@@ -98,6 +97,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const removeLandscapeItem = useSceneStore(state => state.removeLandscapeItem)
     const removeWaterBody = useSceneStore(state => state.removeWaterBody)
     const { lighting: storeLighting } = useSceneMetadata()
+    const setLandscapeLayer = useSceneStore(state => state.setLandscapeLayer)
     const { selectedObject: storeSelectedObject } = useSelectionState()
     const sceneMetaData = useSceneStore(state => state.sceneMetaData)
     const {
@@ -164,109 +164,22 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }
 
 
-    /**
-     * Создать новый слой сцены на основе введённых параметров.
-     * Цвет слоя сохраняется в поле `color` и используется при рендеринге.
-     * При создании terrain-слоя автоматически корректирует позиции всех объектов.
-     */
-    const handleCreateLayer = async () => {
-        let layerName = layerFormData.name.trim()
-
-        // Названия по умолчанию для специальных типов слоёв
-        if (layerFormData.type === GfxLayerType.Landscape) {
-            layerName = 'landscape'
-        } else if (layerFormData.type === GfxLayerType.Water) {
-            layerName = 'вода'
-        }
-
-        if (layerFormData.type === GfxLayerType.Object && !layerName) return
-
-        const layerData = {
-            name: layerName,
-            type: layerFormData.type,
-            visible: true,
-            position: layers.length,
-            color: layerFormData.color,
-            ...((layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) && {
-                width: layerFormData.width,
-                // Используем термин depth вместо height
-                depth: (layerFormData as any).depth ?? (layerFormData as any).height,
-                shape: layerFormData.shape
-            }),
-            // Для водного слоя пробрасываем пользовательские параметры воды
-            ...(layerFormData.type === GfxLayerType.Water ? { water: (layerFormData as any).water } : {})
-        }
-
-        try {
-            // Используем централизованный API для создания слоя с выравниванием
-            const result = await SceneAPI.createLayerWithAdjustment(layerData, undefined, {
-                maxAttempts: 10,
-                showNotifications: true
-            })
-
-            if (result.success) {
-                setLayerFormData(createEmptySceneLayer())
-                setLayerModalOpened(false)
-            } else {
-                notifications.show({
-                    title: 'Ошибка создания слоя',
-                    message: result.error || 'Не удалось создать слой',
-                    color: 'red'
-                })
-            }
-        } catch (error) {
-            notifications.show({
-                title: 'Ошибка создания слоя',
-                message: error instanceof Error ? error.message : 'Неизвестная ошибка',
-                color: 'red'
-            })
-        }
-    }
-
-    /**
-     * Обновить параметры выбранного слоя.
-     * Передает новые значения в zustand‑хранилище, включая цвет поверхности.
-     */
-    const handleUpdateLayer = () => {
-        if (!layerFormData.name.trim() || !layerFormData.id) return
-        const updates: Partial<SceneLayer> = {
-            name: layerFormData.name.trim(),
-            width: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.width : undefined,
-            // Новое поле глубины слоя. Для совместимости поддерживаем чтение из legacy height в форме
-            depth: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water)
-              ? ((layerFormData as any).depth ?? (layerFormData as any).height)
-              : undefined,
-            shape: (layerFormData.type === GfxLayerType.Landscape || layerFormData.type === GfxLayerType.Water) ? layerFormData.shape : undefined,
-            color: layerFormData.color,
-            // Пробрасываем настройки воды, если тип слоя — Water
-            ...(layerFormData.type === GfxLayerType.Water ? { water: (layerFormData as any).water } : {})
-        }
-        storeUpdateLayer(layerFormData.id, updates)
-        setLayerFormData(createEmptySceneLayer())
-        setLayerModalOpened(false)
-    }
+    // handleCreateLayer / handleUpdateLayer удалены — создание/редактирование выполняет LayerBasicModal
 
     /**
      * Открыть модальное окно редактирования слоя и заполнить поля текущими значениями.
      * Цвет слоя также подставляется в поле выбора цвета.
      */
     const openEditLayerModal = (layer: SceneLayer) => {
-        setLayerFormData({
-            id: layer.id,
-            name: layer.name,
-            type: layer.type || GfxLayerType.Object,
-            width: layer.width || 10,
-            // В форме используем поле depth, читаем legacy height при наличии
-            depth: (layer as any).depth ?? (layer as any).height ?? 10,
-            shape: layer.shape || GfxLayerShape.Plane,
-            color: layer.color || DEFAULT_LANDSCAPE_COLOR,
-            visible: layer.visible,
-            position: layer.position,
-            // Поддержка настроек воды при редактировании
-            ...(layer.type === GfxLayerType.Water ? { water: { type: ((layer as any).water?.type || 'realistic'), brightness: ((layer as any).water?.brightness ?? 1.6) } } : {})
-        })
-        setLayerModalMode('edit')
-        setLayerModalOpened(true)
+      setLayerFormData({
+        id: layer.id,
+        name: layer.name,
+        type: layer.type || GfxLayerType.Object,
+        visible: layer.visible,
+        position: layer.position,
+      } as any)
+      setLayerModalMode('edit')
+      setLayerModalOpened(true)
     }
 
     // Handlers using Zustand store
@@ -562,8 +475,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             setLayerModalMode={setLayerModalMode}
             layerFormData={layerFormData}
             setLayerFormData={setLayerFormData}
-            handleCreateLayer={handleCreateLayer}
-            handleUpdateLayer={handleUpdateLayer}
+            // handleCreateLayer/handleUpdateLayer удалены из контекста
             contextMenuOpened={contextMenuOpened}
             setContextMenuOpened={setContextMenuOpened}
             contextMenuPosition={contextMenuPosition}

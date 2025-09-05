@@ -76,7 +76,15 @@ export const getBaseCompletions = () => [
   { label: 'rMin', type: 'property', info: createStyledTooltip('Описание: Минимальный радиус для ring размещения') },
   { label: 'rMax', type: 'property', info: createStyledTooltip('Описание: Максимальный радиус для ring размещения') },
   { label: 'center', type: 'property', info: createStyledTooltip('Описание: Центр для ring размещения: [x, z]') },
-  { label: 'area', type: 'property', info: createStyledTooltip('Описание: Ограничение области: { kind: rect|circle, ...параметры }') }
+  { label: 'area', type: 'property', info: createStyledTooltip('Описание: Ограничение области: { kind: rect|circle, ...параметры }') },
+
+  // Новая архитектура: материал площадки ландшафта
+  { label: 'material', type: 'property', info: createStyledTooltip('Описание: Материал площадки (новая схема): { color?, multiColor? }') },
+  { label: 'color', type: 'property', info: createStyledTooltip('Описание: Простой цвет материала площадки (например, "#4a7c59")') },
+  { label: 'multiColor', type: 'property', info: createStyledTooltip('Описание: Многоцветная окраска по высоте: { mode?, palette, slopeBoost? }') },
+  { label: 'mode', type: 'property', info: createStyledTooltip("Описание: Режим мультиокраски: 'vertex' (по вершинам) или 'triangle' (по треугольникам)") },
+  { label: 'palette', type: 'property', info: createStyledTooltip('Описание: Палитра [{ height, color, alpha? }, ...] для мультиокраски') },
+  { label: 'slopeBoost', type: 'property', info: createStyledTooltip('Описание: Усиление влияния склонов на яркость цвета (0..1)') }
 ]
 
 // Подсказки TS-типов исключены: панель поддерживает только JavaScript

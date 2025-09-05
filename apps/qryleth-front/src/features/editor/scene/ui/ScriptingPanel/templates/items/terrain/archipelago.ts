@@ -61,10 +61,10 @@ const archipelagoSpec = {
   },
 }
 
-const archipelago = await sceneApi.createProceduralLayer(archipelagoSpec, {
+const archipelago = await sceneApi.createProceduralLandscape(archipelagoSpec, {
   name: 'Тропический архипелаг',
   visible: true,
-    multiColor: {
+  material: { multiColor: {
     mode: 'vertex',
     // опционально:
    palette: [
@@ -94,7 +94,7 @@ const archipelago = await sceneApi.createProceduralLayer(archipelagoSpec, {
     { height: 100, color: '#FFFFFF' }  // снежные шапки
     ],
     slopeBoost: 0.3, // 0..1 — подкрашивает крутые склоны
-  }
+  } }
 })
 
 console.log('Создан архипелаг:', archipelago)`

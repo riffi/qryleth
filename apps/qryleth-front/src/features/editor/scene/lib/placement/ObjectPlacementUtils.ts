@@ -5,7 +5,14 @@ import { generateUUID } from '@/shared/lib/uuid'
 import { normalToRotation as normalToRotationShared } from '@/shared/lib/placement/orientation'
 import { createRng } from '@/shared/lib/utils/prng'
 import { PlacementStrategy, type PlacementStrategyConfig, type RandomMetadata, type RandomNoCollisionMetadata, type PlaceAroundMetadata } from './strategies'
-import { getHeightSamplerForLayer, queryHeightAtCoordinate, calculateSurfaceNormal } from './terrainAdapter'
+import {
+  getHeightSamplerForLayer,
+  queryHeightAtCoordinate,
+  calculateSurfaceNormal,
+  pickLandscapeItemAt,
+  getHeightSamplerForLandscapeItem,
+} from './terrainAdapter'
+import { useSceneStore } from '../../model/sceneStore'
 import { generateRandomNoCollisionPosition as genRandomNoCollisionPosition } from './randomNoCollision'
 import { generatePlaceAroundPosition as genPlaceAroundPosition } from './placeAround'
 
@@ -61,20 +68,38 @@ export interface PlacementResult {
 /**
  * Generate object placement position based on strategy (legacy version)
  */
+/**
+ * Сгенерировать позицию размещения объекта в зависимости от стратегии (legacy‑версия).
+ *
+ * В новой архитектуре (landscapeContent) при отсутствии явно переданного landscapeLayer
+ * границы берутся из первой подходящей площадки ландшафта (shape='terrain'), если она есть.
+ */
 export const generateObjectPlacement = (options: PlacementOptions): PlacementResult => {
   const { strategy, customPosition, bounds, landscapeLayer } = options
   // Приоритет: явно переданный rng > seed > Math.random
   const rng = options.rng ?? (options.seed !== undefined ? createRng(options.seed) : Math.random)
 
   // Determine bounds from landscape layer if available (terrain-aware)
-  const worldW = landscapeLayer
-    ? (landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10)
-    : 10
-  const worldH = landscapeLayer
-    ? (landscapeLayer.terrain?.worldDepth ?? landscapeLayer.depth ?? 10)
-    : 10
-  const centerX = landscapeLayer?.terrain?.center?.[0] ?? 0
-  const centerZ = landscapeLayer?.terrain?.center?.[1] ?? 0
+  let worldW = 10
+  let worldH = 10
+  let centerX = 0
+  let centerZ = 0
+
+  if (landscapeLayer) {
+    worldW = landscapeLayer.terrain?.worldWidth ?? landscapeLayer.width ?? 10
+    worldH = landscapeLayer.terrain?.worldDepth ?? landscapeLayer.depth ?? 10
+    centerX = landscapeLayer.terrain?.center?.[0] ?? 0
+    centerZ = landscapeLayer.terrain?.center?.[1] ?? 0
+  } else {
+    const content = useSceneStore.getState().landscapeContent
+    const first = content?.items?.find(i => i.shape === 'terrain' && i.terrain)
+    if (first) {
+      worldW = first.size?.width ?? first.terrain?.worldWidth ?? worldW
+      worldH = first.size?.depth ?? (first.terrain as any)?.worldDepth ?? worldH
+      centerX = first.center?.[0] ?? first.terrain?.center?.[0] ?? centerX
+      centerZ = first.center?.[1] ?? first.terrain?.center?.[1] ?? centerZ
+    }
+  }
   const defaultBounds = {
     minX: centerX - (worldW) / 2,
     maxX: centerX + (worldW) / 2,
@@ -327,12 +352,21 @@ export const placeInstance = (
     // Корректируем высоту Y: если стратегия не задала Y, а требуется выравнивание по высоте террейна,
     // вычисляем высоту ландшафта и поднимаем объект так, чтобы нижняя грань касалась поверхности.
     let targetY = placementResult.position[1];
-    if (options.alignToTerrainHeight && options.landscapeLayer) {
-      const heightY = queryHeightAtCoordinate(
-        options.landscapeLayer,
-        placementResult.position[0],
-        placementResult.position[2]
-      );
+    if (options.alignToTerrainHeight) {
+      let heightY = 0
+      if (options.landscapeLayer) {
+        heightY = queryHeightAtCoordinate(
+          options.landscapeLayer,
+          placementResult.position[0],
+          placementResult.position[2]
+        );
+      } else {
+        const picked = pickLandscapeItemAt(placementResult.position[0], placementResult.position[2])
+        if (picked?.item) {
+          const sampler = getHeightSamplerForLandscapeItem(picked.item)
+          if (sampler) heightY = sampler.getHeight(placementResult.position[0], placementResult.position[2])
+        }
+      }
       if (options.objectBoundingBox) {
         const scale = newInstance.transform?.scale || [1, 1, 1];
         const bottomOffset = options.objectBoundingBox.min[1] * scale[1];
@@ -344,7 +378,7 @@ export const placeInstance = (
     let finalRotation = newInstance.transform?.rotation || [0, 0, 0];
 
     // Если нужно выполнить автоповорот по нормали поверхности
-    if (options.alignToTerrainRotation && options.landscapeLayer) {
+    if (options.alignToTerrainRotation) {
       // Определяем максимальный наклон из метаданных стратегии, если задан
       let maxTiltDeg: number | undefined
       if (placementStrategyConfig.strategy === PlacementStrategy.PlaceAround) {
@@ -356,11 +390,20 @@ export const placeInstance = (
       }
       const maxTiltRad = typeof maxTiltDeg === 'number' ? (Math.PI / 180) * maxTiltDeg : undefined
 
-      const surfaceNormal = calculateSurfaceNormal(
-        options.landscapeLayer,
-        placementResult.position[0],
-        placementResult.position[2]
-      );
+      let surfaceNormal: Vector3 = [0, 1, 0]
+      if (options.landscapeLayer) {
+        surfaceNormal = calculateSurfaceNormal(
+          options.landscapeLayer,
+          placementResult.position[0],
+          placementResult.position[2]
+        );
+      } else {
+        const picked = pickLandscapeItemAt(placementResult.position[0], placementResult.position[2])
+        if (picked?.item) {
+          const sampler = getHeightSamplerForLandscapeItem(picked.item)
+          if (sampler) surfaceNormal = sampler.getNormal(placementResult.position[0], placementResult.position[2])
+        }
+      }
 
       const terrainRotation = normalToRotation(surfaceNormal, maxTiltRad);
       finalRotation = [
@@ -393,136 +436,54 @@ export const placeInstance = (
  * @param objects - массив объектов с bounding box для правильного позиционирования
  * @returns скорректированный массив экземпляров объектов
  */
-export const adjustAllInstancesForPerlinTerrain = (
-  instances: SceneObjectInstance[],
-  terrainLayer: SceneLayer,
-  objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
-): SceneObjectInstance[] => {
-  const sampler = getHeightSamplerForLayer(terrainLayer)
-  if (!sampler) {
-    return instances // No valid terrain layer, return unchanged
-  }
-
-  // Для Landscape слоя термин «глубина» хранится в поле depth.
-  // Приоритет: берём реальные размеры из конфигурации террейна, затем поля слоя (width/depth|height).
-  const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
-  const layerDepth = terrainLayer.terrain?.worldDepth ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
-  const halfWidth = layerWidth / 2
-  const halfDepth = layerDepth / 2
-
-  return instances.map(instance => {
-    if (!instance.transform?.position) {
-      return instance
-    }
-
-    const [originalX, currentY, originalZ] = instance.transform.position
-
-    // Check if instance is within terrain bounds
-    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfDepth || originalZ > halfDepth) {
-      return instance // Outside terrain bounds, don't adjust
-    }
-
-    // Calculate new Y position based on terrain height using unified sampler
-    let terrainY = sampler.getHeight(originalX, originalZ)
-
-    // Adjust Y position based on object's bounding box if available
-    if (objects) {
-      const object = objects.find(obj => obj.uuid === instance.objectUuid)
-      if (object?.boundingBox) {
-        const scale = instance.transform?.scale || [1, 1, 1]
-        const bottomOffset = object.boundingBox.min[1] * scale[1]
-        terrainY = terrainY - bottomOffset
-      }
-    }
-
-    // Important: preserve original X and Z coordinates exactly
-    return {
-      ...instance,
-      transform: {
-        ...instance.transform,
-        position: [originalX, terrainY, originalZ] as Vector3
-      }
-    }
-  })
-}
+// legacy функции adjustAllInstancesForPerlinTerrain / adjustAllInstancesForTerrainAsync удалены
 
 /**
- * Асинхронная версия функции подгонки экземпляров объектов к высоте террейна.
- * Ожидает полной загрузки данных heightmap перед выравниванием инстансов.
- * @param instances - массив экземпляров объектов для корректировки
- * @param terrainLayer - слой террейна (может быть любого типа terrain)
- * @param objects - массив объектов с bounding box для правильного позиционирования
- * @returns Promise с скорректированным массивом экземпляров объектов
+ * Асинхронная коррекция Y‑координаты инстансов по ландшафтному содержимому (новая архитектура).
+ *
+ * Алгоритм:
+ * - Собирает все площадки shape='terrain' из landscapeContent, создаёт для них сэмплеры.
+ * - Дожидается готовности heightmap‑сэмплеров (ready), если требуется.
+ * - Для каждого инстанса находит подходящую площадку по AABB и корректирует Y по высоте террейна.
+ * - При наличии bounding box объекта учитывает нижнюю грань (смещение по Y).
  */
-export const adjustAllInstancesForTerrainAsync = async (
+export const adjustAllInstancesForLandscapeContentAsync = async (
   instances: SceneObjectInstance[],
-  terrainLayer: SceneLayer,
   objects?: Array<{ uuid: string; boundingBox?: import('@/shared/types').BoundingBox }>
 ): Promise<SceneObjectInstance[]> => {
-  const sampler = getHeightSamplerForLayer(terrainLayer)
-  if (!sampler) {
-    return instances // No valid terrain layer, return unchanged
-  }
+  const content = useSceneStore.getState().landscapeContent
+  const items = content?.items?.filter(i => i.shape === 'terrain' && !!i.terrain) || []
+  if (items.length === 0) return instances
 
-  // Для heightmap источников ожидаем загрузки данных
-  if (terrainLayer.terrain?.source.kind === 'heightmap') {
-    await new Promise<void>((resolve) => {
-      // Проверяем, готовы ли данные сразу
-      const testHeight = sampler.getHeight(0, 0)
-      if (testHeight !== 0 ||
-          (terrainLayer.terrain?.source.kind === 'heightmap' &&
-           terrainLayer.terrain.source.params.min === 0 &&
-           terrainLayer.terrain.source.params.max === 0)) {
-        // Данные готовы
-        resolve()
-        return
-      }
-
-      // Ожидаем загрузки данных
-      sampler.onHeightmapLoaded(() => {
-        resolve()
-      })
-    })
-  }
-
-  const layerWidth = terrainLayer.terrain?.worldWidth ?? terrainLayer.width ?? 1
-  const layerDepth = terrainLayer.terrain?.worldDepth ?? (terrainLayer as any).depth ?? terrainLayer.height ?? 1
-  const halfWidth = layerWidth / 2
-  const halfDepth = layerDepth / 2
-
-  return instances.map(instance => {
-    if (!instance.transform?.position) {
-      return instance
+  // Создаём сэмплеры и ждём готовности всех heightmap при необходимости
+  const samplers = items.map(it => ({ it, sampler: getHeightSamplerForLandscapeItem(it)! }))
+  const waiters: Promise<void>[] = []
+  for (const { it, sampler } of samplers) {
+    if (it.terrain?.source.kind === 'heightmap' && sampler?.isReady && sampler?.isReady() === false && sampler.ready) {
+      waiters.push(sampler.ready())
     }
+  }
+  if (waiters.length > 0) await Promise.all(waiters)
 
-    const [originalX, currentY, originalZ] = instance.transform.position
-
-    // Check if instance is within terrain bounds
-    if (originalX < -halfWidth || originalX > halfWidth || originalZ < -halfDepth || originalZ > halfDepth) {
-      return instance // Outside terrain bounds, don't adjust
-    }
-
-    // Calculate new Y position based on terrain height using unified sampler
-    let terrainY = sampler.getHeight(originalX, originalZ)
-
-    // Adjust Y position based on object's bounding box if available
+  // Корректируем инстансы
+  return instances.map(inst => {
+    const pos = inst.transform?.position
+    if (!pos) return inst
+    const [x, y, z] = pos
+    const picked = pickLandscapeItemAt(x, z)
+    if (!picked?.item) return inst
+    const sampler = samplers.find(s => s.it.id === picked.item.id)?.sampler
+    if (!sampler) return inst
+    let terrainY = sampler.getHeight(x, z)
     if (objects) {
-      const object = objects.find(obj => obj.uuid === instance.objectUuid)
-      if (object?.boundingBox) {
-        const scale = instance.transform?.scale || [1, 1, 1]
-        const bottomOffset = object.boundingBox.min[1] * scale[1]
-        terrainY = terrainY - bottomOffset
+      const ob = objects.find(o => o.uuid === inst.objectUuid)
+      if (ob?.boundingBox) {
+        const scale = inst.transform?.scale || [1, 1, 1]
+        const bottomOffset = ob.boundingBox.min[1] * scale[1]
+        terrainY -= bottomOffset
       }
     }
-
-    // Important: preserve original X and Z coordinates exactly
-    return {
-      ...instance,
-      transform: {
-        ...instance.transform,
-        position: [originalX, terrainY, originalZ] as Vector3
-      }
-    }
+    return { ...inst, transform: { ...inst.transform, position: [x, terrainY, z] as Vector3 } }
   })
 }
 

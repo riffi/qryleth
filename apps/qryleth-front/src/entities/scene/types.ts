@@ -1,6 +1,6 @@
 import type {LightingSettings} from "../lighting";
 import type {GfxObjectInstance} from "../objectInstance";
-import type {GfxLayer} from "@/entities/layer";
+import type { GfxLayerLegacy } from "@/entities/layer";
 import type {GfxObject} from "@/entities/object";
 import type { GfxBiome } from '@/entities/biome'
 import type { GfxEnvironmentContent } from '@/entities/environment'
@@ -20,7 +20,7 @@ export interface SceneObjectInstance extends GfxObjectInstance{
   visible?: boolean;
 }
 
-export interface SceneLayer extends GfxLayer{
+export interface SceneLayer extends GfxLayerLegacy{
   /** Видимость слоя в сцене **/
   visible: boolean;
   position: number;

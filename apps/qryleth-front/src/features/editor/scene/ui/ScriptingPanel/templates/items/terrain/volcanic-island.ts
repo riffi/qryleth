@@ -58,10 +58,10 @@ const islandSpec = {
   },
 }
 
-const island = await sceneApi.createProceduralLayer(islandSpec, {
+const island = await sceneApi.createProceduralLandscape(islandSpec, {
   name: 'Вулканический остров',
   visible: true,
-  multiColor: {
+  material: { multiColor: {
     mode: 'vertex',
     blendWidth: 4,
     palette: [
@@ -74,7 +74,7 @@ const island = await sceneApi.createProceduralLayer(islandSpec, {
       { height: 40,  color: '#EAE3D7' }  // вершина с пеплом / серо-белым налётом
     ],
     slopeBoost: 0.3
-  }
+  } }
 })
 
 console.log('Создан остров:', island)`

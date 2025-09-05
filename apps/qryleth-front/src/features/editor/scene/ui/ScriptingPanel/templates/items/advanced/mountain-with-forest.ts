@@ -44,10 +44,10 @@ const smoothMountain = {
   },
 }
 
-const layerRes = await sceneApi.createProceduralLayer(smoothMountain, {
+const layerRes = await sceneApi.createProceduralLandscape(smoothMountain, {
   name: 'Гладкая гора',
   visible: true,
-  multiColor: {
+  material: { multiColor: {
     mode: 'vertex',
     palette: [
       { height: -10, color: '#2d5a27' },
@@ -57,7 +57,7 @@ const layerRes = await sceneApi.createProceduralLayer(smoothMountain, {
       { height: 100, color: '#FFFFFF' }
     ],
     slopeBoost: 0.3
-  }
+  } }
 })
 console.log('Создан террейн:', layerRes)
 
@@ -102,4 +102,3 @@ const scatterRes = await sceneApi.scatterBiome(addBiomeRes.biomeUuid)
 console.log('Скаттеринг деревьев (surface-aware):', scatterRes)
 `
 }
-

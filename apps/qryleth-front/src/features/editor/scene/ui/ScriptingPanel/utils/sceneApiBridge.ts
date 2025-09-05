@@ -54,12 +54,11 @@ export function createSceneApiBridge() {
       seed: number,
       opts?: import('@/entities/terrain').GfxOpsGenerationOptions & { worldWidth?: number; worldDepth?: number; worldHeight?: number }
     ) => SceneAPI.generateTerrainOpsFromPool(pool, seed, opts),
-    createProceduralLayer: (
+    createProceduralLandscape: (
       spec: import('@/entities/terrain').GfxProceduralTerrainSpec,
-      layerData?: Partial<import('@/entities/scene/types').SceneLayer>
-    ) => SceneAPI.createProceduralLayer(spec, layerData),
-    adjustInstancesForPerlinTerrain: (terrainLayerId: string) =>
-      SceneAPI.adjustInstancesForPerlinTerrain(terrainLayerId),
+      opts?: { name?: string; center?: [number, number]; size?: { width: number; depth: number }; material?: { color?: string; multiColor?: import('@/entities/layer').GfxMultiColorConfig } }
+    ) => SceneAPI.createProceduralLandscape(spec, opts),
+    // legacy методы удалены: createProceduralLayer, adjustInstancesForPerlinTerrain
   }
 }
 

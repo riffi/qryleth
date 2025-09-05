@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from '../../../model/sceneStore'
-import { GfxLayerShape, GfxLayerType } from '@/entities/layer'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 
 interface FlyoverTarget {
@@ -26,7 +25,7 @@ interface FlyoverTarget {
  */
 export const FlyoverControls: React.FC = () => {
   const { camera } = useThree()
-  const layers = useSceneStore(s => s.layers)
+  const landscapeContent = useSceneStore(s => s.landscapeContent)
 
   const [target, setTarget] = useState<FlyoverTarget | null>(null)
   const angleRef = useRef(0)
@@ -38,23 +37,23 @@ export const FlyoverControls: React.FC = () => {
   const radiusMargin = 2 // безопасный отступ до краёв слоя
 
   /**
-   * Вычисляет наивысшую точку для указанного Terrain-слоя.
+   * Вычисляет наивысшую точку для указанной terrain‑площадки ландшафта (новая архитектура).
    * Возвращает координаты пика и рекомендуемые параметры облёта.
    */
-  const findLayerPeak = async (layer: any): Promise<FlyoverTarget | null> => {
+  const findItemPeak = async (item: import('@/entities/terrain').GfxLandscape): Promise<FlyoverTarget | null> => {
     try {
-      if (!layer?.terrain) return null
-      const t = layer.terrain
+      if (item.shape !== 'terrain' || !item.terrain) return null
+      const t = item.terrain
       const sampler = createGfxHeightSampler(t)
       // Дожидаемся готовности данных, если это heightmap
       if ((sampler as any).isReady && !(sampler as any).isReady()) {
         await (sampler as any).ready?.()
       }
 
-      const W = t.worldWidth
-      const H = (t as any).worldDepth
-      const cx = t.center?.[0] ?? 0
-      const cz = t.center?.[1] ?? 0
+      const W = item.size?.width ?? t.worldWidth
+      const H = item.size?.depth ?? (t as any).worldDepth
+      const cx = item.center?.[0] ?? t.center?.[0] ?? 0
+      const cz = item.center?.[1] ?? t.center?.[1] ?? 0
 
       // Простая регулярная сетка с умеренным разрешением
       const grid = 96
@@ -95,18 +94,16 @@ export const FlyoverControls: React.FC = () => {
   }
 
   /**
-   * Ищет глобальную самую высокую точку среди всех подходящих слоёв и
-   * сохраняет её как цель облёта. Затем инициализирует позицию камеры.
+   * Ищет глобальную самую высокую точку среди всех подходящих площадок ландшафта
+   * и сохраняет её как цель облёта. Затем инициализирует позицию камеры.
    */
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       let best: FlyoverTarget | null = null
-      for (const layer of layers) {
-        if (!layer?.visible) continue
-        if (layer.type !== GfxLayerType.Landscape) continue
-        if (layer.shape !== GfxLayerShape.Terrain) continue
-        const peak = await findLayerPeak(layer)
+      const items = landscapeContent?.items?.filter(i => i.shape === 'terrain' && i.terrain) || []
+      for (const it of items) {
+        const peak = await findItemPeak(it)
         if (!peak) continue
         if (!best || peak.y > best.y) best = peak
       }
@@ -122,7 +119,7 @@ export const FlyoverControls: React.FC = () => {
       }
     })()
     return () => { cancelled = true }
-  }, [layers, camera])
+  }, [landscapeContent, camera])
 
   /**
    * Главный цикл анимации: равномерное вращение по окружности вокруг цели.

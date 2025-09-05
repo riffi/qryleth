@@ -26,9 +26,9 @@ describe('SceneAPI: процедурная генерация террейна',
     expect(ops.length).toBeGreaterThan(0)
   })
 
-  it('createProceduralLayer: создаёт слой и возвращает layerId', async () => {
+  it('createProceduralLandscape: создаёт площадку ландшафта и возвращает layerId', async () => {
     const spec = createHillsSpec(2468)
-    const res = await SceneAPI.createProceduralLayer(spec, { name: 'PTG Test Layer', visible: true })
+    const res = await SceneAPI.createProceduralLandscape(spec, { name: 'PTG Test Layer' })
     expect(res.success).toBe(true)
     expect(typeof res.layerId).toBe('string')
   })

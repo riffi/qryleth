@@ -354,7 +354,7 @@ const heightmapTerrainConfig: GfxTerrainConfig = {
 ## Замечания по совместимости
 
 - Поддержка `GfxLayer.noiseData` и режима `legacy` удалена. Используйте `terrain: GfxTerrainConfig`.
-- Scene API `adjustInstancesForPerlinTerrain` сохраняет имя, но работает с новой архитектурой.
+- Scene API метод `adjustInstancesForPerlinTerrain` удалён.
 
 ---
 
@@ -368,7 +368,7 @@ const heightmapTerrainConfig: GfxTerrainConfig = {
 
 ## 🆕 Процедурная генерация (spec/pool/recipes)
 
-Типы спецификации процедурной генерации и пула рецептов. Используются методами SceneAPI `generateProceduralTerrain(...)`, `generateTerrainOpsFromPool(...)` и `createProceduralLayer(...)`.
+Типы спецификации процедурной генерации и пула рецептов. Используются методами SceneAPI `generateProceduralTerrain(...)`, `generateTerrainOpsFromPool(...)` и `createProceduralLandscape(...)`.
 
 ```ts
 export interface GfxProceduralPerlinParams extends GfxPerlinParams {

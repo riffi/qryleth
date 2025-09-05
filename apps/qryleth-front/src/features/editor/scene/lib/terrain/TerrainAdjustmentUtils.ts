@@ -4,7 +4,7 @@
  */
 
 import { useSceneStore } from '../../model/sceneStore'
-import { SceneAPI } from '../sceneAPI'
+import { adjustAllInstancesForLandscapeContentAsync } from '../placement/ObjectPlacementUtils'
 import { notifications } from '@mantine/notifications'
 import type { SceneLayer } from '@/entities/scene/types'
 
@@ -71,14 +71,12 @@ export async function adjustObjectsForCreatedTerrain(
           // Определяем тип террейна для выбора подходящей функции
           const isHeightmapTerrain = currentLayer?.terrain?.source.kind === 'heightmap'
           
-          let result
-          if (isHeightmapTerrain) {
-            // Для heightmap используем асинхронную версию
-            result = await SceneAPI.adjustInstancesForTerrainAsync(layerId)
-          } else {
-            // Для Perlin Noise используем синхронную версию
-            result = SceneAPI.adjustInstancesForPerlinTerrain(layerId)
-          }
+          // Новая схема: корректируем по содержимому landscapeContent
+          const state = useSceneStore.getState()
+          const before = state.objectInstances
+          const adjusted = await adjustAllInstancesForLandscapeContentAsync(before, state.objects.map(o => ({ uuid: o.uuid, boundingBox: o.boundingBox })))
+          state.setObjectInstances(adjusted)
+          const result = { success: true, adjustedCount: adjusted.filter((inst, idx) => inst.transform?.position?.[1] !== before[idx]?.transform?.position?.[1]).length }
           
           if (result.success && result.adjustedCount && result.adjustedCount > 0) {
             const terrainType = isHeightmapTerrain ? 'heightmap' : 'Perlin Noise'

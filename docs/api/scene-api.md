@@ -308,25 +308,24 @@ const opsAuto = await SceneAPI.generateTerrainOpsFromPool(spec.pool, undefined, 
 })
 ```
 
-### `createProceduralLayer(spec: GfxProceduralTerrainSpec, layerData?: Partial<SceneLayer>): Promise<{ success: boolean, layerId?: string, error?: string }>`
-Создаёт ландшафтный слой типа Terrain на основе спецификации. Внутри вызывает `generateProceduralTerrain(spec)`, затем создаёт слой и выполняет корректировку существующих инстансов по рельефу.
+### `createProceduralLandscape(spec: GfxProceduralTerrainSpec, opts?: { name?: string; center?: [number, number]; size?: { width: number; depth: number }; material?: { color?: string; multiColor?: GfxMultiColorConfig } }): Promise<{ success: boolean, layerId?: string, error?: string }>`
+Создаёт ландшафт по новой архитектуре: формирует элемент `GfxLandscape` (shape: `terrain`) внутри `landscapeContent`, обеспечивает наличие единственного слоя типа `landscape` и корректирует позиции объектов по рельефу.
 
-- Вход: `spec` и опциональные поля `layerData` (имя, видимость, позиция, **цвет** и т.п.).
-- Выход: `{ success, layerId?, error? }`.
+- Вход: `spec` и опциональные `opts` (имя площадки, центр XZ, размеры, материал).
+- Выход: `{ success, layerId?, error? }` — ID слоя привязки контейнера ландшафта.
 
 Пример (JavaScript):
 ```javascript
-const res = await SceneAPI.createProceduralLayer(spec, { 
-  name: 'Песчаные дюны', 
-  visible: true,
-  color: '#F4A460' // Цвет слоя террейна
+const res = await SceneAPI.createProceduralLandscape(spec, { 
+  name: 'Песчаные дюны',
+  material: { color: '#F4A460' }
 })
 if (!res.success) console.error(res.error)
 ```
 
 Примечания:
-- Валидируются значения `recipe.kind`, `placement.type`, `falloff` и ключи `bias`. При ошибке возвращается понятное сообщение с указанием неверного поля.
-- Поддерживаемые значения перечислены в `docs/api/types/terrain.md` (раздел «Процедурная генерация»).
+- Внутри вызывается `generateProceduralTerrain(spec)`; при источнике heightmap ожидается готовность данных.
+- Старый метод `createProceduralLayer(...)` сохранён для обратной совместимости и помечен как legacy.
 
 ### `createObject(objectData: GfxObject, layerId?: string, count: number = 1, placementStrategyConfig: PlacementStrategyConfig): AddObjectWithTransformResult`
 Унифицированный метод создания нового объекта и размещения его экземпляров в сцене. Объединяет создание объекта и размещение экземпляров в одном методе.
@@ -392,12 +391,8 @@ const res2 = SceneAPI.createObject(
 )
 ```
 
-### `adjustInstancesForPerlinTerrain(perlinLayerId: string): { success: boolean; adjustedCount?: number; error?: string }`
-Корректирует положение всех экземпляров объектов под ландшафтный слой, используя единый `GfxHeightSampler`.
-
-Примечания:
-- Название метода сохранено для обратной совместимости, применяется к рельефным слоям новой архитектуры (`terrain.source.kind = 'perlin' | 'heightmap').
-- Высоты и нормали вычисляются через `GfxHeightSampler` (без дублирования логики). 
+### Удалено: `adjustInstancesForPerlinTerrain(...)`
+Метод удалён в рамках миграции. Корректировка инстансов выполняется автоматически в `createProceduralLandscape(...)` или может быть реализована скриптом на базе `landscapeContent`.
 
 ### `searchObjectsInLibrary(query: string): Promise<ObjectRecord[]>`
 Ищет объекты в библиотеке по названию или описанию и возвращает массив найденных записей.

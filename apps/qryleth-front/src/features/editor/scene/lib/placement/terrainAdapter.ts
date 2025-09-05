@@ -3,10 +3,17 @@ import { GfxLayerType, GfxLayerShape } from '@/entities/layer'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import type { GfxHeightSampler } from '@/entities/terrain'
 import type { Vector3 } from '@/shared/types'
+import { useSceneStore } from '../../model/sceneStore'
 
 /**
  * Получить GfxHeightSampler для работы с высотами террейна слоя.
  * Возвращает сэмплер или null, если слой не landscape/без конфигурации террейна.
+ */
+/**
+ * Получить GfxHeightSampler для работы с высотами террейна слоя (legacy).
+ * Возвращает сэмплер или null, если слой не landscape/без конфигурации террейна.
+ * В новой архитектуре данные высот находятся в элементах landscapeContent;
+ * для них используйте getHeightSamplerForLandscapeItem.
  */
 export const getHeightSamplerForLayer = (layer: SceneLayer) => {
   if (layer.type !== GfxLayerType.Landscape) return null
@@ -15,8 +22,24 @@ export const getHeightSamplerForLayer = (layer: SceneLayer) => {
 }
 
 /**
+ * Получить GfxHeightSampler для площадки ландшафта (новая архитектура).
+ * Возвращает сэмплер или null, если item не terrain/без конфигурации террейна.
+ */
+export const getHeightSamplerForLandscapeItem = (
+  item: import('@/entities/terrain').GfxLandscape
+): GfxHeightSampler | null => {
+  if (item.shape !== 'terrain' || !item.terrain) return null
+  return createGfxHeightSampler(item.terrain)
+}
+
+/**
  * Получить высоту Y в мировой точке (X,Z) для заданного слоя ландшафта.
  * Для не-террейн слоёв возвращает 0.
+ */
+/**
+ * Получить высоту Y в мировой точке (X,Z) для заданного legacy‑слоя ландшафта.
+ * Для не‑террейн слоёв возвращает 0. Для новой схемы используйте
+ * queryHeightAtCoordinateForItem с элементом landscapeContent.
  */
 export const queryHeightAtCoordinate = (
   layer: SceneLayer,
@@ -29,8 +52,26 @@ export const queryHeightAtCoordinate = (
 }
 
 /**
+ * Получить высоту Y в мировой точке (X,Z) для площадки ландшафта (новая схема).
+ * Если предмет не terrain или сэмплер недоступен — возвращает 0.
+ */
+export const queryHeightAtCoordinateForItem = (
+  item: import('@/entities/terrain').GfxLandscape,
+  worldX: number,
+  worldZ: number
+): number => {
+  const sampler = getHeightSamplerForLandscapeItem(item)
+  if (!sampler) return 0
+  return sampler.getHeight(worldX, worldZ)
+}
+
+/**
  * Вычислить нормаль поверхности в мировой точке (X,Z) для слоя ландшафта.
  * Для не-террейн слоёв возвращает [0,1,0].
+ */
+/**
+ * Вычислить нормаль поверхности в мировой точке (X,Z) для legacy‑слоя ландшафта.
+ * Для новой схемы используйте calculateSurfaceNormalForItem.
  */
 export const calculateSurfaceNormal = (
   layer: SceneLayer,
@@ -38,6 +79,20 @@ export const calculateSurfaceNormal = (
   worldZ: number
 ): Vector3 => {
   const sampler = getHeightSamplerForLayer(layer)
+  if (!sampler) return [0, 1, 0]
+  return sampler.getNormal(worldX, worldZ)
+}
+
+/**
+ * Вычислить нормаль поверхности в мировой точке (X,Z) для площадки ландшафта.
+ * Возвращает [0,1,0], если элемент не terrain/нет сэмплера.
+ */
+export const calculateSurfaceNormalForItem = (
+  item: import('@/entities/terrain').GfxLandscape,
+  worldX: number,
+  worldZ: number
+): Vector3 => {
+  const sampler = getHeightSamplerForLandscapeItem(item)
   if (!sampler) return [0, 1, 0]
   return sampler.getNormal(worldX, worldZ)
 }
@@ -56,6 +111,21 @@ export const isPointInsideTerrainLayerAabb = (layer: SceneLayer, x: number, z: n
   const cz = t.center?.[1] ?? 0
   const halfW = (t.worldWidth ?? layer.width ?? 0) / 2
   const halfD = (t.worldDepth ?? (layer as any).depth ?? layer.depth ?? 0) / 2
+  return (x >= cx - halfW && x <= cx + halfW && z >= cz - halfD && z <= cz + halfD)
+}
+
+/**
+ * Проверка попадания мировой точки (x,z) в AABB площадки ландшафта (новая схема).
+ */
+export const isPointInsideLandscapeItemAabb = (
+  item: import('@/entities/terrain').GfxLandscape,
+  x: number,
+  z: number
+): boolean => {
+  const cx = item.center?.[0] ?? 0
+  const cz = item.center?.[1] ?? 0
+  const halfW = (item.size?.width ?? 0) / 2
+  const halfD = (item.size?.depth ?? 0) / 2
   return (x >= cx - halfW && x <= cx + halfW && z >= cz - halfD && z <= cz + halfD)
 }
 
@@ -81,6 +151,23 @@ export const pickLandscapeLayerAt = (layers: SceneLayer[], x: number, z: number)
 }
 
 /**
+ * Выбрать подходящую площадку ландшафта по мировой координате (x,z) в новой архитектуре.
+ * Предпочитает элементы с shape='terrain'. При множественных совпадениях — берёт последний в списке.
+ */
+export const pickLandscapeItemAt = (
+  x: number,
+  z: number
+): { item: import('@/entities/terrain').GfxLandscape; layerId: string } | null => {
+  const content = useSceneStore.getState().landscapeContent
+  if (!content || !Array.isArray(content.items) || content.items.length === 0) return null
+  const terrainItems = content.items.filter(it => it.shape === 'terrain' && !!it.terrain)
+  const candidates = terrainItems.filter(it => isPointInsideLandscapeItemAabb(it, x, z))
+  if (candidates.length === 0) return null
+  const item = candidates[candidates.length - 1]
+  return { item, layerId: content.layerId }
+}
+
+/**
  * Получить высотный сэмплер террейна для мировой точки (x,z).
  *
  * - Находит подходящий слой по AABB (см. pickLandscapeLayerAt)
@@ -92,10 +179,28 @@ export const getTerrainSamplerAt = (
   x: number,
   z: number
 ): { sampler: GfxHeightSampler; seaLevel: number; layer: SceneLayer } | null => {
-  const layer = pickLandscapeLayerAt(layers, x, z)
-  if (!layer) return null
-  const sampler = getHeightSamplerForLayer(layer)
-  if (!sampler) return null
-  const seaLevel = layer.terrain?.seaLevel ?? 0
-  return { sampler, seaLevel, layer }
+  // Новая схема: приоритет площадок landscapeContent
+  const picked = pickLandscapeItemAt(x, z)
+  if (picked?.item) {
+    const sampler = getHeightSamplerForLandscapeItem(picked.item)
+    if (sampler) {
+      const seaLevel = picked.item.terrain?.seaLevel ?? 0
+      // Сформируем псевдо‑слой для совместимости со старым кодом
+      const pseudoLayer: SceneLayer = {
+        id: picked.layerId,
+        name: 'Ландшафт',
+        type: GfxLayerType.Landscape,
+        visible: true,
+        position: 0,
+        shape: GfxLayerShape.Terrain as any,
+        terrain: picked.item.terrain,
+        width: picked.item.size?.width,
+        depth: picked.item.size?.depth,
+      } as unknown as SceneLayer
+      return { sampler, seaLevel, layer: pseudoLayer }
+    }
+  }
+
+  // Нет подходящей площадки — сэмплер отсутствует
+  return null
 }
