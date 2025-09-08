@@ -32,6 +32,17 @@ export const useKeyboardShortcuts = () => {
   const setViewMode = useSceneStore(state => state.setViewMode)
 
   useEffect(() => {
+    /**
+     * Обработчик нажатий клавиш в режиме редактирования сцены.
+     *
+     * Назначение:
+     * - Игнорирует ввод в полях ввода и CodeMirror, а также во время перетаскивания ресайзера лэйаута.
+     * - Обрабатывает глобальный переключатель Play (клавиша 'P') в любом режиме UI.
+     * - Включает базовые хоткеи редактирования: Undo/Redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y),
+     *   смена режима трансформации (G/R/S), перемещение выбранного объекта относительно камеры или по оси Y.
+     * - Явно НЕ обрабатывает хоткеи масштабирования через '+' и '-' — они удалены, чтобы не конфликтовать
+     *   с управлением скоростью полёта в Play-режиме. Масштабирование выполняется через режим 'Scale' и гизмо.
+     */
     const handleKeyDown = (event: KeyboardEvent) => {
       // Prevent handling if typing in input fields
       if (event.target instanceof HTMLInputElement ||
@@ -124,8 +135,7 @@ export const useKeyboardShortcuts = () => {
       )
       if (!objectInstance) return
 
-      const moveAmount = 0.5
-      const scaleAmount = 0.1
+  const moveAmount = 0.5
       let needsUpdate = false
       const newObjectInstance = { ...objectInstance }
 
@@ -140,6 +150,11 @@ export const useKeyboardShortcuts = () => {
       right.crossVectors(up, forward)
       right.normalize()
 
+      //
+      // ВАЖНО: хоткеи изменения масштаба инстанса через '+' и '-' УДАЛЕНЫ,
+      // чтобы не конфликтовать с регулировкой скорости полёта камеры в Play-режиме.
+      // Масштабирование доступно через режим трансформации 'scale' (клавиша 'S') и гизмо.
+      //
       switch (event.key.toLowerCase()) {
         // Movement shortcuts
         case 'arrowup':
@@ -230,28 +245,7 @@ export const useKeyboardShortcuts = () => {
           }
           break
 
-        // Scaling shortcuts
-        case '+':
-        case '=':
-          const currentScale = objectInstance.transform?.scale || [1, 1, 1]
-          const newScaleUp = currentScale.map(s => Math.max(0.1, s * (1 + scaleAmount)))
-          newObjectInstance.transform = {
-            ...objectInstance.transform,
-            scale: newScaleUp as [number, number, number]
-          }
-          needsUpdate = true
-          break
-
-        case '-':
-        case '_':
-          const currentScaleDown = objectInstance.transform?.scale || [1, 1, 1]
-          const newScaleDown = currentScaleDown.map(s => Math.max(0.1, s * (1 - scaleAmount)))
-          newObjectInstance.transform = {
-            ...objectInstance.transform,
-            scale: newScaleDown as [number, number, number]
-          }
-          needsUpdate = true
-          break
+        // Прямые хоткеи масштабирования ('+', '-') удалены — см. комментарий выше
       }
 
       if (needsUpdate) {
@@ -262,6 +256,13 @@ export const useKeyboardShortcuts = () => {
     }
 
     document.addEventListener('keydown', handleKeyDown)
+    /**
+     * Обработчик изменения состояния pointer lock.
+     *
+     * Назначение:
+     * - При неявном выходе из pointer lock в Play-режиме (Walk/Fly) возвращает камеру в Orbit
+     *   и переключает UI обратно в Edit, если это не был управляемый выход после нажатия 'P'.
+     */
     const handlePointerLockChange = () => {
       try {
         const locked = !!document.pointerLockElement
