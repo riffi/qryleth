@@ -5,6 +5,9 @@ import * as THREE from 'three'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import { GfxLayerType } from '@/entities/layer'
 import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { paletteRegistry } from '@/shared/lib/palette'
+import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 
 // Component for rendering primitives in Instances
 const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
@@ -87,37 +90,19 @@ interface PrimitiveMaterialProps {
   materials?: any[]
 }
 const PrimitiveMaterial: React.FC<PrimitiveMaterialProps> = ({ primitive, materials }) => {
-  // 1. Если есть primitive.material — используем его
-  if (primitive.material) {
-    const m = primitive.material
-    return (
-      <meshStandardMaterial
-        color={m.color || '#ffffff'}
-        transparent={m.opacity !== undefined || m.transparent}
-        opacity={m.opacity ?? 1}
-        emissive={m.emissive}
-        emissiveIntensity={m.emissiveIntensity || 1}
-      />
-    )
-  }
-  // 2. Если есть objectMaterialUuid — ищем в materials
-  if (primitive.objectMaterialUuid && Array.isArray(materials)) {
-    const found = materials.find(mat => mat.uuid === primitive.objectMaterialUuid)
-    if (found && found.properties) {
-      const p = found.properties
-      return (
-        <meshStandardMaterial
-          color={p.color || '#ffffff'}
-          transparent={p.opacity !== undefined || p.transparent}
-          opacity={p.opacity ?? 1}
-          metalness={p.metalness ?? 0}
-          roughness={p.roughness ?? 0.5}
-        />
-      )
-    }
-  }
-  // 3. Дефолт
-  return <meshStandardMaterial color="#ffffff" />
+  // Читаем активную палитру сцены → реактивно перерисовываем материал при её смене
+  const paletteUuid = useSceneStore(s => s.environmentContent?.paletteUuid || 'default')
+  const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
+
+  // Унифицированный резолв материала как в PrimitiveRenderer
+  const resolved = resolveMaterial({
+    directMaterial: primitive.material,
+    objectMaterialUuid: primitive.objectMaterialUuid,
+    globalMaterialUuid: primitive.globalMaterialUuid,
+    objectMaterials: materials,
+  })
+  const threeProps = materialToThreePropsWithPalette(resolved, activePalette as any)
+  return <meshStandardMaterial {...threeProps} />
 }
 
 /**
