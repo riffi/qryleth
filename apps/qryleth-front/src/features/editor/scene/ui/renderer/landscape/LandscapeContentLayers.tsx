@@ -1,10 +1,70 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiColorProcessor'
+
+// Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
+// Ключ: baseGeometry.uuid + параметры многоцветной палитры.
+// Это позволяет переиспользовать дорогостоящий результат генерации геометрии
+// между перерендерами, избегая повторного дублирования вершин и пересчёта нормалей.
+const triangleGeometryCache = new Map<string, { geom: THREE.BufferGeometry; refCount: number }>()
+
+/**
+ * Строит стабильный ключ из конфигурации многоцветной окраски.
+ * Учитывает режим, slopeBoost и палитру с сортировкой по высоте.
+ */
+function makeMultiColorKey(cfg: import('@/entities/layer/model/types').GfxMultiColorConfig | undefined | null): string {
+  if (!cfg) return 'none'
+  const mode = cfg.mode ?? 'vertex'
+  const slope = Number.isFinite(cfg.slopeBoost as number) ? (cfg.slopeBoost as number) : 0
+  const palette = (cfg.palette ?? [])
+    .slice()
+    .sort((a, b) => a.height - b.height)
+    .map(s => `${s.height}:${s.color}:${s.alpha ?? 1}`)
+    .join('|')
+  return `${mode};${slope};${palette}`
+}
+
+/**
+ * Получить финальную геометрию для 'triangle' из кэша или сгенерировать и закэшировать.
+ * Возвращает геометрию и ключ кэша. Обязательно вызвать releaseTriangleGeometry(key)
+ * в cleanup, чтобы корректно уменьшить счётчик ссылок и освободить память при надобности.
+ */
+function acquireTriangleGeometry(
+  baseGeom: THREE.BufferGeometry,
+  processor: MultiColorProcessor,
+  sampler: unknown,
+  mcKey: string
+): { geom: THREE.BufferGeometry; cacheKey: string } {
+  const key = `${(baseGeom as any).uuid || 'geom'}|triangle|${mcKey}`
+  const cached = triangleGeometryCache.get(key)
+  if (cached) {
+    cached.refCount++
+    return { geom: cached.geom, cacheKey: key }
+  }
+  const generated = processor.generateFaceColoredGeometry(sampler, baseGeom)
+  triangleGeometryCache.set(key, { geom: generated, refCount: 1 })
+  return { geom: generated, cacheKey: key }
+}
+
+/**
+ * Освободить ссылку на закэшированную треугольную геометрию.
+ * При достижении нулевого счётчика — очистить GPU-ресурсы и удалить из кэша.
+ */
+function releaseTriangleGeometry(cacheKey: string | null | undefined): void {
+  if (!cacheKey) return
+  const entry = triangleGeometryCache.get(cacheKey)
+  if (!entry) return
+  entry.refCount = Math.max(0, entry.refCount - 1)
+  if (entry.refCount === 0) {
+    try { entry.geom.dispose() } catch {}
+    triangleGeometryCache.delete(cacheKey)
+  }
+}
+import {FrontSide} from "three/src/constants";
 
 /**
  * Рендер ландшафта (новая архитектура): читает элементы из `landscapeContent.items`
@@ -41,6 +101,8 @@ interface LandscapeItemMeshProps {
  */
 const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }) => {
   const [geometryVersion, setGeometryVersion] = useState(0)
+  // Ключ геометрии 'triangle' для корректного освобождения при размонтировании/обновлении
+  const triangleCacheKeyRef = useRef<string | null>(null)
 
   const sampler = useMemo(() => {
     if (item.shape === 'terrain' && item.terrain) {
@@ -86,11 +148,16 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
   }, [item.material?.multiColor, sampler])
 
   const finalGeometry = useMemo(() => {
+    // Сбросим ссылку предыдущего ключа
+    triangleCacheKeyRef.current = null
     if (!multiColorProcessor || !sampler || !baseGeometry) return baseGeometry
     const mode = item.material?.multiColor?.mode
     if (mode === 'triangle') {
-      const faceGeom = multiColorProcessor.generateFaceColoredGeometry(sampler, baseGeometry)
-      return faceGeom
+      // Используем кэш финальной геометрии по составному ключу
+      const mcKey = makeMultiColorKey(item.material?.multiColor)
+      const { geom, cacheKey } = acquireTriangleGeometry(baseGeometry, multiColorProcessor, sampler, mcKey)
+      triangleCacheKeyRef.current = cacheKey
+      return geom
     } else {
       const vertexColors = multiColorProcessor.generateVertexColors(sampler, baseGeometry)
       baseGeometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 4))
@@ -100,8 +167,14 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
   }, [multiColorProcessor, sampler, baseGeometry, item.material?.multiColor])
 
   useEffect(() => {
-    if (finalGeometry && finalGeometry !== baseGeometry) {
-      return () => { finalGeometry.dispose() }
+    // Освобождение для не кэшированных геометрий
+    if (finalGeometry && finalGeometry !== baseGeometry && !triangleCacheKeyRef.current) {
+      return () => { try { finalGeometry.dispose() } catch {} }
+    }
+    // Для кэшированных — уменьшаем refCount, при 0 будет dispose и удаление
+    if (triangleCacheKeyRef.current) {
+      const keyToRelease = triangleCacheKeyRef.current
+      return () => { releaseTriangleGeometry(keyToRelease) }
     }
   }, [finalGeometry, baseGeometry])
 
@@ -124,7 +197,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     >
       <meshLambertMaterial
         color={materialColor}
-        side={THREE.DoubleSide}
+        side={THREE.FrontSide}
         wireframe={wireframe}
         transparent={Boolean(item.material?.multiColor?.palette?.some(s => (s.alpha ?? 1) < 1)) || Boolean(item.material?.multiColor)}
         opacity={1.0}
@@ -133,4 +206,3 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     </mesh>
   )
 }
-

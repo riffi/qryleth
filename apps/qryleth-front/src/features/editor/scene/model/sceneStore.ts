@@ -26,7 +26,7 @@ import { DEFAULT_LIGHTING_PRESET_KEY, getLightingPreset } from './lighting-prese
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
-import { GfxLayerType } from '@/entities/layer'
+import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
@@ -117,6 +117,62 @@ const initialState: SceneStoreState = {
   // History
   history: [],
   historyIndex: -1
+}
+
+// ===== Интернирование (стабилизация ссылок) конфигураций многоцветной окраски =====
+// Храним глобальный кэш конфигураций multiColor по содержательному ключу,
+// чтобы переиспользовать один и тот же объект при идентичном содержимом.
+const multiColorIntern = new Map<string, GfxMultiColorConfig>()
+
+/**
+ * Построить стабильный ключ для конфигурации многоцветной окраски.
+ * Учитывает режим, slopeBoost и отсортированную по высоте палитру.
+ */
+function makeMultiColorKey(cfg: GfxMultiColorConfig): string {
+  const mode = cfg.mode ?? 'vertex'
+  const slope = Number.isFinite(cfg.slopeBoost as number) ? (cfg.slopeBoost as number) : 0
+  const palette = (cfg.palette ?? [])
+    .slice()
+    .sort((a, b) => a.height - b.height)
+    .map(s => `${s.height}:${s.color}:${s.alpha ?? 1}`)
+    .join('|')
+  return `${mode};${slope};${palette}`
+}
+
+/**
+ * Вернуть интернированную (каноническую) версию конфигурации multiColor.
+ * Если в кэше есть идентичная по содержанию — вернём ту же ссылку; иначе
+ * сохраним нормализованную копию и вернём её. Это стабилизирует ссылки
+ * в Zustand-сторе и снижает лишние инвалидации useMemo в рендерах.
+ */
+function internMultiColorConfig(cfg?: GfxMultiColorConfig): GfxMultiColorConfig | undefined {
+  if (!cfg) return undefined
+  const key = makeMultiColorKey(cfg)
+  const existing = multiColorIntern.get(key)
+  if (existing) return existing
+  // Нормализуем копию (сортированная палитра), чтобы ключ всегда соответствовал содержимому
+  const normalized: GfxMultiColorConfig = {
+    mode: cfg.mode,
+    slopeBoost: cfg.slopeBoost,
+    palette: cfg.palette ? cfg.palette.slice().sort((a, b) => a.height - b.height).map(s => ({ height: s.height, color: s.color, alpha: s.alpha })) : undefined
+  }
+  multiColorIntern.set(key, normalized)
+  return normalized
+}
+
+/**
+ * Нормализует материал ландшафтной площадки: если есть multiColor,
+ * заменяет его на интернированную (стабильную по ссылке) конфигурацию.
+ */
+function normalizeLandscapeItemMaterial<T extends GfxLandscape>(item: T): T {
+  const mc = item.material?.multiColor
+  if (!mc) return item
+  const interned = internMultiColorConfig(mc)
+  if (interned === mc) return item
+  return {
+    ...item,
+    material: { ...(item.material ?? {}), multiColor: interned }
+  }
 }
 
 export const useSceneStore = create<SceneStore>()(
@@ -647,7 +703,9 @@ export const useSceneStore = create<SceneStore>()(
 
     /** Полностью заменить контейнер ландшафта. */
     setLandscapeContent: (content) => {
-      set({ landscapeContent: content })
+      // Стабилизируем ссылки multiColor для всех площадок, если контейнер задан
+      const normalized = content ? { ...content, items: (content.items ?? []).map(normalizeLandscapeItemMaterial) } : content
+      set({ landscapeContent: normalized })
       get().saveToHistory(); get().markSceneAsModified()
     },
     /** Установить/сменить связанный слой ландшафта. Создаёт контейнер при отсутствии. */
@@ -659,14 +717,27 @@ export const useSceneStore = create<SceneStore>()(
     /** Добавить площадку ландшафта. */
     addLandscapeItem: (item) => {
       const current = get().landscapeContent
-      const next = current ? { ...current, items: [...current.items, item] } : { layerId: 'landscape', items: [item] }
+      // Нормализуем материал площадки (интернирование multiColor)
+      const normalizedItem = normalizeLandscapeItemMaterial(item)
+      const next = current ? { ...current, items: [...current.items, normalizedItem] } : { layerId: 'landscape', items: [normalizedItem] }
       get().setLandscapeContent(next)
     },
     /** Обновить площадку ландшафта по ID. */
     updateLandscapeItem: (id, updates) => {
       const current = get().landscapeContent
       if (!current) return
-      const items = current.items.map(it => it.id === id ? { ...it, ...updates } : it)
+      const items = current.items.map(it => {
+        if (it.id !== id) return it
+        const merged: GfxLandscape = { ...it, ...updates } as GfxLandscape
+        // Если в обновлениях есть material.multiColor — интернируем конфигурацию
+        if (merged.material?.multiColor) {
+          const interned = internMultiColorConfig(merged.material.multiColor)
+          if (interned !== merged.material.multiColor) {
+            merged.material = { ...(merged.material ?? {}), multiColor: interned }
+          }
+        }
+        return merged
+      })
       get().setLandscapeContent({ ...current, items })
     },
     /** Удалить площадку ландшафта по ID. */
