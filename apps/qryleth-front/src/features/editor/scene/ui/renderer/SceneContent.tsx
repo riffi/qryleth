@@ -6,7 +6,6 @@ import { ObjectTransformGizmo } from './controls/ObjectTransformGizmo.tsx'
 import { Environment } from '@/shared/r3f/environment/Environment.tsx'
 import { SceneObjects } from './objects/SceneObjects.tsx'
 import { InstancedTransformProvider } from '@/shared/r3f/optimization/InstancedTransformContext'
-import { LandscapeLayers } from './landscape/LandscapeLayers.tsx'
 import { LandscapeContentLayers } from './landscape/LandscapeContentLayers'
 import { WaterContentLayers } from './landscape/WaterContentLayers'
 import { useSceneStore, useGridVisible } from '../../model/sceneStore.ts'
@@ -127,8 +126,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
             В режиме Play гизмо скрываются, чтобы они не мешали просмотру/управлению. */}
         {uiMode === UiMode.Edit && <ObjectTransformGizmo />}
       </InstancedTransformProvider>
-      {/* Legacy рендер слоёв ландшафта/воды и новый рендер содержимого контейнеров */}
-      <LandscapeLayers />
+      {/* Рендер содержимого ландшафта по новой архитектуре (единый контейнер) */}
       <LandscapeContentLayers />
       <WaterContentLayers />
       {/* При активном тумане скрываем скайбокс, чтобы убрать чёткую линию горизонта */}
