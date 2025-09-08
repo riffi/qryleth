@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { IconLayersLinked, IconCube, IconPlus, IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconLayersLinked, IconCube, IconPlus, IconEdit, IconTrash, IconBookmark } from '@tabler/icons-react'
 import type { TreeNodeBase } from '@/shared/ui/tree/types'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { useSceneObjectsOptimized, useSceneLayersOptimized, useSelectionState } from '@/features/editor/scene/model/optimizedSelectors'
@@ -67,7 +67,17 @@ export const useObjectLayerNodes = (params: ObjectLayerNodesParams): TreeNodeBas
         return {
           id: o.uuid,
           name: o.name,
-          icon: <IconCube size={12} color="var(--mantine-color-blue-4)" />,
+          // Иконка объекта с маркером «из библиотеки», если есть libraryUuid
+          icon: (
+            <span style={{ position: 'relative', width: 16, height: 16, display: 'inline-block' }}>
+              <IconCube size={12} color="var(--mantine-color-blue-4)" />
+              {o.libraryUuid && (
+                <span style={{ position: 'absolute', right: -2, bottom: -2 }}>
+                  <IconBookmark size={10} color="var(--mantine-color-yellow-5)" />
+                </span>
+              )}
+            </span>
+          ),
           count,
           visible: o.visible !== false,
           selected: params.selectedObject?.objectUuid === o.uuid,

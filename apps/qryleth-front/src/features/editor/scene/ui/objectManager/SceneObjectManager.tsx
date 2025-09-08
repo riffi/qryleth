@@ -4,13 +4,12 @@ import {
 } from '../../model/sceneStore.ts'
 import {
     useSceneObjectsOptimized,
-    useSceneLayersOptimized,
     useSceneMetadata,
     useSelectionState,
     useSceneActions
 } from '../../model/optimizedSelectors.ts'
 import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider } from '@mantine/core'
-import { IconPlus, IconCheck, IconTrash } from '@tabler/icons-react'
+import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 // Заголовок сцены с мета-информацией переносится в хедер страницы.
@@ -38,19 +37,16 @@ import type {
     SceneLayerFormData
 } from './types.ts'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
-import type {SceneLayer} from "@/entities";
+import type { SceneLayer } from '@/entities'
 import { GfxLayerType } from '@/entities/layer'
 import { TreeList } from '@/shared/ui/tree/TreeList'
 import { useObjectLayerNodes } from './sections/ObjectLayersSection'
 import { useLandscapeNodes } from './sections/LandscapeSection'
 import { useWaterNodes } from './sections/WaterSection'
 import { useBiomeNodes } from './sections/BiomesSection'
-import {SectionHeader} from "@/shared/ui/section/SectionHeader.tsx";
+import { SectionHeader } from '@/shared/ui/section/SectionHeader.tsx'
 
-export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
-    onSaveSceneToLibrary,
-    onEditObject
-}) => {
+export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneToLibrary, onEditObject }) => {
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
     const [layerModalOpened, setLayerModalOpened] = useState(false)
     const [layerModalMode, setLayerModalMode] = useState<SceneLayerModalMode>('create')
@@ -63,9 +59,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [waterModalMode, setWaterModalMode] = useState<'create' | 'edit'>('create')
     const [waterModalTargetLayerId, setWaterModalTargetLayerId] = useState<string | null>(null)
     const [editingWater, setEditingWater] = useState<{ layerId: string; bodyId: string } | null>(null)
-    const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null)
-    const [contextMenuOpened, setContextMenuOpened] = useState(false)
-    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
+    const [, setDragOverLayerId] = useState<string | null>(null)
+    const [, setContextMenuOpened] = useState(false)
+    const [, setContextMenuPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
     const [contextMenuObjectUuid, setContextMenuObjectUuid] = useState<string | null>(null)
     const [saveObjectModalOpened, setSaveObjectModalOpened] = useState(false)
     const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
@@ -77,19 +73,11 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     // R3F Zustand store data
     const sceneObjects = useSceneObjectsOptimized()
     const objectInstances = useSceneStore(state => state.objectInstances)
-    const biomes = useSceneStore(state => state.biomes)
-    const updateBiome = useSceneStore(state => state.updateBiome)
-    const storeLayers = useSceneLayersOptimized()
+    // Биомы управляются через секцию Biomes; локальные ссылки не нужны
     const landscapeContent = useSceneStore(state => state.landscapeContent)
     const waterContent = useSceneStore(state => state.waterContent)
-    const removeLandscapeItem = useSceneStore(state => state.removeLandscapeItem)
-    const updateLandscapeItem = useSceneStore(state => state.updateLandscapeItem)
-    const removeWaterBody = useSceneStore(state => state.removeWaterBody)
-    const updateWaterBody = useSceneStore(state => state.updateWaterBody)
     const { lighting: storeLighting } = useSceneMetadata()
-    const setLandscapeLayer = useSceneStore(state => state.setLandscapeLayer)
     const { selectedObject: storeSelectedObject } = useSelectionState()
-    const sceneMetaData = useSceneStore(state => state.sceneMetaData)
     const {
         removeObject,
         selectObject: storeSelectObject,
@@ -97,8 +85,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setHoveredObject,
         clearHover,
         updateLighting,
-        createLayer: storeCreateLayer,
-        updateLayer: storeUpdateLayer,
         deleteLayer: storeDeleteLayer,
         toggleLayerVisibility: storeToggleLayerVisibility,
         toggleObjectVisibility: storeToggleObjectVisibility,
@@ -120,11 +106,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         })
     }, [sceneObjects, objectInstances])
 
-    const layers = storeLayers
     const lighting = storeLighting
     const selectedObject = storeSelectedObject
 
-    const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
 
     // Узлы ландшафта формируем неизменно на каждом рендере,
     // чтобы не нарушать порядок вызова хуков (React rule of hooks)
@@ -211,10 +195,14 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * @param description Необязательное описание объекта
      * @returns UUID записи объекта в библиотеке или undefined при ошибке
      */
-    const handleSaveObject = async (name: string, description?: string): Promise<string | undefined> => {
-        if (!savingObjectUuid) return
+    const handleSaveObject = async (name: string, description?: string): Promise<string> => {
+        if (!savingObjectUuid) {
+            throw new Error('Не выбран объект для сохранения')
+        }
         const object = useSceneStore.getState().objects.find(o => o.uuid === savingObjectUuid)
-        if (!object) return
+        if (!object) {
+            throw new Error('Объект не найден')
+        }
 
         // Формируем полные данные объекта для сохранения в библиотеку
         const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments } = object
@@ -271,6 +259,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
             } else {
                 handleError(error, 'Не удалось сохранить объект')
             }
+            throw error as Error
         }
     }
 
@@ -384,11 +373,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
      * Обновляет поле visible у биома через Zustand store.
      * Если биом не найден — ничего не делает.
      */
-    const handleToggleBiomeVisibility = useCallback((biomeUuid: string) => {
-        const biome = biomes.find(b => b.uuid === biomeUuid)
-        if (!biome) return
-        updateBiome(biomeUuid, { visible: biome.visible === false ? true : !biome.visible })
-    }, [biomes, updateBiome])
+    // Переключение видимости биома перенесено в секцию биомов; локальный обработчик не используется
 
     // Локальный хендлер сохранения сцены в библиотеку был неиспользуем — удалён
 
@@ -448,28 +433,14 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         setContextMenuOpened(true)
     }, [])
 
-    const handleMoveToLayer = useCallback((layerId: string) => {
-        if (contextMenuObjectUuid !== null) {
-            storeMoveObjectToLayer(contextMenuObjectUuid, layerId)
-        }
-        setContextMenuOpened(false)
-        setContextMenuObjectUuid(null)
-    }, [contextMenuObjectUuid, storeMoveObjectToLayer])
+    // Перемещение через контекстное меню реализовано в дереве; локальный обработчик не используется
 
     /**
      * Предрасчёт и группировка объектов по слоям.
      * Возвращает стабильные по ссылке массивы для каждого layerId,
      * что уменьшает перерендеры мемоизированных дочерних компонентов.
      */
-    const objectsByLayer = useMemo(() => {
-        const map = new Map<string, ObjectInfo[]>()
-        for (const obj of objects) {
-            const lid = obj.layerId || 'objects'
-            if (!map.has(lid)) map.set(lid, [])
-            map.get(lid)!.push(obj)
-        }
-        return map
-    }, [objects])
+    // Группировка объектов по слоям выполняется внутри useObjectLayerNodes
 
     return (
         <>
