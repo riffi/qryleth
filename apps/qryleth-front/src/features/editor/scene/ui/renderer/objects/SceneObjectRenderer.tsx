@@ -4,6 +4,8 @@ import * as THREE from 'three'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import { SceneGroupRenderer } from './SceneGroupRenderer.tsx'
 import { useRenderMode } from '../../../model/sceneStore.ts'
+import { useSceneStore } from '../../../model/sceneStore.ts'
+import { paletteRegistry } from '@/shared/lib/palette'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import type {
   ObjectTransformEvent,
@@ -36,6 +38,9 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null)
   const renderMode = useRenderMode()
+  const environmentContent = useSceneStore(s => s.environmentContent)
+  const paletteUuid = environmentContent?.paletteUuid || 'default'
+  const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
 
   const handleClick = (event: any) => {
     event.stopPropagation()
@@ -118,6 +123,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           primitive={primitive}
           renderMode={renderMode}
           objectMaterials={sceneObject.materials}
+          activePalette={activePalette as any}
           userData={{
             generated: true,
             primitiveIndex: index,

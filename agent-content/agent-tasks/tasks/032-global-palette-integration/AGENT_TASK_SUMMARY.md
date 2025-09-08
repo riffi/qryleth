@@ -2,14 +2,14 @@
 id: 32
 epic: null
 title: "Внедрение глобальной палитры цветов (PaletteRegistry, ColorSource, интеграция в сцену)"
-status: planned
+status: in-progress
 created: 2025-09-08
 updated: 2025-09-08
 owner: team-ui
 tags: [palette, rendering, materials, terrain, water, editor, sceneAPI]
 phases:
   total: 8
-  completed: 0
+  completed: 2
 ---
 
 # Внедрение глобальной палитры цветов
@@ -127,16 +127,15 @@ QRYLETH_AUTUMN = {
 
 ## Список фаз
 
-### ⏳ Фаза 1: Типы палитры и реестр предустановок
-- Добавить типы: `PaletteRole`, `GlobalPalette`, `ColorSource` (для материалов и террейна).
-- Создать `PaletteRegistry` по аналогии с MaterialRegistry.
-- Зарегистрировать предустановки `QRYLETH_DEFAULT` и `QRYLETH_AUTUMN` со стабильными uuid.
-- Документация типов (`docs/api/types/palette.md`).
+### ✅ Фаза 1: Типы палитры и реестр предустановок — done
+- Добавлены типы: `PaletteRole`, `GlobalPalette`, `ColorSource`.
+- Реализован `PaletteRegistry` и предустановки `QRYLETH_DEFAULT`, `QRYLETH_AUTUMN`.
+- Создана документация `docs/api/types/palette.md`.
 
-### ⏳ Фаза 2: Состояние сцены и инициализация палитры
-- Добавить `environmentContent.paletteUuid?: string` в доменные типы и Zustand‑store сцены.
-- Инициализировать по умолчанию QRYLETH_DEFAULT при отсутствии paletteUuid (при загрузке/очистке сцены).
-- Сохранение/загрузка сцен в Dexie с новым полем. Описать обратную совместимость.
+### ✅ Фаза 2: Состояние сцены и инициализация палитры — done
+- В `GfxEnvironmentContent` добавлено `paletteUuid?: string`; стор сцены инициализирует `'default'`.
+- `initializePalettes()` вызывается при старте стора; при load/clear подставляется дефолт.
+- Сериализация в Dexie совместима; обеспечена бэкомпат-нормализация.
 
 ### ⏳ Фаза 3: Резолвер материалов с учётом палитры
 - Расширить `materialResolver` для поддержки `properties.colorSource` (fixed/role + tint HSV Value).

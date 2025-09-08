@@ -1,5 +1,7 @@
 import React from 'react'
 import {PrimitiveRenderer} from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
+import { useSceneStore } from '../../../model/sceneStore.ts'
+import { paletteRegistry } from '@/shared/lib/palette'
 import type {RenderMode, SceneClickEvent} from '@/shared/types/ui'
 import type {SceneObject, SceneObjectInstance} from '@/entities/scene/types'
 import type {ThreeEvent} from '@react-three/fiber'
@@ -31,6 +33,9 @@ export const SceneGroupRenderer: React.FC<SceneGroupRendererProps> = ({
   onClick,
   groupName
 }) => {
+  const environmentContent = useSceneStore(s => s.environmentContent)
+  const paletteUuid = environmentContent?.paletteUuid || 'default'
+  const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
   const groups = sceneObject.primitiveGroups || {}
   const assignments = sceneObject.primitiveGroupAssignments || {}
   const group = groups[groupUuid]
@@ -104,6 +109,7 @@ export const SceneGroupRenderer: React.FC<SceneGroupRendererProps> = ({
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={sceneObject.materials}
+            activePalette={activePalette as any}
             userData={{
               generated: true,
               primitiveIndex: index,

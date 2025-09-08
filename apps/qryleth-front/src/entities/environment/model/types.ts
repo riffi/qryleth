@@ -79,6 +79,11 @@ export interface GfxSkySettings {
 export interface GfxEnvironmentContent {
   /** Наборы облаков окружения */
   cloudSets: GfxCloudSet[]
+  /**
+   * Ссылка на активную глобальную палитру сцены (UUID).
+   * Если не задано — при инициализации подставляется палитра по умолчанию ('default').
+   */
+  paletteUuid?: string
   /** Параметры ветра */
   wind?: GfxWindSettings
   /** Параметры неба/фона */

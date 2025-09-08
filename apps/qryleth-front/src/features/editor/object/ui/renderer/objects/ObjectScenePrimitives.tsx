@@ -1,5 +1,6 @@
 import React from 'react'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
+import { paletteRegistry } from '@/shared/lib/palette'
 import { GroupRenderer } from './GroupRenderer.tsx'
 import {
   useObjectPrimitives,
@@ -67,6 +68,7 @@ export const ObjectScenePrimitives: React.FC = () => {
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={objectMaterials}
+            activePalette={paletteRegistry.get('default') as any}
             userData={{ generated: true, primitiveIndex: index }}
             onClick={handleObjectClick}
           />

@@ -1,4 +1,5 @@
 import type { GfxMaterial } from '@/entities/material';
+import type { ColorSource, GlobalPalette } from '@/entities/palette'
 import { materialRegistry } from './MaterialRegistry';
 
 /**
@@ -74,6 +75,105 @@ export function resolveMaterial(context: MaterialResolutionContext): GfxMaterial
 
   // 4. Дефолтный материал
   return DEFAULT_MATERIAL;
+}
+
+/**
+ * Преобразует цвет из HEX в HSV и обратно; применяется для tint по компоненту Value.
+ * Внимание: минимальная реализация без зависимостей.
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '')
+  const v = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 }
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(Math.max(0, Math.min(255, Math.round(r))))}${toHex(Math.max(0, Math.min(255, Math.round(g))))}${toHex(Math.max(0, Math.min(255, Math.round(b))))}`
+}
+
+function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
+  r /= 255; g /= 255; b /= 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const d = max - min
+  let h = 0
+  const s = max === 0 ? 0 : d / max
+  const v = max
+  if (d !== 0) {
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break
+      case g: h = (b - r) / d + 2; break
+      case b: h = (r - g) / d + 4; break
+    }
+    h /= 6
+  }
+  return { h, s, v }
+}
+
+function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: number } {
+  const i = Math.floor(h * 6)
+  const f = h * 6 - i
+  const p = v * (1 - s)
+  const q = v * (1 - f * s)
+  const t = v * (1 - (1 - f) * s)
+  let r = 0, g = 0, b = 0
+  switch (i % 6) {
+    case 0: r = v; g = t; b = p; break
+    case 1: r = q; g = v; b = p; break
+    case 2: r = p; g = v; b = t; break
+    case 3: r = p; g = q; b = v; break
+    case 4: r = t; g = p; b = v; break
+    case 5: r = v; g = p; b = q; break
+  }
+  return { r: r * 255, g: g * 255, b: b * 255 }
+}
+
+/**
+ * Применяет tint ([-1..+1]) к компоненту Value (HSV) указанного цвета.
+ * Используется для осветления/затемнения, с клампингом в [0..1].
+ */
+function applyTintToHex(hex: string, tint?: number): string {
+  if (!Number.isFinite(tint as number) || !tint) return hex
+  const { r, g, b } = hexToRgb(hex)
+  const { h, s, v } = rgbToHsv(r, g, b)
+  const v2 = Math.max(0, Math.min(1, v + (tint as number)))
+  const rgb2 = hsvToRgb(h, s, v2)
+  return rgbToHex(rgb2.r, rgb2.g, rgb2.b)
+}
+
+/**
+ * Резолвит базовый цвет (HEX) для материала с учётом ColorSource и активной палитры.
+ * Если ColorSource не задан — возвращает material.properties.color.
+ */
+export function resolveMaterialBaseColor(material: GfxMaterial, palette?: GlobalPalette): string {
+  const src: ColorSource | undefined = (material.properties as any).colorSource
+  const fallback = material.properties.color || '#808080'
+  if (!src || src.type === 'fixed') return fallback
+  // role
+  const base = palette?.colors?.[src.role] || fallback
+  return applyTintToHex(base, src.tint)
+}
+
+/**
+ * Конвертирует GfxMaterial в свойства Three.js с учётом активной палитры (ColorSource).
+ * Если палитра не передана — используется fallback на собственный цвет материала.
+ */
+export function materialToThreePropsWithPalette(material: GfxMaterial, palette?: GlobalPalette) {
+  const props = material.properties;
+  const colorHex = resolveMaterialBaseColor(material, palette)
+  return {
+    color: colorHex,
+    opacity: props.opacity ?? 1.0,
+    transparent: props.transparent ?? (props.opacity !== undefined && props.opacity < 1.0),
+    metalness: props.metalness ?? 0.0,
+    roughness: props.roughness ?? 0.5,
+    emissive: props.emissive,
+    emissiveIntensity: props.emissiveIntensity ?? 0.0,
+    ior: props.ior ?? 1.5,
+    envMapIntensity: props.envMapIntensity ?? 1.0,
+    side: props.side === 'double' ? 2 : props.side === 'back' ? 1 : 0,
+    alphaTest: props.alphaTest ?? 0.0,
+  };
 }
 
 /**

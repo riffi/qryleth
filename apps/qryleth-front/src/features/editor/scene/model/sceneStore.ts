@@ -28,8 +28,12 @@ import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
+import { initializePalettes } from '@/shared/lib/palette'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
+
+// Инициализируем реестр палитр предустановками (идемпотентно)
+initializePalettes()
 
 // Берём значения из пресета по умолчанию ("Яркий день") и дополняем служебными полями
 const initialPreset = getLightingPreset(DEFAULT_LIGHTING_PRESET_KEY)
@@ -92,7 +96,11 @@ const initialState: SceneStoreState = {
   // Новая архитектура содержимого слоёв
   landscapeContent: null as { layerId: string; items: GfxLandscape[] } | null,
   waterContent: [] as Array<{ layerId: string; items: GfxWaterBody[] }>,
-  environmentContent: null as GfxEnvironmentContent | null,
+  environmentContent: {
+    cloudSets: [],
+    paletteUuid: 'default',
+    wind: { direction: [1,0], speed: 0.2 },
+  } as GfxEnvironmentContent,
 
   // UI state
   uiMode: UiMode.Edit,
@@ -635,9 +643,18 @@ export const useSceneStore = create<SceneStore>()(
      * Также синхронизирует legacy environment.wind для обратной совместимости UI в переходный период.
      */
     setEnvironmentContent: (content: GfxEnvironmentContent) => {
+      // Гарантируем наличие paletteUuid (бэкомпат со старыми сценами)
+      const normalized: GfxEnvironmentContent = {
+        paletteUuid: content.paletteUuid || 'default',
+        cloudSets: content.cloudSets ?? [],
+        wind: content.wind,
+        sky: content.sky,
+        fog: content.fog,
+        exposure: content.exposure,
+      }
       set(state => ({
-        environmentContent: content,
-        environment: content.wind ? { ...state.environment, wind: { ...content.wind } } : state.environment
+        environmentContent: normalized,
+        environment: normalized.wind ? { ...state.environment, wind: { ...normalized.wind } } : state.environment
       }))
       get().saveToHistory(); get().markSceneAsModified()
     },
@@ -837,7 +854,7 @@ export const useSceneStore = create<SceneStore>()(
         if (data.landscapeContent !== undefined) state.setLandscapeContent(data.landscapeContent)
         if (data.waterContent !== undefined) state.setWaterContent(data.waterContent)
         if (data.environmentContent !== undefined) state.setEnvironmentContent(data.environmentContent)
-        else state.setEnvironmentContent({ cloudSets: [], wind: { direction: [1,0], speed: 0.2 } })
+        else state.setEnvironmentContent({ cloudSets: [], wind: { direction: [1,0], speed: 0.2 }, paletteUuid: 'default' })
 
         // Legacy окружение сцены (ветер): если в новых данных окружения нет ветра — используем старые поля
         if (!data.environmentContent?.wind && data.environment && data.environment.wind) {
@@ -898,7 +915,7 @@ export const useSceneStore = create<SceneStore>()(
         // Новая архитектура содержимого слоёв
         landscapeContent: null,
         waterContent: [],
-        environmentContent: { cloudSets: [], wind: { direction: [1,0], speed: 0.2 } },
+        environmentContent: { cloudSets: [], wind: { direction: [1,0], speed: 0.2 }, paletteUuid: 'default' },
         selectedObject: null,
         hoveredObject: null,
         sceneMetaData: initialSceneMetaData,

@@ -14,6 +14,11 @@ export interface GfxMaterial {
   properties: {
     /** Базовый цвет материала в формате hex (Three.js: color) */
     color: string;
+    /**
+     * Источник цвета: fixed — использовать color; role — взять из палитры по роли и применить tint (HSV Value).
+     * Если не задано — используется color (обратная совместимость).
+     */
+    colorSource?: import('@/entities/palette').ColorSource;
     /** Прозрачность материала 0.0-1.0 (Three.js: opacity) */
     opacity?: number;
     /** Флаг прозрачности (Three.js: transparent) */

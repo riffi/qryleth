@@ -1,9 +1,11 @@
 import React from 'react'
 import {
   resolveMaterial,
-  materialToThreeProps,
+  materialToThreePropsWithPalette,
   getMeshPropsFromMaterial
 } from '@/shared/lib/materials'
+import type { GlobalPalette } from '@/entities/palette'
+import { paletteRegistry } from '@/shared/lib/palette'
 import { Box3D } from './Box3D'
 import { Sphere3D } from './Sphere3D'
 import { Cylinder3D } from './Cylinder3D'
@@ -22,6 +24,8 @@ export interface PrimitiveRendererProps {
   onClick?: (event: any) => void
   /** Список материалов, принадлежащих объекту */
   objectMaterials?: GfxMaterial[]
+  /** Активная палитра (опционально). Если не передана — используется 'default'. */
+  activePalette?: GlobalPalette
 }
 
 /**
@@ -33,7 +37,8 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
   renderMode = 'solid',
   userData,
   onClick,
-  objectMaterials
+  objectMaterials,
+  activePalette
 }) => {
   const material = resolveMaterial({
     directMaterial: primitive.material,
@@ -41,8 +46,11 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
     globalMaterialUuid: primitive.globalMaterialUuid,
     objectMaterials
   })
+  // Выбираем палитру: переданную или по умолчанию
+  const palette = activePalette || paletteRegistry.get('default')
+
   const baseMaterialProps = {
-    ...materialToThreeProps(material),
+    ...materialToThreePropsWithPalette(material, palette),
     wireframe: renderMode === 'wireframe'
   }
 

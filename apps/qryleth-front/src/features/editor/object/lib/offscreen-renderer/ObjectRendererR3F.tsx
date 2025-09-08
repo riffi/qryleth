@@ -1,5 +1,6 @@
 import React from 'react'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
+import { paletteRegistry } from '@/shared/lib/palette'
 import { GroupRenderer } from '../../ui/renderer/objects/GroupRenderer.tsx'
 import { buildGroupTree } from '@/entities/primitiveGroup/model/utils'
 import type { RenderMode } from '@/shared/types/ui'
@@ -62,6 +63,7 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={materials}
+            activePalette={paletteRegistry.get('default') as any}
             userData={{ generated: true, primitiveIndex: index }}
             onClick={handleObjectClick}
           />

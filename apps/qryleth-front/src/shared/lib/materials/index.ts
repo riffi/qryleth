@@ -8,6 +8,8 @@ export {
   isTransparentMaterial,
   isMetallicMaterial,
   materialToThreeProps,
+  materialToThreePropsWithPalette,
+  resolveMaterialBaseColor,
   getMeshPropsFromMaterial,
   DEFAULT_MATERIAL,
   type MaterialResolutionContext,
