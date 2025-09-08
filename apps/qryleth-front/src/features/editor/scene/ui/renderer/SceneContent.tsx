@@ -113,7 +113,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       {/* Core scene components */}
       <SceneLighting />
       <CameraControls />
-      <Environment gridVisible={gridVisible} />
+      {/* Сетка никогда не показывается в Play-режиме, даже если включена в настройках */}
+      <Environment gridVisible={uiMode !== UiMode.Play && gridVisible} />
       {/* Фиксированный экранный индикатор осей X/Y/Z */}
       {uiMode === UiMode.Edit && <ViewportAxesHelper />}
       {/* Счётчик FPS в углу viewport'а */}
