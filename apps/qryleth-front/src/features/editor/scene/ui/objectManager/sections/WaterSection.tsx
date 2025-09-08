@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconRipple, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconRipple, IconPlus, IconTrash, IconDroplet } from '@tabler/icons-react'
 import type { TreeNodeBase } from '@/shared/ui/tree/types'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { useSceneLayersOptimized } from '@/features/editor/scene/model/optimizedSelectors'
@@ -23,16 +23,23 @@ export const useWaterNodes = (params: {
 
   return (layers || []).filter(l => l.type === GfxLayerType.Water).map(layer => {
     const container = (waterContent || []).find(c => c.layerId === layer.id)
-    const children: TreeNodeBase[] = (container?.items || []).map(body => ({
-      id: body.id,
-      name: body.name || 'Без имени',
-      visible: body.visible !== false,
-      onToggleVisibility: () => updateWaterBody(layer.id, body.id, { visible: !(body.visible !== false) } as any),
-      actions: [
-        { id: 'edit', label: 'Редактировать', onClick: () => params.onEditBody(layer.id, body.id) },
-        { id: 'delete', label: 'Удалить', color: 'red', onClick: () => removeWaterBody(layer.id, body.id) },
-      ]
-    }))
+    const children: TreeNodeBase[] = (container?.items || []).map(body => {
+      // Используем только проверенные иконки из пакета: IconDroplet / IconRipple
+      const icon = body.kind === 'lake'
+        ? <IconDroplet size={12} color={'var(--mantine-color-blue-5)'} />
+        : <IconRipple size={12} color={'var(--mantine-color-blue-5)'} />
+      return {
+        id: body.id,
+        name: body.name || 'Без имени',
+        icon,
+        visible: body.visible !== false,
+        onToggleVisibility: () => updateWaterBody(layer.id, body.id, { visible: !(body.visible !== false) } as any),
+        actions: [
+          { id: 'edit', label: 'Редактировать', onClick: () => params.onEditBody(layer.id, body.id) },
+          { id: 'delete', label: 'Удалить', color: 'red', onClick: () => removeWaterBody(layer.id, body.id) },
+        ]
+      }
+    })
 
     return {
       id: layer.id,

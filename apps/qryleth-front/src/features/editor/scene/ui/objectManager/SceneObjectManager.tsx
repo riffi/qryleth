@@ -62,6 +62,7 @@ import { useObjectLayerNodes } from './sections/ObjectLayersSection'
 import { useLandscapeNodes } from './sections/LandscapeSection'
 import { useWaterNodes } from './sections/WaterSection'
 import { useBiomeNodes } from './sections/BiomesSection'
+import {SectionHeader} from "@/shared/ui/section/SectionHeader.tsx";
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -141,6 +142,16 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const selectedObject = storeSelectedObject
 
     const totalObjects = objects.reduce((sum, obj) => sum + obj.count, 0)
+
+    // Узлы ландшафта формируем неизменно на каждом рендере,
+    // чтобы не нарушать порядок вызова хуков (React rule of hooks)
+    const landscapeNodes = useLandscapeNodes({
+      onEdit: (id: string) => {
+        setLandscapeModalMode('edit')
+        setEditingLandscapeId(id)
+        setLandscapeModalOpened(true)
+      }
+    })
 
     /**
      * Возвращает количество инстансов, принадлежащих каждому биому.
@@ -569,27 +580,15 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     />
 
 
-                    <Group justify="space-between" align="center">
-                        <Text size="xs" fw={500} c="dimmed">
-                            Слои
-                        </Text>
-                        <Group gap="xs">
-                            <Tooltip label="Создать новый слой">
-                                <ActionIcon
-                                    size="sm"
-                                    variant="light"
-                                    color="blue"
-                                    onClick={() => {
-                                        setLayerFormData(createEmptySceneLayer())
-                                        setLayerModalMode('create')
-                                        setLayerModalOpened(true)
-                                    }}
-                                >
-                                    <IconPlus size={14} />
-                                </ActionIcon>
-                            </Tooltip>
-                        </Group>
-                    </Group>
+                    <SectionHeader
+                      title="Слои объектов"
+                      addTooltip="Создать новый слой"
+                      onAdd={() => {
+                        setLayerFormData(createEmptySceneLayer())
+                        setLayerModalMode('create')
+                        setLayerModalOpened(true)
+                      }}
+                    />
 
                     <ScrollArea style={{ maxHeight: 260 }} onClick={() => setContextMenuOpened(false)}>
                       <Stack gap={0}>
@@ -621,27 +620,31 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                       </Stack>
                     </ScrollArea>
 
-                    {/* Новая архитектура: Ландшафт и Вода */}
+                    {/* Ландшафт */}
                     <Divider my="xs" />
-
-                    <TreeList
-                      nodes={useLandscapeNodes({
-                        onAdd: () => { setLandscapeModalMode('create'); setLandscapeModalOpened(true) },
-                        onEdit: (id: string) => { setLandscapeModalMode('edit'); setEditingLandscapeId(id); setLandscapeModalOpened(true) }
-                      })}
-                      expandedIds={expandedLayers}
-                      onToggleExpand={toggleLayerExpanded}
+                    <SectionHeader
+                      title="Ландшафт"
+                      addTooltip="Добавить площадку"
+                      onAdd={() => { setLandscapeModalMode('create'); setLandscapeModalOpened(true) }}
                     />
+                    <Stack gap="0px">
+                      {landscapeNodes.length > 0 ? (
+                        <TreeList
+                          nodes={landscapeNodes}
+                          expandedIds={expandedLayers}
+                          onToggleExpand={toggleLayerExpanded}
+                        />
+                      ) : (
+                        <Text size="xs" c="dimmed" ta="center">Нет площадок ландшафта</Text>
+                      )}
+                    </Stack>
 
                     <Divider my="xs" />
-                    <Group justify="space-between" align="center">
-                      <Text size="xs" fw={500} c="dimmed">Водные слои (новая архитектура)</Text>
-                      <Tooltip label="Создать водный слой">
-                        <ActionIcon size="sm" variant="light" color="blue" onClick={() => { setLayerFormData({ ...createEmptySceneLayer(), type: GfxLayerType.Water, name: 'вода' }); setLayerModalMode('create'); setLayerModalOpened(true) }}>
-                          <IconPlus size={14} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
+                    <SectionHeader
+                      title="Водные слои"
+                      addTooltip="Создать водный слой"
+                      onAdd={() => { setLayerFormData({ ...createEmptySceneLayer(), type: GfxLayerType.Water, name: 'вода' }); setLayerModalMode('create'); setLayerModalOpened(true) }}
+                    />
                     <Stack gap="0px" style={{width: '100%'}}>
                       <TreeList
                         nodes={useWaterNodes({
@@ -685,6 +688,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
               opened={layerModalOpened}
               mode={layerModalMode}
               initial={{ id: layerFormData.id, name: layerFormData.name, type: layerFormData.type as any }}
+              fixedType={layerModalMode === 'create' ? (layerFormData.type as any) : undefined}
               onClose={() => setLayerModalOpened(false)}
             />
 

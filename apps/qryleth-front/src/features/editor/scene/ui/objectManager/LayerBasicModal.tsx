@@ -8,6 +8,12 @@ export interface LayerBasicModalProps {
   opened: boolean
   mode: 'create' | 'edit'
   initial?: { id?: string; name?: string; type?: GfxLayerType }
+  /**
+   * Фиксированный тип слоя для режима создания.
+   * Если задан, селект выбора типа скрывается, а тип слоя принудительно
+   * устанавливается как fixedType (пользователь не меняет его вручную).
+   */
+  fixedType?: GfxLayerType
   onClose: () => void
 }
 
@@ -18,13 +24,13 @@ export interface LayerBasicModalProps {
  *   никаких параметров содержимого не задаётся — их редактирование вынесено в отдельные окна.
  * - В режиме edit позволяет переименовать слой (тип не изменяется).
  */
-export const LayerBasicModal: React.FC<LayerBasicModalProps> = ({ opened, mode, initial, onClose }) => {
+export const LayerBasicModal: React.FC<LayerBasicModalProps> = ({ opened, mode, initial, fixedType, onClose }) => {
   const createLayer = useSceneStore(state => state.createLayer)
   const updateLayer = useSceneStore(state => state.updateLayer)
   const layers = useSceneStore(state => state.layers)
 
   const [name, setName] = useState(initial?.name ?? '')
-  const [type, setType] = useState<GfxLayerType | undefined>(initial?.type)
+  const [type, setType] = useState<GfxLayerType | undefined>(fixedType ?? initial?.type)
 
   const layerOptions = useMemo(() => ([
     { value: GfxLayerType.Object, label: 'Object' },
@@ -34,10 +40,11 @@ export const LayerBasicModal: React.FC<LayerBasicModalProps> = ({ opened, mode, 
 
   const onCreate = () => {
     const nm = (name || '').trim()
-    if (!nm || !type) return
+    const finalType = fixedType ?? type
+    if (!nm || !finalType) return
     const base: Omit<SceneLayer, 'id'> = {
       name: nm,
-      type,
+      type: finalType,
       visible: true,
       position: layers.length,
     } as any
@@ -55,7 +62,7 @@ export const LayerBasicModal: React.FC<LayerBasicModalProps> = ({ opened, mode, 
   return (
     <Modal opened={opened} onClose={onClose} title={mode === 'create' ? 'Создать слой' : 'Переименовать слой'}>
       <Stack>
-        {mode === 'create' && (
+        {mode === 'create' && !fixedType && (
           <Select
             label="Тип слоя"
             placeholder="Выберите тип"
@@ -83,4 +90,3 @@ export const LayerBasicModal: React.FC<LayerBasicModalProps> = ({ opened, mode, 
     </Modal>
   )
 }
-
