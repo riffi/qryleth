@@ -8,7 +8,7 @@ import {
     useSelectionState,
     useSceneActions
 } from '../../model/optimizedSelectors.ts'
-import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider } from '@mantine/core'
+import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider, Select } from '@mantine/core'
 import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
@@ -45,6 +45,7 @@ import { useLandscapeNodes } from './sections/LandscapeSection'
 import { useWaterNodes } from './sections/WaterSection'
 import { useBiomeNodes } from './sections/BiomesSection'
 import { SectionHeader } from '@/shared/ui/section/SectionHeader.tsx'
+import { paletteRegistry } from '@/shared/lib/palette'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneToLibrary, onEditObject }) => {
     const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set(['objects']))
@@ -75,7 +76,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
     const objectInstances = useSceneStore(state => state.objectInstances)
     // Биомы управляются через секцию Biomes; локальные ссылки не нужны
     const landscapeContent = useSceneStore(state => state.landscapeContent)
-    const waterContent = useSceneStore(state => state.waterContent)
+  const waterContent = useSceneStore(state => state.waterContent)
+  const environmentContent = useSceneStore(state => state.environmentContent)
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
     const {
@@ -518,6 +520,20 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                     </ScrollArea>
 
                     {/* Ландшафт */}
+                    <Divider my="xs" />
+                    <SectionHeader title="Окружение" />
+                    <Group gap="xs">
+                      <Select
+                        label="Палитра"
+                        size="xs"
+                        value={environmentContent?.paletteUuid || 'default'}
+                        data={paletteRegistry.list().map(p => ({ value: p.uuid, label: p.name }))}
+                        onChange={(val) => { if (val) SceneAPI.setPalette(val) }}
+                        withinPortal={false}
+                        style={{ flex: 1 }}
+                      />
+                    </Group>
+
                     <Divider my="xs" />
                     <SectionHeader
                       title="Ландшафт"

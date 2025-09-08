@@ -28,7 +28,7 @@ import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
-import { initializePalettes } from '@/shared/lib/palette'
+import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
 
@@ -652,10 +652,22 @@ export const useSceneStore = create<SceneStore>()(
         fog: content.fog,
         exposure: content.exposure,
       }
-      set(state => ({
-        environmentContent: normalized,
-        environment: normalized.wind ? { ...state.environment, wind: { ...normalized.wind } } : state.environment
-      }))
+      set(state => {
+        // Синхронизируем legacy-ветер
+        const nextEnv = normalized.wind ? { ...state.environment, wind: { ...normalized.wind } } : state.environment
+        // Синхронизация фона и тумана со ссылкой на палитру
+        const pal = paletteRegistry.get(normalized.paletteUuid || 'default')
+        const nextLighting = pal ? {
+          ...state.lighting,
+          backgroundColor: pal.colors.sky,
+          fog: state.lighting.fog ? { ...state.lighting.fog, color: pal.colors.fog } : state.lighting.fog
+        } : state.lighting
+        return {
+          environmentContent: normalized,
+          environment: nextEnv,
+          lighting: nextLighting,
+        }
+      })
       get().saveToHistory(); get().markSceneAsModified()
     },
     /** Добавить набор облаков в окружение. */
@@ -902,26 +914,24 @@ export const useSceneStore = create<SceneStore>()(
     },
 
     clearScene: () => {
+      // Сбрасываем основные коллекции
       set({
         objects: [],
         objectInstances: [],
         layers: initialLayers,
         lighting: initialLighting,
         biomes: [],
-        // Legacy окружение (оставляем до завершения миграции рендеров/UI)
-        environment: {
-          wind: { direction: [1, 0], speed: 0.2 }
-        },
-        // Новая архитектура содержимого слоёв
+        environment: { wind: { direction: [1, 0], speed: 0.2 } },
         landscapeContent: null,
         waterContent: [],
-        environmentContent: { cloudSets: [], wind: { direction: [1,0], speed: 0.2 }, paletteUuid: 'default' },
         selectedObject: null,
         hoveredObject: null,
         sceneMetaData: initialSceneMetaData,
         history: [],
         historyIndex: -1
       })
+      // Устанавливаем окружение через нормализатор (обновит фон/туман по палитре)
+      get().setEnvironmentContent({ cloudSets: [], wind: { direction: [1,0], speed: 0.2 }, paletteUuid: 'default' })
     },
 
     // History management

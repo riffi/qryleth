@@ -40,6 +40,8 @@ import { calculateCurvature } from '@/features/editor/scene/lib/terrain/colorUti
 import type { GfxCloudsConfig, GfxProceduralCloudSpec } from '@/entities/cloud'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { ProceduralCloudGenerator } from '@/features/editor/scene/lib/clouds/ProceduralCloudGenerator'
+import { paletteRegistry } from '@/shared/lib/palette'
+import type { GlobalPalette } from '@/entities/palette'
 import type { GfxLandscape } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import type { GfxHeightSampler } from '@/entities/terrain'
@@ -1413,6 +1415,32 @@ export class SceneAPI {
       materialsInUse,
       unusedMaterials
     }
+  }
+
+  // =============================
+  // Палитры (Фаза 6)
+  // =============================
+
+  /**
+   * Возвращает список доступных глобальных палитр (предустановок) из реестра.
+   * Палитры имеют стабильные UUID и могут использоваться для переключения вида сцены.
+   */
+  static listPalettes(): GlobalPalette[] {
+    return paletteRegistry.list()
+  }
+
+  /**
+   * Устанавливает активную палитру сцены по UUID.
+   * Обновляет `environmentContent.paletteUuid` и синхронизирует фон/туман через store.
+   * Если UUID не найден в реестре, возвращает false и не изменяет сцену.
+   */
+  static setPalette(paletteUuid: string): boolean {
+    const pal = paletteRegistry.get(paletteUuid)
+    if (!pal) return false
+    const state = useSceneStore.getState()
+    const current = state.environmentContent || { cloudSets: [], wind: state.environment.wind }
+    state.setEnvironmentContent({ ...current, paletteUuid })
+    return true
   }
 }
 

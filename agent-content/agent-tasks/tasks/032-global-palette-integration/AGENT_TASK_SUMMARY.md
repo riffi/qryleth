@@ -9,7 +9,7 @@ owner: team-ui
 tags: [palette, rendering, materials, terrain, water, editor, sceneAPI]
 phases:
   total: 8
-  completed: 4
+  completed: 7
 ---
 
 # Внедрение глобальной палитры цветов
@@ -147,19 +147,19 @@ QRYLETH_AUTUMN = {
 - `MultiColorProcessor`: резолв ролей стопов с применением tint (HSV Value) к КАЖДОМУ стопу, затем интерполяция и `slopeBoost`.
 - Зависимость от палитры: при смене `environmentContent.paletteUuid` пересборка включается; ключ кэша геометрии учитывает paletteUuid и colorSource.
 
-### ⏳ Фаза 5: Вода и фон/туман сцены
-- Simple‑вода: `color2 = base`, `color1 = base` с осветлением +20% (HSV Value) из роли `water`.
-- Realistic‑вода: оставить текущую логику (смешивание с небом).
-- При смене палитры устанавливать `lighting.backgroundColor = palette.colors.sky` и `lighting.fog.color = palette.colors.fog` (если fog включён).
+### ✅ Фаза 5: Вода и фон/туман сцены — done
+- Simple‑вода: униформы `color1/color2` берутся из роли `water` (base + lighten +0.2 Value), реактивно обновляются при смене палитры.
+- Realistic‑вода: логика смешивания с небом без изменений.
+- При смене палитры `setEnvironmentContent` синхронизирует `lighting.backgroundColor = palette.colors.sky` и `lighting.fog.color = palette.colors.fog` (если fog включён).
 
-### ⏳ Фаза 6: SceneAPI — управление палитрой
-- Добавить `SceneAPI.listPalettes()` и `SceneAPI.setPalette(uuid)`.
-- Обновить документацию SceneAPI и примеры.
+### ✅ Фаза 6: SceneAPI — управление палитрой — done
+- Добавлены методы `SceneAPI.listPalettes()` и `SceneAPI.setPalette(uuid)`; мост `sceneApiBridge` расширен.
+- `setPalette` обновляет `environmentContent.paletteUuid` и синхронизирует фон/туман через стор.
 
-### ⏳ Фаза 7: UI — «Окружение» и редактор материалов
-- Секция «Окружение»: выпадающий список выбора палитры (предустановки из реестра).
-- Редактор материалов: переключатель fixed/role, выбор роли и слайдер tint [-1..+1].
-- Обеспечить живое обновление примитивов при изменении настроек материала (как для цвета сейчас).
+### ✅ Фаза 7: UI — «Окружение» и редактор материалов — done
+- Добавлена секция «Окружение» в SceneObjectManager с Select для выбора палитры из реестра.
+- Редактор материалов: переключатель источника цвета (fixed/role), Select роли и Slider для tint [-1..+1].
+- Изменения применяются немедленно через store и отражаются в рендере примитивов.
 
 ### ⏳ Фаза 8: Документация, миграции и полировка
 - Обновить архитектурные и API‑доки (ссылки, схемы, примеры).

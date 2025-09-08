@@ -6,7 +6,10 @@ import {
   Text,
   TextInput,
   NumberInput,
-  ColorInput
+  ColorInput,
+  SegmentedControl,
+  Select,
+  Slider
 } from '@mantine/core'
 import {
   useSelectedMaterial,
@@ -14,6 +17,7 @@ import {
   useObjectStore
 } from '../../model/objectStore.ts'
 import type { GfxMaterial } from '@/entities/material'
+import type { ColorSource } from '@/entities/palette'
 
 /**
  * Левая панель редактирования свойств материала объекта.
@@ -32,6 +36,10 @@ export const MaterialControlPanel: React.FC = () => {
   const [roughness, setRoughness] = useState(0.5)
   const [emissive, setEmissive] = useState('#000000')
   const [emissiveIntensity, setEmissiveIntensity] = useState(1)
+  // Источник цвета
+  const [colorSourceType, setColorSourceType] = useState<'fixed' | 'role'>('fixed')
+  const [role, setRole] = useState<string>('wood')
+  const [tint, setTint] = useState<number>(0)
 
   /**
    * Немедленно обновляет материал в zustand-хранилище.
@@ -71,6 +79,17 @@ export const MaterialControlPanel: React.FC = () => {
     setRoughness(selectedMaterial.properties.roughness ?? 0.5)
     setEmissive(selectedMaterial.properties.emissive ?? '#000000')
     setEmissiveIntensity(selectedMaterial.properties.emissiveIntensity ?? 1)
+
+    const src = (selectedMaterial.properties as any).colorSource as ColorSource | undefined
+    if (!src || src.type === 'fixed') {
+      setColorSourceType('fixed')
+      setRole('wood')
+      setTint(0)
+    } else if (src.type === 'role') {
+      setColorSourceType('role')
+      setRole(src.role)
+      setTint(src.tint ?? 0)
+    }
   }, [selectedUuid, selectedMaterial])
 
   if (!selectedMaterial) {
@@ -113,16 +132,67 @@ export const MaterialControlPanel: React.FC = () => {
               applyNameUpdate(val)
             }}
           />
-          <ColorInput
-            label="Цвет"
-            size="xs"
-            value={color}
-            onChange={(val) => {
-              setColor(val)
-              applyPropertyUpdates({ color: val })
-            }}
-            withEyeDropper={false}
-          />
+          <Group gap="xs">
+            <SegmentedControl
+              size="xs"
+              data={[{ label: 'Fixed', value: 'fixed' }, { label: 'Role', value: 'role' }]}
+              value={colorSourceType}
+              onChange={(v) => {
+                const next = v as 'fixed' | 'role'
+                setColorSourceType(next)
+                if (next === 'fixed') {
+                  applyPropertyUpdates({ colorSource: { type: 'fixed' } as any })
+                } else {
+                  applyPropertyUpdates({ colorSource: { type: 'role', role: (role as any), tint } as any })
+                }
+              }}
+            />
+          </Group>
+
+          {colorSourceType === 'fixed' && (
+            <ColorInput
+              label="Цвет"
+              size="xs"
+              value={color}
+              onChange={(val) => {
+                setColor(val)
+                applyPropertyUpdates({ color: val })
+              }}
+              withEyeDropper={false}
+            />
+          )}
+
+          {colorSourceType === 'role' && (
+            <>
+              <Select
+                label="Роль палитры"
+                size="xs"
+                value={role}
+                data={['sky','fog','water','foliage','wood','rock','metal','sand','ground','snow','accent'].map(r => ({ value: r, label: r }))}
+                onChange={(v) => {
+                  const value = v || 'wood'
+                  setRole(value)
+                  applyPropertyUpdates({ colorSource: { type: 'role', role: value as any, tint } as any })
+                }}
+                withinPortal={false}
+              />
+              <Group gap="xs">
+                <Text size="xs" c="dimmed">Tint (HSV Value)</Text>
+                <Slider
+                  size="xs"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={tint}
+                  onChange={(val) => {
+                    setTint(val)
+                    applyPropertyUpdates({ colorSource: { type: 'role', role: role as any, tint: val } as any })
+                  }}
+                  style={{ flex: 1 }}
+                />
+              </Group>
+            </>
+          )}
           <NumberInput
             label="Прозрачность"
             size="xs"

@@ -59,6 +59,10 @@ export function createSceneApiBridge() {
       opts?: { name?: string; center?: [number, number]; size?: { width: number; depth: number }; material?: { color?: string; multiColor?: import('@/entities/layer').GfxMultiColorConfig } }
     ) => SceneAPI.createProceduralLandscape(spec, opts),
     // legacy методы удалены: createProceduralLayer, adjustInstancesForPerlinTerrain
+
+    // Палитры сцены
+    listPalettes: () => SceneAPI.listPalettes(),
+    setPalette: (uuid: string) => SceneAPI.setPalette(uuid),
   }
 }
 

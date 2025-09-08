@@ -5,7 +5,6 @@ import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiColorProcessor'
-import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { extend, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
 import { useSceneLighting, useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { paletteRegistry } from '@/shared/lib/palette'
 import { GfxLayerType } from '@/entities/layer'
 
 /**
@@ -39,6 +40,9 @@ declare global { namespace JSX { interface IntrinsicElements { water: any } } }
 const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
   const lighting = useSceneLighting()
   const gl = useThree(state => state.gl)
+  const environmentContent = useSceneStore(state => state.environmentContent)
+  const paletteUuid = environmentContent?.paletteUuid || 'default'
+  const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
 
   // Прямоугольник в новой модели: Rect2D (x, z, width, depth)
   const { x: rectX, z: rectZ, width: rectW, depth: rectD } = body.surface.kind === 'rect'
@@ -68,11 +72,50 @@ const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
   }), [waterNormals, gl, lighting.fog?.enabled])
 
   // Материал для simple (создаётся всегда)
+  // Colors for simple water from palette
+  const baseWaterHex = (activePalette as any)?.colors?.water || '#4aa3c7'
+  const color2Hex = baseWaterHex
+  const color1Hex = (() => {
+    // lighten +0.2 Value in HSV
+    const h = baseWaterHex.replace('#','')
+    const value = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16)
+    const r=(value>>16)&255, g=(value>>8)&255, b=value&255
+    const max=Math.max(r,g,b)/255, min=Math.min(r,g,b)/255
+    const d=max-min
+    const s=max===0?0:d/max
+    let hh=0
+    if(d!==0){
+      const rr=r/255, gg=g/255, bb=b/255
+      switch(max){
+        case rr: hh=( (gg-bb)/d + (gg<bb?6:0) )/6; break
+        case gg: hh=( (bb-rr)/d + 2 )/6; break
+        case bb: hh=( (rr-gg)/d + 4 )/6; break
+      }
+    }
+    const nv=Math.max(0, Math.min(1, max + 0.2))
+    const i=Math.floor(hh*6)
+    const f=hh*6 - i
+    const p=nv*(1-s)
+    const q=nv*(1-f*s)
+    const t=nv*(1-(1-f)*s)
+    let rr2=0, gg2=0, bb2=0
+    switch(i%6){
+      case 0: rr2=nv; gg2=t; bb2=p; break
+      case 1: rr2=q; gg2=nv; bb2=p; break
+      case 2: rr2=p; gg2=nv; bb2=t; break
+      case 3: rr2=p; gg2=q; bb2=nv; break
+      case 4: rr2=t; gg2=p; bb2=nv; break
+      case 5: rr2=nv; gg2=p; bb2=q; break
+    }
+    const toHex=(n:number)=>Math.round(n*255).toString(16).padStart(2,'0')
+    return `#${toHex(rr2)}${toHex(gg2)}${toHex(bb2)}`
+  })()
+
   const simpleMaterial = useMemo(() => new THREE.ShaderMaterial({
     uniforms: {
       time: { value: 0.0 },
-      color1: { value: new THREE.Color(0x006994) },
-      color2: { value: new THREE.Color(0x4fa8c5) },
+      color1: { value: new THREE.Color(color1Hex) },
+      color2: { value: new THREE.Color(color2Hex) },
       waveHeight: { value: 0.02 },
       waveLength1: { value: 60.0 },
       waveLength2: { value: 28.0 },
@@ -170,6 +213,13 @@ const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
     const obj = realisticRef.current as any
     if (obj && obj.material && obj.material.uniforms?.time) obj.material.uniforms.time.value += delta / 2
   })
+  // Update colors for simple water when palette changes
+  useEffect(() => {
+    const mat = simpleRef.current?.material as THREE.ShaderMaterial | undefined
+    if (!mat) return
+    mat.uniforms.color1.value.set(new THREE.Color(color1Hex))
+    mat.uniforms.color2.value.set(new THREE.Color(color2Hex))
+  }, [color1Hex, color2Hex])
 
   const isRealistic = body.water?.type === 'realistic'
   if (isRealistic) {
