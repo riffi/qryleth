@@ -190,6 +190,11 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
 
   return (
     <mesh
+      /*
+       * ВАЖНО: привязываем видимость меша к флагу item.visible из Zustand‑стора.
+       * Если visible === false — элемент скрывается на сцене, при true/undefined — показывается.
+       */
+      visible={item.visible !== false}
       geometry={finalGeometry}
       rotation={rotation}
       position={position}

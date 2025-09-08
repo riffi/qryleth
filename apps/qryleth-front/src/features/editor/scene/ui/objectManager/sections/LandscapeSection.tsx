@@ -18,7 +18,13 @@ export const useLandscapeNodes = (params: { onEdit: (id: string) => void }): Tre
       ? <IconMountain size={12} color={'var(--mantine-color-green-5)'} />
       : <IconSquare size={12} color={'var(--mantine-color-green-5)'} />,
     visible: item.visible !== false,
-    onToggleVisibility: () => updateLandscapeItem(item.id, { visible: !(item.visible !== false) } as any),
+    // Важно: вычисляем новое значение видимости по актуальному состоянию стора,
+    // а не по замкнутому значению из текущего рендера, чтобы избежать рассинхронизации.
+    onToggleVisibility: () => {
+      const current = useSceneStore.getState().landscapeContent?.items.find(i => i.id === item.id)
+      const nextVisible = !(current?.visible !== false)
+      updateLandscapeItem(item.id, { visible: nextVisible } as any)
+    },
     actions: [
       { id: 'edit', label: 'Редактировать', onClick: () => params.onEdit(item.id) },
       { id: 'delete', label: 'Удалить', color: 'red', onClick: () => removeLandscapeItem(item.id) },

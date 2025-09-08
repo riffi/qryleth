@@ -33,7 +33,14 @@ export const useWaterNodes = (params: {
         name: body.name || 'Без имени',
         icon,
         visible: body.visible !== false,
-        onToggleVisibility: () => updateWaterBody(layer.id, body.id, { visible: !(body.visible !== false) } as any),
+        // Аналогично ландшафту: читаем актуальное значение из стора перед переключением,
+        // чтобы избежать использования устаревшего значения из замыкания.
+        onToggleVisibility: () => {
+          const currentContainer = useSceneStore.getState().waterContent?.find(c => c.layerId === layer.id)
+          const currentBody = currentContainer?.items.find(b => b.id === body.id)
+          const nextVisible = !(currentBody?.visible !== false)
+          updateWaterBody(layer.id, body.id, { visible: nextVisible } as any)
+        },
         actions: [
           { id: 'edit', label: 'Редактировать', onClick: () => params.onEditBody(layer.id, body.id) },
           { id: 'delete', label: 'Удалить', color: 'red', onClick: () => removeWaterBody(layer.id, body.id) },

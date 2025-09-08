@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { extend, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
 import { useSceneLighting, useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { GfxLayerType } from '@/entities/layer'
 
 /**
  * Рендер воды (новая архитектура): читает элементы из `waterContent` и
@@ -10,8 +11,11 @@ import { useSceneLighting, useSceneStore } from '@/features/editor/scene/model/s
  */
 export const WaterContentLayers: React.FC = () => {
   const water = useSceneStore(state => state.waterContent) || []
+  const layers = useSceneStore(state => state.layers)
+  const visibleLayerIds = new Set((layers || []).filter(l => l.type === GfxLayerType.Water).filter(l => l.visible !== false).map(l => l.id))
   const all = water.flatMap(c => c.items.map(it => ({ containerLayerId: c.layerId, body: it })))
-  const rects = all.filter(x => x.body.surface.kind === 'rect')
+  // Учитываем видимость слоя воды и видимость водоёма: скрытые не рендерим
+  const rects = all.filter(x => x.body.surface.kind === 'rect' && visibleLayerIds.has(x.containerLayerId) && (x.body.visible !== false))
   if (rects.length === 0) return null
   return (
     <group>
@@ -174,6 +178,8 @@ const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
         position={[centerX, (body.altitudeY ?? 0) - 0.1, centerZ]}
         receiveShadow
         userData={{ waterBodyId: body.id, kind: body.kind }}
+        /* Проброс видимости для реалистичной воды на уровне объекта */
+        visible={body.visible !== false}
       />
     )
   }
@@ -186,6 +192,8 @@ const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
       position={[centerX, (body.altitudeY ?? 0) - 0.1, centerZ] as any}
       receiveShadow
       userData={{ generated: true, waterBodyId: body.id, kind: body.kind }}
+      /* Проброс видимости для простого шейдера воды */
+      visible={body.visible !== false}
     />
   )
 }

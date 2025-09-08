@@ -120,6 +120,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
       }
     })
 
+    // Узлы объектных/водных/биом‑секций формируем ниже, после объявления обработчиков
+
     // Подсчёт инстансов по биомам удалён как неиспользуемый
 
     /**
@@ -442,6 +444,49 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
      */
     // Группировка объектов по слоям выполняется внутри useObjectLayerNodes
 
+    /**
+     * Предварительно формируем узлы для объектных слоёв.
+     * Хуки вызываются на верхнем уровне и после объявления всех зависимых обработчиков,
+     * чтобы избежать проблем области видимости и обеспечить стабильные ссылки.
+     */
+    const objectLayerNodes = useObjectLayerNodes({
+      selectedObject,
+      highlightObject: setHoveredObject,
+      clearHighlight: clearHover,
+      selectObject: storeSelectObject,
+      toggleObjectVisibility: storeToggleObjectVisibility,
+      removeObject: handleRemoveObject,
+      saveObjectToLibrary: handleSaveObjectToLibrary,
+      editObject: onEditObject || storeSelectObject,
+      exportObject: handleExportObject,
+      copyObject: handleCopyObject,
+      dragStart: handleDragStart,
+      contextMenu: handleContextMenu,
+      addObjectFromLibrary: handleAddObjectFromLibrary,
+      toggleLayerVisibility: storeToggleLayerVisibility,
+      openEditLayerModal,
+      deleteLayer: storeDeleteLayer,
+      dragOver: handleDragOver,
+      dragLeave: handleDragLeave as any,
+      drop: handleDrop,
+    })
+
+    /**
+     * Аналогично формируем узлы водных слоёв с водоёмами.
+     */
+    const waterNodes = useWaterNodes({
+      onAddBody: (layerId: string) => { setWaterModalMode('create'); setWaterModalTargetLayerId(layerId); setWaterModalOpened(true) },
+      onEditBody: (layerId: string, bodyId: string) => { setWaterModalMode('edit'); setEditingWater({ layerId, bodyId }); setWaterModalOpened(true) },
+      toggleLayerVisibility: storeToggleLayerVisibility,
+      openEditLayerModal,
+      deleteLayer: storeDeleteLayer,
+    })
+
+    /**
+     * Формируем узлы биомов (для списка снизу).
+     */
+    const biomeNodes = useBiomeNodes({ onDelete: handleDeleteBiome })
+
     return (
         <>
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
@@ -465,27 +510,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                     <ScrollArea style={{ maxHeight: 260 }} onClick={() => setContextMenuOpened(false)}>
                       <Stack gap={0}>
                         <TreeList
-                          nodes={useObjectLayerNodes({
-                            selectedObject,
-                            highlightObject: setHoveredObject,
-                            clearHighlight: clearHover,
-                            selectObject: storeSelectObject,
-                            toggleObjectVisibility: storeToggleObjectVisibility,
-                            removeObject: handleRemoveObject,
-                            saveObjectToLibrary: handleSaveObjectToLibrary,
-                            editObject: onEditObject || storeSelectObject,
-                            exportObject: handleExportObject,
-                            copyObject: handleCopyObject,
-                            dragStart: handleDragStart,
-                            contextMenu: handleContextMenu,
-                            addObjectFromLibrary: handleAddObjectFromLibrary,
-                            toggleLayerVisibility: storeToggleLayerVisibility,
-                            openEditLayerModal,
-                            deleteLayer: storeDeleteLayer,
-                            dragOver: handleDragOver,
-                            dragLeave: handleDragLeave as any,
-                            drop: handleDrop,
-                          })}
+                          nodes={objectLayerNodes}
                           expandedIds={expandedLayers}
                           onToggleExpand={toggleLayerExpanded}
                         />
@@ -519,13 +544,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                     />
                     <Stack gap="0px" style={{width: '100%'}}>
                       <TreeList
-                        nodes={useWaterNodes({
-                          onAddBody: (layerId: string) => { setWaterModalMode('create'); setWaterModalTargetLayerId(layerId); setWaterModalOpened(true) },
-                          onEditBody: (layerId: string, bodyId: string) => { setWaterModalMode('edit'); setEditingWater({ layerId, bodyId }); setWaterModalOpened(true) },
-                          toggleLayerVisibility: storeToggleLayerVisibility,
-                          openEditLayerModal,
-                          deleteLayer: storeDeleteLayer,
-                        })}
+                        nodes={waterNodes}
                         expandedIds={expandedLayers}
                         onToggleExpand={toggleLayerExpanded}
                       />
@@ -549,7 +568,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
 
                     <ScrollArea style={{ maxHeight: 200 }}>
                       <Stack gap={0}>
-                        <TreeList nodes={useBiomeNodes({ onDelete: handleDeleteBiome })} expandedIds={expandedLayers} onToggleExpand={toggleLayerExpanded} />
+                        <TreeList nodes={biomeNodes} expandedIds={expandedLayers} onToggleExpand={toggleLayerExpanded} />
                       </Stack>
                     </ScrollArea>
                 </Stack>
