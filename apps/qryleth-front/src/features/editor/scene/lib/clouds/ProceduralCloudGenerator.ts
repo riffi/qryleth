@@ -1,7 +1,8 @@
 import type { GfxCloudsConfig, GfxCloudItem, GfxCloudPlacementArea, GfxProceduralCloudSpec, GfxCloudAppearanceMeta } from '@/entities/cloud'
-import { generateRandomSeed, deriveRng, randRange, randIntRange, pickFromNumberOrRange } from '@/features/editor/scene/lib/terrain/utils/PRNGUtils'
+import { generateRandomSeed, deriveRng, randRange, randIntRange, pickFromNumberOrRange, splitSeed } from '@/features/editor/scene/lib/terrain/utils/PRNGUtils'
 import { createRng } from '@/shared/lib/utils/prng'
 import { rectToBounds, circleToBounds, randomPointInRect, randomPointInCircle2D, pointInsideRect, pointInsideCircle } from '@/shared/lib/math/geometry2d'
+import { clamp, lerp, saturate } from '@/shared/lib/math/number'
 
 /**
  * Процедурный генератор облаков.
@@ -38,7 +39,7 @@ export class ProceduralCloudGenerator {
       const overrides = { ...visual, ...(spec.advancedOverrides || {}) }
       items.push({
         id: `cloud_${i.toString(36)}_${seed.toString(36)}`,
-        seed: deriveSeed(seed, i),
+        seed: splitSeed(seed, i),
         position: [x, y, z],
         rotationY,
         advancedOverrides: overrides,
@@ -77,11 +78,11 @@ export class ProceduralCloudGenerator {
  */
 function mapAppearanceToVisual(appearance: GfxCloudAppearanceMeta | undefined, rng: () => number): Required<NonNullable<GfxCloudItem['advancedOverrides']>> {
   const preset = appearance?.stylePreset ?? 'cumulus'
-  const sizeLevel = clampInt(appearance?.sizeLevel ?? 3, 1, 5)
-  const softness = clamp01(appearance?.softnessLevel ?? 0.7)
-  const dynamics = clamp01(appearance?.dynamicsLevel ?? 0.4)
+  const sizeLevel = Math.round(clamp(appearance?.sizeLevel ?? 3, 1, 5))
+  const softness = saturate(appearance?.softnessLevel ?? 0.7)
+  const dynamics = saturate(appearance?.dynamicsLevel ?? 0.4)
   const colorTone = appearance?.colorTone ?? 'white'
-  const variance = clamp01(appearance?.variance ?? 0.4)
+  const variance = saturate(appearance?.variance ?? 0.4)
 
   // Базовые диапазоны по пресетам
   const base: { segments: [number, number]; boundsX: [number, number]; boundsY: [number, number]; boundsZ: [number, number]; volume: [number, number]; opacity: [number, number]; growth: [number, number]; anim: [number, number]; drift: [number, number] } = (() => {
@@ -105,7 +106,7 @@ function mapAppearanceToVisual(appearance: GfxCloudAppearanceMeta | undefined, r
   const by = lerp(base.boundsY[0], base.boundsY[1], vary(rng, variance)) * (0.6 + softness * 0.8)
   const bz = lerp(base.boundsZ[0], base.boundsZ[1], vary(rng, variance)) * sizeScale
   const vol = lerp(base.volume[0], base.volume[1], vary(rng, variance)) * sizeScale
-  const op = clamp01(lerp(base.opacity[0], base.opacity[1], vary(rng, variance)) * (0.8 + softness * 0.4))
+  const op = saturate(lerp(base.opacity[0], base.opacity[1], vary(rng, variance)) * (0.8 + softness * 0.4))
   const gr = lerp(base.growth[0], base.growth[1], vary(rng, variance)) * (0.8 + dynamics)
   const an = lerp(base.anim[0], base.anim[1], vary(rng, variance)) * (0.6 + dynamics)
   const df = lerp(base.drift[0], base.drift[1], vary(rng, variance))
@@ -270,11 +271,7 @@ function estimateCellFromCount(area: GfxCloudPlacementArea, count: number): numb
 }
 
 // Мелкие утилиты
-function clamp01(v: number): number { return Math.min(1, Math.max(0, v)) }
-function clampInt(v: number, min: number, max: number): number { return Math.min(max, Math.max(min, Math.round(v))) }
-function lerp(a: number, b: number, t: number): number { return a + (b - a) * t }
-function vary(rng: () => number, variance: number): number { return clamp01(0.5 + (rng() - 0.5) * 2 * variance) }
+function vary(rng: () => number, variance: number): number { return saturate(0.5 + (rng() - 0.5) * 2 * variance) }
 function sample<T>(arr: T[], rng: () => number): T { return arr[Math.floor(rng() * arr.length)] }
-function deriveSeed(base: number, i: number): number { return (base ^ ((i + 1) * 0x9e3779b1)) >>> 0 }
 
 export default ProceduralCloudGenerator
