@@ -37,55 +37,20 @@ export interface ObjectManagerProps {
 }
 
 /**
- * Данные и действия, передаваемые через контекст SceneObjectManager.
- * Используется дочерними компонентами вместо prop drilling.
+ * Краткая информация об объекте сцены для списков и деревьев.
+ * Используется в менеджере объектов для отображения и действий.
  */
-export interface SceneObjectManagerContextValue {
-    // --- Единое модальное окно управления слоем ---
-    /** Флаг отображения модального окна */
-    layerModalOpened: boolean
-    /** Изменить состояние открытия модального окна */
-    setLayerModalOpened: (opened: boolean) => void
-    /** Текущий режим модального окна */
-    layerModalMode: SceneLayerModalMode
-    /** Изменить режим модального окна */
-    setLayerModalMode: (mode: SceneLayerModalMode) => void
-    /** Данные формы слоя */
-    layerFormData: SceneLayerFormData
-    /** Установить данные формы слоя */
-    setLayerFormData: (data: SceneLayerFormData) => void
-    /** Создать новый слой сцены */
-    // удалено: создание/редактирование слоя теперь в LayerBasicModal
-
-    // --- Context menu ---
-    contextMenuOpened: boolean
-    setContextMenuOpened: (opened: boolean) => void
-    contextMenuPosition: { x: number; y: number }
-    layers: SceneLayer[]
-    handleMoveToLayer: (layerId: string) => void
-    /** Переключить раскрытие слоя в списке */
-    toggleLayerExpanded: (layerId: string) => void
-    /** Переключить видимость слоя */
-    toggleLayerVisibility: (layerId: string) => void
-    /** Открыть модальное окно редактирования слоя */
-    openEditLayerModal: (layer: SceneLayer) => void
-    /** Удалить слой по идентификатору */
-    deleteLayer: (layerId: string) => void
-
-    // --- Object actions ---
-    highlightObject: (objectUuid: string, instanceId?: string) => void
-    clearHighlight: () => void
-    selectObject: (objectUuid: string, instanceId?: string) => void
-    toggleObjectVisibility: (objectUuid: string) => void
-    removeObject: (objectUuid: string) => void
-    saveObjectToLibrary: (objectUuid: string) => void
-    editObject: (objectUuid: string, instanceId?: string) => void
-    dragStart: (e: React.DragEvent, objectUuid: string) => void
-    contextMenu: (e: React.MouseEvent, objectUuid: string) => void
-    dragOver: (e: React.DragEvent, layerId: string) => void
-    dragLeave: (e: React.DragEvent) => void
-    drop: (e: React.DragEvent, layerId: string) => void
-    addObjectFromLibrary: (layerId: string) => void
-    exportObject: (objectUuid: string) => void
-    copyObject: (objectUuid: string) => void
+export interface ObjectInfo {
+  /** Человекочитаемое имя объекта */
+  name: string
+  /** Количество инстансов данного объекта в сцене */
+  count: number
+  /** Флаг видимости объекта */
+  visible: boolean
+  /** UUID объекта в сцене */
+  objectUuid: string
+  /** UUID записи объекта в библиотеке, если он добавлен из неё */
+  libraryUuid?: string
+  /** Идентификатор слоя, к которому относится объект */
+  layerId?: string
 }

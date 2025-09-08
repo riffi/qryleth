@@ -9,21 +9,8 @@ import {
     useSelectionState,
     useSceneActions
 } from '../../model/optimizedSelectors.ts'
-import {
-    Paper,
-    Stack,
-    Title,
-    Text,
-    Group,
-    ScrollArea,
-    ActionIcon,
-    Tooltip,
-    Divider,
-    Box,
-    Menu,
-    Collapse
-} from '@mantine/core'
-import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrash, IconChevronRight, IconChevronDown } from '@tabler/icons-react'
+import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider } from '@mantine/core'
+import { IconPlus, IconCheck, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 // Заголовок сцены с мета-информацией переносится в хедер страницы.
@@ -31,13 +18,11 @@ import { db } from '@/shared/lib/database.ts'
 // По новым правилам архитектуры мета-управление должно быть вверху,
 // поэтому SceneHeader здесь более не используется.
 import { LightingControls } from './LightingControls.tsx'
-import { SceneLayerItem } from './SceneLayerItem.tsx'
 // Legacy модалки слоёв удалены; используем новые окна для тонких слоёв и содержимого
 import { LayerBasicModal } from './LayerBasicModal'
 import { LandscapeItemModal } from './LandscapeItemModal'
 import { WaterBodyModal } from './WaterBodyModal'
-import { SceneObjectItem } from './SceneObjectItem.tsx'
-import type { ObjectInfo } from './SceneObjectItem.tsx'
+import type { ObjectInfo } from './types.ts'
 import { SaveObjectDialog } from '@/shared/ui'
 import { AddObjectFromLibraryModal } from './AddObjectFromLibraryModal.tsx'
 import { useErrorHandler } from '@/shared/hooks'
@@ -52,11 +37,9 @@ import type {
     SceneLayerModalMode,
     SceneLayerFormData
 } from './types.ts'
-import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import type {SceneLayer} from "@/entities";
 import { GfxLayerType } from '@/entities/layer'
-import { TreeRow } from '@/shared/ui/tree/TreeRow.tsx'
 import { TreeList } from '@/shared/ui/tree/TreeList'
 import { useObjectLayerNodes } from './sections/ObjectLayersSection'
 import { useLandscapeNodes } from './sections/LandscapeSection'
@@ -153,20 +136,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
       }
     })
 
-    /**
-     * Возвращает количество инстансов, принадлежащих каждому биому.
-     * Ключ словаря — uuid биома, значение — число инстансов.
-     * Используем мемоизацию по списку инстансов.
-     */
-    const biomeInstanceCounts = React.useMemo<Record<string, number>>(() => {
-        const counts: Record<string, number> = {}
-        for (const inst of objectInstances) {
-            if (inst.biomeUuid) {
-                counts[inst.biomeUuid] = (counts[inst.biomeUuid] || 0) + 1
-            }
-        }
-        return counts
-    }, [objectInstances])
+    // Подсчёт инстансов по биомам удалён как неиспользуемый
 
     /**
      * Переключает состояние «развернуто/свернуто» для заданного слоя.
@@ -420,10 +390,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
         updateBiome(biomeUuid, { visible: biome.visible === false ? true : !biome.visible })
     }, [biomes, updateBiome])
 
-    const handleSaveSceneToLibraryInternal = useCallback(() => {
-        if (onSaveSceneToLibrary) return onSaveSceneToLibrary()
-        exportScene(`scene-${Date.now()}.json`)
-    }, [onSaveSceneToLibrary])
+    // Локальный хендлер сохранения сцены в библиотеку был неиспользуем — удалён
 
     /**
      * Удаляет биом и все инстансы, привязанные к нему.
@@ -505,72 +472,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     }, [objects])
 
     return (
-        <SceneObjectManagerProvider
-            value={useMemo(() => ({
-                layerModalOpened,
-                setLayerModalOpened,
-                layerModalMode,
-                setLayerModalMode,
-                layerFormData,
-                setLayerFormData,
-                contextMenuOpened,
-                setContextMenuOpened,
-                contextMenuPosition,
-                layers,
-                handleMoveToLayer,
-                toggleLayerExpanded,
-                toggleLayerVisibility: storeToggleLayerVisibility,
-                openEditLayerModal,
-                deleteLayer: storeDeleteLayer,
-                // Передаём стабильные экшены прямо из стора
-                highlightObject: setHoveredObject,
-                clearHighlight: clearHover,
-                selectObject: storeSelectObject,
-                toggleObjectVisibility: storeToggleObjectVisibility,
-                removeObject: handleRemoveObject,
-                saveObjectToLibrary: handleSaveObjectToLibrary,
-                editObject: onEditObject,
-                dragStart: handleDragStart,
-                contextMenu: handleContextMenu,
-                dragOver: handleDragOver,
-                dragLeave: handleDragLeave,
-                drop: handleDrop,
-                addObjectFromLibrary: handleAddObjectFromLibrary,
-                exportObject: handleExportObject,
-                copyObject: handleCopyObject,
-            }), [
-                layerModalOpened,
-                setLayerModalOpened,
-                layerModalMode,
-                setLayerModalMode,
-                layerFormData,
-                setLayerFormData,
-                contextMenuOpened,
-                setContextMenuOpened,
-                contextMenuPosition,
-                layers,
-                handleMoveToLayer,
-                toggleLayerExpanded,
-                storeToggleLayerVisibility,
-                openEditLayerModal,
-                storeDeleteLayer,
-                setHoveredObject,
-                clearHover,
-                storeSelectObject,
-                storeToggleObjectVisibility,
-                handleRemoveObject,
-                handleSaveObjectToLibrary,
-                onEditObject,
-                handleDragStart,
-                handleContextMenu,
-                handleDragOver,
-                handleDragLeave,
-                handleDrop,
-                handleAddObjectFromLibrary,
-                handleExportObject,
-                handleCopyObject,
-            ])}
-        >
         <>
             <Paper shadow="sm" radius="md" p="sm" style={{ height: '100%' }}>
                 <Stack gap="sm" style={{ height: '100%' }}>
@@ -733,7 +634,6 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                 sceneObjects={sceneObjects}
             />
         </>
-        </SceneObjectManagerProvider>
     )
 }
 

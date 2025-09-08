@@ -8,12 +8,8 @@ export * from './renderer/Scene3D.tsx'
 export * from './renderer/SceneContent.tsx'
 export * from './SceneEditorR3F.tsx'
 export * from './SceneHeaderRight.tsx'
-export * from './objectManager/SceneHeader.tsx'
-export * from './objectManager/SceneLayerItem.tsx'
 // Legacy SceneLayerModals удалён после перехода на тонкие слои и окна содержимого
-export * from './objectManager/SceneObjectItem.tsx'
 export * from './objectManager/SceneObjectManager.tsx'
-export * from './objectManager/SceneObjectManagerContext.tsx'
 
 // Controls
 export * from './renderer/controls/CameraControls'
