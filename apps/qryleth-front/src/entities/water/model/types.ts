@@ -30,6 +30,11 @@ export interface GfxWaterBody {
   id: string
   /** Человекочитаемое имя водного объекта (для UI) */
   name?: string
+  /**
+   * Признак видимости водного объекта.
+   * Если не задано, по умолчанию true. Используется UI и рендером воды.
+   */
+  visible?: boolean
   kind: 'sea' | 'lake' | 'river'
   surface: GfxWaterSurface
   altitudeY: number

@@ -23,7 +23,7 @@ import {
     Menu,
     Collapse
 } from '@mantine/core'
-import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrees, IconTrash, IconChevronRight, IconChevronDown, IconRipple } from '@tabler/icons-react'
+import { IconPlus, IconCheck, IconEye, IconEyeOff, IconTrash, IconChevronRight, IconChevronDown } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
 // Заголовок сцены с мета-информацией переносится в хедер страницы.
@@ -56,6 +56,12 @@ import { SceneObjectManagerProvider } from './SceneObjectManagerContext.tsx'
 import { createEmptySceneLayer } from './layerFormUtils.ts'
 import type {SceneLayer} from "@/entities";
 import { GfxLayerType } from '@/entities/layer'
+import { TreeRow } from '@/shared/ui/tree/TreeRow.tsx'
+import { TreeList } from '@/shared/ui/tree/TreeList'
+import { useObjectLayerNodes } from './sections/ObjectLayersSection'
+import { useLandscapeNodes } from './sections/LandscapeSection'
+import { useWaterNodes } from './sections/WaterSection'
+import { useBiomeNodes } from './sections/BiomesSection'
 
 export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     onSaveSceneToLibrary,
@@ -81,9 +87,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const [savingObjectUuid, setSavingObjectUuid] = useState<string | null>(null)
     const [addObjectModalOpened, setAddObjectModalOpened] = useState(false)
     const [targetLayerId, setTargetLayerId] = useState<string | null>(null)
-    // Локальная видимость дочерних элементов новых секций (UI-only)
-    const [landscapeItemVisible, setLandscapeItemVisible] = useState<Record<string, boolean>>({})
-    const [waterBodyVisible, setWaterBodyVisible] = useState<Record<string, boolean>>({})
+    // Видимость элементов теперь хранится в zustand-сторе; локальные флаги удалены
     const handleError = useErrorHandler()
 
     // R3F Zustand store data
@@ -95,7 +99,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
     const landscapeContent = useSceneStore(state => state.landscapeContent)
     const waterContent = useSceneStore(state => state.waterContent)
     const removeLandscapeItem = useSceneStore(state => state.removeLandscapeItem)
+    const updateLandscapeItem = useSceneStore(state => state.updateLandscapeItem)
     const removeWaterBody = useSceneStore(state => state.removeWaterBody)
+    const updateWaterBody = useSceneStore(state => state.updateWaterBody)
     const { lighting: storeLighting } = useSceneMetadata()
     const setLandscapeLayer = useSceneStore(state => state.setLandscapeLayer)
     const { selectedObject: storeSelectedObject } = useSelectionState()
@@ -585,135 +591,47 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                         </Group>
                     </Group>
 
-                    <ScrollArea
-                        style={{ maxHeight: 260 }}
-                        onClick={() => setContextMenuOpened(false)}
-                    >
-                        <Stack gap={0}>
-                            {layers && layers.length > 0 ? (
-                                layers.filter(l => (l.type as any) === GfxLayerType.Object).map((layer) => {
-                                    const layerObjects = objectsByLayer.get(layer.id) || []
-                                    const isLayerExpanded = expandedLayers.has(layer.id)
-
-                                    return (
-                                        <SceneLayerItem
-                                            key={layer.id}
-                                            layer={layer}
-                                            layerObjects={layerObjects}
-                                            isExpanded={isLayerExpanded}
-                                            selectedObject={selectedObject}
-                                            dragOverLayerId={dragOverLayerId}
-                                        />
-                                    )
-                                })
-                            ) : (
-                                // Fallback для случая без слоев
-                                objects.map((obj) => {
-                                    const isSelected = selectedObject?.objectUuid === obj.objectUuid
-                                    return (
-                                        <SceneObjectItem
-                                            key={`${obj.name}-${obj.objectUuid}`}
-                                            obj={obj}
-                                            isSelected={isSelected}
-                                        />
-                                    )
-                                })
-                            )}
-
-                        </Stack>
+                    <ScrollArea style={{ maxHeight: 260 }} onClick={() => setContextMenuOpened(false)}>
+                      <Stack gap={0}>
+                        <TreeList
+                          nodes={useObjectLayerNodes({
+                            selectedObject,
+                            highlightObject: setHoveredObject,
+                            clearHighlight: clearHover,
+                            selectObject: storeSelectObject,
+                            toggleObjectVisibility: storeToggleObjectVisibility,
+                            removeObject: handleRemoveObject,
+                            saveObjectToLibrary: handleSaveObjectToLibrary,
+                            editObject: onEditObject || storeSelectObject,
+                            exportObject: handleExportObject,
+                            copyObject: handleCopyObject,
+                            dragStart: handleDragStart,
+                            contextMenu: handleContextMenu,
+                            addObjectFromLibrary: handleAddObjectFromLibrary,
+                            toggleLayerVisibility: storeToggleLayerVisibility,
+                            openEditLayerModal,
+                            deleteLayer: storeDeleteLayer,
+                            dragOver: handleDragOver,
+                            dragLeave: handleDragLeave as any,
+                            drop: handleDrop,
+                          })}
+                          expandedIds={expandedLayers}
+                          onToggleExpand={toggleLayerExpanded}
+                        />
+                      </Stack>
                     </ScrollArea>
 
                     {/* Новая архитектура: Ландшафт и Вода */}
                     <Divider my="xs" />
 
-                    {/* Ландшафт: заголовок в стиле слоя */}
-                    <Box
-                      style={{
-                        backgroundColor: 'transparent',
-                        marginBottom: '0px',
-                        borderRadius: '4px',
-                        padding: '8px 4px',
-                        border: '1px solid transparent',
-                        cursor: 'default',
-                        transition: 'all 0.1s ease'
-                      }}
-                    >
-                      <Group justify="space-between" align="center" gap="xs">
-                        <Group gap="xs" style={{ flex: 1 }}>
-                          <ActionIcon
-                            size="xs"
-                            variant="transparent"
-                            onClick={() => toggleLayerExpanded('landscape-content' as any)}
-                            style={{ width: 16, height: 16, minWidth: 16 }}
-                          >
-                            {expandedLayers.has('landscape-content' as any) ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
-                          </ActionIcon>
-                          {/* Иконка ландшафта */}
-                          <IconTrees size={14} color={'var(--mantine-color-green-5)'} />
-                          <Text size="xs" fw={500} style={{ userSelect: 'none' }}>Ландшафт</Text>
-                        </Group>
-                        <Group gap="xs">
-                          {/* Кнопка видимости (не влияет на рендер, только для выравнивания UI) */}
-                          <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                            <IconEye size={12} />
-                          </ActionIcon>
-                          {/* Контекстное меню: добавить площадку */}
-                          <Menu shadow="md" width={220}>
-                            <Menu.Target>
-                              <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                <Text size="xs" fw={700}>⋮</Text>
-                              </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                              <Menu.Item leftSection={<IconPlus size={14} />} onClick={() => { setLandscapeModalMode('create'); setLandscapeModalOpened(true) }}>
-                                Добавить площадку ландшафта
-                              </Menu.Item>
-                            </Menu.Dropdown>
-                          </Menu>
-                        </Group>
-                      </Group>
-                    </Box>
-                    <Collapse in={expandedLayers.has('landscape-content' as any)}>
-                      <Stack gap="0px" pl="lg" mt={0}>
-                        {(landscapeContent?.items || []).map(item => {
-                          const visible = landscapeItemVisible[item.id] !== false
-                          return (
-                            <Box key={item.id} style={{ opacity: visible ? 1 : 0.6, transition: 'all 0.1s ease', border: '1px solid transparent', borderRadius: '4px', marginBottom: '0px', padding: '0px 4px' }}>
-                              <Group justify="space-between" align="center" gap="xs">
-                                <Group gap="xs" style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                                  <IconTrees size={12} color={'var(--mantine-color-green-5)'} style={{ flexShrink: 0 }} />
-                                  <Text size="xs" fw={500} lineClamp={1} style={{ userSelect: 'none', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {(item as any).name || 'Без имени'}
-                                  </Text>
-                                  <Text size="xs" c="dimmed" style={{ fontSize: '10px', flexShrink: 0 }}>
-                                    {item.shape}
-                                  </Text>
-                                </Group>
-                                <Group gap="xs">
-                                  <ActionIcon size="xs" variant="transparent" onClick={() => setLandscapeItemVisible(prev => ({ ...prev, [item.id]: !(prev[item.id] !== false) }))} style={{ width: 16, height: 16, minWidth: 16 }}>
-                                    {visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-                                  </ActionIcon>
-                                  <Menu shadow="md" width={200}>
-                                    <Menu.Target>
-                                      <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                        <Text size="xs" fw={700}>⋮</Text>
-                                      </ActionIcon>
-                                    </Menu.Target>
-                                    <Menu.Dropdown>
-                                      <Menu.Item onClick={() => { setLandscapeModalMode('edit'); setEditingLandscapeId(item.id); setLandscapeModalOpened(true) }}>Редактировать</Menu.Item>
-                                      <Menu.Item color="red" onClick={() => removeLandscapeItem(item.id)}>Удалить</Menu.Item>
-                                    </Menu.Dropdown>
-                                  </Menu>
-                                </Group>
-                              </Group>
-                            </Box>
-                          )
-                        })}
-                        {(!landscapeContent?.items || landscapeContent.items.length === 0) && (
-                          <Text size="xs" c="dimmed" ta="center">Нет площадок ландшафта</Text>
-                        )}
-                      </Stack>
-                    </Collapse>
+                    <TreeList
+                      nodes={useLandscapeNodes({
+                        onAdd: () => { setLandscapeModalMode('create'); setLandscapeModalOpened(true) },
+                        onEdit: (id: string) => { setLandscapeModalMode('edit'); setEditingLandscapeId(id); setLandscapeModalOpened(true) }
+                      })}
+                      expandedIds={expandedLayers}
+                      onToggleExpand={toggleLayerExpanded}
+                    />
 
                     <Divider my="xs" />
                     <Group justify="space-between" align="center">
@@ -725,76 +643,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                       </Tooltip>
                     </Group>
                     <Stack gap="0px" style={{width: '100%'}}>
-                      {(storeLayers || []).filter(l => l.type === GfxLayerType.Water).map(layer => {
-                        const container = (waterContent || []).find(c => c.layerId === layer.id)
-                        return (
-                          <Box key={layer.id} style={{ backgroundColor: 'transparent', borderRadius: '4px', border: '1px solid transparent', marginBottom: '0px', padding: '8px 4px' }}>
-                            <Group justify="space-between" align="center" gap="xs">
-                              <Group gap="xs" style={{ flex: 1 }}>
-                                <ActionIcon size="xs" variant="transparent" onClick={() => toggleLayerExpanded(layer.id)} style={{ width: 16, height: 16, minWidth: 16 }}>
-                                  {expandedLayers.has(layer.id) ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
-                                </ActionIcon>
-                                {/* Иконка воды */}
-                                <IconRipple size={14} color={'var(--mantine-color-blue-5)'} />
-                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>{layer.name}</Text>
-                              </Group>
-                              <Group gap="xs">
-                                <ActionIcon size="xs" variant="transparent" onClick={() => storeToggleLayerVisibility(layer.id)} style={{ width: 16, height: 16, minWidth: 16 }}>
-                                  {layer.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-                                </ActionIcon>
-                                <Menu shadow="md" width={220}>
-                                  <Menu.Target>
-                                    <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                      <Text size="xs" fw={700}>⋮</Text>
-                                    </ActionIcon>
-                                  </Menu.Target>
-                                  <Menu.Dropdown>
-                                    <Menu.Item leftSection={<IconPlus size={14} />} onClick={() => { setWaterModalMode('create'); setWaterModalTargetLayerId(layer.id); setWaterModalOpened(true) }}>
-                                      Добавить водоём
-                                    </Menu.Item>
-                                    <Menu.Item onClick={() => { setLayerFormData({ ...layerFormData, id: layer.id, name: layer.name, type: layer.type as any } as any); setLayerModalMode('edit'); setLayerModalOpened(true) }}>Переименовать</Menu.Item>
-                                    {layer.id !== 'objects' && (
-                                      <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => storeDeleteLayer(layer.id)}>Удалить слой</Menu.Item>
-                                    )}
-                                  </Menu.Dropdown>
-                                </Menu>
-                              </Group>
-                            </Group>
-                            {/* Подсписок водоёмов */}
-                            {expandedLayers.has(layer.id) && (
-                              <Stack gap="0px" pl="lg" mt={0} style={{width:'100%'}}>
-                                {(container?.items || []).length > 0 ? (
-                                  (container!.items).map(body => (
-                                    <Box key={body.id} style={{ backgroundColor: 'transparent', borderRadius: '4px', border: '1px solid transparent', marginBottom: '0px', padding: '8px 0px', transition: 'all 0.1s ease', width: '100%' }}>
-                                      <Group justify="space-between" align="center" gap="xs">
-                                        <Text size="xs" fw={500} style={{ userSelect: 'none' }}>{(body as any).name || 'Без имени'}</Text>
-                                        <Group gap="xs">
-                                          <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                            <IconEye size={12} />
-                                          </ActionIcon>
-                                          <Menu shadow="md" width={200}>
-                                            <Menu.Target>
-                                              <ActionIcon size="xs" variant="transparent" style={{ width: 16, height: 16, minWidth: 16 }}>
-                                                <Text size="xs" fw={700}>⋮</Text>
-                                              </ActionIcon>
-                                            </Menu.Target>
-                                            <Menu.Dropdown>
-                                              <Menu.Item onClick={() => { setWaterModalMode('edit'); setEditingWater({ layerId: layer.id, bodyId: body.id }); setWaterModalOpened(true) }}>Редактировать</Menu.Item>
-                                              <Menu.Item color="red" onClick={() => removeWaterBody(layer.id, body.id)}>Удалить</Menu.Item>
-                                            </Menu.Dropdown>
-                                          </Menu>
-                                        </Group>
-                                      </Group>
-                                    </Box>
-                                  ))
-                                ) : (
-                                  <Text size="xs" c="dimmed">Нет водоёмов</Text>
-                                )}
-                              </Stack>
-                            )}
-                          </Box>
-                        )
-                      })}
+                      <TreeList
+                        nodes={useWaterNodes({
+                          onAddBody: (layerId: string) => { setWaterModalMode('create'); setWaterModalTargetLayerId(layerId); setWaterModalOpened(true) },
+                          onEditBody: (layerId: string, bodyId: string) => { setWaterModalMode('edit'); setEditingWater({ layerId, bodyId }); setWaterModalOpened(true) },
+                          toggleLayerVisibility: storeToggleLayerVisibility,
+                          openEditLayerModal,
+                          deleteLayer: storeDeleteLayer,
+                        })}
+                        expandedIds={expandedLayers}
+                        onToggleExpand={toggleLayerExpanded}
+                      />
                     </Stack>
 
 
@@ -814,66 +673,9 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({
                     </Group>
 
                     <ScrollArea style={{ maxHeight: 200 }}>
-                        <Stack gap={0}>
-                            {(biomes && biomes.length > 0) ? (
-                                biomes.map(biome => (
-                                    <Box
-                                        key={biome.uuid}
-                                        style={{
-                                            backgroundColor: 'transparent',
-                                            marginBottom: '0px',
-                                            borderRadius: '4px',
-                                            padding: '8px 4px',
-                                            border: '1px solid transparent',
-                                            cursor: 'default',
-                                            transition: 'all 0.1s ease'
-                                        }}
-                                    >
-                                        <Group justify="space-between" align="center" gap="xs">
-                                            <Group gap="xs" style={{ flex: 1 }}>
-                                                <IconTrees size={14} color={'var(--mantine-color-green-5)'} />
-                                                <Text size="xs" fw={500} style={{ userSelect: 'none' }}>
-                                                    {biome.name || 'Без имени'}
-                                                </Text>
-                                                <Text size="xs" c="dimmed" style={{ fontSize: '10px' }}>
-                                                    ({biomeInstanceCounts[biome.uuid] || 0})
-                                                </Text>
-                                            </Group>
-                                            <Group gap="xs">
-                                                <ActionIcon
-                                                    size="xs"
-                                                    variant="transparent"
-                                                    onClick={() => handleToggleBiomeVisibility(biome.uuid)}
-                                                    style={{ width: 16, height: 16, minWidth: 16 }}
-                                                >
-                                                    {biome.visible !== false ? <IconEye size={12} /> : <IconEyeOff size={12} />}
-                                                </ActionIcon>
-                                                <Menu shadow="md" width={200}>
-                                                    <Menu.Target>
-                                                        <ActionIcon
-                                                            size="xs"
-                                                            variant="transparent"
-                                                            style={{ width: 16, height: 16, minWidth: 16 }}
-                                                        >
-                                                            <Text size="xs" fw={700}>⋮</Text>
-                                                        </ActionIcon>
-                                                    </Menu.Target>
-                                                    <Menu.Dropdown>
-                                                        <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => handleDeleteBiome(biome.uuid)}>
-                                                            Удалить биом
-                                                        </Menu.Item>
-                                                    </Menu.Dropdown>
-                                                </Menu>
-                                            </Group>
-                                        </Group>
-                                    </Box>
-                                ))
-                            ) : (
-                                <Text size="xs" c="dimmed" ta="center" py="sm">
-                                    Биомы отсутствуют
-                                </Text>
-                            )}
-                        </Stack>
+                      <Stack gap={0}>
+                        <TreeList nodes={useBiomeNodes({ onDelete: handleDeleteBiome })} expandedIds={expandedLayers} onToggleExpand={toggleLayerExpanded} />
+                      </Stack>
                     </ScrollArea>
                 </Stack>
             </Paper>

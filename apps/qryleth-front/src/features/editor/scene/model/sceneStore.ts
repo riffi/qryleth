@@ -718,7 +718,11 @@ export const useSceneStore = create<SceneStore>()(
     addLandscapeItem: (item) => {
       const current = get().landscapeContent
       // Нормализуем материал площадки (интернирование multiColor)
-      const normalizedItem = normalizeLandscapeItemMaterial(item)
+      const normalizedItem = normalizeLandscapeItemMaterial({
+        ...item,
+        // По умолчанию включаем видимость, если не задана
+        visible: item.visible !== false,
+      })
       const next = current ? { ...current, items: [...current.items, normalizedItem] } : { layerId: 'landscape', items: [normalizedItem] }
       get().setLandscapeContent(next)
     },
@@ -758,9 +762,9 @@ export const useSceneStore = create<SceneStore>()(
       const list = get().waterContent || []
       const idx = list.findIndex(c => c.layerId === layerId)
       if (idx === -1) {
-        get().setWaterContent([ ...list, { layerId, items: [body] } ])
+        get().setWaterContent([ ...list, { layerId, items: [{ ...body, visible: body.visible !== false }] } ])
       } else {
-        const next = list.map((c, i) => i === idx ? { ...c, items: [...c.items, body] } : c)
+        const next = list.map((c, i) => i === idx ? { ...c, items: [...c.items, { ...body, visible: body.visible !== false }] } : c)
         get().setWaterContent(next)
       }
     },
