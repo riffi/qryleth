@@ -9,7 +9,7 @@ owner: team-ui
 tags: [palette, rendering, materials, terrain, water, editor, sceneAPI]
 phases:
   total: 8
-  completed: 2
+  completed: 4
 ---
 
 # Внедрение глобальной палитры цветов
@@ -137,15 +137,15 @@ QRYLETH_AUTUMN = {
 - `initializePalettes()` вызывается при старте стора; при load/clear подставляется дефолт.
 - Сериализация в Dexie совместима; обеспечена бэкомпат-нормализация.
 
-### ⏳ Фаза 3: Резолвер материалов с учётом палитры
-- Расширить `materialResolver` для поддержки `properties.colorSource` (fixed/role + tint HSV Value).
-- Добавить мемоизацию резолва по ключам (paletteUuid, role, tint, materialUuid).
-- Интегрировать в PrimitiveRenderer (без изменения API компонент, только резолв).
+### ✅ Фаза 3: Резолвер материалов с учётом палитры — done
+- `GfxMaterial.properties.colorSource?: ColorSource` добавлено; приоритет над `properties.color`.
+- Реализован резолв цвета материала из палитры с tint (HSV Value) и интеграция в PrimitiveRenderer.
+- Прокидывание активной палитры: для сцены — из `environmentContent.paletteUuid`, для редактора объектов/превью — `'default'`.
 
-### ⏳ Фаза 4: Террейн — stop.colorSource и порядок tint → интерполяция
-- Расширить `GfxMultiColorPaletteStop` полем `colorSource?: ColorSource` (приоритет над `color`).
-- В `MultiColorProcessor`: резолв ролей стопов до цветов → применить tint стопов в HSV Value → интерполяция по высоте → затем slopeBoost.
-- Триггер пересборки при смене палитры только при наличии role‑стопов.
+### ✅ Фаза 4: Террейн — stop.colorSource и порядок tint → интерполяция — done
+- `GfxMultiColorPaletteStop`: добавлены `color?` (опц.) и `colorSource?: ColorSource` с приоритетом `colorSource`.
+- `MultiColorProcessor`: резолв ролей стопов с применением tint (HSV Value) к КАЖДОМУ стопу, затем интерполяция и `slopeBoost`.
+- Зависимость от палитры: при смене `environmentContent.paletteUuid` пересборка включается; ключ кэша геометрии учитывает paletteUuid и colorSource.
 
 ### ⏳ Фаза 5: Вода и фон/туман сцены
 - Simple‑вода: `color2 = base`, `color1 = base` с осветлением +20% (HSV Value) из роли `water`.

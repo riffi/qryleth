@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { GfxMultiColorConfig, GfxMultiColorPaletteStop } from '../../../../entities/layer/model/types'
+import type { GlobalPalette } from '@/entities/palette'
 
 /**
  * Минимально-самодостаточный, но расширяемый процессор многоцветной окраски.
@@ -18,18 +19,24 @@ import type { GfxMultiColorConfig, GfxMultiColorPaletteStop } from '../../../../
  */
 
 export class MultiColorProcessor {
-  private palette: GfxMultiColorPaletteStop[]
+  private palette: Array<{ height: number; color: string; alpha: number }>
   private slopeBoost: number
 
-  constructor(private readonly config: GfxMultiColorConfig = {}) {
-    // Палитра по умолчанию: низ — тёмно-зеленый, середина — зелёный, верх — серо-каменный/снег
-    this.palette = (config.palette ?? [
+  constructor(private readonly config: GfxMultiColorConfig = {}, private readonly activePalette?: GlobalPalette) {
+    const rawStops: GfxMultiColorPaletteStop[] = (config.palette ?? [
       { height: -10, color: '#2d5a27', alpha: 1.0 },
       { height: 0,   color: '#4a7c59', alpha: 1.0 },
       { height: 10,  color: '#8aa05a', alpha: 1.0 },
       { height: 25,  color: '#b7b7b7', alpha: 1.0 },
       { height: 100, color: '#eaeaea', alpha: 1.0 },
     ]).slice().sort((a, b) => a.height - b.height)
+
+    // Преобразуем стопы: резолвим роль → базовый цвет и применяем tint К КАЖДОМУ стопу ДО интерполяции
+    this.palette = rawStops.map(s => ({
+      height: s.height,
+      color: resolveStopHexColor(s, activePalette),
+      alpha: s.alpha ?? 1.0,
+    }))
 
     this.slopeBoost = Math.min(Math.max(config.slopeBoost ?? 0, 0), 1)
   }
@@ -220,4 +227,75 @@ export class MultiColorProcessor {
     const alphaB = b.alpha ?? 1.0
     return alphaA + (alphaB - alphaA) * t
   }
+}
+
+// ===== helpers for tint & role resolve =====
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '')
+  const v = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 }
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(Math.max(0, Math.min(255, Math.round(r))))}${toHex(Math.max(0, Math.min(255, Math.round(g))))}${toHex(Math.max(0, Math.min(255, Math.round(b))))}`
+}
+
+function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
+  r /= 255; g /= 255; b /= 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const d = max - min
+  let h = 0
+  const s = max === 0 ? 0 : d / max
+  const v = max
+  if (d !== 0) {
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break
+      case g: h = (b - r) / d + 2; break
+      case b: h = (r - g) / d + 4; break
+    }
+    h /= 6
+  }
+  return { h, s, v }
+}
+
+function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: number } {
+  const i = Math.floor(h * 6)
+  const f = h * 6 - i
+  const p = v * (1 - s)
+  const q = v * (1 - f * s)
+  const t = v * (1 - (1 - f) * s)
+  let r = 0, g = 0, b = 0
+  switch (i % 6) {
+    case 0: r = v; g = t; b = p; break
+    case 1: r = q; g = v; b = p; break
+    case 2: r = p; g = v; b = t; break
+    case 3: r = p; g = q; b = v; break
+    case 4: r = t; g = p; b = v; break
+    case 5: r = v; g = p; b = q; break
+  }
+  return { r: r * 255, g: g * 255, b: b * 255 }
+}
+
+function applyTintToHex(hex: string, tint?: number): string {
+  if (!Number.isFinite(tint as number) || !tint) return hex
+  const { r, g, b } = hexToRgb(hex)
+  const { h, s, v } = rgbToHsv(r, g, b)
+  const v2 = Math.max(0, Math.min(1, v + (tint as number)))
+  const rgb2 = hsvToRgb(h, s, v2)
+  return rgbToHex(rgb2.r, rgb2.g, rgb2.b)
+}
+
+function resolveStopHexColor(stop: GfxMultiColorPaletteStop, palette?: GlobalPalette): string {
+  // Приоритет colorSource
+  if (stop.colorSource) {
+    if (stop.colorSource.type === 'role') {
+      const base = (palette?.colors as any)?.[stop.colorSource.role] || stop.color || '#ffffff'
+      return applyTintToHex(base, stop.colorSource.tint)
+    }
+    // fixed для стопа — используем color
+    return stop.color || '#ffffff'
+  }
+  return stop.color || '#ffffff'
 }

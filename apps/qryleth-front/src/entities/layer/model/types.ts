@@ -1,5 +1,6 @@
 import type { GfxTerrainConfig } from '../../terrain';
 import type { GfxCloudsConfig } from '../../cloud';
+import type { ColorSource } from '@/entities/palette'
 
 /**
  * Перечисление типов слоёв графической сцены.
@@ -45,8 +46,10 @@ export enum GfxLayerShape {
 export interface GfxMultiColorPaletteStop {
   /** Значение высоты для этого стопа */
   height: number;
-  /** Цвет в любом CSS-формате */
-  color: string;
+  /** Цвет в любом CSS-формате (если не задан colorSource) */
+  color?: string;
+  /** Источник цвета из глобальной палитры (приоритет над color) */
+  colorSource?: ColorSource;
   /** Прозрачность цвета от 0 (полностью прозрачный) до 1 (полностью непрозрачный) */
   alpha?: number;
 }

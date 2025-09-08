@@ -5,6 +5,8 @@ import { DEFAULT_LANDSCAPE_COLOR } from '@/features/editor/scene/constants'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiColorProcessor'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { paletteRegistry } from '@/shared/lib/palette'
 
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
 // Ключ: baseGeometry.uuid + параметры многоцветной палитры.
@@ -16,16 +18,19 @@ const triangleGeometryCache = new Map<string, { geom: THREE.BufferGeometry; refC
  * Строит стабильный ключ из конфигурации многоцветной окраски.
  * Учитывает режим, slopeBoost и палитру с сортировкой по высоте.
  */
-function makeMultiColorKey(cfg: import('@/entities/layer/model/types').GfxMultiColorConfig | undefined | null): string {
+function makeMultiColorKey(cfg: import('@/entities/layer/model/types').GfxMultiColorConfig | undefined | null, paletteUuid?: string): string {
   if (!cfg) return 'none'
   const mode = cfg.mode ?? 'vertex'
   const slope = Number.isFinite(cfg.slopeBoost as number) ? (cfg.slopeBoost as number) : 0
-  const palette = (cfg.palette ?? [])
+  const paletteStops = (cfg.palette ?? [])
     .slice()
     .sort((a, b) => a.height - b.height)
-    .map(s => `${s.height}:${s.color}:${s.alpha ?? 1}`)
+    .map(s => {
+      const desc = s.colorSource ? `${s.colorSource.type}:${(s.colorSource as any).role ?? ''}:${(s.colorSource as any).tint ?? ''}` : `${s.color ?? ''}`
+      return `${s.height}:${desc}:${s.alpha ?? 1}`
+    })
     .join('|')
-  return `${mode};${slope};${palette}`
+  return `${mode};${slope};${paletteStops};pal:${paletteUuid || 'default'}`
 }
 
 /**
@@ -140,12 +145,16 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
 
   useEffect(() => () => { baseGeometry?.dispose() }, [baseGeometry])
 
+  const environmentContent = useSceneStore(state => state.environmentContent)
+  const paletteUuid = environmentContent?.paletteUuid || 'default'
+  const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
+
   const multiColorProcessor = useMemo(() => {
     if (item.material?.multiColor && sampler) {
-      return new MultiColorProcessor(item.material.multiColor)
+      return new MultiColorProcessor(item.material.multiColor, activePalette as any)
     }
     return null
-  }, [item.material?.multiColor, sampler])
+  }, [item.material?.multiColor, sampler, paletteUuid])
 
   const finalGeometry = useMemo(() => {
     // Сбросим ссылку предыдущего ключа
@@ -154,7 +163,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     const mode = item.material?.multiColor?.mode
     if (mode === 'triangle') {
       // Используем кэш финальной геометрии по составному ключу
-      const mcKey = makeMultiColorKey(item.material?.multiColor)
+      const mcKey = makeMultiColorKey(item.material?.multiColor, paletteUuid)
       const { geom, cacheKey } = acquireTriangleGeometry(baseGeometry, multiColorProcessor, sampler, mcKey)
       triangleCacheKeyRef.current = cacheKey
       return geom
