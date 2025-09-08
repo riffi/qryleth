@@ -893,7 +893,7 @@ export class SceneAPI {
           const halfD = d / 2
           spec = {
             ...spec,
-            area: { kind: 'rect', xMin: cx - halfW, xMax: cx + halfW, zMin: cz - halfD, zMax: cz + halfD }
+            area: { kind: 'rect', x: cx - halfW, z: cz - halfD, width: w, depth: d }
           }
         } else {
           return { success: false, created: 0, layerId: 'environment', error: 'Cannot infer area: no landscapeContent terrain' }

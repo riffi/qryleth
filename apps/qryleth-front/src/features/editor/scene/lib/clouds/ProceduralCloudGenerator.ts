@@ -1,6 +1,7 @@
 import type { GfxCloudsConfig, GfxCloudItem, GfxCloudPlacementArea, GfxProceduralCloudSpec, GfxCloudAppearanceMeta } from '@/entities/cloud'
 import { generateRandomSeed, deriveRng, randRange, randIntRange, pickFromNumberOrRange } from '@/features/editor/scene/lib/terrain/utils/PRNGUtils'
 import { createRng } from '@/shared/lib/utils/prng'
+import { rectToBounds, circleToBounds, randomPointInRect, randomPointInCircle2D, pointInsideRect, pointInsideCircle } from '@/shared/lib/math/geometry2d'
 
 /**
  * Процедурный генератор облаков.
@@ -238,27 +239,29 @@ function samplePoisson(area: GfxCloudPlacementArea, minDist: number, targetCount
 }
 
 // Геометрические утилиты
+/**
+ * Возвращает ограничивающий прямоугольник (BoundRect) для области размещения облаков.
+ * Для прямоугольника используется осевая форма Rect2D (x,z,width,depth),
+ * для круга — центр (x,z) и радиус. Нужен для оценки площади и построения сеток.
+ */
 function areaBounds(area: GfxCloudPlacementArea): { minX: number; maxX: number; minZ: number; maxZ: number } {
-  if (area.kind === 'rect') return { minX: area.xMin, maxX: area.xMax, minZ: area.zMin, maxZ: area.zMax }
-  const [cx, cz] = area.center
-  return { minX: cx - area.radius, maxX: cx + area.radius, minZ: cz - area.radius, maxZ: cz + area.radius }
+  return area.kind === 'rect' ? rectToBounds(area) : circleToBounds(area)
 }
+/**
+ * Возвращает равномерно распределённую случайную точку [x,z] внутри заданной области.
+ * Для прямоугольника — равномерно по площади; для круга — по площади с корневой выборкой радиуса.
+ * rng — детерминированный генератор псевдослучайных чисел [0..1).
+ */
 function randomPointInArea(area: GfxCloudPlacementArea, rng: () => number): [number, number] {
-  if (area.kind === 'rect') {
-    const x = area.xMin + (area.xMax - area.xMin) * rng()
-    const z = area.zMin + (area.zMax - area.zMin) * rng()
-    return [x, z]
-  }
-  // circle: равномерно по площади
-  const r = Math.sqrt(rng()) * area.radius
-  const a = 2 * Math.PI * rng()
-  return [area.center[0] + r * Math.cos(a), area.center[1] + r * Math.sin(a)]
+  return area.kind === 'rect' ? randomPointInRect(area, rng) : randomPointInCircle2D(area, rng)
 }
+/**
+ * Проверяет попадание точки (x,z) в область размещения облаков.
+ * Для прямоугольника проверяется попадание в осевой Rect2D,
+ * для круга — в окружность по центру и радиусу.
+ */
 function pointInsideArea(area: GfxCloudPlacementArea, x: number, z: number): boolean {
-  if (area.kind === 'rect') return x >= area.xMin && x <= area.xMax && z >= area.zMin && z <= area.zMax
-  const dx = x - area.center[0]
-  const dz = z - area.center[1]
-  return dx * dx + dz * dz <= area.radius * area.radius
+  return area.kind === 'rect' ? pointInsideRect(area, x, z) : pointInsideCircle(area, x, z)
 }
 function estimateCellFromCount(area: GfxCloudPlacementArea, count: number): number {
   const b = areaBounds(area)
@@ -275,4 +278,3 @@ function sample<T>(arr: T[], rng: () => number): T { return arr[Math.floor(rng()
 function deriveSeed(base: number, i: number): number { return (base ^ ((i + 1) * 0x9e3779b1)) >>> 0 }
 
 export default ProceduralCloudGenerator
-

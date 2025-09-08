@@ -15,13 +15,17 @@ export const cloudsBasicTemplate: TemplateData = {
   code: `// 1) Настроим глобальный ветер: вдоль X, скорость 0.2
 sceneApi.setWind([1, 0], 0.2)
 
-// 2) Сгенерируем облака (по умолчанию 5 штук). Если area не указана —
-// будет взят прямоугольник из размеров первого Terrain‑слоя (worldWidth/worldDepth)
+// 2) Сгенерируем облака (по умолчанию 5 штук).
+// Если area не указана — будет взят прямоугольник из размеров первого Terrain‑слоя (worldWidth/worldDepth)
 const cloudsRes = await sceneApi.generateProceduralClouds({
   // seed можно не указывать — возьмётся случайный
   placement: 'poisson',
   minDistance: 25,
   altitudeY: [120, 160],
+  // Явное указание области размещения (Rect2D): x,z — левый‑нижний угол; width — по X; depth — по Z
+  area: { kind: 'rect', x: -150, z: -100, width: 300, depth: 200 },
+  // Альтернатива: круглая область (Circle2D)
+  // area: { kind: 'circle', x: 0, z: 0, radius: 120 },
   appearance: {
     stylePreset: 'cumulus',
     sizeLevel: 3,
@@ -35,4 +39,3 @@ const cloudsRes = await sceneApi.generateProceduralClouds({
 console.log('Создан слой облаков:', cloudsRes)
 `
 }
-

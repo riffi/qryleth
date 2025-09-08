@@ -58,8 +58,8 @@ export interface GfxCloudsConfig {
  * Область размещения облаков: прямоугольник или окружность в мировых координатах XZ.
  */
 export type GfxCloudPlacementArea =
-  | { kind: 'rect'; xMin: number; xMax: number; zMin: number; zMax: number }
-  | { kind: 'circle'; center: [number, number]; radius: number }
+  | ({ kind: 'rect' } & import('@/shared/types').Rect2D)
+  | ({ kind: 'circle' } & import('@/shared/types').Circle2D)
 
 /**
  * Метапараметры внешнего вида облаков. На их основе генератор детерминированно

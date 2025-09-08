@@ -40,11 +40,14 @@ const WaterBodyRenderer: React.FC<WaterRectMeshProps> = ({ body }) => {
   const lighting = useSceneLighting()
   const gl = useThree(state => state.gl)
 
-  const { xMin, xMax, zMin, zMax } = body.surface.kind === 'rect' ? body.surface : { xMin: 0, xMax: 0, zMin: 0, zMax: 0 }
-  const width = Math.max(0.001, xMax - xMin)
-  const depth = Math.max(0.001, zMax - zMin)
-  const centerX = (xMin + xMax) / 2
-  const centerZ = (zMin + zMax) / 2
+  // Прямоугольник в новой модели: Rect2D (x, z, width, depth)
+  const { x: rectX, z: rectZ, width: rectW, depth: rectD } = body.surface.kind === 'rect'
+    ? (body.surface as any)
+    : { x: 0, z: 0, width: 0, depth: 0 }
+  const width = Math.max(0.001, Number(rectW) || 0)
+  const depth = Math.max(0.001, Number(rectD) || 0)
+  const centerX = (Number(rectX) || 0) + width / 2
+  const centerZ = (Number(rectZ) || 0) + depth / 2
 
   // Общая геометрия для обоих путей
   const geometry = useMemo(() => new THREE.PlaneGeometry(width, depth, 64, 64), [width, depth])

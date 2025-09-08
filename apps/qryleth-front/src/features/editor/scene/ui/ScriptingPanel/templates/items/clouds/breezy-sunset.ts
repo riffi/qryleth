@@ -20,6 +20,10 @@ const res = await sceneApi.generateProceduralClouds({
   placement: 'poisson',
   minDistance: 22,
   altitudeY: [130, 170],
+  // Область размещения: Rect2D. Можно опустить — тогда возьмётся из Terrain‑слоя
+  area: { kind: 'rect', x: -150, z: -100, width: 300, depth: 200 },
+  // Пример альтернативы (Circle2D):
+  // area: { kind: 'circle', x: 0, z: 0, radius: 140 },
   appearance: {
     stylePreset: 'cumulus',
     sizeLevel: 3,
@@ -33,4 +37,3 @@ const res = await sceneApi.generateProceduralClouds({
 console.log('Тёплый бриз — clouds:', res)
 `
 }
-

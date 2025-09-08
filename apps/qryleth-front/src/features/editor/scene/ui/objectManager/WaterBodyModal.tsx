@@ -23,10 +23,10 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
 
   const [name, setName] = useState<string>(initial?.body?.name ?? '')
   const [kind, setKind] = useState<'sea' | 'lake' | 'river'>(initial?.body.kind ?? 'sea')
-  const [xMin, setXMin] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.xMin : -50)
-  const [xMax, setXMax] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.xMax : 50)
-  const [zMin, setZMin] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.zMin : -50)
-  const [zMax, setZMax] = useState<number>(initial?.body.surface.kind === 'rect' ? initial?.body.surface.zMax : 50)
+  const [x, setX] = useState<number>(initial?.body.surface.kind === 'rect' ? (initial?.body.surface as any).x : -50)
+  const [z, setZ] = useState<number>(initial?.body.surface.kind === 'rect' ? (initial?.body.surface as any).z : -50)
+  const [width, setWidth] = useState<number>(initial?.body.surface.kind === 'rect' ? (initial?.body.surface as any).width : 100)
+  const [depth, setDepth] = useState<number>(initial?.body.surface.kind === 'rect' ? (initial?.body.surface as any).depth : 100)
   const [altitudeY, setAltitudeY] = useState<number>(initial?.body.altitudeY ?? 0)
   const [brightness, setBrightness] = useState<number>((initial?.body as any)?.water?.brightness ?? 1.6)
   const [shaderType, setShaderType] = useState<'simple' | 'realistic'>(((initial?.body as any)?.water?.type as any) ?? 'realistic')
@@ -36,10 +36,10 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
       setName(initial?.body?.name ?? '')
       setKind(initial?.body.kind ?? 'sea')
       const s = initial?.body.surface
-      setXMin(s && s.kind === 'rect' ? s.xMin : -50)
-      setXMax(s && s.kind === 'rect' ? s.xMax : 50)
-      setZMin(s && s.kind === 'rect' ? s.zMin : -50)
-      setZMax(s && s.kind === 'rect' ? s.zMax : 50)
+      setX(s && s.kind === 'rect' ? (s as any).x : -50)
+      setZ(s && s.kind === 'rect' ? (s as any).z : -50)
+      setWidth(s && s.kind === 'rect' ? (s as any).width : 100)
+      setDepth(s && s.kind === 'rect' ? (s as any).depth : 100)
       setAltitudeY(initial?.body.altitudeY ?? 0)
       setBrightness(((initial?.body as any)?.water?.brightness ?? 1.6))
       setShaderType(((initial?.body as any)?.water?.type as any) ?? 'realistic')
@@ -52,7 +52,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
       id: generateUUID(),
       name: (name || '').trim() || undefined,
       kind,
-      surface: { kind: 'rect', xMin: Math.min(xMin, xMax), xMax: Math.max(xMin, xMax), zMin: Math.min(zMin, zMax), zMax: Math.max(zMin, zMax) },
+      surface: { kind: 'rect', x, z, width: Math.max(0, width), depth: Math.max(0, depth) },
       altitudeY,
       water: { brightness, type: shaderType }
     }
@@ -65,7 +65,7 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
     updateWaterBody(initial.layerId, initial.body.id, {
       name: (name || '').trim() || undefined,
       kind,
-      surface: { kind: 'rect', xMin: Math.min(xMin, xMax), xMax: Math.max(xMin, xMax), zMin: Math.min(zMin, zMax), zMax: Math.max(zMin, zMax) },
+      surface: { kind: 'rect', x, z, width: Math.max(0, width), depth: Math.max(0, depth) },
       altitudeY,
       water: { brightness, type: shaderType }
     })
@@ -78,12 +78,12 @@ export const WaterBodyModal: React.FC<WaterBodyModalProps> = ({ opened, mode, ta
         <TextInput label="Название" placeholder="Например: Южная бухта" value={name} onChange={(e) => setName(e.currentTarget.value)} />
         <Select label="Вид" data={[{ value: 'sea', label: 'Море' }, { value: 'lake', label: 'Озеро' }, { value: 'river', label: 'Река' }]} value={kind} onChange={(v) => setKind((v as any) || 'sea')} withinPortal />
         <Group grow>
-          <NumberInput label="xMin" value={xMin} onChange={(v) => setXMin(Number(v) || 0)} />
-          <NumberInput label="xMax" value={xMax} onChange={(v) => setXMax(Number(v) || 0)} />
+          <NumberInput label="x" value={x} onChange={(v) => setX(Number(v) || 0)} />
+          <NumberInput label="z" value={z} onChange={(v) => setZ(Number(v) || 0)} />
         </Group>
         <Group grow>
-          <NumberInput label="zMin" value={zMin} onChange={(v) => setZMin(Number(v) || 0)} />
-          <NumberInput label="zMax" value={zMax} onChange={(v) => setZMax(Number(v) || 0)} />
+          <NumberInput label="width" value={width} onChange={(v) => setWidth(Number(v) || 0)} min={0} />
+          <NumberInput label="depth" value={depth} onChange={(v) => setDepth(Number(v) || 0)} min={0} />
         </Group>
         <NumberInput label="Высота Y" value={altitudeY} onChange={(v) => setAltitudeY(Number(v) || 0)} />
         <Group grow>

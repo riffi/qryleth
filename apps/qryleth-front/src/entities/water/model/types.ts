@@ -7,6 +7,7 @@
  */
 
 import type { GfxWaterConfig } from '@/entities/layer'
+import type { Point2 } from '@/shared/types'
 
 /**
  * Геометрия проекции водной поверхности на плоскость XZ.
@@ -14,9 +15,9 @@ import type { GfxWaterConfig } from '@/entities/layer'
  * реки (узкие полигоны/полосы, наборы сегментов) и пр.
  */
 export type GfxWaterSurface =
-  | { kind: 'rect'; xMin: number; xMax: number; zMin: number; zMax: number }
-  | { kind: 'circle'; center: [number, number]; radius: number }
-  | { kind: 'polygon'; points: Array<[number, number]> }
+  | ({ kind: 'rect' } & import('@/shared/types').Rect2D)
+  | ({ kind: 'circle' } & import('@/shared/types').Circle2D)
+  | { kind: 'polygon'; points: Array<Point2> }
 
 /**
  * Водоём (водный объект) в сцене.
