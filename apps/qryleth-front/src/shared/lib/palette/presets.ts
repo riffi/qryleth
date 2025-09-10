@@ -66,6 +66,24 @@ export const QRYLETH_WINTER: GlobalPalette = {
   }
 }
 
+export const QRYLETH_ALIEN: GlobalPalette = {
+  uuid: 'alien',
+  name: 'Qryleth Alien',
+  colors: {
+    sky:    '#6a5acd', // фиолетово-лазурное небо
+    fog:    '#8a9bbd', // холодный туман с серо-голубым отливом
+    water:  '#3dd3c9', // малахитово-бирюзовая вода
+    foliage:'#cd84bd', // слегка неоновая зелень, но мягкая
+    wood:   '#5c3b6f', // древесина с фиолетовым оттенком
+    rock:   '#a0a6b8', // серо-голубые камни
+    metal:  '#b7a0d9', // металл с лавандовым отливом
+    sand:   '#d0c48c', // бледно-жёлтый песок с инопланетным подтоном
+    ground: '#574f68', // фиолетово-серый грунт
+    snow:   '#e4f2ff', // бело-голубой «кристаллический снег»
+    accent: '#ff7ba5', // розово-коралловый акцент для контраста
+  }
+}
+
 /**
  * Список предустановленных палитр, доступных без пользовательского CRUD.
  */
@@ -73,5 +91,6 @@ export const PREDEFINED_GLOBAL_PALETTES: GlobalPalette[] = [
   QRYLETH_DEFAULT,
   QRYLETH_AUTUMN,
   QRYLETH_WINTER,
+  QRYLETH_ALIEN
 ]
 
