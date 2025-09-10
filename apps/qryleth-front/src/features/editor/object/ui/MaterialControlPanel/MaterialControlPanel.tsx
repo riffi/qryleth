@@ -35,7 +35,7 @@ export const MaterialControlPanel: React.FC = () => {
   const [metalness, setMetalness] = useState(0)
   const [roughness, setRoughness] = useState(0.5)
   const [emissive, setEmissive] = useState('#000000')
-  const [emissiveIntensity, setEmissiveIntensity] = useState(1)
+  const [emissiveIntensity, setEmissiveIntensity] = useState(0)
   // Источник цвета
   const [colorSourceType, setColorSourceType] = useState<'fixed' | 'role'>('fixed')
   const [role, setRole] = useState<string>('wood')
@@ -78,7 +78,9 @@ export const MaterialControlPanel: React.FC = () => {
     setMetalness(selectedMaterial.properties.metalness ?? 0)
     setRoughness(selectedMaterial.properties.roughness ?? 0.5)
     setEmissive(selectedMaterial.properties.emissive ?? '#000000')
-    setEmissiveIntensity(selectedMaterial.properties.emissiveIntensity ?? 1)
+    // Если интенсивность эмиссии у материала не задана, используем 0 по умолчанию,
+    // чтобы исключить ненамеренное свечение при первичном создании материала
+    setEmissiveIntensity(selectedMaterial.properties.emissiveIntensity ?? 0)
 
     const src = (selectedMaterial.properties as any).colorSource as ColorSource | undefined
     if (!src || src.type === 'fixed') {

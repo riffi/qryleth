@@ -133,7 +133,9 @@ const initialLighting: LightingSettings = {
     position: [500, 150, -1000],
     castShadow: true,
   },
-  backgroundColor: '#fffff',
+  // Цвет фона сцены по умолчанию (валидный HEX). Ранее было '#fffff' (опечатка),
+  // что приводило к ошибке THREE.Color: Invalid hex color и могло ломать рендер.
+  backgroundColor: '#ffffff',
   ambientOcclusion: {
     enabled: true,
     intensity: 1.0,

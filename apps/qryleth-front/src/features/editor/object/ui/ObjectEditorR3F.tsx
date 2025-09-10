@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Box, Group } from '@mantine/core'
 import { ObjectScene3D } from './renderer/ObjectScene3D.tsx'
 import {
@@ -30,26 +30,42 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
   const gridVisible = useObjectGridVisible()
   const toggleGridVisibility = useObjectStore(s => s.toggleGridVisibility)
 
-  // Инициализация хранилища примитивов при получении данных объекта или их отсутствии
+  /**
+   * Инициализация состояния ObjectEditor из входного objectData.
+   *
+   * Важно: при любом ререндере страницы objectData может приходить как новый объект
+   * (новая ссылка), хотя фактическое содержимое не менялось (например, при
+   * открытии левой панели «Свойства»). Ранее это приводило к повторному вызову
+   * clearScene() и обнулению материалов/примитивов, что выглядело как «исчезновение»
+   * материалов из списка.
+   *
+   * Решение: сравниваем содержимое objectData по сериализованной подписи и
+   * выполняем переинициализацию только при фактических изменениях данных.
+   */
+  const prevObjectSignature = useRef<string | null>(null)
   useEffect(() => {
+    const serialize = (obj: any) => JSON.stringify(obj ?? null)
+    const nextSignature = serialize(objectData)
+    if (prevObjectSignature.current === nextSignature) return
+    prevObjectSignature.current = nextSignature
+
     const store = useObjectStore.getState()
+    // Переинициализируем сцену только при реальном изменении objectData
     store.clearScene()
-    
+
     if (objectData) {
-      store.setPrimitives(
-        objectData.primitives.map(p => ({ ...p }))
-      )
+      store.setPrimitives(objectData.primitives.map(p => ({ ...p })))
       store.setMaterials(objectData.materials ?? [])
-      
+
       // Устанавливаем группы примитивов и их назначения
       if (objectData.primitiveGroups) {
         store.setPrimitiveGroups(objectData.primitiveGroups)
       }
-      
+
       if (objectData.primitiveGroupAssignments) {
         store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
       }
-      
+
       if (objectData.primitives.length > 0) {
         store.selectPrimitive(0)
       }

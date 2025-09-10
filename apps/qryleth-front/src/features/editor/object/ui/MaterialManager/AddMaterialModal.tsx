@@ -64,7 +64,10 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
         opacity: 1,
         transparent: false,
         metalness: 0,
-        roughness: 0.5
+        roughness: 0.5,
+        // По умолчанию интенсивность эмиссии у нового материала равна нулю,
+        // чтобы материал не светился, если пользователь не задал эмиссию явно
+        emissiveIntensity: 0
       },
       isGlobal: false
     }
