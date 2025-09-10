@@ -221,45 +221,56 @@ export const MaterialControlPanel: React.FC = () => {
               </Group>
             </>
           )}
-          <NumberInput
-            label="Прозрачность"
-            size="xs"
-            min={0}
-            max={1}
-            step={0.05}
-            value={opacity}
-            onChange={(v) => {
-              const val = v ?? 0
-              setOpacity(val)
-              applyPropertyUpdates({ opacity: val })
-            }}
-          />
-          <NumberInput
-            label="Металличность"
-            size="xs"
-            min={0}
-            max={1}
-            step={0.05}
-            value={metalness}
-            onChange={(v) => {
-              const val = v ?? 0
-              setMetalness(val)
-              applyPropertyUpdates({ metalness: val })
-            }}
-          />
-          <NumberInput
-            label="Шероховатость"
-            size="xs"
-            min={0}
-            max={1}
-            step={0.05}
-            value={roughness}
-            onChange={(v) => {
-              const val = v ?? 0
-              setRoughness(val)
-              applyPropertyUpdates({ roughness: val })
-            }}
-          />
+          {/* Заголовок блока параметров в стиле лейблов полей (как у «Название», «Роль палитры») */}
+          <Group gap="xs" mt={"sm"}>
+            <Text size="xs" fw={500}>Физические свойства</Text>
+          </Group>
+
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">Прозрачность</Text>
+            <Slider
+              size="xs"
+              min={0}
+              max={1}
+              step={0.05}
+              value={opacity}
+              onChange={(val) => {
+                setOpacity(val)
+                applyPropertyUpdates({ opacity: val })
+              }}
+              style={{ flex: 1 }}
+            />
+          </Group>
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">Металличность</Text>
+            <Slider
+              size="xs"
+              min={0}
+              max={1}
+              step={0.05}
+              value={metalness}
+              onChange={(val) => {
+                setMetalness(val)
+                applyPropertyUpdates({ metalness: val })
+              }}
+              style={{ flex: 1 }}
+            />
+          </Group>
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">Шероховатость</Text>
+            <Slider
+              size="xs"
+              min={0}
+              max={1}
+              step={0.05}
+              value={roughness}
+              onChange={(val) => {
+                setRoughness(val)
+                applyPropertyUpdates({ roughness: val })
+              }}
+              style={{ flex: 1 }}
+            />
+          </Group>
           <ColorInput
             label="Эмиссия"
             size="xs"
@@ -270,18 +281,21 @@ export const MaterialControlPanel: React.FC = () => {
             }}
             withEyeDropper={false}
           />
-          <NumberInput
-            label="Интенс. эмиссии"
-            size="xs"
-            min={0}
-            step={0.1}
-            value={emissiveIntensity}
-            onChange={(v) => {
-              const val = v ?? 0
-              setEmissiveIntensity(val)
-              applyPropertyUpdates({ emissiveIntensity: val })
-            }}
-          />
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">Интенс. эмиссии</Text>
+            <Slider
+              size="xs"
+              min={0}
+              max={5}
+              step={0.1}
+              value={emissiveIntensity}
+              onChange={(val) => {
+                setEmissiveIntensity(val)
+                applyPropertyUpdates({ emissiveIntensity: val })
+              }}
+              style={{ flex: 1 }}
+            />
+          </Group>
         </Stack>
 
         </Stack>
