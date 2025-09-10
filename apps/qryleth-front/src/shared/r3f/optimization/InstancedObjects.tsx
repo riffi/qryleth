@@ -5,6 +5,8 @@ import * as THREE from 'three'
 import type { SceneObject, SceneObjectInstance, SceneLayer } from '@/entities/scene/types'
 import { GfxLayerType } from '@/entities/layer'
 import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
+import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
+import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -278,16 +280,47 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   onClick,
   onHover
 }) => {
-  // Create a separate InstancedMesh for each primitive in the object
+  // Попытка объединить все цилиндры (ветви/ствол) в один InstancedMesh с шейдером сужения
+  const cylinders: { primitive: any; index: number }[] = []
+  const spheres: { primitive: any; index: number }[] = []
+  const rest: { primitive: any; index: number }[] = []
+  sceneObject.primitives.forEach((p, idx) => {
+    if (p.type === 'cylinder') cylinders.push({ primitive: p, index: idx })
+    else if (p.type === 'sphere') spheres.push({ primitive: p, index: idx })
+    else rest.push({ primitive: p, index: idx })
+  })
+
   return (
     <group>
-      {sceneObject.primitives.map((primitive, primitiveIndex) => (
+      {cylinders.length > 0 && (
+        <InstancedBranches
+          sceneObject={sceneObject}
+          cylinders={cylinders}
+          instances={instances}
+          materials={sceneObject.materials}
+          onClick={onClick}
+          onHover={onHover}
+        />
+      )}
+
+      {spheres.length > 0 && (
+        <InstancedLeaves
+          sceneObject={sceneObject}
+          spheres={spheres}
+          instances={instances}
+          materials={sceneObject.materials}
+          onClick={onClick}
+          onHover={onHover}
+        />
+      )}
+
+      {rest.map(({ primitive, index }) => (
         <PrimitiveInstancedGroup
-          key={`${objectUuid}-primitive-${primitiveIndex}`}
+          key={`${objectUuid}-primitive-${index}`}
           objectUuid={objectUuid}
           sceneObject={sceneObject}
           primitive={primitive}
-          primitiveIndex={primitiveIndex}
+          primitiveIndex={index}
           instances={instances}
           onClick={onClick}
           onHover={onHover}
