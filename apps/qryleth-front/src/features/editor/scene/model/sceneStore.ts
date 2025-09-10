@@ -137,12 +137,22 @@ const multiColorIntern = new Map<string, GfxMultiColorConfig>()
  * Учитывает режим, slopeBoost и отсортированную по высоте палитру.
  */
 function makeMultiColorKey(cfg: GfxMultiColorConfig): string {
+  /**
+   * Построение ключа учитывает не только color, но и colorSource (role/tint),
+   * чтобы конфигурации с одинаковыми высотами, но разными источниками цвета
+   * интернировались раздельно и корректно переиспользовались.
+   */
   const mode = cfg.mode ?? 'vertex'
   const slope = Number.isFinite(cfg.slopeBoost as number) ? (cfg.slopeBoost as number) : 0
   const palette = (cfg.palette ?? [])
     .slice()
     .sort((a, b) => a.height - b.height)
-    .map(s => `${s.height}:${s.color}:${s.alpha ?? 1}`)
+    .map(s => {
+      const desc = s.colorSource
+        ? `${s.colorSource.type}:${(s.colorSource as any).role ?? ''}:${(s.colorSource as any).tint ?? ''}`
+        : `${s.color ?? ''}`
+      return `${s.height}:${desc}:${s.alpha ?? 1}`
+    })
     .join('|')
   return `${mode};${slope};${palette}`
 }
@@ -162,7 +172,22 @@ function internMultiColorConfig(cfg?: GfxMultiColorConfig): GfxMultiColorConfig 
   const normalized: GfxMultiColorConfig = {
     mode: cfg.mode,
     slopeBoost: cfg.slopeBoost,
-    palette: cfg.palette ? cfg.palette.slice().sort((a, b) => a.height - b.height).map(s => ({ height: s.height, color: s.color, alpha: s.alpha })) : undefined
+    /**
+     * ВАЖНО: сохраняем и color, и colorSource.
+     * Ранее colorSource терялся при нормализации, что ломало стопы вида { colorSource: { type: 'role', ... } }
+     * и приводило к белому цвету (#ffffff) при резолвинге в MultiColorProcessor.
+     */
+    palette: cfg.palette
+      ? cfg.palette
+          .slice()
+          .sort((a, b) => a.height - b.height)
+          .map(s => ({
+            height: s.height,
+            color: s.color,
+            colorSource: s.colorSource ? { ...s.colorSource } : undefined,
+            alpha: s.alpha,
+          }))
+      : undefined
   }
   multiColorIntern.set(key, normalized)
   return normalized
