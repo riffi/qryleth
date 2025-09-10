@@ -87,8 +87,8 @@ const Scene3DContent: React.FC<Scene3DProps> = ({
         </Suspense>
       </Canvas>
 
-      {/* FPS счетчик в правом верхнем углу */}
-      <FpsDisplay fps={fps} />
+      {/* FPS счётчик: в Play сдвигаем ниже панели PlayControls, в Edit — у самого верха */}
+      <FpsDisplay fps={fps} top={uiMode === UiMode.Play ? 58 : 10} />
 
       {/* Прелоадер на время применения heightmap */}
       <LoadingOverlay
