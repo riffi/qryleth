@@ -5,7 +5,12 @@ import {
   TextInput,
   ColorInput,
   Button,
-  Group
+  Group,
+  Select,
+  Switch,
+  Collapse,
+  Divider,
+  Text
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import type { CreateGfxMaterial } from '@/entities/material'
@@ -29,6 +34,8 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
 }) => {
   const [name, setName] = useState('')
   const [color, setColor] = useState('#cccccc')
+  const [role, setRole] = useState<string>('wood')
+  const [useManualHex, setUseManualHex] = useState(false)
 
   /**
    * Сбрасывает состояние и закрывает модальное окно.
@@ -36,6 +43,8 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
   const handleClose = () => {
     setName('')
     setColor('#cccccc')
+    setRole('wood')
+    setUseManualHex(false)
     onClose()
   }
 
@@ -60,6 +69,7 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
       name: trimmed,
       type: 'custom',
       properties: {
+        // Базовый цвет хранится всегда как fallback для отрисовки без палитры
         color,
         opacity: 1,
         transparent: false,
@@ -67,7 +77,11 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
         roughness: 0.5,
         // По умолчанию интенсивность эмиссии у нового материала равна нулю,
         // чтобы материал не светился, если пользователь не задал эмиссию явно
-        emissiveIntensity: 0
+        emissiveIntensity: 0,
+        // Источник цвета: по умолчанию — роль палитры; при выборе ручного HEX — fixed
+        colorSource: useManualHex
+          ? ({ type: 'fixed' } as any)
+          : ({ type: 'role', role: role as any } as any)
       },
       isGlobal: false
     }
@@ -86,12 +100,33 @@ export const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
           placeholder="Введите название"
           autoFocus
         />
-        <ColorInput
-          label="Цвет"
-          value={color}
-          onChange={setColor}
-          withEyeDropper={false}
+        {/*
+         * Выбор роли палитры. Эта настройка задаёт источник цвета "role" для материала.
+         * Слайдер Tint намеренно отсутствует в модалке и доступен только в панели "Свойства".
+         */}
+        <Select
+          label="Роль палитры"
+          value={role}
+          data={['sky','fog','water','foliage','wood','rock','metal','sand','ground','snow','accent'].map(r => ({ value: r, label: r }))}
+          onChange={(v) => setRole(v || 'wood')}
+          withinPortal={false}
         />
+
+        <Divider label={<Text size="xs" c="dimmed">Дополнительно</Text>} labelPosition="left" />
+        <Switch
+          size="sm"
+          checked={useManualHex}
+          onChange={(e) => setUseManualHex(e.currentTarget.checked)}
+          label="Использовать ручной HEX (вместо палитры)"
+        />
+        <Collapse in={useManualHex}>
+          <ColorInput
+            label="Цвет (HEX)"
+            value={color}
+            onChange={setColor}
+            withEyeDropper={false}
+          />
+        </Collapse>
         <Group justify="flex-end" mt="md">
           <Button variant="subtle" onClick={handleClose}>
             Отмена

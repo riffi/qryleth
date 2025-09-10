@@ -18,6 +18,8 @@ import {
   useObjectStore
 } from '../../model/objectStore.ts'
 import type { GfxMaterial, CreateGfxMaterial } from '@/entities/material'
+import { resolveMaterialBaseColor } from '@/shared/lib/materials/materialResolver'
+import { paletteRegistry } from '@/shared/lib/palette'
 import { AddMaterialModal } from './AddMaterialModal.tsx'
 
 /**
@@ -28,6 +30,8 @@ const MaterialItem: React.FC<{
   selected: boolean
   onSelect: (uuid: string) => void
 }> = ({ material, selected, onSelect }) => {
+  // Предпросмотр цвета: учитываем активную палитру (по умолчанию — 'default') и ColorSource материала
+  const previewColor = resolveMaterialBaseColor(material, paletteRegistry.get('default') as any)
   return (
     <Box
       onClick={() => onSelect(material.uuid)}
@@ -48,7 +52,7 @@ const MaterialItem: React.FC<{
             width: 14,
             height: 14,
             borderRadius: 2,
-            backgroundColor: material.properties.color
+            backgroundColor: previewColor
           }}
         />
         <Text size="sm" fw={500} style={{ userSelect: 'none', flex: 1 }}>

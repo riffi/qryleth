@@ -9,7 +9,8 @@ import {
   ColorInput,
   SegmentedControl,
   Select,
-  Slider
+  Slider,
+  Box
 } from '@mantine/core'
 import {
   useSelectedMaterial,
@@ -18,6 +19,7 @@ import {
 } from '../../model/objectStore.ts'
 import type { GfxMaterial } from '@/entities/material'
 import type { ColorSource } from '@/entities/palette'
+import { paletteRegistry } from '@/shared/lib/palette'
 
 /**
  * Левая панель редактирования свойств материала объекта.
@@ -166,6 +168,11 @@ export const MaterialControlPanel: React.FC = () => {
 
           {colorSourceType === 'role' && (
             <>
+              {/**
+               * Индикатор цвета роли из дефолтной палитры рядом с выбором роли.
+               * Показ цвета не учитывает tint и активную палитру, чтобы явно показать
+               * базовый цвет роли именно дефолтной палитры.
+               */}
               <Select
                 label="Роль палитры"
                 size="xs"
@@ -175,6 +182,25 @@ export const MaterialControlPanel: React.FC = () => {
                   const value = v || 'wood'
                   setRole(value)
                   applyPropertyUpdates({ colorSource: { type: 'role', role: value as any, tint } as any })
+                }}
+                rightSection={
+                  <Box
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 2,
+                      backgroundColor: (paletteRegistry.get('default') as any)?.colors?.[role as any] || '#808080'
+                    }}
+                  />
+                }
+                renderOption={({ option }) => {
+                  const hex = (paletteRegistry.get('default') as any)?.colors?.[option.value as any] || '#808080'
+                  return (
+                    <Group gap="xs">
+                      <Box style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: hex }} />
+                      <Text size="sm">{option.label}</Text>
+                    </Group>
+                  )
                 }}
                 withinPortal={false}
               />
