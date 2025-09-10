@@ -1,6 +1,7 @@
 import React from 'react'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import { paletteRegistry } from '@/shared/lib/palette'
+import { usePalettePreviewUuid } from '../../../model/palettePreviewStore.ts'
 import { GroupRenderer } from './GroupRenderer.tsx'
 import {
   useObjectPrimitives,
@@ -20,6 +21,8 @@ export const ObjectScenePrimitives: React.FC = () => {
   const objectMaterials = useObjectMaterials()
   const clearSelection = useObjectStore(state => state.clearSelection)
   const renderMode = useObjectStore(state => state.renderMode)
+  // Выбранная палитра предпросмотра из ObjectEditor (только для отображения)
+  const paletteUuid = usePalettePreviewUuid()
 
   /**
    * Обрабатывает клик по примитиву, поддерживая выделение групп через Ctrl+Click
@@ -68,7 +71,7 @@ export const ObjectScenePrimitives: React.FC = () => {
             primitive={primitive}
             renderMode={renderMode}
             objectMaterials={objectMaterials}
-            activePalette={paletteRegistry.get('default') as any}
+            activePalette={(paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')) as any}
             userData={{ generated: true, primitiveIndex: index }}
             onClick={handleObjectClick}
           />

@@ -9,7 +9,8 @@ import {
   ActionIcon,
   Box,
   Tooltip,
-  Button
+  Button,
+  Select
 } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
 import {
@@ -21,6 +22,7 @@ import type { GfxMaterial, CreateGfxMaterial } from '@/entities/material'
 import { resolveMaterialBaseColor } from '@/shared/lib/materials/materialResolver'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { AddMaterialModal } from './AddMaterialModal.tsx'
+import { usePalettePreviewUuid, useSetPalettePreviewUuid } from '../../model/palettePreviewStore.ts'
 
 /**
  * Элемент списка материалов в MaterialManager.
@@ -30,8 +32,9 @@ const MaterialItem: React.FC<{
   selected: boolean
   onSelect: (uuid: string) => void
 }> = ({ material, selected, onSelect }) => {
-  // Предпросмотр цвета: учитываем активную палитру (по умолчанию — 'default') и ColorSource материала
-  const previewColor = resolveMaterialBaseColor(material, paletteRegistry.get('default') as any)
+  // Предпросмотр цвета: учитываем выбранную в ObjectEditor палитру предпросмотра и ColorSource материала
+  const paletteUuid = usePalettePreviewUuid()
+  const previewColor = resolveMaterialBaseColor(material, (paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')) as any)
   return (
     <Box
       onClick={() => onSelect(material.uuid)}
@@ -76,6 +79,9 @@ export const MaterialManager: React.FC = () => {
     isMaterialNameUnique
   } = useObjectStore()
   const [modalOpened, setModalOpened] = useState(false)
+  // Палитра предпросмотра (только отображение): контролируется локальным стором ObjectEditor
+  const paletteUuid = usePalettePreviewUuid()
+  const setPaletteUuid = useSetPalettePreviewUuid()
 
   /**
    * Обрабатывает выбор материала из списка.
@@ -115,6 +121,18 @@ export const MaterialManager: React.FC = () => {
               </Tooltip>
             </Group>
           </Group>
+        </Box>
+
+        {/* Селектор палитры предпросмотра (только для отображения) */}
+        <Box p="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-8)' }}>
+          <Select
+            size="xs"
+            label="Палитра отображения"
+            value={paletteUuid}
+            data={(paletteRegistry.list() as any).map((p: any) => ({ value: p.uuid, label: p.name }))}
+            onChange={(v) => setPaletteUuid(v || 'default')}
+            withinPortal={false}
+          />
         </Box>
 
         {/* Список материалов */}

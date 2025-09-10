@@ -1,6 +1,7 @@
 import React from 'react'
 import {PrimitiveRenderer} from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import { paletteRegistry } from '@/shared/lib/palette'
+import { usePalettePreviewUuid } from '../../../model/palettePreviewStore.ts'
 import type {RenderMode} from '@/shared/types/ui'
 import type {GfxMaterial} from '@/entities/material'
 import {
@@ -39,6 +40,8 @@ export const GroupRenderer: React.FC<GroupRendererProps> = ({
   const primitives = useGroupPrimitives(groupUuid)
   const group = useGroupByUuid(groupUuid)
   const temporaryTransform = useTemporaryGroupTransform(groupUuid)
+  // Выбранная палитра предпросмотра (только для отображения)
+  const paletteUuid = usePalettePreviewUuid()
 
   // Используем временную трансформацию если есть, иначе постоянную
   const activeTransform = temporaryTransform || group?.transform
@@ -80,7 +83,7 @@ export const GroupRenderer: React.FC<GroupRendererProps> = ({
                     primitive={primitive}
                     renderMode={renderMode}
                     objectMaterials={objectMaterials}
-                    activePalette={paletteRegistry.get('default') as any}
+                    activePalette={(paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')) as any}
                     userData={{generated: true, primitiveIndex: index, groupUuid}}
                     onClick={onPrimitiveClick}
                 />
