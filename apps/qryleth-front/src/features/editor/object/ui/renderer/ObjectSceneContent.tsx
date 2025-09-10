@@ -19,7 +19,7 @@ export const ObjectSceneContent: React.FC = () => {
 
   return (
     <>
-      <color attach="background" args={[lighting.backgroundColor || '#222222']} />
+      <color attach="background" args={[lighting.backgroundColor || '#ffffff']} />
       <OrbitControls ref={orbitControlsRef} enablePan={true} enableZoom={true} enableRotate={true} />
       <ObjectSceneLighting />
       <Environment gridVisible={gridVisible} />

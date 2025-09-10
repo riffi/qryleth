@@ -39,4 +39,13 @@
 - Введены `sampler.isReady()/ready()/dispose()`; UI ждёт `ready()` без таймеров.
 - Выделены модули: sources/sampling/ops/effects/assets; `GeometryBuilder.ts`.
 - Кэши heightmap с TTL/LRU и `invalidate(assetId)` для консистентности.
+## 2025-09 — ColorSource: hueTowards и насыщенность
+
+- Добавлены новые корректировки для источника цвета `ColorSource`:
+  - `hueTowards: { deg: number; t: number }` — интерполяция оттенка (Hue) к целевому значению по кратчайшей дуге.
+  - `saturationShift: number` — сдвиг насыщенности (Saturation) в диапазоне `[-1..+1]`.
+- Поведение `tint` (яркость, Value) сохранено: диапазон `[-1..+1]`, клампинг в `[0..1]`.
+- Порядок применения корректировок: сначала `hueTowards`, затем `saturationShift`, затем `tint`.
+- Поддержка ColorSource на стопах многоцветной палитры террейна (применяется ДО интерполяции по высоте).
+- Исправление: при нормализации `multiColor` в `sceneStore` сохраняется `colorSource` у стопов (раньше терялся и давал белый цвет).
 

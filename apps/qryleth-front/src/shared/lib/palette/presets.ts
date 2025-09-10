@@ -45,10 +45,33 @@ export const QRYLETH_AUTUMN: GlobalPalette = {
 }
 
 /**
+ * Предустановленная палитра: Qryleth Winter.
+ * UUID должен оставаться стабильным для корректной сериализации/ссылок из сцен.
+ */
+export const QRYLETH_WINTER: GlobalPalette = {
+  uuid: 'winter',
+  name: 'Qryleth Winter',
+  colors: {
+    sky:    '#b0d6f9', // холодное зимнее небо, светло-голубое
+    fog:    '#d0d8e0', // холодный серо-голубой туман
+    water:  '#3a6d99', // тёмно-синяя зимняя вода
+    foliage:'#9dc1c1', // хвоя с холодным оттенком
+    wood:   '#5a4a42', // затемнённое дерево
+    rock:   '#9aa0a8', // холодный серо-голубой камень
+    metal:  '#b0b4ba', // светлый металл, слегка холодный
+    sand:   '#e0e0da', // зимний песок/снегопесок, светло-серый
+    ground: '#6a6f73', // промёрзшая земля, серо-коричневая
+    snow:   '#ffffff', // яркий белый снег
+    accent: '#4ab0d9', // ледяной акцент — бирюзово-голубой
+  }
+}
+
+/**
  * Список предустановленных палитр, доступных без пользовательского CRUD.
  */
 export const PREDEFINED_GLOBAL_PALETTES: GlobalPalette[] = [
   QRYLETH_DEFAULT,
   QRYLETH_AUTUMN,
+  QRYLETH_WINTER,
 ]
 

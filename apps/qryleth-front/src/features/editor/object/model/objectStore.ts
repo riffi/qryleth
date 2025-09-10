@@ -124,7 +124,7 @@ const initialLighting: LightingSettings = {
   ambient: {
     uuid: 'ambient-light',
     color: '#404040',
-    intensity: 0.6,
+    intensity: 1,
   },
   directional: {
     uuid: 'directional-light',
@@ -133,7 +133,7 @@ const initialLighting: LightingSettings = {
     position: [500, 150, -1000],
     castShadow: true,
   },
-  backgroundColor: '#222222',
+  backgroundColor: '#fffff',
   ambientOcclusion: {
     enabled: true,
     intensity: 1.0,
