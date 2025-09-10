@@ -16,6 +16,7 @@ export const GLOBAL_MATERIAL_UUIDS = {
   PLASTIC: 'global-material-plastic-001',
   RUBBER: 'global-material-rubber-001',
   CERAMIC: 'global-material-ceramic-001',
+  FOLIAGE: 'global-material-foliage-001',
 } as const;
 
 /**
@@ -27,6 +28,25 @@ export const GLOBAL_MATERIAL_UUIDS = {
  * для корректного обмена сценами между пользователями
  */
 export const PREDEFINED_GLOBAL_MATERIALS_WITH_UUID: GfxMaterial[] = [
+  // Листва — цвет берётся из роли 'foliage' активной палитры
+  {
+    uuid: GLOBAL_MATERIAL_UUIDS.FOLIAGE,
+    name: 'Листва',
+    type: 'dielectric',
+    properties: {
+      // Фолбэк цвет на случай отсутствия палитры
+      color: '#4a7c59',
+      colorSource: { type: 'role', role: 'foliage' } as any,
+      opacity: 1.0,
+      transparent: false,
+      metalness: 0.0,
+      roughness: 0.8,
+      castShadow: true,
+      receiveShadow: true,
+    },
+    isGlobal: true,
+    description: 'Материал листвы. Базовый цвет берётся из роли foliage активной палитры',
+  },
   // Дерево - натуральный диэлектрик
   {
     uuid: GLOBAL_MATERIAL_UUIDS.WOOD,

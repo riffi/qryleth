@@ -99,6 +99,7 @@ class MaterialRegistry {
 3. **globalMaterials** (`@/shared/lib/materials/globalMaterials.ts`)
    - Предопределенные материалы
    - Материалы по умолчанию (дерево, металл, стекло и др.)
+   - Включая материал «Листва» (цвет от роли палитры)
 
 4. **initializeMaterials** (`@/shared/lib/materials/initializeMaterials.ts`)
    - Инициализация системы материалов
@@ -146,6 +147,26 @@ const newMaterial: GfxMaterial = {
 // Регистрация в глобальном реестре
 MaterialRegistry.getInstance().register(newMaterial)
 ```
+
+#### Предустановленный глобальный материал «Листва»
+
+Материал с UUID `global-material-foliage-001` доступен из коробки. Его базовый цвет берётся из активной глобальной палитры по роли `foliage` (c фолбэком на `#4a7c59`). Это позволяет автоматически подстраивать оттенок листвы под выбранную палитру сцены.
+
+Пример назначения на примитив через ссылку на глобальный материал:
+
+```ts
+const leafUuid = 'global-material-foliage-001'
+
+const object = {
+  name: 'Дерево',
+  primitives: [
+    { type: 'sphere', geometry: { radius: 1 }, globalMaterialUuid: leafUuid },
+    { type: 'cylinder', geometry: { radiusTop: 0.2, radiusBottom: 0.3, height: 2 }, globalMaterialUuid: 'global-material-wood-001' }
+  ]
+}
+```
+
+Замечание: Активная палитра берётся из `environmentContent.paletteUuid`. Для принудительного выбора палитры в ScriptingPanel используйте `sceneApi.setPalette('default')` или другой UUID палитры.
 
 #### Материалы объекта
 
