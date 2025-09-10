@@ -195,7 +195,13 @@ export function materialToThreePropsWithPalette(material: GfxMaterial, palette?:
   return {
     color: colorHex,
     opacity: props.opacity ?? 1.0,
-    transparent: props.transparent ?? (props.opacity !== undefined && props.opacity < 1.0),
+    // ВАЖНО: прозрачность в three.js визуально работает только при включённом флаге `transparent`.
+    // Ранее здесь использовался оператор nullish coalescing (??), из-за чего явное `transparent: false`
+    // в дефолтном материале блокировало прозрачность даже при opacity < 1.0.
+    // Новая логика: если явно задано true — используем true; иначе автоматически включаем
+    // прозрачность при любом opacity < 1. Это позволяет слайдеру «Прозрачность» работать без
+    // отдельной ручной галочки и соответствует ожидаемому поведению редактора.
+    transparent: (props.transparent === true) || ((props.opacity ?? 1.0) < 1.0),
     metalness: props.metalness ?? 0.0,
     roughness: props.roughness ?? 0.5,
     emissive: props.emissive,
@@ -274,7 +280,9 @@ export function materialToThreeProps(material: GfxMaterial) {
   return {
     color: props.color,
     opacity: props.opacity ?? 1.0,
-    transparent: props.transparent ?? (props.opacity !== undefined && props.opacity < 1.0),
+    // См. комментарий выше в materialToThreePropsWithPalette: включаем прозрачность автоматически
+    // при opacity < 1.0, даже если в данных стоит transparent: false по умолчанию.
+    transparent: (props.transparent === true) || ((props.opacity ?? 1.0) < 1.0),
     metalness: props.metalness ?? 0.0,
     roughness: props.roughness ?? 0.5,
     emissive: props.emissive,
