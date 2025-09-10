@@ -42,5 +42,23 @@ export interface GlobalPalette {
  */
 export type ColorSource =
   | { type: 'fixed' }
-  | { type: 'role'; role: PaletteRole; tint?: number } // tint в диапазоне [-1..+1], применяется к HSV Value
-
+  | {
+      type: 'role'
+      role: PaletteRole
+      /**
+       * Сдвиг яркости (Value, HSV) в диапазоне [-1..+1].
+       * Положительные значения делают цвет ярче, отрицательные — темнее.
+       */
+      tint?: number
+      /**
+       * Интерполяция оттенка по кратчайшей дуге к целевому значению (градусы 0..360).
+       * H = H(role) + t * shortestArc(H(role) → deg)
+       * Где t ∈ [0..1]: 0 — без сдвига, 1 — точно в целевой оттенок.
+       */
+      hueTowards?: { deg: number; t: number }
+      /**
+       * Сдвиг насыщенности (Saturation, HSV) в диапазоне [-1..+1].
+       * Положительные значения повышают насыщенность, отрицательные — приглушают.
+       */
+      saturationShift?: number
+    }

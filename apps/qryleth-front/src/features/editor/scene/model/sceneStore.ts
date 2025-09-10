@@ -149,7 +149,7 @@ function makeMultiColorKey(cfg: GfxMultiColorConfig): string {
     .sort((a, b) => a.height - b.height)
     .map(s => {
       const desc = s.colorSource
-        ? `${s.colorSource.type}:${(s.colorSource as any).role ?? ''}:${(s.colorSource as any).tint ?? ''}`
+        ? `${s.colorSource.type}:${(s.colorSource as any).role ?? ''}:${(s.colorSource as any).tint ?? ''}:${(s.colorSource as any).hueTowards?.deg ?? ''}:${(s.colorSource as any).hueTowards?.t ?? ''}:${(s.colorSource as any).saturationShift ?? ''}`
         : `${s.color ?? ''}`
       return `${s.height}:${desc}:${s.alpha ?? 1}`
     })

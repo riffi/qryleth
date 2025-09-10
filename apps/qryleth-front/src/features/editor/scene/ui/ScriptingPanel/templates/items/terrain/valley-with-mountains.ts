@@ -75,11 +75,38 @@ const valley = await sceneApi.createProceduralLandscape(valleySpec, {
     multiColor: {
       mode: 'triangle',
       palette: [
-        { height: -10, color: '#2d5a27' },
-        { height: 0,   color: '#4a7c59' },
-        { height: 10,  color: '#8aa05a' },
-        { height: 25,  color: '#b7b7b7' },
-        { height: 100, color: '#FFFFFF' },
+        { height: -10, colorSource: { type: 'role', role: 'foliage', tint: -0.15 } },
+        {
+          height: 0,
+          colorSource: {
+            type: 'role',
+            role: 'foliage',
+            tint: 0.0,
+            hueShift: 0.0,
+            saturationShift: 0 
+          }
+        },
+        {
+          height: 10,
+          colorSource: {
+            type: 'role',
+            role: 'foliage',
+            hueTowards: {deg:25, t:0.5},             
+            tint: +0.102,               
+            saturationShift: +0.027     
+          }
+        },
+        {
+          height: 25,
+          colorSource: {
+            type: 'role',
+            role: 'rock',
+            tint: +0.176,          
+            hueShift: 0.0,
+            saturationShift: 0.0
+          }
+        },
+        { height: 100, colorSource: { type: 'role', role: 'snow',    tint: 0 } },
       ],
       slopeBoost: 0.3, // 0..1 — подкрашивает крутые склоны
     }

@@ -278,12 +278,35 @@ function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: n
   return { r: r * 255, g: g * 255, b: b * 255 }
 }
 
-function applyTintToHex(hex: string, tint?: number): string {
-  if (!Number.isFinite(tint as number) || !tint) return hex
+/**
+ * Применить к цвету (HEX) корректировки HSV:
+ * - tint (Value): [-1..+1]
+ * - hueTowards (Hue): интерполяция к целевому оттенку (deg: 0..360, t: 0..1)
+ * - saturationShift (Saturation): [-1..+1]
+ * Возвращает HEX результата после клампинга.
+ */
+function applyColorAdjustments(hex: string, opts?: { tint?: number; hueTowards?: { deg: number; t: number }; saturationShift?: number }): string {
+  if (!opts) return hex
+  const { tint, hueTowards, saturationShift } = opts
+  if (!tint && !hueTowards && !saturationShift) return hex
   const { r, g, b } = hexToRgb(hex)
-  const { h, s, v } = rgbToHsv(r, g, b)
-  const v2 = Math.max(0, Math.min(1, v + (tint as number)))
-  const rgb2 = hsvToRgb(h, s, v2)
+  let { h, s, v } = rgbToHsv(r, g, b)
+  if (hueTowards && Number.isFinite(hueTowards.deg) && Number.isFinite(hueTowards.t)) {
+    const t = Math.max(0, Math.min(1, hueTowards.t))
+    const h0 = h
+    let h1 = ((hueTowards.deg % 360) + 360) % 360 / 360
+    let d = h1 - h0
+    if (d > 0.5) d -= 1
+    if (d < -0.5) d += 1
+    h = ((h0 + t * d) % 1 + 1) % 1
+  }
+  if (Number.isFinite(saturationShift as number) && (saturationShift as number) !== 0) {
+    s = Math.max(0, Math.min(1, s + (saturationShift as number)))
+  }
+  if (Number.isFinite(tint as number) && (tint as number) !== 0) {
+    v = Math.max(0, Math.min(1, v + (tint as number)))
+  }
+  const rgb2 = hsvToRgb(h, s, v)
   return rgbToHex(rgb2.r, rgb2.g, rgb2.b)
 }
 
@@ -292,7 +315,11 @@ function resolveStopHexColor(stop: GfxMultiColorPaletteStop, palette?: GlobalPal
   if (stop.colorSource) {
     if (stop.colorSource.type === 'role') {
       const base = (palette?.colors as any)?.[stop.colorSource.role] || stop.color || '#ffffff'
-      return applyTintToHex(base, stop.colorSource.tint)
+      return applyColorAdjustments(base, {
+        tint: (stop.colorSource as any).tint,
+        hueTowards: (stop.colorSource as any).hueTowards,
+        saturationShift: (stop.colorSource as any).saturationShift,
+      })
     }
     // fixed для стопа — используем color
     return stop.color || '#ffffff'
