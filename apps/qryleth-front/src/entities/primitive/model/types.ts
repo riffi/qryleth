@@ -47,6 +47,13 @@ export interface TreeCylinderGeometry {
   radiusBottom: number;
   height: number;
   radialSegments?: number;
+  /**
+   * Параметры «воротника» у основания сегмента/ветви: плавное увеличение радиуса
+   * на начальном участке высоты для мягкого перехода в родителя/предыдущий сегмент.
+   * Если не заданы или collarFrac = 0 — эффект отключён.
+   */
+  collarFrac?: number;   // Доля высоты [0..1] от низа, где действует воротник
+  collarScale?: number;  // Множитель радиуса у самого низа (>1 — расширение)
 }
 
 export interface LeafBillboardGeometry {

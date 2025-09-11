@@ -27,6 +27,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafSize: 0.16,
     leafShape: 'billboard',
     angleSpread: 1,
+    embedFactor: 1
   })
 
   // Параметры материалов

@@ -38,6 +38,10 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
   const aHeights = useMemo(() => new Float32Array(count), [count])
   const aRadTop = useMemo(() => new Float32Array(count), [count])
   const aRadBottom = useMemo(() => new Float32Array(count), [count])
+  // Дополнительные атрибуты для «воротника» у ветвей
+  const aCollarFrac = useMemo(() => new Float32Array(count), [count])
+  const aCollarScale = useMemo(() => new Float32Array(count), [count])
+  const aIsBranch = useMemo(() => new Float32Array(count), [count])
 
   useEffect(() => {
     if (!meshRef.current) return
@@ -55,16 +59,27 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       meshRef.current.setMatrixAt(k, dummy.matrix)
 
       aHeights[k] = (prim.type === 'trunk' || prim.type === 'branch' ? (prim as any).geometry.height : 1) * psy
-      const rTop = (prim as any).geometry.radiusTop ?? 0.5
-      const rBot = (prim as any).geometry.radiusBottom ?? 0.5
+      const geom: any = (prim as any).geometry
+      const rTop = geom.radiusTop ?? 0.5
+      const rBot = geom.radiusBottom ?? 0.5
       const rScale = 0.5 * (Math.abs(psx) + Math.abs(psz))
       aRadTop[k] = rTop * rScale
       aRadBottom[k] = rBot * rScale
+
+      // Включаем «воротник»: если задан в геометрии, иначе по умолчанию для ветвей
+      const cf = geom.collarFrac != null ? geom.collarFrac : (prim.type === 'branch' ? 0.15 : 0.0)
+      const cs = geom.collarScale != null ? geom.collarScale : (prim.type === 'branch' ? 1.2 : 1.0)
+      aIsBranch[k] = cf > 0 ? 1 : 0
+      aCollarFrac[k] = cf
+      aCollarScale[k] = cs
     }
     meshRef.current.instanceMatrix.needsUpdate = true
     ;(meshRef.current.geometry as any).setAttribute('aHeight', new THREE.InstancedBufferAttribute(aHeights, 1))
     ;(meshRef.current.geometry as any).setAttribute('aRadiusTop', new THREE.InstancedBufferAttribute(aRadTop, 1))
     ;(meshRef.current.geometry as any).setAttribute('aRadiusBottom', new THREE.InstancedBufferAttribute(aRadBottom, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCollarFrac', new THREE.InstancedBufferAttribute(aCollarFrac, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCollarScale', new THREE.InstancedBufferAttribute(aCollarScale, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aIsBranch', new THREE.InstancedBufferAttribute(aIsBranch, 1))
   }, [cylinders, aHeights, aRadTop, aRadBottom])
 
   const handleClick = (event: any) => {
@@ -88,8 +103,14 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
     materialRef.current = mat
     mat.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;`)
-        .replace('#include <begin_vertex>', `\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`)
+        .replace(
+          '#include <common>',
+          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;`
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `\n// Профиль радиуса с «воротником» у основания ветки\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\n// Скалярный множитель для «воротника»: только у ветвей и только на участке [0..aCollarFrac]\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    // Плавный переход от увеличенного радиуса к обычному в пределах «воротника»\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
+        )
     }
     mat.needsUpdate = true
   }

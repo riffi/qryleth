@@ -63,6 +63,10 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
   const aHeights = useMemo(() => new Float32Array(count), [count])
   const aRadTop = useMemo(() => new Float32Array(count), [count])
   const aRadBottom = useMemo(() => new Float32Array(count), [count])
+  // Атрибуты «воротника» для ветвей
+  const aCollarFrac = useMemo(() => new Float32Array(count), [count])
+  const aCollarScale = useMemo(() => new Float32Array(count), [count])
+  const aIsBranch = useMemo(() => new Float32Array(count), [count])
 
   // Устанавливаем instanceMatrix + атрибуты
   useEffect(() => {
@@ -112,6 +116,11 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
         aHeights[k] = height
         aRadTop[k] = (geom.radiusTop || 0.5) * rScale
         aRadBottom[k] = (geom.radiusBottom || 0.5) * rScale
+        const cf = geom.collarFrac != null ? geom.collarFrac : (prim.type === 'branch' ? 0.15 : 0.0)
+        const cs = geom.collarScale != null ? geom.collarScale : (prim.type === 'branch' ? 1.2 : 1.0)
+        aIsBranch[k] = cf > 0 ? 1 : 0
+        aCollarFrac[k] = cf
+        aCollarScale[k] = cs
 
         k++
       }
@@ -122,6 +131,9 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
     ;(meshRef.current.geometry as any).setAttribute('aHeight', new THREE.InstancedBufferAttribute(aHeights, 1))
     ;(meshRef.current.geometry as any).setAttribute('aRadiusTop', new THREE.InstancedBufferAttribute(aRadTop, 1))
     ;(meshRef.current.geometry as any).setAttribute('aRadiusBottom', new THREE.InstancedBufferAttribute(aRadBottom, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCollarFrac', new THREE.InstancedBufferAttribute(aCollarFrac, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCollarScale', new THREE.InstancedBufferAttribute(aCollarScale, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aIsBranch', new THREE.InstancedBufferAttribute(aIsBranch, 1))
   }, [instances, cylinders, aHeights, aRadTop, aRadBottom])
 
   // Обработчики событий — восстанавливаем UUID инстанса объекта по instanceId
@@ -172,8 +184,14 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
     materialRef.current = mat
     mat.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;`)
-        .replace('#include <begin_vertex>', `\n// Unit cylinder in [-0.5..0.5] by Y -> scale by height and taper radii\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`)
+        .replace(
+          '#include <common>',
+          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;`
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `\n// Unit‑cylinder: профиль радиуса с «воротником» у веток\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
+        )
     }
     mat.needsUpdate = true
   }
