@@ -14,11 +14,11 @@ interface Sphere3DProps {
  * Принимает параметры геометрии и материала и возвращает готовый меш.
  */
 export const Sphere3D: React.FC<Sphere3DProps> = ({ primitive, materialProps, meshProps }) => {
-  if (primitive.type !== 'sphere') {
-    throw new Error('Sphere3D component expects a sphere primitive')
+  if (primitive.type !== 'sphere' && primitive.type !== 'leaf') {
+    throw new Error('Sphere3D expects sphere/leaf primitive')
   }
 
-  const { radius } = primitive.geometry
+  const { radius } = (primitive as any).geometry
 
   return (
     <mesh {...meshProps}>

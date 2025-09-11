@@ -267,8 +267,15 @@ export function calculatePrimitiveBoundingBox(primitive: GfxPrimitive): Bounding
       return calculateBoxBoundingBox(primitive.geometry, primitive.transform)
     case 'sphere':
       return calculateSphereBoundingBox(primitive.geometry, primitive.transform)
+    case 'leaf':
+      // Лист в объектной схеме хранит radius — используем сферический бокс
+      return calculateSphereBoundingBox((primitive as any).geometry, primitive.transform)
     case 'cylinder':
       return calculateCylinderBoundingBox(primitive.geometry, primitive.transform)
+    case 'trunk':
+    case 'branch':
+      // Специализированные цилиндры дерева
+      return calculateCylinderBoundingBox((primitive as any).geometry, primitive.transform)
     case 'cone':
       return calculateConeBoundingBox(primitive.geometry, primitive.transform)
     case 'pyramid':

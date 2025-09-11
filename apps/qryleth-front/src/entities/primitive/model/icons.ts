@@ -27,8 +27,11 @@ export function getPrimitiveIcon(
     case 'pyramid':
       return IconPyramid
     case 'sphere':
+    case 'leaf':
       return IconSphere
     case 'cylinder':
+    case 'trunk':
+    case 'branch':
       return IconCylinder
     case 'plane':
       return IconSquare

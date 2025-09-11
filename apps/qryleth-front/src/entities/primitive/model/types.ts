@@ -41,6 +41,19 @@ export interface TorusGeometry {
   tubularSegments?: number;
 }
 
+// Специализированные геометрии для процедурных деревьев
+export interface TreeCylinderGeometry {
+  radiusTop: number;
+  radiusBottom: number;
+  height: number;
+  radialSegments?: number;
+}
+
+export interface LeafBillboardGeometry {
+  /** Базовый размер листа (используется как радиус/масштаб) */
+  radius: number;
+}
+
 // Общие свойства примитивов
 export interface PrimitiveCommon {
   /** Уникальный идентификатор примитива */
@@ -82,7 +95,11 @@ export type GfxPrimitive =
   | ({ type: 'cone';     geometry: ConeGeometry;     } & PrimitiveCommon)
   | ({ type: 'pyramid';  geometry: PyramidGeometry;  } & PrimitiveCommon)
   | ({ type: 'plane';    geometry: PlaneGeometry;    } & PrimitiveCommon)
-  | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon);
+  | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon)
+  // Специальные типы для деревьев: не путаются с общими цилиндрами/сферами
+  | ({ type: 'trunk';    geometry: TreeCylinderGeometry; } & PrimitiveCommon)
+  | ({ type: 'branch';   geometry: TreeCylinderGeometry; } & PrimitiveCommon)
+  | ({ type: 'leaf';     geometry: LeafBillboardGeometry; } & PrimitiveCommon);
 
 // Старый интерфейс для обратной совместимости (будет удален в будущих фазах)
 export interface LegacyGfxPrimitive {

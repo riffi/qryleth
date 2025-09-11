@@ -17,11 +17,11 @@ interface Cylinder3DProps {
  * Использует параметры из `primitive.geometry` согласно новой структуре типов.
  */
 export const Cylinder3D: React.FC<Cylinder3DProps> = ({ primitive, materialProps, meshProps }) => {
-  if (primitive.type !== 'cylinder') {
-    throw new Error('Cylinder3D component expects a cylinder primitive')
+  if (primitive.type !== 'cylinder' && primitive.type !== 'trunk' && primitive.type !== 'branch') {
+    throw new Error('Cylinder3D expects cylinder/trunk/branch primitive')
   }
 
-  const { radiusTop, radiusBottom, height, radialSegments } = primitive.geometry
+  const { radiusTop, radiusBottom, height, radialSegments } = (primitive as any).geometry
 
   return (
     <mesh {...meshProps}>

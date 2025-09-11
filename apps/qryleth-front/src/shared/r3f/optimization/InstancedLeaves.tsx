@@ -6,7 +6,7 @@ import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/m
 import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 
 interface SpherePrimitiveLike {
-  type: 'sphere'
+  type: 'leaf'
   geometry: { radius: number }
   transform?: { position?: number[]; rotation?: number[]; scale?: number[] }
   material?: any
@@ -139,7 +139,58 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     })
   }
 
-  const geometry = useMemo(() => new THREE.SphereGeometry(1, segments, segments), [segments])
+  // Переходим от сфер к плоским биллбордам-листьям: базовая геометрия — плоскость 1x1
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1, 1, 1), [])
+
+  // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
+    if (!mat) return
+    materialRef.current = mat
+    mat.side = THREE.DoubleSide
+    mat.alphaTest = 0.5
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uAspect = { value: 0.6 }
+      shader.uniforms.uEdgeSoftness = { value: 0.15 }
+      shader.uniforms.uBend = { value: 0.08 }
+
+      // Добавляем объявления uniform и свою varying для UV
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nvarying vec2 vLeafUv;`)
+        .replace('#include <begin_vertex>', `
+          // Лёгкая «лодочка» (изгиб) по оси Z для плоскости
+          vec3 pos = position;
+          // Собственный UV из локальных координат плоскости (XY в [-0.5..0.5])
+          vLeafUv = pos.xy + 0.5;
+          float bend = (vLeafUv.y - 0.5);
+          pos.z += (bend * bend - 0.25) * uBend;
+          vec3 transformed = pos;
+        `)
+
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nvarying vec2 vLeafUv;`)
+        .replace('#include <alphatest_fragment>', `
+          // Эллиптическая маска листа в UV, мягкий край
+          float dx = (vLeafUv.x - 0.5) / 0.5;
+          float dy = (vLeafUv.y - 0.5) / 0.5 / uAspect;
+          float r2 = dx*dx + dy*dy;
+          // Правильный порядок границ smoothstep: edge0 < edge1
+          float alphaMask = smoothstep(1.0 - uEdgeSoftness, 1.0, 1.0 - r2);
+          diffuseColor.a *= alphaMask;
+          #include <alphatest_fragment>
+        `)
+        .replace('#include <lights_fragment_end>', `
+          #include <lights_fragment_end>
+          // Простая подсветка на просвет (фейковая SSS) — добавляем диффуз к задней стороне
+          float back = clamp(dot(normalize(-geometryNormal), normalize(vec3(0.2, 1.0, 0.1))), 0.0, 1.0);
+          reflectedLight.indirectDiffuse += vec3(0.06, 0.1, 0.06) * back;
+        `)
+
+      // Пробрасываем униформы в материал
+      ;(mat as any).userData.uniforms = shader.uniforms
+    }
+    mat.needsUpdate = true
+  }
 
   return (
     <instancedMesh
@@ -150,10 +201,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       onClick={handleClick}
       onPointerOver={handleHover}
     >
-      <meshStandardMaterial {...materialProps} />
+      <meshStandardMaterial ref={onMaterialRef} {...materialProps} />
     </instancedMesh>
   )
 }
 
 export default InstancedLeaves
-

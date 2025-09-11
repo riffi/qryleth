@@ -110,7 +110,7 @@ export function generateTree(params: TreeGeneratorParams & {
 
     primitives.push({
       uuid: generateUUID(),
-      type: 'cylinder',
+      type: 'trunk',
       name: `Ствол ${i + 1}`,
       geometry: {
         radiusTop: Math.max(0.02, rTop),
@@ -207,7 +207,7 @@ export function generateTree(params: TreeGeneratorParams & {
 
       primitives.push({
         uuid: generateUUID(),
-        type: 'cylinder',
+        type: 'branch',
         name: `Ветвь L${level}`,
         geometry: {
           radiusTop: rad * 0.8,
@@ -239,9 +239,14 @@ export function generateTree(params: TreeGeneratorParams & {
             (rng() - 0.2) * 0.2 * len,
             (rng() - 0.5) * 0.2 * len,
           ]
+          // Дополнительный "ролл" листа вокруг собственной нормали
+          const roll = (rng() - 0.5) * Math.PI
+          const leafEuler = eulerFromDir(nDir)
+          leafEuler[2] += roll
+
           primitives.push({
             uuid: generateUUID(),
-            type: 'sphere',
+            type: 'leaf',
             name: 'Лист',
             geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())) },
             objectMaterialUuid: leafMaterialUuid,
@@ -252,7 +257,7 @@ export function generateTree(params: TreeGeneratorParams & {
                 endPoint[1] + jitter[1],
                 endPoint[2] + jitter[2],
               ],
-              rotation: [0, 0, 0],
+              rotation: leafEuler,
               scale: [1, 1, 1],
             },
           })

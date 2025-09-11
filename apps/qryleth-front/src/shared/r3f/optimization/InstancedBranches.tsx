@@ -7,7 +7,7 @@ import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 
 interface CylinderPrimitiveLike {
-  type: 'cylinder'
+  type: 'trunk' | 'branch'
   geometry: { radiusTop: number; radiusBottom: number; height: number }
   transform?: { position?: number[]; rotation?: number[]; scale?: number[] }
   material?: any
@@ -106,11 +106,12 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
         meshRef.current.setMatrixAt(k, dummy.matrix)
 
         // Инстанс атрибуты: учитываем масштаб инстанса и примитива
-        const height = (prim.geometry.height || 1) * isy * psy
+        const geom: any = prim.geometry
+        const height = (geom.height || 1) * isy * psy
         const rScale = 0.5 * (Math.abs(isx * psx) + Math.abs(isz * psz))
         aHeights[k] = height
-        aRadTop[k] = (prim.geometry.radiusTop || 0.5) * rScale
-        aRadBottom[k] = (prim.geometry.radiusBottom || 0.5) * rScale
+        aRadTop[k] = (geom.radiusTop || 0.5) * rScale
+        aRadBottom[k] = (geom.radiusBottom || 0.5) * rScale
 
         k++
       }

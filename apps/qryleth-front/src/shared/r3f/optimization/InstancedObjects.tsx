@@ -285,8 +285,8 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   const spheres: { primitive: any; index: number }[] = []
   const rest: { primitive: any; index: number }[] = []
   sceneObject.primitives.forEach((p, idx) => {
-    if (p.type === 'cylinder') cylinders.push({ primitive: p, index: idx })
-    else if (p.type === 'sphere') spheres.push({ primitive: p, index: idx })
+    if (p.type === 'trunk' || p.type === 'branch') cylinders.push({ primitive: p, index: idx })
+    else if (p.type === 'leaf') spheres.push({ primitive: p, index: idx })
     else rest.push({ primitive: p, index: idx })
   })
 

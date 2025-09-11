@@ -75,6 +75,7 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
       )
 
     case 'sphere':
+    case 'leaf':
       return (
         <Sphere3D
           primitive={primitive}
@@ -84,6 +85,8 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
       )
 
     case 'cylinder':
+    case 'trunk':
+    case 'branch':
       return (
         <Cylinder3D
           primitive={primitive}

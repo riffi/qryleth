@@ -3,6 +3,8 @@ import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx
 import { paletteRegistry } from '@/shared/lib/palette'
 import { usePalettePreviewUuid } from '../../../model/palettePreviewStore.ts'
 import { GroupRenderer } from './GroupRenderer.tsx'
+import { InstancedBranchesOE } from './InstancedBranchesOE'
+import { InstancedLeavesOE } from './InstancedLeavesOE'
 import {
   useObjectPrimitives,
   useObjectStore,
@@ -50,8 +52,37 @@ export const ObjectScenePrimitives: React.FC = () => {
     }
   }
 
+  // Подготовим инстанс‑массивы для не сгруппированных листьев и цилиндров,
+  // чтобы в ObjectEditor дерево выглядело так же, как в SceneEditor.
+  const ungrouped = primitives
+    .map((p, idx) => ({ p, idx }))
+    .filter(({ p }) => !groupAssignments[p.uuid] && p.visible !== false)
+
+  const ungroupedCylinders = ungrouped.filter(({ p }) => p.type === 'trunk' || p.type === 'branch')
+  const ungroupedLeaves = ungrouped.filter(({ p }) => p.type === 'leaf')
+
   return (
     <group onPointerMissed={() => clearSelection()}>
+      {/* Инстанс‑отрисовка для не сгруппированных цилиндров (ствол/ветви) */}
+      {ungroupedCylinders.length > 0 && (
+        <InstancedBranchesOE
+          cylinders={ungroupedCylinders.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
+          objectMaterials={objectMaterials}
+          onPrimitiveClick={handleObjectClick}
+          onPrimitiveHover={() => {}}
+        />
+      )}
+
+      {/* Инстанс‑отрисовка для не сгруппированных листьев (плоские биллборды) */}
+      {ungroupedLeaves.length > 0 && (
+        <InstancedLeavesOE
+          leaves={ungroupedLeaves.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
+          objectMaterials={objectMaterials}
+          onPrimitiveClick={handleObjectClick}
+          onPrimitiveHover={() => {}}
+        />
+      )}
+
       {rootGroups.map(group => (
         <GroupRenderer
           key={group.uuid}
@@ -63,19 +94,23 @@ export const ObjectScenePrimitives: React.FC = () => {
         />
       ))}
       {primitives.map((primitive, index) => (
-        groupAssignments[primitive.uuid] || primitive.visible === false ? null : (
-          <PrimitiveRenderer
-            // Ключ включает префикс "root" для корректного
-            // перемонтирования при перемещении примитива в группу
-            key={`root-${primitive.uuid}`}
-            primitive={primitive}
-            renderMode={renderMode}
-            objectMaterials={objectMaterials}
-            activePalette={(paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')) as any}
-            userData={{ generated: true, primitiveIndex: index }}
-            onClick={handleObjectClick}
-          />
-        )
+        // Для несгруппированных цилиндров и листьев уже есть инстанс‑варианты — пропускаем их,
+        // остальные примитивы отображаем обычным путём
+        groupAssignments[primitive.uuid] || primitive.visible === false
+          ? null
+          : (primitive.type === 'trunk' || primitive.type === 'branch' || primitive.type === 'leaf')
+            ? null
+            : (
+              <PrimitiveRenderer
+                key={`root-${primitive.uuid}`}
+                primitive={primitive}
+                renderMode={renderMode}
+                objectMaterials={objectMaterials}
+                activePalette={(paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')) as any}
+                userData={{ generated: true, primitiveIndex: index }}
+                onClick={handleObjectClick}
+              />
+            )
       ))}
     </group>
   )
