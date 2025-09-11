@@ -185,6 +185,11 @@ export function generateTree(params: TreeGeneratorParams & {
     trunkHeight,
     trunkRadius,
     trunkSegments,
+    trunkTaperFactor,
+    trunkBranchLevels,
+    trunkBranchesPerLevel,
+    trunkBranchAngleDeg,
+    trunkBranchChildHeightFactor,
     branchLevels,
     branchesPerSegment,
     branchLength,
@@ -201,51 +206,190 @@ export function generateTree(params: TreeGeneratorParams & {
   // Реестр уже размещённых сегментов ветвей для проверки коллизий при подборе направлений
   const placed: PlacedSegment[] = []
 
-  // 1) Ствол: N цилиндров, сужающихся кверху, с гладким переходом сегментов
+  // 1) Ствол(ы): один вертикальный + опциональные разветвления, с плавными стыками
   const segH = trunkHeight / Math.max(1, trunkSegments)
-  const radiusAt = (y: number) => Math.max(0.02, trunkRadius * (1 - 0.4 * Math.min(Math.max(y / Math.max(0.0001, trunkHeight), 0), 1)))
-  for (let i = 0; i < trunkSegments; i++) {
-    const yBottom = segH * i
-    const yTop = segH * (i + 1)
-    const rBottomRaw = radiusAt(yBottom)
-    const rTopRaw = radiusAt(yTop)
+  const taper = trunkTaperFactor ?? 0.4
+  /**
+   * Функция радиуса ствола на расстоянии s [0..1] вдоль его высоты с учётом taper.
+   */
+  const radiusAt01 = (rBase: number, s01: number) => Math.max(0.02, rBase * (1 - Math.max(0, Math.min(1, taper)) * s01))
 
-    // Обеспечиваем отсутствие ступенек: нижний радиус текущего сегмента = верхний предыдущего
-    const prevTop = i > 0 ? radiusAt(segH * i) : rBottomRaw
-    const rBottom = i > 0 ? prevTop : rBottomRaw
-    const rTop = rTopRaw
+  /**
+   * Генерирует цепочку сегментов ствола вдоль произвольного направления axis.
+   * Добавляет примитивы в общий список, регистрирует сегменты в placed для коллизий,
+   * а также возвращает массив точек крепления ветвей (верхние грани сегментов).
+   */
+  function generateTrunkChain(options: {
+    basePoint: [number, number, number]
+    axis: [number, number, number]
+    totalHeight: number
+    segments: number
+    baseRadius: number
+    namePrefix: string
+  }): { attachments: { point: [number,number,number]; axis: [number,number,number]; radius: number }[], endPoint: [number,number,number], endRadius: number } {
+    const attachments: { point: [number,number,number]; axis: [number,number,number]; radius: number }[] = []
+    const a = normalize(options.axis)
+    const segHLocal = options.totalHeight / Math.max(1, options.segments)
+    for (let i = 0; i < options.segments; i++) {
+      const sBottom = i / Math.max(1, options.segments)
+      const sTop = (i + 1) / Math.max(1, options.segments)
+      const rBottomRaw = radiusAt01(options.baseRadius, sBottom)
+      const rTopRaw = radiusAt01(options.baseRadius, sTop)
 
-    // Лёгкое взаимное перекрытие: нижняя часть сегмента утапливается в предыдущий
-    const trunkEmbedFactor = params.embedFactor ?? 0.6
-    const embedBottom = i > 0 ? Math.max(0.0, Math.min(1.0, trunkEmbedFactor)) * Math.min(rBottom, prevTop) : 0.0
+      // Стыки: нижний радиус текущего = верхний предыдущего
+      const prevTop = i > 0 ? radiusAt01(options.baseRadius, sBottom) : rBottomRaw
+      const rBottom = i > 0 ? prevTop : rBottomRaw
+      const rTop = rTopRaw
 
-    const height = (yTop - yBottom) + embedBottom
-    const yCenter = (yBottom + yTop) / 2 - embedBottom / 2
+      // Перекрытие вниз
+      const trunkEmbedFactorLocal = params.embedFactor ?? 0.6
+      const embedBottom = i > 0 ? Math.max(0.0, Math.min(1.0, trunkEmbedFactorLocal)) * Math.min(rBottom, prevTop) : 0.0
 
-    // «Воротник» у стыка: расширяем основание текущего сегмента, чтобы накрыть крышку предыдущего
-    const collarFrac = i > 0 ? 0.18 : 0.0
-    const collarScale = i > 0 && rBottom > 0 ? Math.max(1.0, prevTop / rBottom) : 1.0
+      const height = segHLocal + embedBottom
+      // Центр сегмента: базовая точка + ось * (i*segH + segH/2 - embedBottom/2)
+      const tCenter = i * segHLocal + segHLocal / 2 - embedBottom / 2
+      const center: [number,number,number] = [
+        options.basePoint[0] + a[0] * tCenter,
+        options.basePoint[1] + a[1] * tCenter,
+        options.basePoint[2] + a[2] * tCenter,
+      ]
+      const rotation = eulerFromDir(a)
 
-    primitives.push({
-      uuid: generateUUID(),
-      type: 'trunk',
-      name: `Ствол ${i + 1}`,
-      geometry: {
-        radiusTop: Math.max(0.02, rTop),
-        radiusBottom: Math.max(0.02, rBottom),
-        height,
-        radialSegments: 10,
-        collarFrac: collarFrac || undefined,
-        collarScale: collarFrac > 0 ? collarScale : undefined,
-      },
-      objectMaterialUuid: barkMaterialUuid,
-      visible: true,
-      transform: {
-        position: [0, yCenter, 0],
-        rotation: [0, 0, 0],
-        scale: [1, 1, 1],
-      },
-    })
+      // «Воротник» у стыка: расширяем основание текущего сегмента, чтобы накрыть крышку предыдущего
+      const collarFrac = i > 0 ? 0.18 : 0.0
+      const collarScale = i > 0 && rBottom > 0 ? Math.max(1.0, prevTop / rBottom) : 1.0
+
+      primitives.push({
+        uuid: generateUUID(),
+        type: 'trunk',
+        name: `${options.namePrefix} ${i + 1}`,
+        geometry: {
+          radiusTop: Math.max(0.02, rTop),
+          radiusBottom: Math.max(0.02, rBottom),
+          height,
+          radialSegments: 10,
+          collarFrac: collarFrac || undefined,
+          collarScale: collarFrac > 0 ? collarScale : undefined,
+        },
+        objectMaterialUuid: barkMaterialUuid,
+        visible: true,
+        transform: {
+          position: center,
+          rotation,
+          scale: [1, 1, 1],
+        },
+      })
+
+      // Регистрируем сегмент как препятствие (для избегания пересечений веток)
+      const segA: [number,number,number] = [
+        options.basePoint[0] + a[0] * (i * segHLocal),
+        options.basePoint[1] + a[1] * (i * segHLocal),
+        options.basePoint[2] + a[2] * (i * segHLocal),
+      ]
+      const segB: [number,number,number] = [
+        options.basePoint[0] + a[0] * ((i + 1) * segHLocal),
+        options.basePoint[1] + a[1] * ((i + 1) * segHLocal),
+        options.basePoint[2] + a[2] * ((i + 1) * segHLocal),
+      ]
+      placed.push({ a: segA, b: segB, radius: Math.max(rBottom, rTop) })
+
+      // Точка крепления ветви: верхняя грань сегмента
+      attachments.push({ point: segB, axis: a, radius: Math.max(0.02, rTop) })
+    }
+
+    const endPoint: [number,number,number] = [
+      options.basePoint[0] + a[0] * options.totalHeight,
+      options.basePoint[1] + a[1] * options.totalHeight,
+      options.basePoint[2] + a[2] * options.totalHeight,
+    ]
+    const endRadius = radiusAt01(options.baseRadius, 1)
+    return { attachments, endPoint, endRadius }
+  }
+
+  // Генерируем основной вертикальный ствол
+  const mainTrunk = generateTrunkChain({
+    basePoint: [0,0,0],
+    axis: [0,1,0],
+    totalHeight: trunkHeight,
+    segments: trunkSegments,
+    baseRadius: trunkRadius,
+    namePrefix: 'Ствол',
+  })
+
+  // Опционально: разветвления ствола (1..N уровней)
+  const tbLevels = Math.max(0, Math.round(trunkBranchLevels ?? 0))
+  const tbPerLevel = Math.max(1, Math.round(trunkBranchesPerLevel ?? 2))
+  const tbAngle = degToRad(trunkBranchAngleDeg ?? 20)
+  const tbHeightFactor = Math.max(0.3, Math.min(0.95, trunkBranchChildHeightFactor ?? 0.7))
+
+  // Список всех точек крепления веток (по всем стволам)
+  const trunkAttachments: { point: [number,number,number]; axis: [number,number,number]; radius: number }[] = [...mainTrunk.attachments]
+
+  type TrunkNode = { base: [number,number,number]; axis: [number,number,number]; height: number; radius: number; segments: number }
+  let currentLevel: TrunkNode[] = [{ base: [0,0,0], axis: [0,1,0], height: trunkHeight, radius: trunkRadius, segments: trunkSegments }]
+  for (let lvl = 0; lvl < tbLevels; lvl++) {
+    const nextLevel: TrunkNode[] = []
+    for (const node of currentLevel) {
+      // Стартовать ответвления с вершины данного ствола
+      const startPoint: [number,number,number] = [
+        node.base[0] + node.axis[0] * node.height,
+        node.base[1] + node.axis[1] * node.height,
+        node.base[2] + node.axis[2] * node.height,
+      ]
+      // Локальный ортонормированный базис вокруг оси
+      const a = normalize(node.axis)
+      const tmp: [number, number, number] = Math.abs(a[1]) < 0.99 ? [0,1,0] : [1,0,0]
+      const b1v = new THREE.Vector3().crossVectors(new THREE.Vector3(...a), new THREE.Vector3(...tmp)).normalize()
+      const b2v = new THREE.Vector3().crossVectors(new THREE.Vector3(...a), b1v).normalize()
+      const b1: [number, number, number] = [b1v.x, b1v.y, b1v.z]
+      const b2: [number, number, number] = [b2v.x, b2v.y, b2v.z]
+
+      // Случайная фаза распределения по азимуту и лёгкий джиттер между ответвлениями
+      const phase = randRange(rng, 0, Math.PI * 2)
+      for (let k = 0; k < tbPerLevel; k++) {
+        const step = (2 * Math.PI) / tbPerLevel
+        const jitter = step * 0.25 * (rng() * 2 - 1) * Math.min(1, Math.max(0, randomness))
+        const theta = phase + step * k + jitter
+        // Наклон дочернего ствола: базовый угол с вариацией ±30% * randomness
+        const alphaVar = 1 + 0.3 * (rng() * 2 - 1) * Math.min(1, Math.max(0, randomness))
+        const alpha = Math.max(0, Math.min(Math.PI / 2 - 0.05, tbAngle * alphaVar))
+        const s = Math.sin(alpha)
+        const c = Math.cos(alpha)
+        const ortho: [number, number, number] = [
+          b1[0] * Math.cos(theta) + b2[0] * Math.sin(theta),
+          b1[1] * Math.cos(theta) + b2[1] * Math.sin(theta),
+          b1[2] * Math.cos(theta) + b2[2] * Math.sin(theta),
+        ]
+        const childAxis: [number,number,number] = normalize([
+          a[0] * c + ortho[0] * s,
+          a[1] * c + ortho[1] * s,
+          a[2] * c + ortho[2] * s,
+        ])
+        // Высота дочернего ствола с вариацией ±25% * randomness
+        const hVar = 1 + 0.25 * (rng() * 2 - 1) * Math.min(1, Math.max(0, randomness))
+        const childHeightRaw = node.height * tbHeightFactor * hVar
+        const childHeight = Math.max(node.height * 0.3, Math.min(node.height, childHeightRaw))
+        // Базовый радиус дочернего ствола должен соответствовать верхнему радиусу родителя,
+        // чтобы в месте разветвления не было утолщения/ступеньки при сильном сужении taper.
+        const parentEndRadius = radiusAt01(node.radius, 1)
+        const childRadius = Math.max(0.02, parentEndRadius)
+        // Лёгкая вариация числа сегментов дочернего ствола (±1)
+        const baseSegs = Math.round(node.segments * tbHeightFactor)
+        const segJitter = (rng() < 0.5 ? -1 : 1)
+        const childSegs = Math.max(2, baseSegs + (rng() < Math.min(1, Math.max(0, randomness)) ? segJitter : 0))
+        const child = generateTrunkChain({
+          basePoint: startPoint,
+          axis: childAxis,
+          totalHeight: childHeight,
+          segments: childSegs,
+          baseRadius: childRadius,
+          namePrefix: `Ствол L${lvl+1}`,
+        })
+        trunkAttachments.push(...child.attachments)
+        nextLevel.push({ base: startPoint, axis: childAxis, height: childHeight, radius: childRadius, segments: childSegs })
+      }
+    }
+    currentLevel = nextLevel
   }
 
   // Функция генерации ветвей рекурсивно
@@ -433,15 +577,10 @@ export function generateTree(params: TreeGeneratorParams & {
     }
   }
 
-  // 2) Размещаем ветви по высоте ствола: для каждого сегмента точка отбора — верхняя грань
+  // 2) Размещаем ветви по всем стволам: используем точки верхних граней сегментов
   if (branchLevels > 0) {
-    for (let si = 1; si < trunkSegments; si++) {
-      const y = segH * si
-      const basePoint: [number, number, number] = [0, y, 0]
-      // Радиус ствола на данной высоте
-      const ratio = Math.min(Math.max(y / trunkHeight, 0), 1)
-      const rAtY = Math.max(0.02, trunkRadius * (1 - 0.4 * ratio))
-      genBranches({ basePoint, level: 1, parentAxis: [0,1,0], parentRadius: rAtY })
+    for (const att of trunkAttachments) {
+      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius })
     }
   }
 

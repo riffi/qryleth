@@ -17,6 +17,11 @@ export const TreeGeneratorPanel: React.FC = () => {
     trunkHeight: 5,
     trunkRadius: 0.25,
     trunkSegments: 6,
+    trunkTaperFactor: 0.4,
+    trunkBranchLevels: 0,
+    trunkBranchesPerLevel: 2,
+    trunkBranchAngleDeg: 20,
+    trunkBranchChildHeightFactor: 0.7,
     branchLevels: 2,
     branchesPerSegment: 2,
     branchLength: 1.4,
@@ -91,6 +96,56 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Высота" value={params.trunkHeight} onChange={(v) => setParams(p => ({ ...p, trunkHeight: Math.max(0.5, Number(v) || 0) }))} min={0.5} step={0.1}/>
           <NumberInput label="Радиус" value={params.trunkRadius} onChange={(v) => setParams(p => ({ ...p, trunkRadius: Math.max(0.02, Number(v) || 0) }))} min={0.02} step={0.02}/>
           <NumberInput label="Сегменты" value={params.trunkSegments} onChange={(v) => setParams(p => ({ ...p, trunkSegments: Math.max(1, Math.round(Number(v) || 1)) }))} min={1} step={1}/>
+        </Group>
+        <Box>
+          <Text size="sm" mb={4}>Сужение ствола к верху</Text>
+          <Slider
+            value={params.trunkTaperFactor ?? 0.4}
+            onChange={(v) => setParams(p => ({ ...p, trunkTaperFactor: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={0.9}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.4, label: '0.4' }, { value: 0.8, label: '0.8' }]}
+          />
+        </Box>
+
+        <Divider label="Разветвление ствола" />
+        <Group grow>
+          <NumberInput
+            label="Уровни"
+            value={params.trunkBranchLevels ?? 0}
+            onChange={(v) => setParams(p => ({ ...p, trunkBranchLevels: Math.max(0, Math.round(Number(v) || 0)) }))}
+            min={0}
+            step={1}
+          />
+          <NumberInput
+            label="Ответвлений/уровень"
+            value={params.trunkBranchesPerLevel ?? 2}
+            onChange={(v) => setParams(p => ({ ...p, trunkBranchesPerLevel: Math.max(1, Math.round(Number(v) || 1)) }))}
+            min={1}
+            step={1}
+          />
+          <NumberInput
+            label="Угол (°)"
+            value={params.trunkBranchAngleDeg ?? 20}
+            onChange={(v) => setParams(p => ({ ...p, trunkBranchAngleDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))}
+            min={0}
+            max={85}
+            step={1}
+          />
+        </Group>
+        <Group grow>
+          <Box>
+            <Text size="sm" mb={4}>Высота доч. ствола</Text>
+            <Slider
+              value={params.trunkBranchChildHeightFactor ?? 0.7}
+              onChange={(v) => setParams(p => ({ ...p, trunkBranchChildHeightFactor: Array.isArray(v) ? v[0] : v }))}
+              min={0.3}
+              max={0.95}
+              step={0.01}
+              marks={[{ value: 0.3, label: '0.3' }, { value: 0.7, label: '0.7' }, { value: 0.9, label: '0.9' }]}
+            />
+          </Box>
         </Group>
 
         <Divider label="Ветви" />
