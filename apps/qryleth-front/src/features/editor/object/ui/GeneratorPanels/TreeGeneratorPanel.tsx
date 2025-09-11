@@ -91,7 +91,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'seed',
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
-        'branchLevels', 'branchesPerSegment', 'branchTopBias',
+        'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape',
@@ -258,6 +258,18 @@ export const TreeGeneratorPanel: React.FC = () => {
           <Slider
             value={params.branchTopBias ?? 0}
             onChange={(v) => setParams(p => ({ ...p, branchTopBias: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
+        <Box>
+          <Text size="sm" mb={4}>Стремление ветвей вверх</Text>
+          <Slider
+            value={params.branchUpBias ?? 0}
+            onChange={(v) => setParams(p => ({ ...p, branchUpBias: Array.isArray(v) ? v[0] : v }))}
             min={0}
             max={1}
             step={0.01}

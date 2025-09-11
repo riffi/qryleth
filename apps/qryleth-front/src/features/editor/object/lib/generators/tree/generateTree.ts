@@ -515,6 +515,15 @@ export function generateTree(params: TreeGeneratorParams & {
           else score += Math.max(0, 0.05 - clearance) * 50
         }
         score += outwardPenalty(baseInside, nDir) * 5
+        // Стремление вверх: штрафуем направления с малой/отрицательной Y‑составляющей
+        const upBias = Math.max(0, Math.min(1, params.branchUpBias ?? 0))
+        if (upBias > 0) {
+          const upY = nDir[1]
+          let upPenalty = 0
+          if (upY < 0) upPenalty += (-upY) * 400 * upBias // сильный штраф за «вниз»
+          upPenalty += (1 - Math.max(0, upY)) * 30 * upBias // мягкий штраф за недостаточную «вверх»
+          score += upPenalty
+        }
 
         // Штраф за схожесть с уже выбранными ветками данного узла: раздвигаем по азимуту
         if (siblingOrthoDirs.length > 0) {
