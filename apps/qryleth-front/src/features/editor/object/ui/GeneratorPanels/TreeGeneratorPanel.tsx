@@ -32,6 +32,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     leavesPerBranch: 3,
     leafSize: 0.16,
     leafShape: 'billboard',
+    leafPlacement: 'end',
+    leavesPerMeter: 6,
     angleSpread: 1,
     embedFactor: 1
   })
@@ -267,12 +269,33 @@ export const TreeGeneratorPanel: React.FC = () => {
         </Group>
         <SegmentedControl
           value={params.leafShape || 'billboard'}
-          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere') }))}
+          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere'|'coniferCross') }))}
           data={[
             { label: 'Билборды', value: 'billboard' },
             { label: 'Сферы', value: 'sphere' },
+            { label: 'Хвойная (крест)', value: 'coniferCross' },
           ]}
         />
+        <Group grow>
+          <SegmentedControl
+            value={params.leafPlacement || 'end'}
+            onChange={(v) => setParams(p => ({ ...p, leafPlacement: (v as 'end'|'along') }))}
+            data={[
+              { label: 'На концах', value: 'end' },
+              { label: 'Вдоль ветви', value: 'along' },
+            ]}
+          />
+          {params.leafPlacement === 'along' && (
+            <Slider
+              value={params.leavesPerMeter ?? 6}
+              onChange={(v) => setParams(p => ({ ...p, leavesPerMeter: Array.isArray(v) ? v[0] : v }))}
+              min={1}
+              max={12}
+              step={0.5}
+              marks={[{ value: 2, label: '2/м' }, { value: 6, label: '6/м' }, { value: 10, label: '10/м' }]}
+            />
+          )}
+        </Group>
 
         <Divider label="Материалы" />
         <Group grow>

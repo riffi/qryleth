@@ -557,38 +557,103 @@ export function generateTree(params: TreeGeneratorParams & {
       // Добавляем выбранное ортонормальное направление для штрафа схожести следующих веток
       siblingOrthoDirs.push(new THREE.Vector3(perpOrtho[0], perpOrtho[1], perpOrtho[2]))
 
-      // Если достигли максимального уровня — создаём листья на конце
+      // Если достигли максимального уровня — создаём листья согласно схеме размещения
       if (level === branchLevels) {
+        const placement = params.leafPlacement || 'end'
+        if (placement === 'along') {
+          const density = Math.max(0.5, params.leavesPerMeter ?? 6)
+          const countAlong = Math.max(1, Math.round(density * len))
+          // Распределяем листья вдоль последней части ветви (например, 30%..100%)
+          const tStart = 0.3
+          for (let j = 0; j < countAlong; j++) {
+            const tj = tStart + (1 - tStart) * ((j + rng() * 0.3) / countAlong)
+            // Точка на оси ветви
+            const axisPoint: [number, number, number] = [
+              baseInside[0] + nDir[0] * (tj * len),
+              baseInside[1] + nDir[1] * (tj * len),
+              baseInside[2] + nDir[2] * (tj * len),
+            ]
+            // Радиальное направление и смещение РОВНО на поверхность ветки (rad + eps)
+            const axisN = normalize(nDir)
+            const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
+            const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
+            const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
+            const aJ = rng() * Math.PI * 2
+            const radial = new THREE.Vector3(
+              o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
+              o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
+              o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
+            )
+            const eps = Math.max(0.003, rad * 0.08)
+            const radialDist = rad + eps
+            const pos: [number, number, number] = [
+              axisPoint[0] + radial.x * radialDist,
+              axisPoint[1] + radial.y * radialDist,
+              axisPoint[2] + radial.z * radialDist,
+            ]
+            // Небольшой тангенциальный джиттер вдоль касательного направления, чтобы избежать строгого кольца
+            const tangent = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), radial).normalize()
+            const tShift = (rng() - 0.5) * Math.min(rad * 0.3, 0.02 * len)
+            pos[0] += tangent.x * tShift
+            pos[1] += tangent.y * tShift
+            pos[2] += tangent.z * tShift
 
-        const leaves = Math.max(0, Math.round(leavesPerBranch))
-        for (let j = 0; j < leaves; j++) {
-          const jitter: [number, number, number] = [
-            (rng() - 0.5) * 0.2 * len,
-            (rng() - 0.2) * 0.2 * len,
-            (rng() - 0.5) * 0.2 * len,
-          ]
-          // Дополнительный "ролл" листа вокруг собственной нормали
-          const roll = (rng() - 0.5) * Math.PI
-          const leafEuler = eulerFromDir(nDir)
-          leafEuler[2] += roll
+            const roll = (rng() - 0.5) * Math.PI
+            const leafEuler = eulerFromDir(nDir)
+            leafEuler[2] += roll
 
-          primitives.push({
-            uuid: generateUUID(),
-            type: 'leaf',
-            name: 'Лист',
-            geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())), shape: params.leafShape || 'billboard' },
-            objectMaterialUuid: leafMaterialUuid,
-            visible: true,
-            transform: {
-              position: [
-                endPoint[0] + jitter[0],
-                endPoint[1] + jitter[1],
-                endPoint[2] + jitter[2],
-              ],
-              rotation: leafEuler,
-              scale: [1, 1, 1],
-            },
-          })
+            primitives.push({
+              uuid: generateUUID(),
+              type: 'leaf',
+              name: 'Лист',
+              geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())), shape: params.leafShape || 'billboard' },
+              objectMaterialUuid: leafMaterialUuid,
+              visible: true,
+              transform: {
+                position: pos,
+                rotation: leafEuler,
+                scale: [1, 1, 1],
+              },
+            })
+          }
+        } else {
+          // На конце ветви — размещаем на поверхности торца/цилиндра, а не в воздухе
+          const leaves = Math.max(0, Math.round(leavesPerBranch))
+          for (let j = 0; j < leaves; j++) {
+            const axisN = normalize(nDir)
+            const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
+            const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
+            const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
+            const aJ = rng() * Math.PI * 2
+            const radial = new THREE.Vector3(
+              o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
+              o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
+              o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
+            )
+            const eps = Math.max(0.003, rad * 0.08)
+            const radialDist = rad + eps
+            const pos: [number, number, number] = [
+              endPoint[0] + radial.x * radialDist,
+              endPoint[1] + radial.y * radialDist,
+              endPoint[2] + radial.z * radialDist,
+            ]
+            const roll = (rng() - 0.5) * Math.PI
+            const leafEuler = eulerFromDir(nDir)
+            leafEuler[2] += roll
+            primitives.push({
+              uuid: generateUUID(),
+              type: 'leaf',
+              name: 'Лист',
+              geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())), shape: params.leafShape || 'billboard' },
+              objectMaterialUuid: leafMaterialUuid,
+              visible: true,
+              transform: {
+                position: pos,
+                rotation: leafEuler,
+                scale: [1, 1, 1],
+              },
+            })
+          }
         }
       } else {
         // Иначе — ответвления следующего уровня из конца текущей ветви (видимой части)

@@ -41,7 +41,15 @@ export interface TreeGeneratorParams {
   /** Размер (радиус) листа, если рендерим лист как сферу */
   leafSize: number
   /** Тип листвы: billboard или sphere */
-  leafShape?: 'billboard' | 'sphere'
+  leafShape?: 'billboard' | 'sphere' | 'coniferCross'
+  /**
+   * Схема размещения листвы: только на концах ветвей ('end') или вдоль ветви ('along').
+   */
+  leafPlacement?: 'end' | 'along'
+  /**
+   * Плотность листвы вдоль ветви (кластеров на метр). Используется при leafPlacement='along'.
+   */
+  leavesPerMeter?: number
   /**
    * Разброс наклона ветви относительно вертикали (0..1).
    * Применяется к параметру `branchAngleDeg`: при 0 — без разброса (точно

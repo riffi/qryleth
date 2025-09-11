@@ -61,9 +61,10 @@ export interface LeafBillboardGeometry {
   radius: number;
   /**
    * Способ отрисовки листа: 'billboard' (плоская плоскость с маской)
-   * или 'sphere' (объёмная сфера). По умолчанию 'billboard'.
+   * или 'sphere' (объёмная сфера), либо 'coniferCross' (двойной крест из плоскостей с маской для хвои).
+   * По умолчанию 'billboard'.
    */
-  shape?: 'billboard' | 'sphere';
+  shape?: 'billboard' | 'sphere' | 'coniferCross';
 }
 
 // Общие свойства примитивов
