@@ -477,7 +477,8 @@ export function generateTree(params: TreeGeneratorParams & {
         } else {
           perp = [perp[0]/perpLen, perp[1]/perpLen, perp[2]/perpLen]
         }
-        const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * randomness + 0.6 * randomness * rng())
+        const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
+        const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
         const rad = Math.max(0.01, branchRadius * Math.pow(0.7, level - 1))
         const epsInside = Math.max(0.001, parentRadius * 0.03)
         const sinTheta = Math.max(1e-4, Math.sqrt(Math.max(0, 1 - dot * dot)))

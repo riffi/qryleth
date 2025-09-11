@@ -26,6 +26,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     branchesPerSegment: 2,
     branchTopBias: 0,
     branchLength: 1.4,
+    branchLengthJitter: 0.3,
     branchRadius: 0.08,
     branchAngleDeg: 35,
     branchAngleDegFirst: 35,
@@ -92,7 +93,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
-        'branchLength', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
+        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape',
         'embedFactor',
@@ -129,6 +130,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     setPrimitives,
     primitives,
     materials,
+    updateMaterial,
   } = useObjectStore()
 
   /**
@@ -152,6 +154,20 @@ export const TreeGeneratorPanel: React.FC = () => {
       const newLeafUuid = addMaterial(base[1])
       barkUuid = barkUuid || newBarkUuid
       leafUuid = leafUuid || newLeafUuid
+    } else {
+      // Материалы существуют — обновим их цвета согласно текущим контролам UI
+      updateMaterial(barkUuid, {
+        properties: {
+          ...(existingBark?.properties || {}),
+          color: barkColor,
+        }
+      } as any)
+      updateMaterial(leafUuid, {
+        properties: {
+          ...(existingLeaf?.properties || {}),
+          color: leafColor,
+        }
+      } as any)
     }
 
     const generated = generateTree({ ...params, barkMaterialUuid: barkUuid!, leafMaterialUuid: leafUuid! })
@@ -253,6 +269,18 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1} disabled={params.branchLevels <= 0}/>
           <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1} disabled={params.branchLevels <= 0}/>
         </Group>
+        <Box>
+          <Text size="sm" mb={4}>Разброс длины ветви</Text>
+          <Slider
+            value={params.branchLengthJitter ?? params.randomness}
+            onChange={(v) => setParams(p => ({ ...p, branchLengthJitter: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
         <Box>
           <Text size="sm" mb={4}>Привязка ветвей к верху</Text>
           <Slider
