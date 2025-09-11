@@ -166,6 +166,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
       <ObjectRightToolbar
         managerCollapsed={panelStateBridge.panelState?.rightPanel !== 'manager'}
         onToggleManager={() => panelStateBridge.togglePanel?.('manager')}
+        generatorCollapsed={panelStateBridge.panelState?.rightPanel !== 'treeGenerator'}
+        onToggleGenerator={() => panelStateBridge.togglePanel?.('treeGenerator')}
       />
       <ObjectEditorR3F objectData={objectData} />
     </ObjectEditorLayout>

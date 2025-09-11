@@ -1,14 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type PanelType = 'chat' | 'properties' | 'manager'
+export type PanelType = 'chat' | 'properties' | 'manager' | 'treeGenerator'
 
 export interface PanelState {
   leftPanel: 'chat' | 'properties' | null
-  rightPanel: 'manager' | null
+  rightPanel: 'manager' | 'treeGenerator' | null
   chatVisible: boolean
   propertiesVisible: boolean
   managerVisible: boolean
+  treeGeneratorVisible: boolean
 }
 
 const DEFAULT_PANEL_STATE: PanelState = {
@@ -17,6 +18,7 @@ const DEFAULT_PANEL_STATE: PanelState = {
   chatVisible: false,
   propertiesVisible: false,
   managerVisible: false,
+  treeGeneratorVisible: false,
 }
 
 interface GlobalPanelStore extends PanelState {
@@ -68,9 +70,23 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               if (state.rightPanel === 'manager') {
                 newState.rightPanel = null
                 newState.managerVisible = false
+                newState.treeGeneratorVisible = false
               } else {
                 newState.rightPanel = 'manager'
                 newState.managerVisible = true
+                newState.treeGeneratorVisible = false
+              }
+              break
+
+            case 'treeGenerator':
+              if (state.rightPanel === 'treeGenerator') {
+                newState.rightPanel = null
+                newState.treeGeneratorVisible = false
+                newState.managerVisible = false
+              } else {
+                newState.rightPanel = 'treeGenerator'
+                newState.treeGeneratorVisible = true
+                newState.managerVisible = false
               }
               break
           }
@@ -99,6 +115,13 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
             case 'manager':
               newState.rightPanel = 'manager'
               newState.managerVisible = true
+              newState.treeGeneratorVisible = false
+              break
+
+            case 'treeGenerator':
+              newState.rightPanel = 'treeGenerator'
+              newState.treeGeneratorVisible = true
+              newState.managerVisible = false
               break
           }
 
@@ -121,6 +144,12 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               break
             case 'manager':
               newState.rightPanel = null
+              newState.managerVisible = false
+              newState.treeGeneratorVisible = false
+              break
+            case 'treeGenerator':
+              newState.rightPanel = null
+              newState.treeGeneratorVisible = false
               newState.managerVisible = false
               break
           }
@@ -159,4 +188,3 @@ export const useGlobalPanelState = () => {
     resetPanels: store.resetPanels,
   }
 }
-

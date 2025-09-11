@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { clamp } from '@/shared/lib/math/number'
 import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
-import { IconMessages, IconAdjustments, IconFolder, IconX } from '@tabler/icons-react'
+import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconX } from '@tabler/icons-react'
 import { DragHandleVertical } from '@/shared/ui'
 import {
   useSelectedMaterialUuid,
@@ -17,6 +17,7 @@ import { PrimitiveControlPanel } from '@/features/editor/object/ui/PrimitiveCont
 import { GroupControlPanel } from '@/features/editor/object/ui/GroupControlPanel/GroupControlPanel'
 import { MaterialControlPanel } from '@/features/editor/object/ui/MaterialControlPanel/MaterialControlPanel'
 import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagementPanel/ObjectManagementPanel'
+import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/TreeGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
 import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
 
@@ -240,10 +241,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   }
 
   /**
-   * Рендерит правую панель: менеджер объектов, когда он активен.
+   * Рендерит правую панель: менеджер объектов или генератор деревьев.
    */
   const renderRightPanel = () => {
-    const isOpen = panelState.rightPanel === 'manager'
+    const current = panelState.rightPanel
+    const isOpen = current !== null
     return (
       <Paper
         shadow="sm"
@@ -266,21 +268,22 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         {isOpen && (
           <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
             <Group>
-              <IconFolder size={20} />
-              <Text fw={500}>Менеджер объектов</Text>
+              {current === 'manager' ? <IconFolder size={20} /> : <IconTrees size={20} />}
+              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : 'Генератор дерева'}</Text>
             </Group>
             <ActionIcon
               variant="subtle"
               size="sm"
-              onClick={() => hidePanel?.('manager')}
-              aria-label="Скрыть менеджер"
+              onClick={() => hidePanel?.(current!)}
+              aria-label={current === 'manager' ? 'Скрыть менеджер' : 'Скрыть генератор'}
             >
               <IconX size={16} />
             </ActionIcon>
           </Group>
         )}
         <Box style={{ flex: 1, minHeight: 0 }}>
-          {isOpen && <ObjectManagementPanel />}
+          {current === 'manager' && <ObjectManagementPanel />}
+          {current === 'treeGenerator' && <TreeGeneratorPanel />}
         </Box>
       </Paper>
     )
@@ -321,7 +324,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         </Paper>
 
         {/* Ручка между центром и правой панелью */}
-        {panelState.rightPanel === 'manager' && (
+        {!!panelState.rightPanel && (
           <DragHandleVertical
             onMouseDown={beginResize('right')}
             ariaLabel="Изменить ширину правой панели"

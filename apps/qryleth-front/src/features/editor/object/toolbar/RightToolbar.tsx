@@ -1,20 +1,24 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconFolder } from '@tabler/icons-react'
+import { IconFolder, IconTrees } from '@tabler/icons-react'
 
 interface RightToolbarProps {
   /** Свёрнут ли менеджер объектов (правая панель). true = менеджер скрыт. */
   managerCollapsed: boolean
   /** Переключить видимость правой панели (менеджер объектов). */
   onToggleManager: () => void
+  /** Свёрнут ли генератор деревьев (правая панель). true = панель скрыта. */
+  generatorCollapsed: boolean
+  /** Переключить видимость правой панели (генератор деревьев). */
+  onToggleGenerator: () => void
 }
 
 /**
  * Правый тулбар ObjectEditor: управление панелью менеджера объектов.
  * Визуально и по UX согласован с тулбаром SceneEditor.
  */
-export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager }) => {
+export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator }) => {
   return (
     <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
@@ -30,8 +34,20 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
             <IconFolder size={20} />
           </ActionIcon>
         </Tooltip>
+
+        <Tooltip label={generatorCollapsed ? 'Открыть генератор деревьев' : 'Закрыть генератор деревьев'} position="left" withArrow>
+          <ActionIcon
+            size="lg"
+            variant={!generatorCollapsed ? 'filled' : 'subtle'}
+            color={!generatorCollapsed ? 'green' : 'gray'}
+            onClick={onToggleGenerator}
+            aria-label={generatorCollapsed ? 'Открыть генератор деревьев' : 'Закрыть генератор деревьев'}
+            style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+          >
+            <IconTrees size={20} />
+          </ActionIcon>
+        </Tooltip>
       </Stack>
     </EdgeToolbar>
   )
 }
-
