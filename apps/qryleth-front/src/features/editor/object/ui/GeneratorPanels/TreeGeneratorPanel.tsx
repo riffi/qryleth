@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
@@ -40,6 +40,84 @@ export const TreeGeneratorPanel: React.FC = () => {
   const [barkColor, setBarkColor] = useState('#8B5A2B')
   const [leafColor, setLeafColor] = useState('#2E8B57')
   const [clearBefore, setClearBefore] = useState(true)
+
+  // Состояние модального окна конфигурации (импорт/экспорт JSON)
+  const [configModalOpen, setConfigModalOpen] = useState(false)
+  const [configMode, setConfigMode] = useState<'export' | 'import'>('export')
+  const [configJson, setConfigJson] = useState('')
+  const [configError, setConfigError] = useState<string | null>(null)
+
+  /**
+   * Формирует человекочитаемый JSON текущих параметров генератора
+   */
+  const buildParamsJson = () => JSON.stringify(params, null, 2)
+
+  /**
+   * Открывает модальное окно экспорта конфигурации: показывает JSON и даёт скопировать
+   */
+  const openExportJson = () => {
+    setConfigMode('export')
+    setConfigError(null)
+    setConfigJson(buildParamsJson())
+    setConfigModalOpen(true)
+  }
+
+  /**
+   * Открывает модальное окно импорта конфигурации: позволяет вставить и применить JSON
+   */
+  const openImportJson = () => {
+    setConfigMode('import')
+    setConfigError(null)
+    // Подставляем текущие значения как шаблон
+    setConfigJson(buildParamsJson())
+    setConfigModalOpen(true)
+  }
+
+  /**
+   * Применяет конфигурацию из JSON, беря только поддерживаемые поля TreeGeneratorParams
+   */
+  const applyImportedParams = () => {
+    try {
+      const parsed = JSON.parse(configJson || '{}')
+      if (typeof parsed !== 'object' || parsed === null) {
+        setConfigError('Ожидался объект JSON с параметрами')
+        return
+      }
+      const allowedKeys: (keyof TreeGeneratorParams)[] = [
+        'seed',
+        'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor',
+        'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
+        'branchLevels', 'branchesPerSegment', 'branchTopBias',
+        'branchLength', 'branchRadius', 'branchAngleDeg', 'angleSpread',
+        'randomness',
+        'leavesPerBranch', 'leafSize', 'leafShape',
+        'embedFactor',
+      ]
+      const requiredKeys: (keyof TreeGeneratorParams)[] = [
+        'seed',
+        'trunkHeight', 'trunkRadius', 'trunkSegments',
+        'branchLevels', 'branchesPerSegment',
+        'branchLength', 'branchRadius', 'branchAngleDeg',
+        'randomness',
+        'leavesPerBranch', 'leafSize',
+      ]
+      // Составляем новый объект ТОЛЬКО из разрешённых полей
+      const next: any = {}
+      for (const k of allowedKeys) if (k in parsed) next[k] = parsed[k]
+      // Проверяем обязательные поля
+      const missing = requiredKeys.filter(k => next[k] === undefined || next[k] === null)
+      if (missing.length > 0) {
+        setConfigError('Отсутствуют обязательные поля: ' + missing.join(', '))
+        return
+      }
+      // Полная замена состояния параметров
+      setParams(next as TreeGeneratorParams)
+      setConfigModalOpen(false)
+      setConfigError(null)
+    } catch (e: any) {
+      setConfigError('Ошибка парсинга JSON: ' + (e?.message || String(e)))
+    }
+  }
 
   const {
     addMaterial,
@@ -203,9 +281,44 @@ export const TreeGeneratorPanel: React.FC = () => {
         </Group>
 
         <Group justify="flex-end" mt="sm">
+          <Button variant="light" onClick={openExportJson}>Экспорт JSON</Button>
+          <Button variant="light" onClick={openImportJson}>Импорт JSON</Button>
           <Button onClick={handleGenerate}>Сгенерировать</Button>
         </Group>
       </Stack>
+
+      {/* Модальное окно конфигурации JSON (импорт/экспорт) */}
+      <Modal opened={configModalOpen} onClose={() => setConfigModalOpen(false)} title={configMode === 'export' ? 'Экспорт конфигурации (JSON)' : 'Импорт конфигурации (JSON)'} size="70%">
+        <Stack gap="xs">
+          <Text size="sm" c="dimmed">
+            {configMode === 'export'
+              ? 'Скопируйте JSON конфигурации. Вы можете отредактировать перед копированием.'
+              : 'Вставьте JSON конфигурации и нажмите «Применить».'}
+          </Text>
+          <Textarea minRows={12} autosize value={configJson} onChange={(e) => setConfigJson(e.currentTarget.value)} spellCheck={false} />
+          {configError && <Text size="sm" c="red">{configError}</Text>}
+          <Group justify="space-between" mt="xs">
+            {configMode === 'export' ? (
+              <Button
+                variant="default"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(configJson)
+                    setConfigError(null)
+                  } catch {
+                    setConfigError('Не удалось скопировать в буфер обмена. Скопируйте вручную.')
+                  }
+                }}
+              >
+                Скопировать в буфер
+              </Button>
+            ) : (
+              <Button onClick={applyImportedParams}>Применить</Button>
+            )}
+            <Button variant="light" onClick={() => setConfigModalOpen(false)}>Закрыть</Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Box>
   )
 }
