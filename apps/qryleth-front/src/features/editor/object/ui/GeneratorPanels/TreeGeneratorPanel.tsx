@@ -24,6 +24,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     trunkBranchChildHeightFactor: 0.7,
     branchLevels: 2,
     branchesPerSegment: 2,
+    branchTopBias: 0,
     branchLength: 1.4,
     branchRadius: 0.08,
     branchAngleDeg: 35,
@@ -154,6 +155,17 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1}/>
           <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1}/>
         </Group>
+        <Box>
+          <Text size="sm" mb={4}>Привязка ветвей к верху</Text>
+          <Slider
+            value={params.branchTopBias ?? 0}
+            onChange={(v) => setParams(p => ({ ...p, branchTopBias: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+          />
+        </Box>
         <Group grow>
           <NumberInput label="Радиус ветви" value={params.branchRadius} onChange={(v) => setParams(p => ({ ...p, branchRadius: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
           <NumberInput label="Угол (°)" value={params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1}/>

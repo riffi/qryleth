@@ -192,6 +192,7 @@ export function generateTree(params: TreeGeneratorParams & {
     trunkBranchChildHeightFactor,
     branchLevels,
     branchesPerSegment,
+    branchTopBias,
     branchLength,
     branchRadius,
     branchAngleDeg,
@@ -403,12 +404,19 @@ export function generateTree(params: TreeGeneratorParams & {
     dirHintAzimuth?: number // предпочтительное направление по азимуту, радианы
     /** Сегмент‑родитель (для игнорирования коллизий у самой базы) */
     parentSeg?: PlacedSegment
+    /** Масштаб локального количества ветвей (для биаса к верху) */
+    countScale?: number
   }
 
-  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg }: BranchArgs) => {
+  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale }: BranchArgs) => {
     if (level > branchLevels) return
 
-    const count = Math.max(0, Math.round(branchesPerSegment + (rng() - 0.5) * 2 * randomness))
+    const scale = countScale == null ? 1 : Math.max(0, countScale)
+    const baseCount = branchesPerSegment * scale
+    const count = Math.max(0, Math.round(baseCount + (rng() - 0.5) * 2 * randomness))
+    // Чтобы ветки одного узла не «смотрели» все в одну сторону,
+    // вводим штраф за схожесть азимута относительно оси родителя.
+    const siblingOrthoDirs: THREE.Vector3[] = []
     for (let i = 0; i < count; i++) {
       // Подбор направления с учётом коллизий (см. цикл maxAttempts ниже)
       // Выбор лучшего направления из нескольких попыток (минимум пересечений)
@@ -424,6 +432,7 @@ export function generateTree(params: TreeGeneratorParams & {
         rad: number
         endPoint: [number,number,number]
         score: number
+        perpOrtho: [number,number,number]
       } = null
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -504,11 +513,24 @@ export function generateTree(params: TreeGeneratorParams & {
         }
         score += outwardPenalty(baseInside, nDir) * 5
 
-        if (!best || score < best.score) best = { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint, score }
+        // Штраф за схожесть с уже выбранными ветками данного узла: раздвигаем по азимуту
+        if (siblingOrthoDirs.length > 0) {
+          const cand = new THREE.Vector3(perp[0], perp[1], perp[2])
+          let simPenalty = 0
+          for (const v of siblingOrthoDirs) {
+            const d = Math.max(-1, Math.min(1, v.dot(cand))) // косинус между ортонормальными направлениями (вокруг оси)
+            const closeness = (d + 1) * 0.5 // 0..1
+            // усиливаем штраф при близости, мягко при отдалении
+            simPenalty += Math.pow(closeness, 4) * 40
+          }
+          score += simPenalty
+        }
+
+        if (!best || score < best.score) best = { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint, score, perpOrtho: perp }
       }
 
       if (!best) continue
-      const { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint } = best
+      const { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint, perpOrtho } = best
 
       primitives.push({
         uuid: generateUUID(),
@@ -532,6 +554,8 @@ export function generateTree(params: TreeGeneratorParams & {
       // Регистрируем сегмент ветви для последующих проверок
       const currentSeg: PlacedSegment = { a: baseInside, b: endPoint, radius: rad }
       placed.push(currentSeg)
+      // Добавляем выбранное ортонормальное направление для штрафа схожести следующих веток
+      siblingOrthoDirs.push(new THREE.Vector3(perpOrtho[0], perpOrtho[1], perpOrtho[2]))
 
       // Если достигли максимального уровня — создаём листья на конце
       if (level === branchLevels) {
@@ -579,8 +603,19 @@ export function generateTree(params: TreeGeneratorParams & {
 
   // 2) Размещаем ветви по всем стволам: используем точки верхних граней сегментов
   if (branchLevels > 0) {
+    // Подготовим нормировку высоты для биаса к верху по Y
+    let minY = Infinity, maxY = -Infinity
     for (const att of trunkAttachments) {
-      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius })
+      if (att.point[1] < minY) minY = att.point[1]
+      if (att.point[1] > maxY) maxY = att.point[1]
+    }
+    const span = Math.max(1e-4, maxY - minY)
+    const bias = Math.min(1, Math.max(0, branchTopBias ?? 0))
+    for (const att of trunkAttachments) {
+      const h01 = (att.point[1] - minY) / span
+      // Вес: при 0 — равномерно (1), при 1 — квадратичная концентрация к верху (0..1 -> 0..1^2)
+      const topWeight = (1 - bias) * 1 + bias * (h01 * h01)
+      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight })
     }
   }
 
