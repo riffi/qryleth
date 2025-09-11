@@ -30,6 +30,14 @@ export interface TreeGeneratorParams {
   leafSize: number
   /** Тип листвы: billboard или sphere */
   leafShape?: 'billboard' | 'sphere'
+  /**
+   * Разброс наклона ветви относительно вертикали (0..1).
+   * Применяется к параметру `branchAngleDeg`: при 0 — без разброса (точно
+   * `branchAngleDeg`), при 1 — максимальный джиттер наклона (порядка ±50%
+   * от `branchAngleDeg`). На азимут не влияет: азимут выбирается случайно
+   * равномерно в диапазоне [0..2π].
+   */
+  angleSpread?: number
 }
 
 /**

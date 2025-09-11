@@ -29,8 +29,9 @@ function randRange(rng: () => number, min: number, max: number) {
 /**
  * Нормализует угол в радианы, добавляя небольшой случайный разброс.
  */
-function randomAngleRad(baseDeg: number, randomness: number, rng: () => number) {
-  const jitter = (rng() * 2 - 1) * randomness * 0.5 * baseDeg
+function randomTiltRad(baseDeg: number, spread: number, rng: () => number) {
+  const s = Math.max(0, Math.min(1, spread))
+  const jitter = (rng() * 2 - 1) * s * 0.5 * baseDeg
   return degToRad(baseDeg + jitter)
 }
 
@@ -154,7 +155,8 @@ export function generateTree(params: TreeGeneratorParams & {
       const b2: [number, number, number] = [b2v.x, b2v.y, b2v.z]
 
       // Угол отклонения от оси родителя и азимут вокруг неё
-      const alpha = randomAngleRad(branchAngleDeg, randomness, rng) // от 0..pi
+      const alpha = randomTiltRad(branchAngleDeg, params.angleSpread ?? 1, rng) // угол наклона от вертикали
+      // Азимут — случайный равномерный по [0..2π] (как раньше)
       const theta = randRange(rng, 0, Math.PI * 2)
       const s = Math.sin(alpha)
       const c = Math.cos(alpha)

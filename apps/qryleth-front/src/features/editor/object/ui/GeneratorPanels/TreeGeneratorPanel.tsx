@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
@@ -26,6 +26,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     leavesPerBranch: 3,
     leafSize: 0.16,
     leafShape: 'billboard',
+    angleSpread: 1,
   })
 
   // Параметры материалов
@@ -101,6 +102,17 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Радиус ветви" value={params.branchRadius} onChange={(v) => setParams(p => ({ ...p, branchRadius: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
           <NumberInput label="Угол (°)" value={params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1}/>
         </Group>
+        <Box>
+          <Text size="sm" mb={4}>Разброс наклона ветви</Text>
+          <Slider
+            value={params.angleSpread ?? 1}
+            onChange={(v) => setParams(p => ({ ...p, angleSpread: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.05}
+            marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+          />
+        </Box>
 
         <Divider label="Листья" />
         <Group grow>
