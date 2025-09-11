@@ -1,0 +1,50 @@
+# Типы процедурной генерации деревьев
+
+Этот документ фиксирует доменные типы, связанные с деревьями: специальные примитивы для ствола/ветвей/листьев и параметры генератора деревьев. Содержит только определение контрактов; поведение и UX описаны в features/object-editing/tree-generation.md.
+
+## Специальные примитивы деревьев
+
+В дополнение к базовым примитивам `box|sphere|cylinder|cone|pyramid|plane|torus` определены три типа, используемые исключительно для деревьев. Они нужны, чтобы оптимизации рендера не затрагивали чужие цилиндры/сферы в других объектах.
+
+- `trunk` — сегменты ствола
+  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number }`
+- `branch` — ветви дерева
+  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number }`
+- `leaf` — лист
+  - geometry: `{ radius: number; shape?: 'billboard' | 'sphere' }`
+    - `shape: 'billboard'` — плоская плоскость с альфа‑маской и лёгким «изгибом» (по умолчанию)
+    - `shape: 'sphere'` — объёмная сфера (упрощённый вариант)
+
+Прочие общие поля примитива см. в описании `GfxPrimitive` (uuid, visible, transform, ссылки на материалы).
+
+Bounding Box: `trunk/branch` трактуются как цилиндры; `leaf` — как сфера по `radius`.
+
+## Параметры генератора деревьев
+
+Тип параметров генерации: `TreeGeneratorParams`
+
+Поля:
+- `seed: number` — сид случайности (детерминирует результат)
+- `trunkHeight: number` — высота ствола
+- `trunkRadius: number` — радиус ствола у основания
+- `trunkSegments: number` — количество сегментов ствола
+- `branchLevels: number` — число уровней ветвления (0 — без ветвей)
+- `branchesPerSegment: number` — среднее число ветвей на сегмент ствола
+- `branchLength: number` — базовая длина ветви (уменьшается на верхних уровнях)
+- `branchRadius: number` — радиус ветви первого уровня
+- `branchAngleDeg: number` — угол наклона ветви от вертикали (в градусах)
+- `angleSpread?: number` (0..1) — разброс наклона относительно `branchAngleDeg`
+  - 0 — без разброса (точно `branchAngleDeg`)
+  - 1 — максимальный джиттер (порядка ±50% от `branchAngleDeg`)
+  - На азимут не влияет — азимут выбирается равномерно случайно в [0..2π]
+- `randomness: number` — общая доля случайности для некоторых величин
+- `leavesPerBranch: number` — число листьев на конце ветви (на последнем уровне)
+- `leafSize: number` — базовый размер/радиус листа
+- `leafShape?: 'billboard' | 'sphere'` — тип листвы (см. выше)
+
+Возвращаемое значение генератора (сокр.): массив `GfxPrimitive` (trunk/branch/leaf) и список материалов (см. `GfxMaterial`).
+
+## Ссылки
+- Реализация типов примитивов: `apps/qryleth-front/src/entities/primitive/model/types.ts`
+- Параметры и генератор: `apps/qryleth-front/src/features/editor/object/lib/generators/tree/types.ts`, `.../generateTree.ts`
+- Поведение и UI: `docs/features/object-editing/tree-generation.md`

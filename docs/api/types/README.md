@@ -11,6 +11,7 @@
   - [Нотация имён типов](#нотация-имён-типов)
   - [Доменные типы (`@/entities`)](#1--доменные-типы-entities)
     - [GfxPrimitive](#gfxprimitive)
+    - [Типы деревьев (trunk/branch/leaf)](trees.md)
     - [GfxMaterial](#gfxmaterial)
     - [GfxObject](#gfxobject-с-группами-и-материалами)
     - [GfxObjectInstance](#gfxobjectinstance)
@@ -109,7 +110,11 @@ type GfxPrimitive =
   | ({ type: 'cone';     geometry: ConeGeometry;     } & PrimitiveCommon)
   | ({ type: 'pyramid';  geometry: PyramidGeometry;  } & PrimitiveCommon)
   | ({ type: 'plane';    geometry: PlaneGeometry;    } & PrimitiveCommon)
-  | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon);
+  | ({ type: 'torus';    geometry: TorusGeometry;    } & PrimitiveCommon)
+  // Дополнительно для деревьев
+  | ({ type: 'trunk';    geometry: TreeCylinderGeometry; } & PrimitiveCommon)
+  | ({ type: 'branch';   geometry: TreeCylinderGeometry; } & PrimitiveCommon)
+  | ({ type: 'leaf';     geometry: LeafBillboardGeometry; } & PrimitiveCommon);
 
 interface PrimitiveCommon {
   uuid: string;         // 🆕 ОБЯЗАТЕЛЬНОЕ поле для поддержки групп
