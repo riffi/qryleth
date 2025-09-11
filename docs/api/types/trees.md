@@ -7,9 +7,12 @@
 В дополнение к базовым примитивам `box|sphere|cylinder|cone|pyramid|plane|torus` определены три типа, используемые исключительно для деревьев. Они нужны, чтобы оптимизации рендера не затрагивали чужие цилиндры/сферы в других объектах.
 
 - `trunk` — сегменты ствола
-  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number }`
+  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number; collarFrac?: number; collarScale?: number }`
+    - `collarFrac` — доля высоты от нижней грани, где действует плавное расширение радиуса ("воротник").
+    - `collarScale` — множитель радиуса у самой нижней грани (>1 — расширение). Если не задано — воротник отключён.
 - `branch` — ветви дерева
-  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number }`
+  - geometry: `{ radiusTop: number; radiusBottom: number; height: number; radialSegments?: number; collarFrac?: number; collarScale?: number }`
+    - По умолчанию для веток применяется лёгкий воротник (`collarFrac≈0.15`, `collarScale≈1.2`) для мягкого перехода в родителя.
 - `leaf` — лист
   - geometry: `{ radius: number; shape?: 'billboard' | 'sphere' }`
     - `shape: 'billboard'` — плоская плоскость с альфа‑маской и лёгким «изгибом» (по умолчанию)
@@ -41,6 +44,7 @@ Bounding Box: `trunk/branch` трактуются как цилиндры; `leaf
 - `leavesPerBranch: number` — число листьев на конце ветви (на последнем уровне)
 - `leafSize: number` — базовый размер/радиус листа
 - `leafShape?: 'billboard' | 'sphere'` — тип листвы (см. выше)
+ - `embedFactor?: number` (0..1) — коэффициент заглубления ответвлений и стыков ствола. Используется для скрытия торцевых крышек цилиндров внутри родителя. По умолчанию ≈ 0.6. При малых углах наклона генератор автоматически повышает фактическую глубину до минимально достаточной величины.
 
 Возвращаемое значение генератора (сокр.): массив `GfxPrimitive` (trunk/branch/leaf) и список материалов (см. `GfxMaterial`).
 
