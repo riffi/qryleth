@@ -7,6 +7,7 @@ import { GfxLayerType } from '@/entities/layer'
 import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
 import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
+import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -304,14 +305,24 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
       )}
 
       {spheres.length > 0 && (
-        <InstancedLeaves
-          sceneObject={sceneObject}
-          spheres={spheres}
-          instances={instances}
-          materials={sceneObject.materials}
-          onClick={onClick}
-          onHover={onHover}
-        />
+        <>
+          <InstancedLeaves
+            sceneObject={sceneObject}
+            spheres={spheres}
+            instances={instances}
+            materials={sceneObject.materials}
+            onClick={onClick}
+            onHover={onHover}
+          />
+          <InstancedLeafSpheres
+            sceneObject={sceneObject}
+            leaves={spheres as any}
+            instances={instances}
+            materials={sceneObject.materials}
+            onClick={onClick}
+            onHover={onHover}
+          />
+        </>
       )}
 
       {rest.map(({ primitive, index }) => (

@@ -248,7 +248,7 @@ export function generateTree(params: TreeGeneratorParams & {
             uuid: generateUUID(),
             type: 'leaf',
             name: 'Лист',
-            geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())) },
+            geometry: { radius: Math.max(0.01, leafSize * (0.7 + 0.6 * rng())), shape: params.leafShape || 'billboard' },
             objectMaterialUuid: leafMaterialUuid,
             visible: true,
             transform: {

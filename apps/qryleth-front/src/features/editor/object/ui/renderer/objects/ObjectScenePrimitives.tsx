@@ -5,6 +5,7 @@ import { usePalettePreviewUuid } from '../../../model/palettePreviewStore.ts'
 import { GroupRenderer } from './GroupRenderer.tsx'
 import { InstancedBranchesOE } from './InstancedBranchesOE'
 import { InstancedLeavesOE } from './InstancedLeavesOE'
+import { InstancedLeafSpheresOE } from './InstancedLeafSpheresOE'
 import {
   useObjectPrimitives,
   useObjectStore,
@@ -60,6 +61,8 @@ export const ObjectScenePrimitives: React.FC = () => {
 
   const ungroupedCylinders = ungrouped.filter(({ p }) => p.type === 'trunk' || p.type === 'branch')
   const ungroupedLeaves = ungrouped.filter(({ p }) => p.type === 'leaf')
+  const ungroupedLeafBillboards = ungroupedLeaves.filter(({ p }) => (p as any).geometry?.shape !== 'sphere')
+  const ungroupedLeafSpheres = ungroupedLeaves.filter(({ p }) => (p as any).geometry?.shape === 'sphere')
 
   return (
     <group onPointerMissed={() => clearSelection()}>
@@ -74,9 +77,17 @@ export const ObjectScenePrimitives: React.FC = () => {
       )}
 
       {/* Инстанс‑отрисовка для не сгруппированных листьев (плоские биллборды) */}
-      {ungroupedLeaves.length > 0 && (
+      {ungroupedLeafBillboards.length > 0 && (
         <InstancedLeavesOE
-          leaves={ungroupedLeaves.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
+          leaves={ungroupedLeafBillboards.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
+          objectMaterials={objectMaterials}
+          onPrimitiveClick={handleObjectClick}
+          onPrimitiveHover={() => {}}
+        />
+      )}
+      {ungroupedLeafSpheres.length > 0 && (
+        <InstancedLeafSpheresOE
+          leaves={ungroupedLeafSpheres.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
           objectMaterials={objectMaterials}
           onPrimitiveClick={handleObjectClick}
           onPrimitiveHover={() => {}}

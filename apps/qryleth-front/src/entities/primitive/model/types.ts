@@ -52,6 +52,11 @@ export interface TreeCylinderGeometry {
 export interface LeafBillboardGeometry {
   /** Базовый размер листа (используется как радиус/масштаб) */
   radius: number;
+  /**
+   * Способ отрисовки листа: 'billboard' (плоская плоскость с маской)
+   * или 'sphere' (объёмная сфера). По умолчанию 'billboard'.
+   */
+  shape?: 'billboard' | 'sphere';
 }
 
 // Общие свойства примитивов

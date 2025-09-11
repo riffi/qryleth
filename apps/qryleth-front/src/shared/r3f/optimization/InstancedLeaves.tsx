@@ -7,7 +7,7 @@ import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 
 interface SpherePrimitiveLike {
   type: 'leaf'
-  geometry: { radius: number }
+  geometry: { radius: number; shape?: 'billboard' | 'sphere' }
   transform?: { position?: number[]; rotation?: number[]; scale?: number[] }
   material?: any
   objectMaterialUuid?: string
@@ -53,7 +53,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   }), [samplePrimitive, materials, sceneObject.materials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
 
-  const count = instances.length * spheres.length
+  const billboardLeaves = useMemo(() => spheres.filter(s => s.primitive.geometry.shape !== 'sphere'), [spheres])
+  const count = instances.length * billboardLeaves.length
 
   useEffect(() => {
     if (!meshRef.current) return
@@ -68,8 +69,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       const [isx, isy, isz] = it.scale || [1,1,1]
       const qInst = new THREE.Quaternion().setFromEuler(new THREE.Euler(irx, iry, irz, 'XYZ'))
 
-      for (let j = 0; j < spheres.length; j++) {
-        const prim = spheres[j].primitive
+      for (let j = 0; j < billboardLeaves.length; j++) {
+        const prim = billboardLeaves[j].primitive
         const pt = prim.transform || {}
         const [px, py, pz] = pt.position || [0,0,0]
         const [prx, pry, prz] = pt.rotation || [0,0,0]
@@ -103,7 +104,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if (!onClick) return
     const instanceId: number = event.instanceId
     if (instanceId == null) return
-    const perInstance = spheres.length
+    const perInstance = billboardLeaves.length
     const sceneInstIndex = Math.floor(instanceId / perInstance)
     const inst = instances[sceneInstIndex]
     onClick({
@@ -123,7 +124,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if (!onHover) return
     const instanceId: number = event.instanceId
     if (instanceId == null) return
-    const perInstance = spheres.length
+    const perInstance = billboardLeaves.length
     const sceneInstIndex = Math.floor(instanceId / perInstance)
     const inst = instances[sceneInstIndex]
     onHover({

@@ -28,6 +28,8 @@ export interface TreeGeneratorParams {
   leavesPerBranch: number
   /** Размер (радиус) листа, если рендерим лист как сферу */
   leafSize: number
+  /** Тип листвы: billboard или sphere */
+  leafShape?: 'billboard' | 'sphere'
 }
 
 /**
@@ -37,4 +39,3 @@ export interface TreeGeneratorResult {
   primitives: import('@/entities/primitive').GfxPrimitive[]
   materials: import('@/entities/material').CreateGfxMaterial[]
 }
-

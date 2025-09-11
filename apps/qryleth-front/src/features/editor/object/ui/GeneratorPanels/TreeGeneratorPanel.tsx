@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
@@ -25,6 +25,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     randomness: 0.3,
     leavesPerBranch: 3,
     leafSize: 0.16,
+    leafShape: 'billboard',
   })
 
   // Параметры материалов
@@ -106,6 +107,14 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
           <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
         </Group>
+        <SegmentedControl
+          value={params.leafShape || 'billboard'}
+          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere') }))}
+          data={[
+            { label: 'Билборды', value: 'billboard' },
+            { label: 'Сферы', value: 'sphere' },
+          ]}
+        />
 
         <Divider label="Материалы" />
         <Group grow>
@@ -122,4 +131,3 @@ export const TreeGeneratorPanel: React.FC = () => {
 }
 
 export default TreeGeneratorPanel
-
