@@ -28,6 +28,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     branchLength: 1.4,
     branchRadius: 0.08,
     branchAngleDeg: 35,
+    branchAngleDegFirst: 35,
+    branchAngleDegNext: 28,
     randomness: 0.3,
     leavesPerBranch: 3,
     leafSize: 0.16,
@@ -90,7 +92,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchTopBias',
-        'branchLength', 'branchRadius', 'branchAngleDeg', 'angleSpread',
+        'branchLength', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape',
         'embedFactor',
@@ -164,6 +166,17 @@ export const TreeGeneratorPanel: React.FC = () => {
   return (
     <Box p="sm" style={{ height: '100%', overflow: 'auto' }}>
       <Stack gap="sm">
+        {/**
+         * Локальные флаги доступности контролов:
+         * - trunkBranchDisabled: нет разветвления ствола → отключаем его параметры
+         * - branchesDisabled: нет веток → отключаем параметры веток и листвы
+         * - leavesAlong: режим размещения листвы вдоль ветви
+         */}
+        {(() => null)()}
+        {/** вычисления */}
+        {(() => {
+          return null
+        })()}
         <Group justify="space-between"><Text fw={600}>Генератор дерева</Text><Switch label="Очистить перед генерацией" checked={clearBefore} onChange={(e) => setClearBefore(e.currentTarget.checked)} /></Group>
 
         <Divider label="Случайность" />
@@ -191,6 +204,8 @@ export const TreeGeneratorPanel: React.FC = () => {
         </Box>
 
         <Divider label="Разветвление ствола" />
+        {/** Булевы флаги для disable */}
+        {(() => null)()}
         <Group grow>
           <NumberInput
             label="Уровни"
@@ -205,6 +220,7 @@ export const TreeGeneratorPanel: React.FC = () => {
             onChange={(v) => setParams(p => ({ ...p, trunkBranchesPerLevel: Math.max(1, Math.round(Number(v) || 1)) }))}
             min={1}
             step={1}
+            disabled={(params.trunkBranchLevels ?? 0) <= 0}
           />
           <NumberInput
             label="Угол (°)"
@@ -213,6 +229,7 @@ export const TreeGeneratorPanel: React.FC = () => {
             min={0}
             max={85}
             step={1}
+            disabled={(params.trunkBranchLevels ?? 0) <= 0}
           />
         </Group>
         <Group grow>
@@ -225,6 +242,7 @@ export const TreeGeneratorPanel: React.FC = () => {
               max={0.95}
               step={0.01}
               marks={[{ value: 0.3, label: '0.3' }, { value: 0.7, label: '0.7' }, { value: 0.9, label: '0.9' }]}
+              disabled={(params.trunkBranchLevels ?? 0) <= 0}
             />
           </Box>
         </Group>
@@ -232,8 +250,8 @@ export const TreeGeneratorPanel: React.FC = () => {
         <Divider label="Ветви" />
         <Group grow>
           <NumberInput label="Уровни" value={params.branchLevels} onChange={(v) => setParams(p => ({ ...p, branchLevels: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
-          <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1}/>
-          <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1}/>
+          <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1} disabled={params.branchLevels <= 0}/>
+          <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1} disabled={params.branchLevels <= 0}/>
         </Group>
         <Box>
           <Text size="sm" mb={4}>Привязка ветвей к верху</Text>
@@ -244,11 +262,14 @@ export const TreeGeneratorPanel: React.FC = () => {
             max={1}
             step={0.01}
             marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
           />
         </Box>
         <Group grow>
-          <NumberInput label="Радиус ветви" value={params.branchRadius} onChange={(v) => setParams(p => ({ ...p, branchRadius: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
-          <NumberInput label="Угол (°)" value={params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1}/>
+          <NumberInput label="Радиус ветви" value={params.branchRadius} onChange={(v) => setParams(p => ({ ...p, branchRadius: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
+          <NumberInput label="Базовый угол (°)" value={params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1} disabled={params.branchLevels <= 0}/>
+          <NumberInput label="Угол L1 (°)" value={params.branchAngleDegFirst ?? params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDegFirst: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1} disabled={params.branchLevels <= 0}/>
+          <NumberInput label="Угол L2+ (°)" value={params.branchAngleDegNext ?? params.branchAngleDeg} onChange={(v) => setParams(p => ({ ...p, branchAngleDegNext: Math.max(0, Math.min(85, Number(v) || 0)) }))} min={0} max={85} step={1} disabled={params.branchLevels <= 0}/>
         </Group>
         <Box>
           <Text size="sm" mb={4}>Разброс наклона ветви</Text>
@@ -259,13 +280,14 @@ export const TreeGeneratorPanel: React.FC = () => {
             max={1}
             step={0.05}
             marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
           />
         </Box>
 
         <Divider label="Листья" />
         <Group grow>
-          <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
-          <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
+          <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
+          <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
         </Group>
         <SegmentedControl
           value={params.leafShape || 'billboard'}
@@ -275,6 +297,7 @@ export const TreeGeneratorPanel: React.FC = () => {
             { label: 'Сферы', value: 'sphere' },
             { label: 'Хвойная (крест)', value: 'coniferCross' },
           ]}
+          disabled={params.branchLevels <= 0}
         />
         <Group grow>
           <SegmentedControl
@@ -284,6 +307,7 @@ export const TreeGeneratorPanel: React.FC = () => {
               { label: 'На концах', value: 'end' },
               { label: 'Вдоль ветви', value: 'along' },
             ]}
+            disabled={params.branchLevels <= 0}
           />
           {params.leafPlacement === 'along' && (
             <Slider
@@ -293,6 +317,7 @@ export const TreeGeneratorPanel: React.FC = () => {
               max={12}
               step={0.5}
               marks={[{ value: 2, label: '2/м' }, { value: 6, label: '6/м' }, { value: 10, label: '10/м' }]}
+              disabled={params.branchLevels <= 0}
             />
           )}
         </Group>

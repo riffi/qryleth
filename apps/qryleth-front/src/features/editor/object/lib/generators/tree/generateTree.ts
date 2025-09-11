@@ -443,7 +443,10 @@ export function generateTree(params: TreeGeneratorParams & {
         const b1: [number, number, number] = [b1v.x, b1v.y, b1v.z]
         const b2: [number, number, number] = [b2v.x, b2v.y, b2v.z]
 
-        const alpha = randomTiltRad(branchAngleDeg, params.angleSpread ?? 1, rng)
+        const baseAngleDeg = (level === 1)
+          ? (params.branchAngleDegFirst ?? branchAngleDeg)
+          : (params.branchAngleDegNext ?? branchAngleDeg)
+        const alpha = randomTiltRad(baseAngleDeg, params.angleSpread ?? 1, rng)
         const theta = randRange(rng, 0, Math.PI * 2)
         const s = Math.sin(alpha)
         const c = Math.cos(alpha)

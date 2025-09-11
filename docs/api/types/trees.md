@@ -38,6 +38,8 @@ Bounding Box: `trunk/branch` трактуются как цилиндры; `leaf
 - `branchLength: number` — базовая длина ветви (уменьшается на верхних уровнях)
 - `branchRadius: number` — радиус ветви первого уровня
 - `branchAngleDeg: number` — угол наклона ветви от вертикали (в градусах)
+- `branchAngleDegFirst?: number` — угол для ветвей первого уровня (если не задан — берётся `branchAngleDeg`)
+- `branchAngleDegNext?: number` — угол для уровней ≥2 (если не задан — берётся `branchAngleDeg`)
 - `angleSpread?: number` (0..1) — разброс наклона относительно `branchAngleDeg`
   - 0 — без разброса (точно `branchAngleDeg`)
   - 1 — максимальный джиттер (порядка ±50% от `branchAngleDeg`)

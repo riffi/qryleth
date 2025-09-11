@@ -34,6 +34,14 @@ export interface TreeGeneratorParams {
   branchRadius: number
   /** Угол наклона ветви от вертикали, в градусах */
   branchAngleDeg: number
+  /**
+   * Переопределение угла для уровня 1 (если задано). Если не задан — используется branchAngleDeg.
+   */
+  branchAngleDegFirst?: number
+  /**
+   * Переопределение угла для уровней ≥2 (если задано). Если не задан — используется branchAngleDeg.
+   */
+  branchAngleDegNext?: number
   /** Доля случайного разброса параметров (0..1) */
   randomness: number
   /** Количество листьев на конце каждой ветви (на верхнем уровне) */
