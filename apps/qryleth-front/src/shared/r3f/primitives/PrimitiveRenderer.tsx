@@ -8,6 +8,7 @@ import type { GlobalPalette } from '@/entities/palette'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { Box3D } from './Box3D'
 import { Sphere3D } from './Sphere3D'
+import { LeafBillboard3D } from './LeafBillboard3D'
 import { Cylinder3D } from './Cylinder3D'
 import { Cone3D } from './Cone3D'
 import { Pyramid3D } from './Pyramid3D'
@@ -76,6 +77,16 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
 
     case 'sphere':
     case 'leaf':
+      // Если лист текстурный — используем специальный рендер плоскости с кропом и anchor
+      if (primitive.type === 'leaf' && (((primitive as any).geometry?.shape === 'texture') || (!!(primitive as any).geometry?.texSpriteName))) {
+        return (
+          <LeafBillboard3D
+            primitive={primitive}
+            materialProps={baseMaterialProps}
+            meshProps={meshProps}
+          />
+        )
+      }
       return (
         <Sphere3D
           primitive={primitive}

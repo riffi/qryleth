@@ -37,6 +37,11 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   onClick,
   onHover,
 }) => {
+  const dbg = (...args: any[]) => {
+    // Отладочные логи рендера листьев в Scene Editor
+    // eslint-disable-next-line no-console
+    console.log('[InstancedLeaves]', ...args)
+  }
   const meshRef = useRef<THREE.InstancedMesh>(null)
 
   // Палитра сцены
@@ -57,13 +62,40 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[] | null>(null)
   const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
   // Список биллборд‑листьев (исключаем сферические), используем ниже во всех мемо/эффектах
-  const billboardLeaves = useMemo(() => spheres.filter(s => s.primitive.geometry.shape !== 'sphere'), [spheres])
-  const spriteNameKey = (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName || 'default'
+  const billboardLeaves = useMemo(() => {
+    const arr = spheres.filter(s => s.primitive.geometry.shape !== 'sphere')
+    dbg('billboardLeaves computed', { total: spheres.length, billboard: arr.length })
+    return arr
+  }, [spheres])
+  // Признак наличия текстурных листьев (по shape или по наличию texSpriteName)
+  const hasTextureLeaves = useMemo(
+    () => {
+      const v = spheres.some(s => (s.primitive.geometry as any)?.shape === 'texture' || (s.primitive.geometry as any)?.texSpriteName)
+      dbg('hasTextureLeaves?', v, { sample: (spheres[0]?.primitive.geometry as any) })
+      return v
+    },
+    [spheres]
+  )
+  // Эффективный режим: texture при наличии текстурных листьев, иначе coniferCross если есть, иначе billboard
+  const effectiveShape: 'billboard' | 'coniferCross' | 'texture' = useMemo(() => {
+    if (hasTextureLeaves) return 'texture'
+    const anyCross = billboardLeaves.some(l => l.primitive.geometry.shape === 'coniferCross')
+    const eff = anyCross ? 'coniferCross' : 'billboard'
+    dbg('effectiveShape', eff)
+    return eff
+  }, [hasTextureLeaves, billboardLeaves])
+  // Представитель для texture-листьев, если есть
+  const textureSample = useMemo(() => {
+    const p = spheres.find(l => (l.primitive.geometry as any).shape === 'texture' || (l.primitive.geometry as any).texSpriteName)?.primitive as any
+    dbg('textureSample chosen', { sprite: (p as any)?.geometry?.texSpriteName, shape: (p as any)?.geometry?.shape })
+    return p
+  }, [spheres])
+  const spriteNameKey = ((textureSample as any)?.geometry?.texSpriteName) || 'default'
 
   // Загрузка карт из публичной папки при выборе режима 'texture'
   useEffect(() => {
-    const shape = (billboardLeaves[0]?.primitive.geometry.shape) || 'billboard'
-    if (shape !== 'texture') return
+    dbg('texture load effect start', { hasTextureLeaves })
+    if (!hasTextureLeaves) return
     const loader = new THREE.TextureLoader()
     const base = '/texture/leaf/LeafSet019_1K-JPG/'
     const onTex = (t: THREE.Texture | null) => {
@@ -80,39 +112,49 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       t2.rotation = 0
       setDiffuseMap(t2)
       const img2: any = t2.image
+      dbg('diffuse loaded', { w: img2?.width, h: img2?.height })
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
+    }, undefined, (err) => {
+      dbg('ERROR loading diffuse', err)
     })
-    loader.load(base + 'LeafSet019_1K-JPG_Opacity.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_NormalGL.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
-  }, [spheres])
+    loader.load(base + 'LeafSet019_1K-JPG_Opacity.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
+    loader.load(base + 'LeafSet019_1K-JPG_NormalGL.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
+    loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
+  }, [hasTextureLeaves])
 
   useEffect(() => {
-    if ((billboardLeaves[0]?.primitive.geometry.shape) !== 'texture') return
+    dbg('apply rot/center', { hasTextureLeaves, hasMaps: !!diffuseMap })
+    if (!hasTextureLeaves) return
     const applyRot = (t: THREE.Texture | null) => { if (!t) return; t.center.set(0.0,0.0); t.rotation = 0; t.needsUpdate = true }
     applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
-  }, [billboardLeaves, diffuseMap, alphaMap, normalMap, roughnessMap])
+  }, [hasTextureLeaves, diffuseMap, alphaMap, normalMap, roughnessMap])
 
   // Без поворота UV — ничего не делаем
-  useEffect(() => { /* noop */ }, [billboardLeaves])
+  useEffect(() => { /* noop */ }, [hasTextureLeaves])
 
   // Загружаем atlas.json с произвольными прямоугольниками
   useEffect(() => {
-    if ((billboardLeaves[0]?.primitive.geometry.shape) !== 'texture') return
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json').then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
-  }, [billboardLeaves])
+    dbg('fetch atlas', { hasTextureLeaves })
+    if (!hasTextureLeaves) return
+    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+      .then(r => r.json())
+      .then(a => { setAtlas(a); dbg('atlas loaded', a?.length) })
+      .catch((e) => { setAtlas(null); dbg('ERROR loading atlas', e) })
+  }, [hasTextureLeaves])
 
   // Применяем выбранный прямоугольник: repeat/offset/center и aspect
   useEffect(() => {
-    if ((billboardLeaves[0]?.primitive.geometry.shape) !== 'texture') return
+    dbg('apply rect', { hasTextureLeaves, hasDiffuse: !!diffuseMap, sprite: (textureSample as any)?.geometry?.texSpriteName })
+    if (!hasTextureLeaves) return
     if (!diffuseMap) return
     const img: any = diffuseMap.image
     if (!img || !img.width || !img.height) return
     const W = img.width, H = img.height
-    const spriteName: string | undefined = (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName
+    const spriteName: string | undefined = (textureSample?.geometry as any)?.texSpriteName
     const items = atlas || []
     const rect: any = (items.find(i => i.name === spriteName) || items[0])
     if (!rect) return
+    dbg('rect chosen', { spriteName, rect })
     const repX = rect.width / W
     const repY = rect.height / H
     const offX = rect.x / W
@@ -135,6 +177,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       const u = (materialRef.current as any).userData.uniforms
       const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
       u.uTexCenter.value.set(cx, cy)
+      dbg('uTexCenter set', { cx, cy })
     }
     // Anchor: читаем из atlas.json; по умолчанию — нижняя середина (0.5, 1.0)
     const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
@@ -143,10 +186,12 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       const uN = Math.min(1, Math.max(0, ax / rect.width))
       const vN = Math.min(1, Math.max(0, ay / rect.height))
       setAnchorUV([uN, vN])
+      dbg('anchor set', { u: uN, v: vN })
     } else {
       setAnchorUV([0.5, 1.0])
+      dbg('anchor default')
     }
-  }, [atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName, texRotateRad])
+  }, [hasTextureLeaves, atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (textureSample as any)?.geometry?.texSpriteName])
   const resolvedMaterial = useMemo(() => resolveMaterial({
     directMaterial: samplePrimitive?.material,
     objectMaterialUuid: samplePrimitive?.objectMaterialUuid,
@@ -159,6 +204,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   useEffect(() => {
     if (!meshRef.current) return
     const dummy = new THREE.Object3D()
+    dbg('compose instance matrices', { instances: instances.length, leaves: billboardLeaves.length, texAspect, anchorUV })
 
     let k = 0
     for (let i = 0; i < instances.length; i++) {
@@ -259,7 +305,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
   // Переходим от сфер к плоским биллбордам-листьям: базовая геометрия — плоскость 1x1
   const geometry = useMemo(() => {
-    const shape = (billboardLeaves[0]?.primitive.geometry.shape) || 'billboard'
+    const shape = effectiveShape
     const makePlane = () => new THREE.PlaneGeometry(1, 1, 1, 1)
     if (shape === 'coniferCross') {
       const p1 = makePlane()
@@ -296,7 +342,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       return g
     }
     return makePlane()
-  }, [billboardLeaves])
+  }, [effectiveShape])
 
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
@@ -306,8 +352,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     mat.side = THREE.DoubleSide
     mat.alphaTest = 0.5
     mat.onBeforeCompile = (shader) => {
-      const shape = (billboardLeaves[0]?.primitive.geometry.shape) || 'billboard'
+      const shape = effectiveShape
       const aspect = shape === 'coniferCross' ? 2.4 : (shape === 'texture' ? (texAspect || 1) : 0.6)
+      dbg('onBeforeCompile', { shape, aspect, hasMaps: !!diffuseMap })
       shader.uniforms.uAspect = { value: aspect }
       shader.uniforms.uEdgeSoftness = { value: 0.18 }
       shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
@@ -380,6 +427,20 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     mat.needsUpdate = true
   }
 
+  // Если карты загрузились, принудительно назначаем их в материал и помечаем на обновление
+  useEffect(() => {
+    if (!materialRef.current) return
+    if (effectiveShape !== 'texture') return
+    const mat = materialRef.current as any
+    if (diffuseMap) mat.map = diffuseMap
+    if (alphaMap) mat.alphaMap = alphaMap
+    if (normalMap) mat.normalMap = normalMap
+    if (roughnessMap) mat.roughnessMap = roughnessMap
+    mat.transparent = true
+    mat.alphaTest = 0.5
+    mat.needsUpdate = true
+  }, [effectiveShape, diffuseMap, alphaMap, normalMap, roughnessMap])
+
   return (
     <instancedMesh
       ref={meshRef}
@@ -390,15 +451,15 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       onPointerOver={handleHover}
     >
       <meshStandardMaterial
-        key={`leafMat-${spriteNameKey}`}
+        key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRef}
         {...materialProps}
-        map={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? diffuseMap || undefined : undefined}
-        alphaMap={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? alphaMap || undefined : undefined}
-        normalMap={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? normalMap || undefined : undefined}
-        roughnessMap={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? true : materialProps.transparent}
-        alphaTest={(billboardLeaves[0]?.primitive.geometry.shape) === 'texture' ? 0.5 : materialProps.alphaTest}
+        map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
+        alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
+        normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
+        roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
+        transparent={effectiveShape === 'texture' ? true : materialProps.transparent}
+        alphaTest={effectiveShape === 'texture' ? 0.5 : materialProps.alphaTest}
       />
     </instancedMesh>
   )
