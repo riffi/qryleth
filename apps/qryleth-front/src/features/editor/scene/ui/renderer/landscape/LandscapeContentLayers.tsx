@@ -213,8 +213,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       <meshLambertMaterial
         color={materialColor}
         side={THREE.FrontSide}
+        depthTest={true}
         wireframe={wireframe}
-        transparent={Boolean(item.material?.multiColor?.palette?.some(s => (s.alpha ?? 1) < 1)) || Boolean(item.material?.multiColor)}
+        transparent={false}
+        //transparent={Boolean(item.material?.multiColor?.palette?.some(s => (s.alpha ?? 1) < 1)) || Boolean(item.material?.multiColor)}
         opacity={1.0}
         vertexColors={useVertexColors}
       />
