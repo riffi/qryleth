@@ -359,11 +359,13 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       shader.uniforms.uEdgeSoftness = { value: 0.18 }
       shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
       // Отладочная прямоугольная рамка по UV‑границам плоскости
-      shader.uniforms.uRectDebug = { value: shape === 'texture' ? 1.0 : 0.0 }
+      // В SceneEditor не показываем отладочную прямоугольную обводку
+      shader.uniforms.uRectDebug = { value: 0.0 }
       shader.uniforms.uRectColor = { value: new THREE.Color(0xff00ff) }
       shader.uniforms.uRectWidth = { value: 0.02 }
       // Debug‑подсветка края по альфа‑границе
-      shader.uniforms.uEdgeDebug = { value: shape === 'texture' ? 1.0 : 0.0 }
+      // И отладочную подсветку края по альфа‑границе тоже выключаем
+      shader.uniforms.uEdgeDebug = { value: 0.0 }
       shader.uniforms.uEdgeColor = { value: new THREE.Color(0x00ff00) }
       shader.uniforms.uEdgeWidth = { value: 2.0 }
       shader.uniforms.uAlphaThreshold = { value: (mat.alphaTest ?? 0.5) as number }
@@ -399,7 +401,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // Вставляем подсветку края после применения карты и добавляем прямоугольную рамку по UV плоскости
         frag = frag
           .replace('#include <common>', `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nvarying vec2 vLeafUv;`)
-          .replace('#include <map_fragment>', `#include <map_fragment>\n{  #if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n  #endif\n  if (uRectDebug > 0.5) {    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу до alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n}`)
+          .replace('#include <map_fragment>', `#include <map_fragment>\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу до alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n`)
         // Для режима 'texture' дополнительно гарантируем повышение альфы перед alphaTest (после применения alphaMap)
         if (shape === 'texture') {
           frag = frag.replace('#include <alphatest_fragment>', `
@@ -450,6 +452,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       onClick={handleClick}
       onPointerOver={handleHover}
     >
+      {(() => { /* eslint-disable no-console */ console.log('[InstancedLeaves] render', { count, effectiveShape, hasTextureLeaves, maps: { d: !!diffuseMap, a: !!alphaMap, n: !!normalMap, r: !!roughnessMap } }); return null })()}
       <meshStandardMaterial
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRef}
@@ -458,8 +461,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
         roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={effectiveShape === 'texture' ? true : materialProps.transparent}
-        alphaTest={effectiveShape === 'texture' ? 0.5 : materialProps.alphaTest}
+        transparent={effectiveShape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
+        alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />
     </instancedMesh>
   )
