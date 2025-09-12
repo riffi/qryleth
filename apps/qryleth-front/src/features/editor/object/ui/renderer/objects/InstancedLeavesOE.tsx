@@ -5,6 +5,7 @@ import type { GfxMaterial } from '@/entities/material'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { usePalettePreviewUuid } from '../../../model/palettePreviewStore'
+import { useObjectDebugFlags } from '../../../model/debugFlagsStore'
 
 interface InstancedLeavesOEProps {
   leaves: { primitive: GfxPrimitive; index: number }[]
@@ -22,6 +23,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
 
   const sample = leaves[0]?.primitive
+  const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
   /**
    * Карты текстур для режима shape = 'texture'. Загружаются лениво при первом появлении такого режима.
    * - diffuseMap: цветовая карта
@@ -254,7 +256,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       shader.uniforms.uEdgeSoftness = { value: 0.18 }
       shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
       // Яркая прямоугольная рамка по UV краям плоскости (для texture)
-      shader.uniforms.uRectDebug = { value: shape === 'texture' ? 1.0 : 0.0 }
+      shader.uniforms.uRectDebug = { value: (shape === 'texture' && leafRectDebug) ? 1.0 : 0.0 }
       shader.uniforms.uRectColor = { value: new THREE.Color(0xff00ff) }
       shader.uniforms.uRectWidth = { value: 0.02 }
       // Центр поворота UV (держим для совместимости, хотя поворот геометрии)
@@ -311,6 +313,16 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     }
     mat.needsUpdate = true
   }
+
+  // Обновляем флаг uRectDebug при переключении тумблера в UI без пересоздания материала
+  useEffect(() => {
+    const shape = (sample as any)?.geometry?.shape || 'billboard'
+    if (shape !== 'texture') return
+    const uniforms = (materialRef.current as any)?.userData?.uniforms
+    if (uniforms && uniforms.uRectDebug) {
+      uniforms.uRectDebug.value = leafRectDebug ? 1.0 : 0.0
+    }
+  }, [leafRectDebug, sample])
 
   return (
     <instancedMesh

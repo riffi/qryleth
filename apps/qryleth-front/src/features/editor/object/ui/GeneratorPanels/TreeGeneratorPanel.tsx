@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
+import { useObjectDebugFlags } from '../../model/debugFlagsStore'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
 
 /**
@@ -46,6 +47,9 @@ export const TreeGeneratorPanel: React.FC = () => {
   const [barkColor, setBarkColor] = useState('#8B5A2B')
   const [leafColor, setLeafColor] = useState('#2E8B57')
   const [clearBefore, setClearBefore] = useState(true)
+  // Debug‑флаги Object Editor
+  const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
+  const setLeafRectDebug = useObjectDebugFlags(s => s.setLeafRectDebug)
 
   // Состояние модального окна конфигурации (импорт/экспорт JSON)
   const [configModalOpen, setConfigModalOpen] = useState(false)
@@ -366,6 +370,11 @@ export const TreeGeneratorPanel: React.FC = () => {
               max={85}
               step={1}
               disabled={params.branchLevels <= 0}
+            />
+            <Switch
+              label="Обводка листа (debug)"
+              checked={leafRectDebug}
+              onChange={(e) => setLeafRectDebug(e.currentTarget.checked)}
             />
             <Select
               label="Спрайт из атласа"
