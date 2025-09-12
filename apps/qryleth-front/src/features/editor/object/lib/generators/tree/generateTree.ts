@@ -641,26 +641,18 @@ export function generateTree(params: TreeGeneratorParams & {
             // Радиус текущего листа (детерминированный для разброса) — используем и для сдвига центра
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
             if (isTexture) {
-              // Новый базис: локальная ось Y идёт по радиусу наружу (лист тянется от ветки наружу)
+              // Базис плоскости листа: локальная ось +Y — радиально наружу от ветки (от anchor наружу)
               const y = radial.clone().normalize()
               const axisVec = new THREE.Vector3(...axisN)
               const tangent = new THREE.Vector3().crossVectors(axisVec, y).normalize()
-              // Под углом к ветке: нормаль плоскости как смесь оси ветви и тангенса
-              const angDeg = 20 + 15 * rng()
-              const angSign = rng() < 0.5 ? -1 : 1
-              const theta = degToRad(angDeg * angSign)
-              const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(Math.sin(theta))).normalize()
+              // Наклон листа к оси ветви на заданный угол (без случайного знака)
+              const theta = degToRad((params.leafTiltDeg ?? 25))
+              // Наклон «наружу»: меняем направление вращения вокруг касательной, чтобы лист не давил внутрь ветки
+              const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(-Math.sin(theta))).normalize()
               const x = new THREE.Vector3().crossVectors(y, z).normalize()
-              // Начальный поворот: вращаем геометрию в плоскости вокруг нормали z
-              const rotDeg = (params.leafTextureRotationDeg ?? 0) % 360
-              const qSpin = new THREE.Quaternion().setFromAxisAngle(z, degToRad(rotDeg))
-              const x2 = x.clone().applyQuaternion(qSpin)
-              const y2 = y.clone().applyQuaternion(qSpin)
-              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x2, y2, z), 'XYZ')
+              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z), 'XYZ')
               leafEuler = [e.x, e.y, e.z]
-              // Сдвигаем центр на половину высоты вдоль +Y, чтобы нижний край (-Y) касался поверхности ветки
-              const offset = y2.clone().multiplyScalar(leafRadius * 0.5)
-              pos[0] += offset.x; pos[1] += offset.y; pos[2] += offset.z
+              // Не смещаем позицию: привязку anchor делает рендерер
             } else {
               const roll = (rng() - 0.5) * Math.PI
               leafEuler = eulerFromDir(nDir)
@@ -671,7 +663,7 @@ export function generateTree(params: TreeGeneratorParams & {
               uuid: generateUUID(),
               type: 'leaf',
               name: 'Лист',
-              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texRotationDeg: (params.leafShape === 'texture' ? (params.leafTextureRotationDeg ?? 0) : undefined) as any, texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
+              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
               objectMaterialUuid: leafMaterialUuid,
               visible: true,
               transform: {
@@ -709,19 +701,12 @@ export function generateTree(params: TreeGeneratorParams & {
                 const y = radial.clone().normalize()
                 const axisVec = new THREE.Vector3(...axisN)
                 const tangent = new THREE.Vector3().crossVectors(axisVec, y).normalize()
-                const angDeg = 20 + 15 * rng()
-                const angSign = rng() < 0.5 ? -1 : 1
-                const theta = degToRad(angDeg * angSign)
-                const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(Math.sin(theta))).normalize()
+                const theta = degToRad((params.leafTiltDeg ?? 25))
+                // Наклон «наружу»: меняем знак синуса
+                const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(-Math.sin(theta))).normalize()
                 const x = new THREE.Vector3().crossVectors(y, z).normalize()
-                const rotDeg = (params.leafTextureRotationDeg ?? 0) % 360
-                const qSpin = new THREE.Quaternion().setFromAxisAngle(z, degToRad(rotDeg))
-                const x2 = x.clone().applyQuaternion(qSpin)
-                const y2 = y.clone().applyQuaternion(qSpin)
-                const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x2, y2, z), 'XYZ')
+                const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z), 'XYZ')
                 leafEuler = [e.x, e.y, e.z]
-                const offset = y2.clone().multiplyScalar(leafRadius * 0.5)
-                pos[0] += offset.x; pos[1] += offset.y; pos[2] += offset.z
               } else {
                 const roll = (rng() - 0.5) * Math.PI
                 leafEuler = eulerFromDir(nDir)
@@ -731,7 +716,7 @@ export function generateTree(params: TreeGeneratorParams & {
                 uuid: generateUUID(),
                 type: 'leaf',
                 name: 'Лист',
-                geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texRotationDeg: (params.leafShape === 'texture' ? (params.leafTextureRotationDeg ?? 0) : undefined) as any, texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
+                geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
                 objectMaterialUuid: leafMaterialUuid,
                 visible: true,
                 transform: {

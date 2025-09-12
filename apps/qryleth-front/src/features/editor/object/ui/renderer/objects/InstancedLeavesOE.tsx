@@ -36,10 +36,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
   const [texAspect, setTexAspect] = useState<number>(1)
   const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[] | null>(null)
-  const texRotateRad = useMemo(() => {
-    const deg = (sample as any)?.geometry?.texRotationDeg ?? 0
-    return THREE.MathUtils.degToRad(deg)
-  }, [sample])
+  // Нормированная точка основания спрайта внутри прямоугольника (u,v), u,v в [0..1] с началом в левом верхнем углу
+  const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
   // Текущее имя спрайта для материал‑ключа (форсируем ремонт при смене)
   const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
 
@@ -74,21 +72,12 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
   }, [sample])
 
-  // Обновляем центр (держим rotation=0; поворот делаем в шейдере)
+  // Обновляем центр (держим rotation=0; не вращаем UV)
   useEffect(() => {
     if ((sample as any)?.geometry?.shape !== 'texture') return
     const applyRot = (t: THREE.Texture | null) => { if (!t) return; t.center.set(0.0,0.0); t.rotation = 0; t.needsUpdate = true }
     applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
-  }, [texRotateRad])
-
-  // Обновляем uniform поворота при изменении крутилки
-  useEffect(() => {
-    if ((sample as any)?.geometry?.shape !== 'texture') return
-    const u = (materialRef.current as any)?.userData?.uniforms
-    if (u && u.uTexRotate) {
-      u.uTexRotate.value = 0.0
-    }
-  }, [texRotateRad])
+  }, [sample, diffuseMap, alphaMap, normalMap, roughnessMap])
 
   // Загружаем atlas.json (переменные прямоугольники листьев)
   useEffect(() => {
@@ -106,7 +95,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     const W = img.width, H = img.height
     const spriteName: string | undefined = (sample as any)?.geometry?.texSpriteName
     const items = atlas || []
-    const rect = (items.find(i => i.name === spriteName) || items[0])
+    const rect: any = (items.find(i => i.name === spriteName) || items[0])
     if (!rect) return
     const repX = rect.width / W
     const repY = rect.height / H
@@ -133,7 +122,17 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
       u.uTexCenter.value.set(cx, cy)
     }
-  }, [atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (sample as any)?.geometry?.texSpriteName, texRotateRad])
+    // Читаем точку основания из атласа (anchorX/anchorY либо anchor: {x,y}); по умолчанию — нижняя середина (0.5, 1.0)
+    const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
+    const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
+    if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
+      const uN = Math.min(1, Math.max(0, ax / rect.width))
+      const vN = Math.min(1, Math.max(0, ay / rect.height))
+      setAnchorUV([uN, vN])
+    } else {
+      setAnchorUV([0.5, 1.0])
+    }
+  }, [atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (sample as any)?.geometry?.texSpriteName])
   const resolvedMaterial = useMemo(() => resolveMaterial({
     directMaterial: sample?.material,
     objectMaterialUuid: sample?.objectMaterialUuid,
@@ -165,12 +164,24 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       const sz = uniformScale
       dummy.position.set(px, py, pz)
       dummy.rotation.set(prx, pry, prz)
+      // Привязываем геометрию к точке основания спрайта: смещение в локальных координатах плоскости
+      if (shape2 === 'texture') {
+        const u = anchorUV?.[0] ?? 0.5
+        const v = anchorUV?.[1] ?? 1.0
+        // Переносим локальные координаты anchor в центр плоскости (точку крепления):
+        // локально anchor = ((u-0.5)*sx, (0.5 - v)*sy); смещение = -anchor → ((0.5-u)*sx, (v-0.5)*sy)
+        const dx = (0.5 - u) * sx
+        const dy = (v - 0.5) * sy
+        const off = new THREE.Vector3(dx, dy, 0)
+        off.applyEuler(new THREE.Euler(prx, pry, prz, 'XYZ'))
+        dummy.position.add(off)
+      }
       dummy.scale.set(sx, sy, sz)
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(k, dummy.matrix)
     }
     meshRef.current.instanceMatrix.needsUpdate = true
-  }, [leaves, texAspect])
+  }, [leaves, texAspect, anchorUV])
 
   const handleClick = (event: any) => {
     if (!onPrimitiveClick) return
@@ -242,8 +253,6 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       shader.uniforms.uAspect = { value: aspect }
       shader.uniforms.uEdgeSoftness = { value: 0.18 }
       shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
-      // Поворот UV внутри тайла после кропа
-      shader.uniforms.uTexRotate = { value: 0.0 }
       // Яркая прямоугольная рамка по UV краям плоскости (для texture)
       shader.uniforms.uRectDebug = { value: shape === 'texture' ? 1.0 : 0.0 }
       shader.uniforms.uRectColor = { value: new THREE.Color(0xff00ff) }
@@ -251,7 +260,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       // Центр поворота UV (держим для совместимости, хотя поворот геометрии)
       shader.uniforms.uTexCenter = { value: new THREE.Vector2(0.5, 0.5) }
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform float uTexRotate;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`)
+        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`)
         .replace('#include <begin_vertex>', `
           vec3 pos = position;
           vLeafUv = uv;
@@ -260,10 +269,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
           pos += normalize(normal) * ((bend * bend - 0.25) * uBend);
           vec3 transformed = pos;
         `)
-        .replace('#include <uv_vertex>', `#include <uv_vertex>\n  \
-          #ifdef USE_MAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vMapUv - c; vMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif\n  \
-          #ifdef USE_NORMALMAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vNormalMapUv - c; vNormalMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif\n  \
-          #ifdef USE_ROUGHNESSMAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vRoughnessMapUv - c; vRoughnessMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif`)
+        .replace('#include <uv_vertex>', `#include <uv_vertex>`)
       // Для текстурных листьев используем альфа из PNG; не подмешиваем круговую маску
       if (shape !== 'texture') {
         shader.fragmentShader = shader.fragmentShader

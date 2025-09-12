@@ -60,14 +60,14 @@ export interface TreeGeneratorParams {
   leavesPerBranch: number
   /** Размер (радиус) листа, если рендерим лист как сферу */
   leafSize: number
-  /** Тип листвы: billboard или sphere */
-  leafShape?: 'billboard' | 'sphere' | 'coniferCross'
+  /** Тип листвы: billboard, sphere, coniferCross или texture */
+  leafShape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture'
   /**
-   * Начальный поворот текстурного листа в градусах (0..360).
-   * Применяется только при leafShape='texture': вращает картинку внутри плоскости,
-   * не меняя того, какой край считается «крепёжным» к ветке.
+   * Наклон листа к оси ветви (в градусах). 0° — плоскость листа перпендикулярна
+   * тангенциальному направлению, 90° — нормаль листа совпадает с осью ветви.
+   * Применяется для leafShape='texture'.
    */
-  leafTextureRotationDeg?: number
+  leafTiltDeg?: number
   /**
    * Имя спрайта (подпрямоугольника) из atlas.json для набора LeafSet019.
    * Используется только при leafShape='texture'. Если не задано — берётся первый элемент атласа.

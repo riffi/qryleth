@@ -22,7 +22,7 @@ export const LeafSpriteDebugPanel: React.FC = () => {
   }, [primitives, selected])
 
   const spriteName = (target?.geometry as any)?.texSpriteName as string | undefined
-  const texRotDeg = (target?.geometry as any)?.texRotationDeg as number | undefined
+  const texRotDeg = undefined
 
   // Загружаем атлас и исходное изображение
   const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[]>([])
@@ -51,6 +51,20 @@ export const LeafSpriteDebugPanel: React.FC = () => {
   const offY = rect ? 1 - (rect.y + rect.height) / H : 0
   const cx = offX + repX * 0.5
   const cy = offY + repY * 0.5
+  /**
+   * Точка основания (anchor) спрайта для визуальной проверки крепления.
+   * Поддерживаются форматы в atlas.json: anchorX/anchorY (в пикселях) или anchor: { x, y }.
+   * Если значения отсутствуют — используем нижнюю середину прямоугольника.
+   */
+  const anchor = useMemo(() => {
+    const ax = (rect && (typeof (rect as any).anchorX === 'number' ? (rect as any).anchorX : (rect as any)?.anchor?.x))
+    const ay = (rect && (typeof (rect as any).anchorY === 'number' ? (rect as any).anchorY : (rect as any)?.anchor?.y))
+    const px = rect ? rect.x + (typeof ax === 'number' ? ax : rect.width * 0.5) : 0
+    const py = rect ? rect.y + (typeof ay === 'number' ? ay : rect.height) : 0
+    const u = rect && rect.width > 0 ? ((typeof ax === 'number' ? ax : rect.width * 0.5) / rect.width) : 0.5
+    const v = rect && rect.height > 0 ? ((typeof ay === 'number' ? ay : rect.height) / rect.height) : 1.0
+    return { px, py, u, v }
+  }, [rect])
 
   // Размер предпросмотра
   const previewMaxW = 320
@@ -90,6 +104,21 @@ export const LeafSpriteDebugPanel: React.FC = () => {
             {rect && (
               <Box style={{ position: 'absolute', left: Math.round(cx * W * scale)-4, top: Math.round((1-cy) * H * scale)-4, width: 8, height: 8, background: 'var(--mantine-color-red-6)', borderRadius: 4 }} />
             )}
+            {rect && (
+              <Box
+                title="Точка основания (anchor)"
+                style={{
+                  position: 'absolute',
+                  left: Math.round(anchor.px * scale) - 4,
+                  top: Math.round(anchor.py * scale) - 4,
+                  width: 8,
+                  height: 8,
+                  background: 'var(--mantine-color-blue-6)',
+                  borderRadius: 4,
+                  boxShadow: '0 0 0 1px #000'
+                }}
+              />
+            )}
           </Box>
         </Box>
         <Box>
@@ -98,7 +127,9 @@ export const LeafSpriteDebugPanel: React.FC = () => {
           <Text size="sm">Rect (px): x={rect?.x ?? '-'}, y={rect?.y ?? '-'}, w={rect?.width ?? '-'}, h={rect?.height ?? '-'}</Text>
           <Text size="sm">Изображение (px): W={W}, H={H}</Text>
           <Text size="sm">UV: repeat=({repX.toFixed(4)}, {repY.toFixed(4)}), offset=({offX.toFixed(4)}, {offY.toFixed(4)})</Text>
-          <Text size="sm">UV-центр: ({cx.toFixed(4)}, {cy.toFixed(4)}), поворот={typeof texRotDeg === 'number' ? `${Math.round(texRotDeg)}°` : '-'}</Text>
+          <Text size="sm">UV-центр: ({cx.toFixed(4)}, {cy.toFixed(4)}), поворот=-</Text>
+          <Text size="sm">Anchor (px): x={Math.round(anchor.px)}, y={Math.round(anchor.py)}</Text>
+          <Text size="sm">Anchor (u,v): ({anchor.u.toFixed(4)}, {anchor.v.toFixed(4)})</Text>
         </Box>
       </Stack>
     </ScrollArea>
@@ -106,4 +137,3 @@ export const LeafSpriteDebugPanel: React.FC = () => {
 }
 
 export default LeafSpriteDebugPanel
-

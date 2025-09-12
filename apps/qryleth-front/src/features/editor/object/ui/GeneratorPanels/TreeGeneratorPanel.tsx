@@ -36,7 +36,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafSize: 0.16,
     leafShape: 'billboard',
     leafPlacement: 'end',
-    leafTextureRotationDeg: 0,
+    leafTiltDeg: 25,
     leavesPerMeter: 6,
     angleSpread: 1,
     embedFactor: 1
@@ -111,7 +111,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTextureRotationDeg', 'leafTextureSpriteName',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName',
         'embedFactor',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
@@ -358,15 +358,13 @@ export const TreeGeneratorPanel: React.FC = () => {
         />
         {params.leafShape === 'texture' && (
           <Group grow>
-            <Slider
-              labelAlwaysOn
-              label={(v) => `${Math.round(Array.isArray(v) ? v[0] : v)}°`}
-              value={params.leafTextureRotationDeg ?? 0}
-              onChange={(v) => setParams(p => ({ ...p, leafTextureRotationDeg: Array.isArray(v) ? v[0] : v }))}
+            <NumberInput
+              label="Наклон листа к ветви (°)"
+              value={params.leafTiltDeg ?? 25}
+              onChange={(v) => setParams(p => ({ ...p, leafTiltDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))}
               min={0}
-              max={360}
+              max={85}
               step={1}
-              marks={[{ value: 0, label: '0°' }, { value: 90, label: '90°' }, { value: 180, label: '180°' }, { value: 270, label: '270°' }, { value: 360, label: '360°' }]}
               disabled={params.branchLevels <= 0}
             />
             <Select

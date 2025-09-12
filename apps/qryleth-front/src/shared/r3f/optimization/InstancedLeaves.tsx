@@ -55,12 +55,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
   const [texAspect, setTexAspect] = useState<number>(1)
   const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[] | null>(null)
+  const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
   // Список биллборд‑листьев (исключаем сферические), используем ниже во всех мемо/эффектах
   const billboardLeaves = useMemo(() => spheres.filter(s => s.primitive.geometry.shape !== 'sphere'), [spheres])
-  const texRotateRad = useMemo(() => {
-    const deg = (billboardLeaves[0]?.primitive.geometry as any)?.texRotationDeg ?? 0
-    return THREE.MathUtils.degToRad(deg)
-  }, [billboardLeaves])
   const spriteNameKey = (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName || 'default'
 
   // Загрузка карт из публичной папки при выборе режима 'texture'
@@ -94,16 +91,10 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if ((billboardLeaves[0]?.primitive.geometry.shape) !== 'texture') return
     const applyRot = (t: THREE.Texture | null) => { if (!t) return; t.center.set(0.0,0.0); t.rotation = 0; t.needsUpdate = true }
     applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
-  }, [texRotateRad])
+  }, [billboardLeaves, diffuseMap, alphaMap, normalMap, roughnessMap])
 
-  // Обновляем uniform поворота у материала при изменении крутилки
-  useEffect(() => {
-    if ((billboardLeaves[0]?.primitive.geometry.shape) !== 'texture') return
-    const u = (materialRef.current as any)?.userData?.uniforms
-    if (u && u.uTexRotate) {
-      u.uTexRotate.value = 0.0
-    }
-  }, [texRotateRad])
+  // Без поворота UV — ничего не делаем
+  useEffect(() => { /* noop */ }, [billboardLeaves])
 
   // Загружаем atlas.json с произвольными прямоугольниками
   useEffect(() => {
@@ -120,7 +111,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     const W = img.width, H = img.height
     const spriteName: string | undefined = (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName
     const items = atlas || []
-    const rect = (items.find(i => i.name === spriteName) || items[0])
+    const rect: any = (items.find(i => i.name === spriteName) || items[0])
     if (!rect) return
     const repX = rect.width / W
     const repY = rect.height / H
@@ -144,6 +135,16 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       const u = (materialRef.current as any).userData.uniforms
       const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
       u.uTexCenter.value.set(cx, cy)
+    }
+    // Anchor: читаем из atlas.json; по умолчанию — нижняя середина (0.5, 1.0)
+    const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
+    const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
+    if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
+      const uN = Math.min(1, Math.max(0, ax / rect.width))
+      const vN = Math.min(1, Math.max(0, ay / rect.height))
+      setAnchorUV([uN, vN])
+    } else {
+      setAnchorUV([0.5, 1.0])
     }
   }, [atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (billboardLeaves[0]?.primitive.geometry as any)?.texSpriteName, texRotateRad])
   const resolvedMaterial = useMemo(() => resolveMaterial({
@@ -196,6 +197,17 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
         dummy.position.set(vLocal.x, vLocal.y, vLocal.z)
         dummy.quaternion.copy(qFinal)
+        // Смещение на точку основания спрайта (delta относительно нижней середины, которую уже учитывает генератор)
+        if (sh === 'texture') {
+          const u = anchorUV?.[0] ?? 0.5
+          const v = anchorUV?.[1] ?? 1.0
+          // Смещение = -anchor_local; anchor_local = ((u-0.5)*sx, (0.5 - v)*sy)
+          const dx = (0.5 - u) * sx
+          const dy = (v - 0.5) * sy
+          const off = new THREE.Vector3(dx, dy, 0)
+          off.applyQuaternion(qFinal)
+          dummy.position.add(off)
+        }
         dummy.scale.set(sx, sy, sz)
         dummy.updateMatrix()
         meshRef.current.setMatrixAt(k, dummy.matrix)
@@ -203,7 +215,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       }
     }
     meshRef.current.instanceMatrix.needsUpdate = true
-  }, [instances, spheres, texAspect])
+  }, [instances, spheres, texAspect, anchorUV])
 
   const handleClick = (event: any) => {
     if (!onClick) return
@@ -299,7 +311,6 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       shader.uniforms.uAspect = { value: aspect }
       shader.uniforms.uEdgeSoftness = { value: 0.18 }
       shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
-      shader.uniforms.uTexRotate = { value: texRotateRad }
       // Отладочная прямоугольная рамка по UV‑границам плоскости
       shader.uniforms.uRectDebug = { value: shape === 'texture' ? 1.0 : 0.0 }
       shader.uniforms.uRectColor = { value: new THREE.Color(0xff00ff) }
@@ -312,7 +323,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
       // Добавляем объявления uniform и свою varying для UV
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform float uTexRotate;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`)
+        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`)
         .replace('#include <begin_vertex>', `
           vec3 pos = position;
           vLeafUv = uv;
@@ -320,7 +331,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
           pos += normalize(normal) * ((bend * bend - 0.25) * uBend);
           vec3 transformed = pos;
         `)
-        .replace('#include <uv_vertex>', `#include <uv_vertex>\n            #ifdef USE_MAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vMapUv - c; vMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif\n            #ifdef USE_NORMALMAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vNormalMapUv - c; vNormalMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif\n            #ifdef USE_ROUGHNESSMAP\n  { vec2 c = uTexCenter; float s = sin(uTexRotate), cst = cos(uTexRotate); vec2 d = vRoughnessMapUv - c; vRoughnessMapUv = vec2(cst*d.x - s*d.y, s*d.x + cst*d.y) + c; }\n  #endif`)
+        .replace('#include <uv_vertex>', `#include <uv_vertex>`)
 
       {
         let frag = shader.fragmentShader

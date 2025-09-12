@@ -66,11 +66,6 @@ export interface LeafBillboardGeometry {
    */
   shape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture';
   /**
-   * Поворот самой текстуры (UV) в градусах по часовой стрелке вокруг центра (0.5, 0.5).
-   * Используется только при shape = 'texture'. Не влияет на ориентацию плоскости в 3D.
-   */
-  texRotationDeg?: number;
-  /**
    * Имя спрайта (подпрямоугольника) из atlas.json для набора LeafSet019.
    * Если не задано — используется первый элемент.
    */
