@@ -63,6 +63,17 @@ export interface TreeGeneratorParams {
   /** Тип листвы: billboard или sphere */
   leafShape?: 'billboard' | 'sphere' | 'coniferCross'
   /**
+   * Начальный поворот текстурного листа в градусах (0..360).
+   * Применяется только при leafShape='texture': вращает картинку внутри плоскости,
+   * не меняя того, какой край считается «крепёжным» к ветке.
+   */
+  leafTextureRotationDeg?: number
+  /**
+   * Имя спрайта (подпрямоугольника) из atlas.json для набора LeafSet019.
+   * Используется только при leafShape='texture'. Если не задано — берётся первый элемент атласа.
+   */
+  leafTextureSpriteName?: string
+  /**
    * Схема размещения листвы: только на концах ветвей ('end') или вдоль ветви ('along').
    */
   leafPlacement?: 'end' | 'along'

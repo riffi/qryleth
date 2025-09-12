@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconMessages, IconAdjustments } from '@tabler/icons-react'
+import { IconMessages, IconAdjustments, IconCrop } from '@tabler/icons-react'
 
 interface LeftToolbarProps {
   /**
@@ -23,6 +23,11 @@ interface LeftToolbarProps {
    * Используется для ограничения показа действия только при выборе примитива или материала.
    */
   showPropertiesAction?: boolean
+
+  /** Свернута ли панель отладки спрайтов */
+  spriteDebugCollapsed?: boolean
+  /** Переключить панель отладки спрайтов */
+  onToggleSpriteDebug?: () => void
 }
 
 /**
@@ -35,6 +40,8 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   propertiesCollapsed,
   onToggleProperties,
   showPropertiesAction = true,
+  spriteDebugCollapsed = true,
+  onToggleSpriteDebug,
 }) => {
   return (
     <EdgeToolbar side={'left'}>
@@ -66,8 +73,22 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             </ActionIcon>
           </Tooltip>
         )}
+
+        {onToggleSpriteDebug && (
+          <Tooltip label={spriteDebugCollapsed ? 'Открыть отладку спрайтов' : 'Закрыть отладку спрайтов'} position="right" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={!spriteDebugCollapsed && chatCollapsed && propertiesCollapsed ? 'filled' : 'subtle'}
+              color={!spriteDebugCollapsed && chatCollapsed && propertiesCollapsed ? 'blue' : 'gray'}
+              onClick={onToggleSpriteDebug}
+              aria-label={spriteDebugCollapsed ? 'Открыть отладку спрайтов' : 'Закрыть отладку спрайтов'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconCrop size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </Stack>
     </EdgeToolbar>
   )
 }
-

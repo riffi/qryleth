@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, lazy } from 'react'
 import { clamp } from '@/shared/lib/math/number'
 import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
 import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconX } from '@tabler/icons-react'
@@ -20,6 +20,8 @@ import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagem
 import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/TreeGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
 import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
+// Ленивый импорт панели отладки спрайтов листа
+const LeafSpriteDebugPanel = lazy(() => import('@/features/editor/object/ui/debug/LeafSpriteDebugPanel'))
 
 interface ObjectEditorLayoutProps {
   /** Данные редактируемого объекта (для контекста и будущих расширений). */
@@ -182,6 +184,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     const isOpen = !!panelState.leftPanel
     const isChat = panelState.leftPanel === 'chat'
     const isProps = panelState.leftPanel === 'properties'
+    const isSpriteDebug = panelState.leftPanel === 'spriteDebug'
 
     return (
       <Paper
@@ -205,11 +208,13 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         {isOpen && (
           <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
             <Group>
-              {isChat ? <IconMessages size={20} /> : <IconAdjustments size={20} />}
+              {isChat ? <IconMessages size={20} /> : (isSpriteDebug ? <IconFolder size={20} /> : <IconAdjustments size={20} />)}
               <Text fw={500}>
                 {isChat
                   ? 'Панель чата'
-                  : selectedMaterialUuid
+                  : isSpriteDebug
+                    ? 'Отладка спрайта листа'
+                    : selectedMaterialUuid
                     ? 'Свойства материала'
                     : (selectedItemType === 'group' ? 'Свойства группы' : 'Свойства примитива')}
               </Text>
@@ -217,7 +222,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             <ActionIcon
               variant="subtle"
               size="sm"
-              onClick={() => hidePanel?.(isChat ? 'chat' : 'properties')}
+              onClick={() => hidePanel?.(isChat ? 'chat' : (isSpriteDebug ? 'spriteDebug' : 'properties'))}
               aria-label={isChat ? 'Скрыть чат' : 'Скрыть свойства'}
             >
               <IconX size={16} />
@@ -234,6 +239,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
             ) : (
               <PrimitiveControlPanel />
             )
+          )}
+          {isSpriteDebug && (
+            <React.Suspense fallback={<Text p="sm">Загрузка...</Text>}>
+              <LeafSpriteDebugPanel />
+            </React.Suspense>
           )}
         </Box>
       </Paper>

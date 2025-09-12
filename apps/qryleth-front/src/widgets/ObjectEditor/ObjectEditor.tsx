@@ -162,6 +162,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         propertiesCollapsed={panelStateBridge.panelState?.leftPanel !== 'properties'}
         onToggleProperties={() => panelStateBridge.togglePanel?.('properties')}
         showPropertiesAction={showPropertiesAction}
+        spriteDebugCollapsed={panelStateBridge.panelState?.leftPanel !== 'spriteDebug'}
+        onToggleSpriteDebug={() => panelStateBridge.togglePanel?.('spriteDebug')}
       />
       <ObjectRightToolbar
         managerCollapsed={panelStateBridge.panelState?.rightPanel !== 'manager'}

@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type PanelType = 'chat' | 'properties' | 'manager' | 'treeGenerator'
+export type PanelType = 'chat' | 'properties' | 'spriteDebug' | 'manager' | 'treeGenerator'
 
 export interface PanelState {
-  leftPanel: 'chat' | 'properties' | null
+  leftPanel: 'chat' | 'properties' | 'spriteDebug' | null
   rightPanel: 'manager' | 'treeGenerator' | null
   chatVisible: boolean
   propertiesVisible: boolean
+  spriteDebugVisible: boolean
   managerVisible: boolean
   treeGeneratorVisible: boolean
 }
@@ -17,6 +18,7 @@ const DEFAULT_PANEL_STATE: PanelState = {
   rightPanel: null,
   chatVisible: false,
   propertiesVisible: false,
+  spriteDebugVisible: false,
   managerVisible: false,
   treeGeneratorVisible: false,
 }
@@ -66,6 +68,18 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               }
               break
 
+            case 'spriteDebug':
+              if (state.leftPanel === 'spriteDebug') {
+                newState.leftPanel = null
+                newState.spriteDebugVisible = false
+              } else {
+                newState.leftPanel = 'spriteDebug'
+                newState.spriteDebugVisible = true
+                newState.chatVisible = false
+                newState.propertiesVisible = false
+              }
+              break
+
             case 'manager':
               if (state.rightPanel === 'manager') {
                 newState.rightPanel = null
@@ -112,6 +126,13 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               newState.chatVisible = false
               break
 
+            case 'spriteDebug':
+              newState.leftPanel = 'spriteDebug'
+              newState.spriteDebugVisible = true
+              newState.chatVisible = false
+              newState.propertiesVisible = false
+              break
+
             case 'manager':
               newState.rightPanel = 'manager'
               newState.managerVisible = true
@@ -141,6 +162,10 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
             case 'properties':
               if (state.leftPanel === 'properties') newState.leftPanel = null
               newState.propertiesVisible = false
+              break
+            case 'spriteDebug':
+              if (state.leftPanel === 'spriteDebug') newState.leftPanel = null
+              newState.spriteDebugVisible = false
               break
             case 'manager':
               newState.rightPanel = null

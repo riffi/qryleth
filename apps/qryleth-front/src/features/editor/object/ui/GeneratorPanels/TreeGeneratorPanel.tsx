@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea } from '@mantine/core'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
@@ -36,6 +36,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafSize: 0.16,
     leafShape: 'billboard',
     leafPlacement: 'end',
+    leafTextureRotationDeg: 0,
     leavesPerMeter: 6,
     angleSpread: 1,
     embedFactor: 1
@@ -51,6 +52,21 @@ export const TreeGeneratorPanel: React.FC = () => {
   const [configMode, setConfigMode] = useState<'export' | 'import'>('export')
   const [configJson, setConfigJson] = useState('')
   const [configError, setConfigError] = useState<string | null>(null)
+  // Список спрайтов из атласа для текстурного режима
+  const [atlasOptions, setAtlasOptions] = useState<{ value: string; label: string }[]>([])
+  useEffect(() => {
+    let mounted = true
+    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+      .then(r => r.json())
+      .then((arr: { name: string }[]) => {
+        if (!mounted) return
+        const opts = (arr || []).map(x => ({ value: x.name, label: x.name }))
+        setAtlasOptions(opts)
+        if (!params.leafTextureSpriteName && opts[0]) setParams(p => ({ ...p, leafTextureSpriteName: opts[0].value }))
+      })
+      .catch(() => void 0)
+    return () => { mounted = false }
+  }, [])
 
   /**
    * Формирует человекочитаемый JSON текущих параметров генератора
@@ -95,7 +111,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTextureRotationDeg', 'leafTextureSpriteName',
         'embedFactor',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
@@ -331,14 +347,40 @@ export const TreeGeneratorPanel: React.FC = () => {
         </Group>
         <SegmentedControl
           value={params.leafShape || 'billboard'}
-          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere'|'coniferCross') }))}
+          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere'|'coniferCross'|'texture') }))}
           data={[
             { label: 'Билборды', value: 'billboard' },
             { label: 'Сферы', value: 'sphere' },
             { label: 'Хвойная (крест)', value: 'coniferCross' },
+            { label: 'Текстура', value: 'texture' },
           ]}
           disabled={params.branchLevels <= 0}
         />
+        {params.leafShape === 'texture' && (
+          <Group grow>
+            <Slider
+              labelAlwaysOn
+              label={(v) => `${Math.round(Array.isArray(v) ? v[0] : v)}°`}
+              value={params.leafTextureRotationDeg ?? 0}
+              onChange={(v) => setParams(p => ({ ...p, leafTextureRotationDeg: Array.isArray(v) ? v[0] : v }))}
+              min={0}
+              max={360}
+              step={1}
+              marks={[{ value: 0, label: '0°' }, { value: 90, label: '90°' }, { value: 180, label: '180°' }, { value: 270, label: '270°' }, { value: 360, label: '360°' }]}
+              disabled={params.branchLevels <= 0}
+            />
+            <Select
+              label="Спрайт из атласа"
+              placeholder={atlasOptions.length ? 'Выберите' : 'Атлас не найден'}
+              data={atlasOptions}
+              value={params.leafTextureSpriteName || null}
+              onChange={(v) => setParams(p => ({ ...p, leafTextureSpriteName: v || undefined }))}
+              searchable
+              clearable
+              disabled={params.branchLevels <= 0}
+            />
+          </Group>
+        )}
         <Group grow>
           <SegmentedControl
             value={params.leafPlacement || 'end'}
