@@ -341,7 +341,19 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // Вставляем подсветку края после применения карты и добавляем прямоугольную рамку по UV плоскости
         frag = frag
           .replace('#include <common>', `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nvarying vec2 vLeafUv;`)
-          .replace('#include <map_fragment>', `#include <map_fragment>\n{  #if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n  #endif\n  if (uRectDebug > 0.5) {    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу, чтобы пройти alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n}`)
+          .replace('#include <map_fragment>', `#include <map_fragment>\n{  #if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n  #endif\n  if (uRectDebug > 0.5) {    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу до alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n}`)
+        // Для режима 'texture' дополнительно гарантируем повышение альфы перед alphaTest (после применения alphaMap)
+        if (shape === 'texture') {
+          frag = frag.replace('#include <alphatest_fragment>', `
+            if (uRectDebug > 0.5) {
+              float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));
+              float wr = max(uRectWidth, fwidth(d) * 2.0);
+              float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);
+              diffuseColor.a = max(diffuseColor.a, edgeR);
+            }
+            #include <alphatest_fragment>
+          `)
+        }
         frag = frag.replace('#include <lights_fragment_end>', `
           #include <lights_fragment_end>
           // Простая подсветка на просвет (фейковая SSS) — добавляем диффуз к задней стороне

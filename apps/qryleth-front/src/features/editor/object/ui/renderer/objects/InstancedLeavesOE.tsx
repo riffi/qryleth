@@ -277,6 +277,20 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
             #include <alphatest_fragment>
           `)
       }
+      // Гарантируем видимость прямоугольного контура независимо от alphaMap: усиливаем альфу перед alphaTest
+      if (shape === 'texture') {
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <alphatest_fragment>', `
+            // Подмешиваем альфу рамки по UV‑краям плоскости перед пороговой отсечкой
+            if (uRectDebug > 0.5) {
+              float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));
+              float wr = max(uRectWidth, fwidth(d) * 2.0);
+              float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);
+              diffuseColor.a = max(diffuseColor.a, edgeR);
+            }
+            #include <alphatest_fragment>
+          `)
+      }
       // Подсветка краёв по альфа‑границе (для texture)
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nvarying vec2 vLeafUv;`)
