@@ -59,4 +59,17 @@ export function initializeLandscapeTextures(): void {
     aoMapUrl: baseSnow010A + 'Snow010A_1K-JPG_AmbientOcclusion.jpg',
     displacementMapUrl: baseSnow010A + 'Snow010A_1K-JPG_Displacement.jpg',
   })
+
+  // Дополнительная текстура: Ground082S (1K, JPG)
+  const baseGround082S = '/texture/landscape/Ground082S_1K-JPG/'
+  landscapeTextureRegistry.register({
+    id: 'ground082s-1k-jpg',
+    name: 'Ground 082S (1K, JPG)',
+    previewUrl: baseGround082S + 'Ground082S.png',
+    colorMapUrl: baseGround082S + 'Ground082S_1K-JPG_Color.jpg',
+    normalMapUrl: baseGround082S + 'Ground082S_1K-JPG_NormalGL.jpg',
+    roughnessMapUrl: baseGround082S + 'Ground082S_1K-JPG_Roughness.jpg',
+    aoMapUrl: baseGround082S + 'Ground082S_1K-JPG_AmbientOcclusion.jpg',
+    displacementMapUrl: baseGround082S + 'Ground082S_1K-JPG_Displacement.jpg',
+  })
 }
