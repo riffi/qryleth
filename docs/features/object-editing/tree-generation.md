@@ -17,6 +17,7 @@
 
 ### UI: ключевые контролы
 - «Сужение ствола к верху» — общий слайдер taper для всех стволов (основного и дочерних).
+- «Скос сегментов ствола» — 0: без скоса (как раньше); 1: каждый сегмент ствола сильно наклоняется в случайном направлении. Стыки остаются бесшовными за счёт перекрытия и «воротника».
 - Секция «Разветвление ствола»:
   - «Уровни» — сколько этапов ответвлений создавать (0 — выключено).
   - «Ответвлений/уровень» — сколько дочерних стволов на каждом уровне.
@@ -36,12 +37,13 @@
 - «Экспорт JSON» — открывает всплывающее окно с текущими параметрами генерации в формате JSON. Можно отредактировать и скопировать.
 - «Импорт JSON» — открывает окно для вставки JSON. Кнопка «Применить» выполняет полную замену параметров генерации на переданные.
   - Обязательные поля: `seed`, `trunkHeight`, `trunkRadius`, `trunkSegments`, `branchLevels`, `branchesPerSegment`, `branchLength`, `branchRadius`, `branchAngleDeg`, `randomness`, `leavesPerBranch`, `leafSize`.
-  - Опциональные поля: `trunkTaperFactor`, `trunkBranchLevels`, `trunkBranchesPerLevel`, `trunkBranchAngleDeg`, `trunkBranchChildHeightFactor`, `branchTopBias`, `angleSpread`, `leafShape`, `leafPlacement`, `leavesPerMeter`, `embedFactor`.
+  - Опциональные поля: `trunkTaperFactor`, `trunkShearStrength`, `trunkBranchLevels`, `trunkBranchesPerLevel`, `trunkBranchAngleDeg`, `trunkBranchChildHeightFactor`, `branchTopBias`, `angleSpread`, `leafShape`, `leafPlacement`, `leavesPerMeter`, `embedFactor`.
 
 ## Параметры генерации
 
-- seed — сид случайности (результат детерминирован при одинаковом seed).
-- trunkHeight — высота ствола; trunkSegments — число сегментов; trunkRadius — радиус у основания.
+-- seed — сид случайности (результат детерминирован при одинаковом seed).
+-- trunkHeight — высота ствола; trunkSegments — число сегментов; trunkRadius — радиус у основания.
+- trunkShearStrength — сила скоса сегментов ствола (0..1): 0 — без скоса; 1 — сильный наклон каждого сегмента в случайном азимуте при бесшовной стыковке.
  - trunkTaperFactor — коэффициент сужения ствола кверху (0..1). 0 — без сужения; рекомендуемые 0.2–0.6. Настраивается слайдером в UI.
 - branchLevels — глубина ветвления; branchesPerSegment — среднее число ветвей на сегмент ствола.
 - branchLength — базовая длина ветви (уменьшается на верхних уровнях); branchRadius — радиус ветви первого уровня.

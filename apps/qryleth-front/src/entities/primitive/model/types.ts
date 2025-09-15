@@ -54,6 +54,14 @@ export interface TreeCylinderGeometry {
    */
   collarFrac?: number;   // Доля высоты [0..1] от низа, где действует воротник
   collarScale?: number;  // Множитель радиуса у самого низа (>1 — расширение)
+  /**
+   * Флаги отрисовки торцевых крышек цилиндра (caps). По умолчанию обе крышки включены.
+   * Для ствола/ветвей мы, как правило, скрываем нижнюю крышку для всех внутренних
+   * сегментов и верхнюю крышку — для всех, кроме самого верхнего сегмента,
+   * чтобы не было видимых круглых граней в местах стыков.
+   */
+  capTop?: boolean;
+  capBottom?: boolean;
 }
 
 export interface LeafBillboardGeometry {
@@ -70,6 +78,18 @@ export interface LeafBillboardGeometry {
    * Если не задано — используется первый элемент.
    */
   texSpriteName?: string;
+}
+
+// Произвольная меш‑геометрия (позиции/нормали/индексы)
+export interface CustomMeshGeometry {
+  /** Плоский массив координат вершин: [x0,y0,z0, x1,y1,z1, ...] */
+  positions: number[]
+  /** Плоский массив нормалей (опционально, но рекомендуется): [nx0,ny0,nz0, ...] */
+  normals?: number[]
+  /** Индексы треугольников (опционально — если не задано, используем non-indexed) */
+  indices?: number[]
+  /** Текстурные координаты (необязательно) */
+  uvs?: number[]
 }
 
 // Общие свойства примитивов
@@ -117,7 +137,8 @@ export type GfxPrimitive =
   // Специальные типы для деревьев: не путаются с общими цилиндрами/сферами
   | ({ type: 'trunk';    geometry: TreeCylinderGeometry; } & PrimitiveCommon)
   | ({ type: 'branch';   geometry: TreeCylinderGeometry; } & PrimitiveCommon)
-  | ({ type: 'leaf';     geometry: LeafBillboardGeometry; } & PrimitiveCommon);
+  | ({ type: 'leaf';     geometry: LeafBillboardGeometry; } & PrimitiveCommon)
+  | ({ type: 'mesh';     geometry: CustomMeshGeometry; } & PrimitiveCommon);
 
 // Старый интерфейс для обратной совместимости (будет удален в будущих фазах)
 export interface LegacyGfxPrimitive {

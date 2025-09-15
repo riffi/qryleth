@@ -42,6 +42,8 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
   const aCollarFrac = useMemo(() => new Float32Array(count), [count])
   const aCollarScale = useMemo(() => new Float32Array(count), [count])
   const aIsBranch = useMemo(() => new Float32Array(count), [count])
+  const aCapTop = useMemo(() => new Float32Array(count), [count])
+  const aCapBottom = useMemo(() => new Float32Array(count), [count])
 
   useEffect(() => {
     if (!meshRef.current) return
@@ -72,6 +74,10 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       aIsBranch[k] = cf > 0 ? 1 : 0
       aCollarFrac[k] = cf
       aCollarScale[k] = cs
+
+      // Флаги крышек: если не заданы — по умолчанию включены
+      aCapTop[k] = geom.capTop == null ? 1 : (geom.capTop ? 1 : 0)
+      aCapBottom[k] = geom.capBottom == null ? 1 : (geom.capBottom ? 1 : 0)
     }
     meshRef.current.instanceMatrix.needsUpdate = true
     ;(meshRef.current.geometry as any).setAttribute('aHeight', new THREE.InstancedBufferAttribute(aHeights, 1))
@@ -80,6 +86,8 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
     ;(meshRef.current.geometry as any).setAttribute('aCollarFrac', new THREE.InstancedBufferAttribute(aCollarFrac, 1))
     ;(meshRef.current.geometry as any).setAttribute('aCollarScale', new THREE.InstancedBufferAttribute(aCollarScale, 1))
     ;(meshRef.current.geometry as any).setAttribute('aIsBranch', new THREE.InstancedBufferAttribute(aIsBranch, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCapTop', new THREE.InstancedBufferAttribute(aCapTop, 1))
+    ;(meshRef.current.geometry as any).setAttribute('aCapBottom', new THREE.InstancedBufferAttribute(aCapBottom, 1))
   }, [cylinders, aHeights, aRadTop, aRadBottom])
 
   const handleClick = (event: any) => {
@@ -105,11 +113,11 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
-          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;`
+          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;\nattribute float aCapTop;\nattribute float aCapBottom;`
         )
         .replace(
           '#include <begin_vertex>',
-          `\n// Профиль радиуса с «воротником» у основания ветки\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\n// Скалярный множитель для «воротника»: только у ветвей и только на участке [0..aCollarFrac]\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    // Плавный переход от увеличенного радиуса к обычному в пределах «воротника»\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
+          `\n// Профиль радиуса с «воротником» у основания ветки, с возможностью скрывать крышки (caps)\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\n// Скалярный множитель для «воротника»: только у ветвей и только на участке [0..aCollarFrac]\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    // Плавный переход от увеличенного радиуса к обычному в пределах «воротника»\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\n// Скрываем крышки: для вершин, принадлежащих крышкам (нормаль почти по Y),\n// принудительно схлопываем радиус к нулю, если соответствующий флаг = 0\nif (abs(normal.y) > 0.9) {\n  if (pos.y > 0.49 && aCapTop < 0.5) { r = 0.0; }\n  if (pos.y < -0.49 && aCapBottom < 0.5) { r = 0.0; }\n}\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
         )
     }
     mat.needsUpdate = true

@@ -14,6 +14,7 @@ import { Cone3D } from './Cone3D'
 import { Pyramid3D } from './Pyramid3D'
 import { Plane3D } from './Plane3D'
 import { Torus3D } from './Torus3D'
+import { Mesh3D } from './Primitive3D'
 import type { RenderMode } from '@/shared/types/ui'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial } from '@/entities/material'
@@ -137,6 +138,15 @@ export const PrimitiveRenderer: React.FC<PrimitiveRendererProps> = ({
       return (
         <Torus3D
           primitive={primitive}
+          materialProps={baseMaterialProps}
+          meshProps={meshProps}
+        />
+      )
+
+    case 'mesh':
+      return (
+        <Mesh3D
+          primitive={primitive as any}
           materialProps={baseMaterialProps}
           meshProps={meshProps}
         />

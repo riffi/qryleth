@@ -259,6 +259,28 @@ function calculateTorusBoundingBox(geometry: {
 }
 
 /**
+ * Вычисляет BoundingBox для произвольного меш‑примитива (по массиву позиций)
+ */
+function calculateMeshBoundingBox(geometry: { positions: number[] }, transform?: {
+  position?: Vector3
+  rotation?: Vector3
+  scale?: Vector3
+}): BoundingBox {
+  const pos = geometry.positions || []
+  if (pos.length < 3) return { min: [0, 0, 0], max: [0, 0, 0] }
+  let minX = pos[0], minY = pos[1], minZ = pos[2]
+  let maxX = pos[0], maxY = pos[1], maxZ = pos[2]
+  for (let i = 3; i < pos.length; i += 3) {
+    const x = pos[i], y = pos[i + 1], z = pos[i + 2]
+    if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z
+  }
+  const local: BoundingBox = { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] }
+  // Применяем полную трансформацию к углам локального бокса
+  return transformBoundingBox(local, transform)
+}
+
+/**
  * Вычисляет BoundingBox для примитива
  */
 export function calculatePrimitiveBoundingBox(primitive: GfxPrimitive): BoundingBox {
@@ -284,6 +306,8 @@ export function calculatePrimitiveBoundingBox(primitive: GfxPrimitive): Bounding
       return calculatePlaneBoundingBox(primitive.geometry, primitive.transform)
     case 'torus':
       return calculateTorusBoundingBox(primitive.geometry, primitive.transform)
+    case 'mesh':
+      return calculateMeshBoundingBox((primitive as any).geometry, primitive.transform)
     default:
       // @ts-expect-error - исчерпывающая проверка типов
       throw new Error(`Unsupported primitive type: ${primitive.type}`)

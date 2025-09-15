@@ -19,6 +19,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     trunkRadius: 0.25,
     trunkSegments: 6,
     trunkTaperFactor: 0.4,
+    trunkShearStrength: 0,
     trunkBranchLevels: 0,
     trunkBranchesPerLevel: 2,
     trunkBranchAngleDeg: 20,
@@ -110,7 +111,7 @@ export const TreeGeneratorPanel: React.FC = () => {
       }
       const allowedKeys: (keyof TreeGeneratorParams)[] = [
         'seed',
-        'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor',
+        'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor', 'trunkShearStrength',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
@@ -236,6 +237,17 @@ export const TreeGeneratorPanel: React.FC = () => {
             max={0.9}
             step={0.01}
             marks={[{ value: 0, label: '0' }, { value: 0.4, label: '0.4' }, { value: 0.8, label: '0.8' }]}
+          />
+        </Box>
+        <Box>
+          <Text size="sm" mb={4}>Скос сегментов ствола</Text>
+          <Slider
+            value={params.trunkShearStrength ?? 0}
+            onChange={(v) => setParams(p => ({ ...p, trunkShearStrength: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
           />
         </Box>
 

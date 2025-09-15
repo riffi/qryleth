@@ -17,6 +17,23 @@ const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
   const { type, geometry } = primitive
 
   switch (type) {
+    case 'mesh': {
+      const g = useMemo(() => {
+        const bg = new THREE.BufferGeometry()
+        if (geometry?.positions) bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(geometry.positions), 3))
+        if (geometry?.normals && geometry.normals.length === geometry.positions?.length) {
+          bg.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(geometry.normals), 3))
+        } else {
+          bg.computeVertexNormals()
+        }
+        if (geometry?.uvs) bg.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.uvs), 2))
+        if (geometry?.indices) bg.setIndex(geometry.indices)
+        bg.computeBoundingBox()
+        bg.computeBoundingSphere()
+        return bg
+      }, [geometry])
+      return <primitive attach="geometry" object={g} />
+    }
     case 'box':
       return (
         <boxGeometry
