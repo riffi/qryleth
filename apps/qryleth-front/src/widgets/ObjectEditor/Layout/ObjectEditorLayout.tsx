@@ -20,6 +20,7 @@ import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagem
 import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/TreeGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
 import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
 // Ленивый импорт панели отладки спрайтов листа
 const LeafSpriteDebugPanel = lazy(() => import('@/features/editor/object/ui/debug/LeafSpriteDebugPanel'))
 
@@ -181,6 +182,8 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
    * Рендерит левую панель: чат (если передан chatComponent) или свойства (материал/группа/примитив).
    */
   const renderLeftPanel = () => {
+    const objectType = useObjectStore(s => s.objectType)
+    const isTree = objectType === 'tree'
     const isOpen = !!panelState.leftPanel
     const isChat = panelState.leftPanel === 'chat'
     const isProps = panelState.leftPanel === 'properties'
@@ -240,7 +243,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
               <PrimitiveControlPanel />
             )
           )}
-          {isSpriteDebug && (
+          {isSpriteDebug && isTree && (
             <React.Suspense fallback={<Text p="sm">Загрузка...</Text>}>
               <LeafSpriteDebugPanel />
             </React.Suspense>
@@ -254,6 +257,8 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
    * Рендерит правую панель: менеджер объектов или генератор деревьев.
    */
   const renderRightPanel = () => {
+    const objectType = useObjectStore(s => s.objectType)
+    const isTree = objectType === 'tree'
     const current = panelState.rightPanel
     const isOpen = current !== null
     return (
@@ -293,11 +298,24 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         )}
         <Box style={{ flex: 1, minHeight: 0 }}>
           {current === 'manager' && <ObjectManagementPanel />}
-          {current === 'treeGenerator' && <TreeGeneratorPanel />}
+          {current === 'treeGenerator' && isTree && <TreeGeneratorPanel />}
         </Box>
       </Paper>
     )
   }
+
+  // Если тип объекта обычный — принудительно закрываем «неактуальные» панели
+  const objectType = useObjectStore(s => s.objectType)
+  useEffect(() => {
+    if (objectType !== 'tree') {
+      if (panelState.leftPanel === 'spriteDebug') {
+        hidePanel?.('spriteDebug') ?? showPanel?.('properties')
+      }
+      if (panelState.rightPanel === 'treeGenerator') {
+        hidePanel?.('treeGenerator') ?? showPanel?.('manager')
+      }
+    }
+  }, [objectType, panelState.leftPanel, panelState.rightPanel, hidePanel, showPanel])
 
   return (
     <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

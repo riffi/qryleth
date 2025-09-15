@@ -6,6 +6,7 @@ import { ObjectEditorLayout } from './Layout'
 import { ObjectChatInterface } from '@/features/editor/object/ui/ChatInterface'
 import { LeftToolbar as ObjectLeftToolbar, RightToolbar as ObjectRightToolbar } from '@/features/editor/object/toolbar'
 import { useSelectedItemType, useSelectedMaterialUuid } from '@/features/editor/object/model/objectStore'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
 
 export interface ObjectEditorProps {
   /**
@@ -69,6 +70,9 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   const selectedMaterialUuid = useSelectedMaterialUuid()
   // Кнопка «Свойства» доступна при выборе примитива, группы (одной или нескольких) или материала
   const showPropertiesAction = selectedItemType === 'primitive' || selectedItemType === 'group' || !!selectedMaterialUuid
+  // Тип объекта: используем для условного показа генератора/спрайт‑дебага
+  const objectType = useObjectStore(s => s.objectType)
+  const isTree = objectType === 'tree'
 
   /**
    * Формирует компонент ObjectChatInterface с привязкой к состоянию панелей и экшенам стора.
@@ -163,13 +167,13 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         onToggleProperties={() => panelStateBridge.togglePanel?.('properties')}
         showPropertiesAction={showPropertiesAction}
         spriteDebugCollapsed={panelStateBridge.panelState?.leftPanel !== 'spriteDebug'}
-        onToggleSpriteDebug={() => panelStateBridge.togglePanel?.('spriteDebug')}
+        onToggleSpriteDebug={isTree ? () => panelStateBridge.togglePanel?.('spriteDebug') : undefined}
       />
       <ObjectRightToolbar
         managerCollapsed={panelStateBridge.panelState?.rightPanel !== 'manager'}
         onToggleManager={() => panelStateBridge.togglePanel?.('manager')}
-        generatorCollapsed={panelStateBridge.panelState?.rightPanel !== 'treeGenerator'}
-        onToggleGenerator={() => panelStateBridge.togglePanel?.('treeGenerator')}
+        generatorCollapsed={isTree ? panelStateBridge.panelState?.rightPanel !== 'treeGenerator' : undefined}
+        onToggleGenerator={isTree ? () => panelStateBridge.togglePanel?.('treeGenerator') : undefined}
       />
       <ObjectEditorR3F objectData={objectData} />
     </ObjectEditorLayout>
