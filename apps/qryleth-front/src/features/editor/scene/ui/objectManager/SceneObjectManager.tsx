@@ -209,8 +209,17 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
         }
 
         // Формируем полные данные объекта для сохранения в библиотеку
-        const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments } = object
-        const objectData = {
+        const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments, objectType, treeData } = object as any
+        // Если объект — процедурное дерево, сохраняем в библиотеку параметры, а не примитивы
+        const objectData = objectType === 'tree' && treeData ? {
+            uuid,
+            name: object.name,
+            primitives: [],
+            materials,
+            boundingBox,
+            objectType,
+            treeData,
+        } : {
             uuid,
             name: object.name,
             primitives,

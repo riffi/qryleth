@@ -191,12 +191,22 @@ export const TreeGeneratorPanel: React.FC = () => {
       } as any)
     }
 
-    const generated = generateTree({ ...params, barkMaterialUuid: barkUuid!, leafMaterialUuid: leafUuid! })
+    // Сохраняем тип объекта и параметры процедурного дерева в стор
+    // Если пользователь очищает объект перед генерацией — считаем объект процедурным деревом
     if (clearBefore) {
-      setPrimitives(generated)
-    } else {
-      setPrimitives([...primitives, ...generated])
+      useObjectStore.getState().setObjectType('tree')
+      useObjectStore.getState().setTreeData({
+        params,
+        barkMaterialUuid: barkUuid!,
+        leafMaterialUuid: leafUuid!
+      })
     }
+
+    // Генерируем примитивы для предпросмотра/редактирования трансформаций
+    const generated = generateTree({ ...params, barkMaterialUuid: barkUuid!, leafMaterialUuid: leafUuid! })
+    // При полной очистке всегда заменяем; при добавлении — дополняем
+    if (clearBefore) setPrimitives(generated)
+    else setPrimitives([...primitives, ...generated])
   }
 
   // Готовые контролы сгруппированы по секциям

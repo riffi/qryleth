@@ -45,6 +45,7 @@ import type { GlobalPalette } from '@/entities/palette'
 import type { GfxLandscape } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import type { GfxHeightSampler } from '@/entities/terrain'
+import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -1011,12 +1012,31 @@ export class SceneAPI {
       }
 
       // Подготовить данные объекта для создания через createObject
-      const objectData: import('@/entities/object/model/types').GfxObject = {
-        uuid: generateUUID(),
-        name: record.name,
-        primitives: record.objectData.primitives.map(p => ({ ...p, uuid: generateUUID() })),
-        libraryUuid: record.uuid,
-        materials: record.objectData.materials || []
+      // Если объект библиотечный — возможно он процедурное дерево: восстановим примитивы
+      let objectData: import('@/entities/object/model/types').GfxObject
+      if (record.objectData.objectType === 'tree' && record.objectData.treeData?.params) {
+        const generated = generateTree({
+          ...(record.objectData.treeData.params as any),
+          barkMaterialUuid: record.objectData.treeData.barkMaterialUuid,
+          leafMaterialUuid: record.objectData.treeData.leafMaterialUuid
+        })
+        objectData = {
+          uuid: generateUUID(),
+          name: record.name,
+          primitives: generated.map(p => ({ ...p, uuid: generateUUID() })),
+          libraryUuid: record.uuid,
+          materials: record.objectData.materials || [],
+          objectType: 'tree',
+          treeData: record.objectData.treeData
+        }
+      } else {
+        objectData = {
+          uuid: generateUUID(),
+          name: record.name,
+          primitives: record.objectData.primitives.map(p => ({ ...p, uuid: generateUUID() })),
+          libraryUuid: record.uuid,
+          materials: record.objectData.materials || []
+        }
       }
 
       // Использовать новый метод createObject для унифицированного создания
@@ -1270,9 +1290,19 @@ export class SceneAPI {
       const { addObject } = state
 
       // Применить коррекцию для LLM-сгенерированных объектов
-      const correctedObject = correctLLMGeneratedObject(objectData)
+      let correctedObject = correctLLMGeneratedObject(objectData)
 
-      // Рассчитать BoundingBox для объекта
+      // Если объект — дерево, восстановим примитивы перед расчётом bbox
+      if (correctedObject.objectType === 'tree' && correctedObject.treeData?.params) {
+        const generated = generateTree({
+          ...(correctedObject.treeData.params as any),
+          barkMaterialUuid: correctedObject.treeData.barkMaterialUuid,
+          leafMaterialUuid: correctedObject.treeData.leafMaterialUuid
+        })
+        correctedObject = { ...correctedObject, primitives: generated }
+      }
+
+      // Рассчитать BoundingBox для объекта (после возможной реконструкции дерева)
       const boundingBox = calculateObjectBoundingBox(correctedObject)
 
       // Генерировать UUID для объекта
@@ -1286,7 +1316,9 @@ export class SceneAPI {
         boundingBox,
         layerId: layerId || 'objects',
         libraryUuid: correctedObject.libraryUuid,
-        materials: correctedObject.materials
+        materials: correctedObject.materials,
+        objectType: correctedObject.objectType,
+        treeData: correctedObject.treeData
       }
 
       // Добавить объект в store

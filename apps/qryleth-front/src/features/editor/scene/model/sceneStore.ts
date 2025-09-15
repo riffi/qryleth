@@ -29,6 +29,7 @@ import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
+import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
 
@@ -214,24 +215,72 @@ export const useSceneStore = create<SceneStore>()(
 
     // Object management
     setObjects: (objects: SceneObject[]) => {
-      const normalized = objects.map(obj => ({
-        ...obj,
-        uuid: obj.uuid || generateUUID(),
-        visible: obj.visible !== false,
-        primitives: ensurePrimitiveNames(obj.primitives.map(normalizePrimitive)),
-        libraryUuid: obj.libraryUuid
-      }))
+      const normalized = objects.map(obj => {
+        // Если объект — процедурное дерево, восстанавливаем примитивы на лету для рантайма сцены
+        if (obj.objectType === 'tree' && (obj as any).treeData?.params) {
+          try {
+            const restored = generateTree({
+              ...((obj as any).treeData.params as any),
+              barkMaterialUuid: (obj as any).treeData.barkMaterialUuid,
+              leafMaterialUuid: (obj as any).treeData.leafMaterialUuid
+            })
+            return {
+              ...obj,
+              uuid: obj.uuid || generateUUID(),
+              visible: obj.visible !== false,
+              primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+              libraryUuid: obj.libraryUuid
+            }
+          } catch (e) {
+            console.warn('Не удалось восстановить примитивы дерева при загрузке сцены:', e)
+          }
+        }
+        return {
+          ...obj,
+          uuid: obj.uuid || generateUUID(),
+          visible: obj.visible !== false,
+          primitives: ensurePrimitiveNames(obj.primitives.map(normalizePrimitive)),
+          libraryUuid: obj.libraryUuid
+        }
+      })
       set({ objects: normalized })
       get().saveToHistory()
     },
 
     addObject: (object: SceneObject) => {
-      const normalized = {
-        ...object,
-        uuid: object.uuid || generateUUID(),
-        visible: object.visible !== false,
-        primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
-        libraryUuid: object.libraryUuid
+      let normalized: SceneObject
+      if (object.objectType === 'tree' && (object as any).treeData?.params) {
+        try {
+          const restored = generateTree({
+            ...((object as any).treeData.params as any),
+            barkMaterialUuid: (object as any).treeData.barkMaterialUuid,
+            leafMaterialUuid: (object as any).treeData.leafMaterialUuid
+          })
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        } catch (e) {
+          console.warn('Не удалось восстановить примитивы дерева при добавлении объекта на сцену:', e)
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        }
+      } else {
+        normalized = {
+          ...object,
+          uuid: object.uuid || generateUUID(),
+          visible: object.visible !== false,
+          primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
+          libraryUuid: object.libraryUuid
+        }
       }
       const objects = [...get().objects, normalized]
       set({ objects })
@@ -923,8 +972,21 @@ export const useSceneStore = create<SceneStore>()(
 
     getCurrentSceneData: () => {
       const state = get()
+      // Для сохранения сцены в БД: сворачиваем деревья в процедурный вид (без примитивов)
+      const objectsForSave = state.objects.map(obj => {
+        if (obj.objectType === 'tree' && (obj as any).treeData?.params) {
+          return {
+            ...obj,
+            primitives: [],
+            // Привязки к группам не имеют смысла без примитивов — уберём их
+            primitiveGroups: undefined,
+            primitiveGroupAssignments: undefined,
+          }
+        }
+        return obj
+      })
       return {
-        objects: state.objects,
+        objects: objectsForSave,
         objectInstances: state.objectInstances,
         layers: state.layers,
         lighting: state.lighting,

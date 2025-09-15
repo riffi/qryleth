@@ -15,13 +15,16 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   const metaState = useObjectMetaStore.getState()
   const metaTags = (metaState.tags || []).map((t: string) => t.trim()).filter(Boolean)
   
-  const updatedObject = {
+  const updatedObject: GfxObject = {
     ...baseObject,
-    primitives: state.primitives.map(p => ({ ...p })),
+    // Если объект является процедурным деревом — не сохраняем примитивы, а сохраняем параметры генерации
+    primitives: state.objectType === 'tree' ? [] : state.primitives.map(p => ({ ...p })),
     boundingBox: state.boundingBox,
     materials: state.materials,
     primitiveGroups: state.primitiveGroups,
     primitiveGroupAssignments: state.primitiveGroupAssignments,
+    objectType: state.objectType ?? baseObject.objectType,
+    treeData: state.objectType === 'tree' ? (state.treeData ?? baseObject.treeData) : undefined,
     // Дублируем теги в objectData для согласованности с библиотекой
     ...(metaTags ? { tags: metaTags } : {}),
   }
@@ -102,17 +105,28 @@ function generateCacheKey(gfxObject: GfxObject): string {
    * Формируем детерминированные данные для ключа кеша на основе важных полей объекта.
    * Включаем типы и параметры примитивов, id материалов/групп и сами коллекции материалов/групп.
    */
-  const keyData = {
-    primitives: gfxObject.primitives.map(p => ({
-      type: p.type,
-      params: p.params,
-      materialId: (p as any).materialId,
-      groupId: (p as any).groupId
-    })),
-    materials: gfxObject.materials,
-    primitiveGroups: gfxObject.primitiveGroups,
-    primitiveGroupAssignments: gfxObject.primitiveGroupAssignments
-  }
+  const keyData = gfxObject.objectType === 'tree' && gfxObject.treeData
+    ? {
+        objectType: 'tree',
+        tree: {
+          params: gfxObject.treeData.params,
+          bark: gfxObject.treeData.barkMaterialUuid,
+          leaf: gfxObject.treeData.leafMaterialUuid
+        },
+        materials: gfxObject.materials
+      }
+    : {
+        objectType: 'regular',
+        primitives: gfxObject.primitives.map(p => ({
+          type: p.type,
+          params: p.params,
+          materialId: (p as any).materialId,
+          groupId: (p as any).groupId
+        })),
+        materials: gfxObject.materials,
+        primitiveGroups: gfxObject.primitiveGroups,
+        primitiveGroupAssignments: gfxObject.primitiveGroupAssignments
+      }
 
   /**
    * Кодирует строку в base64 без ограничений Latin1, используя UTF-8 кодировку.

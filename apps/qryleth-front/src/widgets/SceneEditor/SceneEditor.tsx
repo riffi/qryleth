@@ -108,6 +108,10 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
       boundingBox: updated.boundingBox,
       primitiveGroups: updated.primitiveGroups,
       primitiveGroupAssignments: updated.primitiveGroupAssignments,
+      // Тип и параметры дерева сохраняем в объект сцены, чтобы при сохранении сцены в БД
+      // объект корректно сворачивался до процедурного вида.
+      objectType: (updated as any).objectType,
+      treeData: (updated as any).treeData,
       // Дополнительно прокидываем возможные метаданные (например, теги)
       tags: (updated as any).tags,
     })

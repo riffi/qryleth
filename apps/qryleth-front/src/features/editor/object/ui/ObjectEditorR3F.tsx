@@ -7,6 +7,7 @@ import {
   useObjectGridVisible,
 } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
+import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import { TransformModeButtons, GridToggleButton, RenderModeSegment } from '@/shared/ui'
 import type { GfxObject } from '@/entities/object'
 
@@ -54,7 +55,21 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
     store.clearScene()
 
     if (objectData) {
-      store.setPrimitives(objectData.primitives.map(p => ({ ...p })))
+      // Сохраняем тип объекта и treeData в стор для консистентности UI/сохранения
+      store.setObjectType(objectData.objectType)
+      store.setTreeData(objectData.treeData)
+
+      // Если объект — процедурное дерево, восстанавливаем примитивы на лету
+      if (objectData.objectType === 'tree' && objectData.treeData?.params && objectData.treeData.barkMaterialUuid && objectData.treeData.leafMaterialUuid) {
+        const generated = generateTree({
+          ...(objectData.treeData.params as any),
+          barkMaterialUuid: objectData.treeData.barkMaterialUuid,
+          leafMaterialUuid: objectData.treeData.leafMaterialUuid
+        })
+        store.setPrimitives(generated)
+      } else {
+        store.setPrimitives(objectData.primitives.map(p => ({ ...p })))
+      }
       store.setMaterials(objectData.materials ?? [])
 
       // Устанавливаем группы примитивов и их назначения
@@ -66,7 +81,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
         store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
       }
 
-      if (objectData.primitives.length > 0) {
+      if ((objectData.primitives?.length ?? 0) > 0 || (objectData.objectType === 'tree')) {
         store.selectPrimitive(0)
       }
     }

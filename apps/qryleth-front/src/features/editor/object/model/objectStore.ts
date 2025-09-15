@@ -16,6 +16,20 @@ import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUti
 import { generateUUID } from '@/shared/lib/uuid'
 
 interface ObjectStoreState {
+  /**
+   * Тип текущего редактируемого объекта.
+   * 'regular' — геометрия хранится в primitives, 'tree' — хранится только конфигурация генератора.
+   */
+  objectType?: 'regular' | 'tree'
+  /**
+   * Данные процедурного дерева (параметры + UUID материалов), если объект — дерево.
+   * Используется для сохранения в библиотеку и реконструкции превью/рендера.
+   */
+  treeData?: {
+    params: any
+    barkMaterialUuid: string
+    leafMaterialUuid: string
+  }
   primitives: GfxPrimitive[]
   /** Материалы объекта */
   materials: GfxMaterial[]
@@ -42,6 +56,10 @@ interface ObjectStoreState {
 }
 
 interface ObjectStoreActions {
+  /** Устанавливает тип объекта (обычный/дерево). */
+  setObjectType: (type: 'regular' | 'tree' | undefined) => void
+  /** Записывает/очищает параметры процедурного дерева. */
+  setTreeData: (data: ObjectStoreState['treeData']) => void
   setPrimitives: (primitives: GfxPrimitive[]) => void
   addPrimitive: (primitive: GfxPrimitive) => void
   updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) => void
@@ -145,6 +163,8 @@ const initialLighting: LightingSettings = {
 
 export const useObjectStore = create<ObjectStore>()(
   subscribeWithSelector((set, get) => ({
+    objectType: undefined,
+    treeData: undefined,
     primitives: [],
     materials: [],
     selectedMaterialUuid: null,
@@ -160,6 +180,12 @@ export const useObjectStore = create<ObjectStore>()(
     gridVisible: true,
     selectedPrimitiveIds: [],
     hoveredPrimitiveId: null,
+
+    // Устанавливает тип объекта
+    setObjectType: (type: 'regular' | 'tree' | undefined) => set({ objectType: type }),
+
+    // Устанавливает или очищает данные процедурного дерева
+    setTreeData: (data) => set({ treeData: data }),
 
     // Устанавливает список примитивов, нормализуя их
     // и заполняя отсутствующие имена
@@ -316,6 +342,8 @@ export const useObjectStore = create<ObjectStore>()(
     // Очищает сцену и сбрасывает освещение
     clearScene: () =>
       set({
+        objectType: undefined,
+        treeData: undefined,
         primitives: [],
         materials: [],
         selectedMaterialUuid: null,

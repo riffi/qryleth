@@ -5,6 +5,7 @@ import { GroupRenderer } from '../../ui/renderer/objects/GroupRenderer.tsx'
 import { buildGroupTree } from '@/entities/primitiveGroup/model/utils'
 import type { RenderMode } from '@/shared/types/ui'
 import type { GfxObject } from '@/entities/object'
+import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 
 export interface ObjectRendererR3FProps {
@@ -24,7 +25,18 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
   gfxObject,
   renderMode = 'solid'
 }) => {
-  const { primitives, primitiveGroups = {}, primitiveGroupAssignments = {}, materials = [] } = gfxObject
+  // Если объект является процедурным деревом — восстанавливаем примитивы детерминированно
+  const isTree = gfxObject.objectType === 'tree' && !!gfxObject.treeData?.params
+  const primitives = isTree
+    ? generateTree({
+        ...(gfxObject.treeData!.params as any),
+        barkMaterialUuid: gfxObject.treeData!.barkMaterialUuid,
+        leafMaterialUuid: gfxObject.treeData!.leafMaterialUuid
+      })
+    : gfxObject.primitives
+  const primitiveGroups = gfxObject.primitiveGroups ?? {}
+  const primitiveGroupAssignments = gfxObject.primitiveGroupAssignments ?? {}
+  const materials = gfxObject.materials ?? []
 
   // Строим дерево групп для определения корневых групп
   const rootGroups = React.useMemo(() => {
