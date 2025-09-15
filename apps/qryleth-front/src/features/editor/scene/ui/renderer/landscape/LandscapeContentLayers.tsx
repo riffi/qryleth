@@ -450,7 +450,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       shader.uniforms.uAO0 = { value: aoMaps[0] || whiteTex }
       shader.uniforms.uAO1 = { value: aoMaps[1] || whiteTex }
       shader.uniforms.uExposure = { value: (item.material?.multiTexture as any)?.exposure ?? 1.0 }
-      shader.uniforms.uNormalInfluence = { value: 0.01 }
+      shader.uniforms.uNormalInfluence = { value: 0.9 }
       shader.uniforms.uAOIntensity = { value: 0.4 }
 
       // Вершинный шейдер: проброс мирового Y
@@ -478,6 +478,21 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           return vec4(1.0 - t, t, 0.0, 0.0);
         }
         
+        vec3 perturbNormal2Arb(vec3 eye_pos, vec3 surf_norm, vec3 mapN, vec2 uv) {
+          vec3 q0 = dFdx(eye_pos.xyz);
+          vec3 q1 = dFdy(eye_pos.xyz);
+          vec2 st0 = dFdx(uv.st);
+          vec2 st1 = dFdy(uv.st);
+          vec3 N = surf_norm;
+          vec3 q1perp = cross(q1, N);
+          vec3 q0perp = cross(N, q0);
+          vec3 T = q1perp * st0.x + q0perp * st1.x;
+          vec3 B = q1perp * st0.y + q0perp * st1.y;
+          float det = max(dot(T, T), dot(B, B));
+          float scale = (det == 0.0) ? 0.0 : inversesqrt(det);
+          return normalize(T * (mapN.x * scale) + B * (mapN.y * scale) + N * mapN.z);
+        }
+        
       `
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\n' + mixCode)
@@ -492,17 +507,21 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             diffuseColor *= texelColor;
           `
         )
-        .replace(
+      .replace(
           '#include <normal_fragment_maps>',
           `
-            // Смешивание нормалей двух слоёв с мягким влиянием (без perturbNormal2Arb)
-            vec4 wn = computeWeights(vWorldY);
-            vec3 n0 = texture2D(uNorm0, vUv * uRepeat0).xyz * 2.0 - 1.0;
-            vec3 n1 = texture2D(uNorm1, vUv * uRepeat1).xyz * 2.0 - 1.0;
-            vec3 mapN = normalize(n0 * wn.x + n1 * wn.y);
-            normal = normalize( normal * (1.0 - uNormalInfluence) + mapN * uNormalInfluence );
-          `
-        )
+      vec4 wn = computeWeights(vWorldY);
+      
+      vec3 n0 = texture2D(uNorm0, vUv * uRepeat0).xyz * 2.0 - 1.0;
+      vec3 n1 = texture2D(uNorm1, vUv * uRepeat1).xyz * 2.0 - 1.0;
+      
+      vec3 blendedNormal = normalize(n0 * wn.x + n1 * wn.y);
+      blendedNormal.xy *= uNormalInfluence;
+      blendedNormal = normalize(blendedNormal);
+      
+      normal = perturbNormal2Arb(-vViewPosition, normal, blendedNormal, vUv);
+      `
+      )
         .replace(
           '#include <roughnessmap_fragment>',
           `
