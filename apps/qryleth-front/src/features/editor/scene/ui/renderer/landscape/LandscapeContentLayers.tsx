@@ -6,6 +6,7 @@ import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxH
 import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiColorProcessor'
 import { paletteRegistry } from '@/shared/lib/palette'
+import { GfxLayerType } from '@/entities/layer'
 
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
 // Ключ: baseGeometry.uuid + параметры многоцветной палитры.
@@ -83,13 +84,24 @@ import {FrontSide} from "three/src/constants";
  * Цвет/многоцветная окраска берутся из item.material (color | multiColor).
  */
 export const LandscapeContentLayers: React.FC = () => {
+  /**
+   * Рендер содержимого ландшафта для активного слоя.
+   *
+   * Важно: оборачиваем все площадки ландшафта в группу с userData
+   * `{ layerId, layerType: 'landscape' }`. Эти метки используются режимом Walk
+   * (см. WalkControls) для эффективного рейкастинга вниз под камерой и выбора
+   * корректной высоты поверхности. Ранее метки проставлялись в компоненте
+   * LandscapeLayer, однако после перехода на новую архитектуру здесь рендерится
+   * непосредственное содержимое (`LandscapeContentLayers`) без обёртки слоя.
+   * Добавление userData на группу восстанавливает корректную работу Walk-режима.
+   */
   const content = useSceneStore(state => state.landscapeContent)
   const renderMode = useSceneStore(state => (state as any).renderMode)
   const items = content?.items ?? []
   if (!items.length) return null
 
   return (
-    <group>
+    <group userData={{ layerId: content!.layerId, layerType: GfxLayerType.Landscape }}>
       {items.map(item => (
         <LandscapeItemMesh key={item.id} item={item} wireframe={renderMode === 'wireframe'} />
       ))}
