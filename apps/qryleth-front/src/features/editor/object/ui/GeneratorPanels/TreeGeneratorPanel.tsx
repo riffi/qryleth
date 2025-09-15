@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select, Tabs } from '@mantine/core'
+import { IconTrees, IconGitBranch, IconLeaf } from '@tabler/icons-react'
+import classes from './TreeGeneratorPanel.module.css'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
 import { useObjectDebugFlags } from '../../model/debugFlagsStore'
@@ -59,6 +61,8 @@ export const TreeGeneratorPanel: React.FC = () => {
   const [configError, setConfigError] = useState<string | null>(null)
   // Список спрайтов из атласа для текстурного режима
   const [atlasOptions, setAtlasOptions] = useState<{ value: string; label: string }[]>([])
+  // Активная вкладка панели генератора: trunk | branches | leaves
+  const [activeTab, setActiveTab] = useState<'trunk' | 'branches' | 'leaves'>('trunk')
   useEffect(() => {
     let mounted = true
     fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
@@ -232,6 +236,24 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Случайность" value={params.randomness} onChange={(v) => setParams(p => ({ ...p, randomness: Math.max(0, Math.min(1, Number(v) || 0)) }))} step={0.05} min={0} max={1}/>
         </Group>
 
+        {/* Вкладки: Ствол / Ветви / Листья */}
+        {(() => {
+          // Локальное состояние выбранной вкладки
+          // Комментарий: вкладки управляют видимостью ниже расположенных секций
+          return null
+        })()}
+        {/** Текущее значение вкладки */}
+        {(() => null)()}
+        {/* Заголовок вкладок */}
+        <Tabs value={activeTab} onChange={(v) => setActiveTab((v as any) as 'trunk'|'branches'|'leaves')} variant="unstyled" classNames={{ tab: classes.tab }}>
+          <Tabs.List grow>
+            <Tabs.Tab value="trunk" leftSection={<IconTrees size={16} />}>Ствол</Tabs.Tab>
+            <Tabs.Tab value="branches" leftSection={<IconGitBranch size={16} />}>Ветви</Tabs.Tab>
+            <Tabs.Tab value="leaves" leftSection={<IconLeaf size={16} />}>Листья</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+
+        {activeTab === 'trunk' && (<>
         <Divider label="Ствол" />
         <Group grow>
           <NumberInput label="Высота" value={params.trunkHeight} onChange={(v) => setParams(p => ({ ...p, trunkHeight: Math.max(0.5, Number(v) || 0) }))} min={0.5} step={0.1}/>
@@ -304,7 +326,9 @@ export const TreeGeneratorPanel: React.FC = () => {
             />
           </Box>
         </Group>
+        </>)}
 
+        {activeTab === 'branches' && (<>
         <Divider label="Ветви" />
         <Group grow>
           <NumberInput label="Уровни" value={params.branchLevels} onChange={(v) => setParams(p => ({ ...p, branchLevels: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
@@ -365,7 +389,9 @@ export const TreeGeneratorPanel: React.FC = () => {
             disabled={params.branchLevels <= 0}
           />
         </Box>
+        </>)}
 
+        {activeTab === 'leaves' && (<>
         <Divider label="Листья" />
         <Group grow>
           <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
@@ -432,6 +458,7 @@ export const TreeGeneratorPanel: React.FC = () => {
             />
           )}
         </Group>
+        </>)}
 
         <Divider label="Материалы" />
         <Group grow>
