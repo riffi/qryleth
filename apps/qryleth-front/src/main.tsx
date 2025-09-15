@@ -6,7 +6,7 @@ import App from '@/app/App'
 import { BrowserRouter } from 'react-router-dom'
 import { initializeMaterials } from '@/shared/lib/materials'
 import { initializePalettes } from '@/shared/lib/palette'
-import { initializeLeafTextures, initializeLandscapeTextures } from '@/shared/lib/textures'
+import { initializeLeafTextures, initializeLandscapeTextures, initializeWoodTextures } from '@/shared/lib/textures'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 
@@ -24,6 +24,8 @@ initializePalettes()
 initializeLeafTextures()
 // Инициализируем реестр текстур ландшафта при старте приложения
 initializeLandscapeTextures()
+// Инициализируем реестр текстур коры при старте приложения
+initializeWoodTextures()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

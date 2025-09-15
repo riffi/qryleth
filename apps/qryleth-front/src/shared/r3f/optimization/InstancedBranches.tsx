@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { woodTextureRegistry } from '@/shared/lib/textures'
 
 interface CylinderPrimitiveLike {
   type: 'trunk' | 'branch'
@@ -186,6 +187,41 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
 
   // Материал MeshStandard + модификация вершинника
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Карты коры (дерево) — из treeData.params.barkTextureSetId
+  const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
+  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
+  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
+  const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
+
+  // Загрузка карт из реестра woodTextureRegistry по id в объекте
+  useEffect(() => {
+    const barkId: string | undefined = (sceneObject as any)?.treeData?.params?.barkTextureSetId
+    const ru: number = ((sceneObject as any)?.treeData?.params?.barkUvRepeatU ?? 1)
+    const rv: number = ((sceneObject as any)?.treeData?.params?.barkUvRepeatV ?? 1)
+    if (!barkId) { setColorMap(null); setNormalMap(null); setRoughnessMap(null); setAoMap(null); return }
+    const set = woodTextureRegistry.get(barkId) || woodTextureRegistry.list()[0]
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, ru || 1), Math.max(0.05, rv || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setColorMap(t) })
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setNormalMap(t) })
+    else setNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setRoughnessMap(t) })
+    else setRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setAoMap(t) })
+    else setAoMap(null)
+  }, [sceneObject])
+
+  // Обновляем материал при смене карт
+  useEffect(() => {
+    if (materialRef.current) materialRef.current.needsUpdate = true
+  }, [colorMap, normalMap, roughnessMap, aoMap])
   /**
    * Настраивает материал инстансированного цилиндра (ствол/ветви):
    * - добавляет вершинный шейдер с профилем радиуса и «воротником» у основания ветвей;
@@ -239,7 +275,14 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
       onClick={handleClick}
       onPointerOver={handleHover}
     >
-      <meshStandardMaterial ref={onMaterialRef} {...materialProps} />
+      <meshStandardMaterial
+        ref={onMaterialRef}
+        {...materialProps}
+        map={colorMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
+        aoMap={aoMap || undefined}
+      />
     </instancedMesh>
   )
 }

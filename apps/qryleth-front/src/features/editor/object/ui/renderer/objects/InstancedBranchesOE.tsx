@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial } from '@/entities/material'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { usePalettePreviewUuid } from '../../../model/palettePreviewStore'
+import { woodTextureRegistry } from '@/shared/lib/textures' 
+import { useObjectStore } from '../../../model/objectStore'
 
 interface InstancedBranchesOEProps {
   /** Массив цилиндров (например, ствол+ветви) */
@@ -106,6 +108,39 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
   }
 
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
+  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
+  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
+  const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
+
+  // Грузим карты коры из реестра по id в ObjectEditor.store (treeData.params)
+  useEffect(() => {
+    // Берём id напрямую из стора ObjectEditor (treeData.params)
+    const st = useObjectStore.getState()
+    const id = st?.treeData?.params?.barkTextureSetId
+    const ru: number = (st?.treeData?.params?.barkUvRepeatU ?? 1)
+    const rv: number = (st?.treeData?.params?.barkUvRepeatV ?? 1)
+    if (!id) { setColorMap(null); setNormalMap(null); setRoughnessMap(null); setAoMap(null); return }
+    const set = woodTextureRegistry.get(id) || woodTextureRegistry.list()[0]
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, ru || 1), Math.max(0.05, rv || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setColorMap(t) })
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setNormalMap(t) })
+    else setNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setRoughnessMap(t) })
+    else setRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setAoMap(t) })
+    else setAoMap(null)
+  }, [cylinders])
+
+  useEffect(() => { if (materialRef.current) materialRef.current.needsUpdate = true }, [colorMap, normalMap, roughnessMap, aoMap])
   /**
    * Настраивает материал unit‑cylinder для ObjectEditor с инстанс‑атрибутами:
    * - применяет «воротник» у основания ветви (плавное расширение радиуса внизу);
@@ -154,7 +189,14 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       onClick={handleClick}
       onPointerOver={handleHover}
     >
-      <meshStandardMaterial ref={onMaterialRef} {...materialProps} />
+      <meshStandardMaterial
+        ref={onMaterialRef}
+        {...materialProps}
+        map={colorMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
+        aoMap={aoMap || undefined}
+      />
     </instancedMesh>
   )
 }

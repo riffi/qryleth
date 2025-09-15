@@ -4,7 +4,8 @@ import { IconTrees, IconGitBranch, IconLeaf, IconDice5 } from '@tabler/icons-rea
 import classes from './TreeGeneratorPanel.module.css'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
-import { leafTextureRegistry } from '@/shared/lib/textures'
+import { leafTextureRegistry, woodTextureRegistry } from '@/shared/lib/textures'
+import { useSetBarkTextureSetId } from '../../model/barkTexturePreviewStore'
 import { useObjectDebugFlags } from '../../model/debugFlagsStore'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
 
@@ -45,7 +46,10 @@ export const TreeGeneratorPanel: React.FC = () => {
     leavesPerMeter: 6,
     angleSpread: 1,
     embedFactor: 1,
-    leafTextureSetId: 'leafset019-1k-jpg'
+    leafTextureSetId: 'leafset019-1k-jpg',
+    barkTextureSetId: 'bark014-1k-jpg',
+    barkUvRepeatU: 1,
+    barkUvRepeatV: 1
   })
 
   // Параметры материалов
@@ -66,6 +70,10 @@ export const TreeGeneratorPanel: React.FC = () => {
   // Выбранный набор листвы — теперь хранится прямо в параметрах генератора
   const selectedLeafSetId = params.leafTextureSetId || 'leafset019-1k-jpg'
   const [leafSetModalOpen, setLeafSetModalOpen] = useState(false)
+  // Набор коры: аналогично выбору листвы
+  const selectedBarkSetId = params.barkTextureSetId || 'bark014-1k-jpg'
+  const [barkSetModalOpen, setBarkSetModalOpen] = useState(false)
+  const setBarkPreviewId = useSetBarkTextureSetId()
   // Активная вкладка панели генератора: trunk | branches | leaves
   const [activeTab, setActiveTab] = useState<'trunk' | 'branches' | 'leaves'>('trunk')
   useEffect(() => {
@@ -295,6 +303,26 @@ export const TreeGeneratorPanel: React.FC = () => {
         {/* Контент активной вкладки */}
 
         {activeTab === 'trunk' && (<>
+        <Group justify="space-between" align="center" mb="xs">
+          <Text size="sm">Текстура коры: {woodTextureRegistry.get(selectedBarkSetId)?.name || '—'}</Text>
+          <Button variant="light" onClick={() => setBarkSetModalOpen(true)}>Выбрать текстуру</Button>
+        </Group>
+        <Group grow>
+          <NumberInput
+            label="Повтор U"
+            value={params.barkUvRepeatU ?? 1}
+            onChange={(v) => setParams(p => ({ ...p, barkUvRepeatU: Math.max(0.05, Number(v) || 1) }))}
+            min={0.05}
+            step={0.1}
+          />
+          <NumberInput
+            label="Повтор V"
+            value={params.barkUvRepeatV ?? 1}
+            onChange={(v) => setParams(p => ({ ...p, barkUvRepeatV: Math.max(0.05, Number(v) || 1) }))}
+            min={0.05}
+            step={0.1}
+          />
+        </Group>
         <Group grow>
           <NumberInput label="Высота" value={params.trunkHeight} onChange={(v) => setParams(p => ({ ...p, trunkHeight: Math.max(0.5, Number(v) || 0) }))} min={0.5} step={0.1}/>
           <NumberInput label="Радиус" value={params.trunkRadius} onChange={(v) => setParams(p => ({ ...p, trunkRadius: Math.max(0.02, Number(v) || 0) }))} min={0.02} step={0.02}/>
@@ -620,6 +648,51 @@ export const TreeGeneratorPanel: React.FC = () => {
           </Box>
           <Group justify="flex-end">
             <Button variant="light" onClick={() => setLeafSetModalOpen(false)}>Закрыть</Button>
+          </Group>
+        </Stack>
+      </Modal>
+      {/* Всплывающее окно выбора текстуры коры (ствол/ветви) */}
+      <Modal opened={barkSetModalOpen} onClose={() => setBarkSetModalOpen(false)} title="Выбор текстуры коры" size="lg">
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">Выберите набор PBR-карт для коры дерева. Текстура применяется к стволу и ветвям.</Text>
+          <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+            {woodTextureRegistry.list().map(set => {
+              const selected = set.id === selectedBarkSetId
+              return (
+                <Box key={set.id}
+                  onClick={() => {
+                    // Обновляем параметры генератора
+                    setParams(p => ({ ...p, barkTextureSetId: set.id }))
+                    // Пробрасываем предпросмотр (всегда) и, если возможно, в данные объекта
+                    setBarkPreviewId(set.id)
+                    const st = useObjectStore.getState()
+                    st.setTreeData({
+                      ...(st.treeData || {} as any),
+                      params: { ...((st.treeData?.params as any) || {}), barkTextureSetId: set.id }
+                    } as any)
+                    setBarkSetModalOpen(false)
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    border: `2px solid ${selected ? 'var(--mantine-color-blue-5)' : 'var(--mantine-color-dark-5)'}`,
+                    borderRadius: 8,
+                    padding: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'var(--mantine-color-dark-7)'
+                  }}>
+                  <Box style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: 6, background: 'var(--mantine-color-dark-6)' }}>
+                    <img src={set.previewUrl} alt={set.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </Box>
+                  <Text size="sm" ta="center">{set.name}</Text>
+                </Box>
+              )
+            })}
+          </Box>
+          <Group justify="flex-end">
+            <Button variant="light" onClick={() => setBarkSetModalOpen(false)}>Закрыть</Button>
           </Group>
         </Stack>
       </Modal>

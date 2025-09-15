@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { GfxPrimitive } from '@/entities/primitive'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
+import { woodTextureRegistry } from '@/shared/lib/textures'
 
 
 interface Primitive3DProps {
@@ -118,6 +120,50 @@ interface Mesh3DProps {
  */
 export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshProps }) => {
   const geom = primitive.geometry as any
+  // Выбор набора коры из стора процедурного дерева или предпросмотра
+  const barkSetId: string | undefined = useObjectStore(s => s.treeData?.params?.barkTextureSetId)
+  const barkRepeatU: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatU ?? 1))
+  const barkRepeatV: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatV ?? 1))
+  // Карты PBR для коры
+  const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
+  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
+  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
+  const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+
+  /**
+   * Загружает карты коры согласно выбранному набору из реестра woodTextureRegistry.
+   * Применяется только для процедурного дерева; для прочих объектов не активируется.
+   */
+  useEffect(() => {
+    if (!barkSetId) return
+    const set = (barkSetId && woodTextureRegistry.get(barkSetId)) || woodTextureRegistry.list()[0]
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, barkRepeatU || 1), Math.max(0.05, barkRepeatV || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    // diffuse/color
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setColorMap(t) })
+    // optional maps
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setNormalMap(t) })
+    else setNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setRoughnessMap(t) })
+    else setRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setAoMap(t) })
+    else setAoMap(null)
+  }, [barkSetId, barkRepeatU, barkRepeatV])
+
+  // Форсируем обновление материала при смене карт
+  useEffect(() => {
+    if (materialRef.current) {
+      materialRef.current.needsUpdate = true
+    }
+  }, [colorMap, normalMap, roughnessMap, aoMap])
 
   const bufferGeometry = useMemo(() => {
     const g = new THREE.BufferGeometry()
@@ -140,7 +186,14 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
   return (
     <mesh {...(meshProps || {})} castShadow receiveShadow>
       <primitive object={bufferGeometry} attach="geometry" />
-      <meshStandardMaterial {...(materialProps || {})} />
+      <meshStandardMaterial
+        ref={m => { materialRef.current = m }}
+        {...(materialProps || {})}
+        map={colorMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
+        aoMap={aoMap || undefined}
+      />
     </mesh>
   )
 }

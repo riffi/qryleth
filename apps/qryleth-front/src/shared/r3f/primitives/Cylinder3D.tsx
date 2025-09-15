@@ -1,6 +1,8 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type {GfxPrimitive} from '@/entities/primitive';
 import * as THREE from 'three'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
+import { woodTextureRegistry } from '@/shared/lib/textures'
 
 
 /** Свойства компонента Cylinder3D */
@@ -23,6 +25,35 @@ export const Cylinder3D: React.FC<Cylinder3DProps> = ({ primitive, materialProps
   }
 
   const { radiusTop, radiusBottom, height, radialSegments } = (primitive as any).geometry
+
+  // Для процедурного дерева — подключаем карты коры из выбранного набора woodTextureRegistry
+  const barkSetId: string | undefined = useObjectStore(s => s.treeData?.params?.barkTextureSetId)
+  const barkRepeatU: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatU ?? 1))
+  const barkRepeatV: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatV ?? 1))
+  const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
+  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
+  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
+  const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    if (!barkSetId) return
+    const set = (barkSetId && woodTextureRegistry.get(barkSetId)) || woodTextureRegistry.list()[0]
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, barkRepeatU || 1), Math.max(0.05, barkRepeatV || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setColorMap(t) })
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setNormalMap(t) })
+    else setNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setRoughnessMap(t) })
+    else setRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setAoMap(t) })
+    else setAoMap(null)
+  }, [barkSetId, barkRepeatU, barkRepeatV])
 
   // Для веток/сегментов с заданным воротником добавляем плавное увеличение радиуса у базы
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
@@ -56,7 +87,14 @@ export const Cylinder3D: React.FC<Cylinder3DProps> = ({ primitive, materialProps
   return (
     <mesh {...meshProps}>
       <cylinderGeometry args={[radiusTop, radiusBottom, height, radialSegments ?? 16]} />
-      <meshStandardMaterial ref={onMatRef} {...materialProps} />
+      <meshStandardMaterial
+        ref={onMatRef}
+        {...materialProps}
+        map={colorMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
+        aoMap={aoMap || undefined}
+      />
     </mesh>
   )
 }

@@ -487,8 +487,11 @@ export function generateTree(params: TreeGeneratorParams & {
   if (mainTrunk.path) {
     const rings = mainTrunk.path.centers.length
     const M = 18 // радиальных сегментов для круглого сечения
+    // Массивы геометрии единого ствола: позиции, нормали, UV и индексы.
+    // UV добавлены по цилиндрической развёртке: u — по окружности, v — вдоль высоты.
     const positions: number[] = []
     const normals: number[] = []
+    const uvs: number[] = []
     const indices: number[] = []
     const ringBaseIndex: number[] = []
 
@@ -533,6 +536,8 @@ export function generateTree(params: TreeGeneratorParams & {
       const n2: [number,number,number] = [n2v.x, n2v.y, n2v.z]
 
       ringBaseIndex[i] = positions.length / 3
+      // v‑координата вдоль высоты для текущего кольца (0..1)
+      const v = rings > 1 ? (i / (rings - 1)) : 0
       for (let k = 0; k < M; k++) {
         const a = (k / M) * Math.PI * 2
         const cx = n1[0] * Math.cos(a) + n2[0] * Math.sin(a)
@@ -544,6 +549,9 @@ export function generateTree(params: TreeGeneratorParams & {
         positions.push(px, py, pz)
         // Нормаль — чисто радиальная (перпендикуляр касательной)
         normals.push(cx, cy, cz)
+        // u‑координата по окружности (0..1)
+        const u = k / M
+        uvs.push(u, v)
       }
     }
 
@@ -567,6 +575,8 @@ export function generateTree(params: TreeGeneratorParams & {
     positions.push(c0[0], c0[1], c0[2])
     const t0 = normalize(mainTrunk.path.tangents[0])
     normals.push(-t0[0], -t0[1], -t0[2])
+    // Простейшие UV для центра нижней крышки
+    uvs.push(0.5, 0.5)
     for (let k = 0; k < M; k++) {
       const a = ringBaseIndex[0] + k
       const b = ringBaseIndex[0] + ((k + 1) % M)
@@ -578,6 +588,8 @@ export function generateTree(params: TreeGeneratorParams & {
     positions.push(cN[0], cN[1], cN[2])
     const tN = normalize(mainTrunk.path.tangents[rings - 1])
     normals.push(tN[0], tN[1], tN[2])
+    // Простейшие UV для центра верхней крышки
+    uvs.push(0.5, 0.5)
     for (let k = 0; k < M; k++) {
       const a = ringBaseIndex[rings - 1] + k
       const b = ringBaseIndex[rings - 1] + ((k + 1) % M)
@@ -588,7 +600,7 @@ export function generateTree(params: TreeGeneratorParams & {
       uuid: generateUUID(),
       type: 'mesh',
       name: 'Ствол (единый меш)',
-      geometry: { positions, normals, indices },
+      geometry: { positions, normals, indices, uvs },
       objectMaterialUuid: barkMaterialUuid,
       visible: true,
       transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] },
