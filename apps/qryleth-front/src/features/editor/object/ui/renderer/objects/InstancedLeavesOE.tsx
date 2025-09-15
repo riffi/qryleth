@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { leafTextureRegistry } from '@/shared/lib/textures'
+import { useObjectStore } from '../../../model/objectStore'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial } from '@/entities/material'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -23,6 +25,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
 
   const sample = leaves[0]?.primitive
+  // Идентификатор сета берём из параметров процедурного объекта в ObjectEditor
+  const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
   const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
   /**
    * Карты текстур для режима shape = 'texture'. Загружаются лениво при первом появлении такого режима.
@@ -44,15 +48,18 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
 
   /**
-   * Загружает текстуры листьев из публичной папки проекта, если выбран режим 'texture'.
-   * Используется набор LeafSet019_1K-JPG: Color (цвет), Opacity (прозрачность), NormalGL (нормали), Roughness (шероховатость).
-   * ВАЖНО: используем JPG Color + JPG Opacity, чтобы координаты из atlas.json совпадали с раскладкой атласа.
+   * Загружает текстуры листьев из реестра наборов, если выбран режим 'texture'.
+   * Используем первый доступный набор из реестра (или конкретный id), с резервом на прежние пути.
    */
   useEffect(() => {
     const shape = (sample as any)?.geometry?.shape || 'billboard'
     if (shape !== 'texture') return
     const loader = new THREE.TextureLoader()
-    const base = '/texture/leaf/LeafSet019_1K-JPG/'
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
+    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
+    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
+    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
     const onTex = (t: THREE.Texture | null) => {
       if (!t) return
       t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
@@ -60,8 +67,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       t.anisotropy = 4
       t.needsUpdate = true
     }
-    // Загружаем JPG‑карты: Color + Opacity, чтобы соответствовать atlas.json
-    loader.load(base + 'LeafSet019_1K-JPG_Color.jpg', (t2) => {
+    // Загружаем карты по ссылкам из набора: Color + Opacity, чтобы соответствовать atlas.json
+    loader.load(colorUrl, (t2) => {
       onTex(t2)
       t2.center.set(0.0, 0.0)
       t2.rotation = 0
@@ -69,10 +76,10 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       const img2: any = t2.image
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
     })
-    loader.load(base + 'LeafSet019_1K-JPG_Opacity.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_NormalGL.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
-  }, [sample])
+    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
+    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
+    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+  }, [sample, texSetId])
 
   // Обновляем центр (держим rotation=0; не вращаем UV)
   useEffect(() => {
@@ -81,12 +88,14 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
   }, [sample, diffuseMap, alphaMap, normalMap, roughnessMap])
 
-  // Загружаем atlas.json (переменные прямоугольники листьев)
+  // Загружаем atlas.json (переменные прямоугольники листьев) из активного набора реестра
   useEffect(() => {
     const shape = (sample as any)?.geometry?.shape || 'billboard'
     if (shape !== 'texture') return
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json').then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
-  }, [sample])
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
+    fetch(atlasUrl).then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
+  }, [sample, texSetId])
 
   // Применяем выбранный спрайт из атласа: repeat/offset, центр, aspect
   useEffect(() => {

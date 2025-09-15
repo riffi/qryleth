@@ -78,7 +78,13 @@ export interface TreeGeneratorParams {
    */
   leafTiltDeg?: number
   /**
-   * Имя спрайта (подпрямоугольника) из atlas.json для набора LeafSet019.
+   * Идентификатор набора текстур листвы из реестра (leafTextureRegistry).
+   * Например: 'leafset019-1k-jpg' или 'leafset024-1k-jpg'.
+   * Применяется при leafShape='texture' для выбора карт и atlas.json.
+   */
+  leafTextureSetId?: string
+  /**
+   * Имя спрайта (подпрямоугольника) из atlas.json выбранного набора.
    * Используется только при leafShape='texture'. Если не задано — берётся первый элемент атласа.
    */
   leafTextureSpriteName?: string

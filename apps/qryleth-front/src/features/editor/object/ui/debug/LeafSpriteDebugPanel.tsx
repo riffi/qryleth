@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Group, NumberInput, ScrollArea, Select, Stack, Text } from '@mantine/core'
-import { useObjectPrimitives, useObjectSelectedPrimitiveIds } from '@/features/editor/object/model/objectStore'
+import { leafTextureRegistry } from '@/shared/lib/textures'
+import { useObjectPrimitives, useObjectSelectedPrimitiveIds, useObjectStore } from '@/features/editor/object/model/objectStore'
 
 /**
  * Панель отладки вырезки спрайтов из атласа для текстурных листьев.
@@ -22,15 +23,19 @@ export const LeafSpriteDebugPanel: React.FC = () => {
   }, [primitives, selected])
 
   const spriteName = (target?.geometry as any)?.texSpriteName as string | undefined
+  const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
   const texRotDeg = undefined
 
-  // Загружаем атлас и исходное изображение
+  // Загружаем атлас и исходное изображение (карту цвета) из реестра наборов текстур
   const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number; anchorX?: number; anchorY?: number; anchor?: { x: number; y: number } }[]>([])
   const originalAtlasRef = useRef<typeof atlas | null>(null)
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null)
   useEffect(() => {
     let active = true
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
+    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
+    fetch(atlasUrl)
       .then(r => r.json())
       .then((arr) => {
         if (!active) return
@@ -41,9 +46,9 @@ export const LeafSpriteDebugPanel: React.FC = () => {
       .catch(() => setAtlas([]))
     const img = new Image()
     img.onload = () => { if (active) setImgEl(img) }
-    img.src = '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
+    img.src = colorUrl
     return () => { active = false }
-  }, [])
+  }, [texSetId])
 
   const [currentName, setCurrentName] = useState<string | null>(null)
   // Не сбрасывать выбор при локальном редактировании atlas: реагируем только на смену spriteName или длины массива

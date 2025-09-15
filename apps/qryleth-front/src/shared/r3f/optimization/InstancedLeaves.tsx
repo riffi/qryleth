@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { leafTextureRegistry } from '@/shared/lib/textures'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -91,13 +92,19 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     return p
   }, [spheres])
   const spriteNameKey = ((textureSample as any)?.geometry?.texSpriteName) || 'default'
+  // Идентификатор набора текстур берём из object.treeData.params
+  const setIdFromObject: string | undefined = (sceneObject as any)?.treeData?.params?.leafTextureSetId
 
-  // Загрузка карт из публичной папки при выборе режима 'texture'
+  // Загрузка карт из реестра наборов текстур при выборе режима 'texture'
   useEffect(() => {
     dbg('texture load effect start', { hasTextureLeaves })
     if (!hasTextureLeaves) return
     const loader = new THREE.TextureLoader()
-    const base = '/texture/leaf/LeafSet019_1K-JPG/'
+    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
+    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
+    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
+    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
     const onTex = (t: THREE.Texture | null) => {
       if (!t) return
       t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
@@ -105,8 +112,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       t.anisotropy = 4
       t.needsUpdate = true
     }
-    // Используем JPG Color + JPG Opacity, чтобы соответствовать atlas.json
-    loader.load(base + 'LeafSet019_1K-JPG_Color.jpg', (t2) => {
+    // Используем ссылки из реестра (JPG Color + JPG Opacity), чтобы соответствовать atlas.json
+    loader.load(colorUrl, (t2) => {
       onTex(t2)
       t2.center.set(0.0,0.0)
       t2.rotation = 0
@@ -117,10 +124,10 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     }, undefined, (err) => {
       dbg('ERROR loading diffuse', err)
     })
-    loader.load(base + 'LeafSet019_1K-JPG_Opacity.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
-    loader.load(base + 'LeafSet019_1K-JPG_NormalGL.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
-    loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
-  }, [hasTextureLeaves])
+    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
+    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
+    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
+  }, [hasTextureLeaves, setIdFromObject])
 
   useEffect(() => {
     dbg('apply rot/center', { hasTextureLeaves, hasMaps: !!diffuseMap })
@@ -132,15 +139,17 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   // Без поворота UV — ничего не делаем
   useEffect(() => { /* noop */ }, [hasTextureLeaves])
 
-  // Загружаем atlas.json с произвольными прямоугольниками
+  // Загружаем atlas.json с произвольными прямоугольниками из активного набора реестра
   useEffect(() => {
     dbg('fetch atlas', { hasTextureLeaves })
     if (!hasTextureLeaves) return
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
+    fetch(atlasUrl)
       .then(r => r.json())
       .then(a => { setAtlas(a); dbg('atlas loaded', a?.length) })
       .catch((e) => { setAtlas(null); dbg('ERROR loading atlas', e) })
-  }, [hasTextureLeaves])
+  }, [hasTextureLeaves, setIdFromObject])
 
   // Применяем выбранный прямоугольник: repeat/offset/center и aspect
   useEffect(() => {

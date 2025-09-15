@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
+import { leafTextureRegistry } from '@/shared/lib/textures'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
 
 interface LeafBillboard3DProps {
   primitive: any
@@ -15,6 +17,8 @@ interface LeafBillboard3DProps {
 export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, materialProps, meshProps }) => {
   const shape = (primitive?.geometry as any)?.shape || 'billboard'
   const spriteName: string | undefined = (primitive?.geometry as any)?.texSpriteName
+  // Идентификатор набора текстур берём из параметров дерева текущего объекта (ObjectEditor)
+  const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
 
   // Текстуры и параметры
   const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
@@ -26,17 +30,26 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
 
   // Загрузка текстур
+  // Метод подбирает активный набор из реестра (первый доступный), либо использует старый путь как резерв.
   useEffect(() => {
     if (shape !== 'texture') return
     const loader = new THREE.TextureLoader()
-    const base = '/texture/leaf/LeafSet019_1K-JPG/'
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
+    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
+    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
+    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
+    /**
+     * Устанавливает параметры загруженной текстуры для корректной работы кропа и фильтрации.
+     * Применяется ко всем картам набора.
+     */
     const onTex = (t: THREE.Texture | null) => {
       if (!t) return
       t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
       t.anisotropy = 4
       t.needsUpdate = true
     }
-    loader.load(base + 'LeafSet019_1K-JPG_Color.jpg', (t2) => {
+    loader.load(colorUrl, (t2) => {
       onTex(t2)
       t2.center.set(0.0, 0.0)
       t2.rotation = 0
@@ -44,19 +57,22 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
       const img2: any = t2.image
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
     })
-    loader.load(base + 'LeafSet019_1K-JPG_Opacity.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_NormalGL.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    loader.load(base + 'LeafSet019_1K-JPG_Roughness.jpg', (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
-  }, [shape])
+    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
+    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
+    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+  }, [shape, texSetId])
 
   // Загрузка атласа
+  // Использует atlasUrl из активного набора реестра; при отсутствии — резервный путь.
   useEffect(() => {
     if (shape !== 'texture') return
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
+    fetch(atlasUrl)
       .then(r => r.json())
       .then(setAtlas)
       .catch(() => setAtlas(null))
-  }, [shape])
+  }, [shape, texSetId])
 
   // Применяем вырезку и anchor
   useEffect(() => {

@@ -4,6 +4,7 @@ import { IconTrees, IconGitBranch, IconLeaf, IconDice5 } from '@tabler/icons-rea
 import classes from './TreeGeneratorPanel.module.css'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
+import { leafTextureRegistry } from '@/shared/lib/textures'
 import { useObjectDebugFlags } from '../../model/debugFlagsStore'
 import type { TreeGeneratorParams } from '../../lib/generators/tree/types'
 
@@ -43,7 +44,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafTiltDeg: 25,
     leavesPerMeter: 6,
     angleSpread: 1,
-    embedFactor: 1
+    embedFactor: 1,
+    leafTextureSetId: 'leafset019-1k-jpg'
   })
 
   // Параметры материалов
@@ -61,11 +63,16 @@ export const TreeGeneratorPanel: React.FC = () => {
   const [configError, setConfigError] = useState<string | null>(null)
   // Список спрайтов из атласа для текстурного режима
   const [atlasOptions, setAtlasOptions] = useState<{ value: string; label: string }[]>([])
+  // Выбранный набор листвы — теперь хранится прямо в параметрах генератора
+  const selectedLeafSetId = params.leafTextureSetId || 'leafset019-1k-jpg'
+  const [leafSetModalOpen, setLeafSetModalOpen] = useState(false)
   // Активная вкладка панели генератора: trunk | branches | leaves
   const [activeTab, setActiveTab] = useState<'trunk' | 'branches' | 'leaves'>('trunk')
   useEffect(() => {
     let mounted = true
-    fetch('/texture/leaf/LeafSet019_1K-JPG/atlas.json')
+    const set = leafTextureRegistry.get(selectedLeafSetId) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
+    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
+    fetch(atlasUrl)
       .then(r => r.json())
       .then((arr: { name: string }[]) => {
         if (!mounted) return
@@ -75,7 +82,7 @@ export const TreeGeneratorPanel: React.FC = () => {
       })
       .catch(() => void 0)
     return () => { mounted = false }
-  }, [])
+  }, [selectedLeafSetId])
 
   /**
    * Формирует человекочитаемый JSON текущих параметров генератора
@@ -120,7 +127,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
         'embedFactor',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
@@ -424,10 +431,14 @@ export const TreeGeneratorPanel: React.FC = () => {
         </>)}
 
         {activeTab === 'leaves' && (<>
-        <Group grow>
-          <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
-          <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
-        </Group>
+          <Group justify="space-between" align="center" mb="xs">
+            <Text size="sm">Набор листвы: {leafTextureRegistry.get(selectedLeafSetId)?.name || '—'}</Text>
+            <Button variant="light" onClick={() => setLeafSetModalOpen(true)}>Выбрать набор</Button>
+          </Group>
+          <Group grow>
+            <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
+            <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
+          </Group>
         <SegmentedControl
           value={params.leafShape || 'billboard'}
           onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere'|'coniferCross'|'texture') }))}
@@ -562,6 +573,53 @@ export const TreeGeneratorPanel: React.FC = () => {
               <Button onClick={applyImportedParams}>Применить</Button>
             )}
             <Button variant="light" onClick={() => setConfigModalOpen(false)}>Закрыть</Button>
+          </Group>
+        </Stack>
+      </Modal>
+      {/* Всплывающее окно выбора набора текстур листвы */}
+      <Modal opened={leafSetModalOpen} onClose={() => setLeafSetModalOpen(false)} title="Выбор набора листвы" size="lg">
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">Выберите набор: будет использован для предпросмотра и атласа спрайтов в ObjectEditor.</Text>
+          <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+            {leafTextureRegistry.list().map(set => {
+              const selected = set.id === selectedLeafSetId
+              return (
+                <Box key={set.id}
+                  onClick={() => {
+                    // Обновляем локальные параметры генератора
+                    setParams(p => ({ ...p, leafTextureSetId: set.id }))
+                    // Мгновенно пробрасываем выбор в объект (если это процедурное дерево),
+                    // чтобы отладочная панель и предпросмотр сразу переключились на новый набор
+                    const st = useObjectStore.getState()
+                    if (st.objectType === 'tree' && st.treeData?.params) {
+                      st.setTreeData({
+                        ...st.treeData,
+                        params: { ...(st.treeData.params as any), leafTextureSetId: set.id }
+                      })
+                    }
+                    setLeafSetModalOpen(false)
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    border: `2px solid ${selected ? 'var(--mantine-color-blue-5)' : 'var(--mantine-color-dark-5)'}`,
+                    borderRadius: 8,
+                    padding: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'var(--mantine-color-dark-7)'
+                  }}>
+                  <Box style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: 6, background: 'var(--mantine-color-dark-6)' }}>
+                    <img src={set.previewUrl} alt={set.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </Box>
+                  <Text size="sm" ta="center">{set.name}</Text>
+                </Box>
+              )
+            })}
+          </Box>
+          <Group justify="flex-end">
+            <Button variant="light" onClick={() => setLeafSetModalOpen(false)}>Закрыть</Button>
           </Group>
         </Stack>
       </Modal>
