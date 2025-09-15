@@ -70,6 +70,13 @@ interface SceneStoreState {
 
 ### Scene Management / Управление сценой
 
+#### `getCurrentSceneData(): SceneData`
+Возвращает сериализованное состояние сцены для сохранения в БД.
+
+Особенности сериализации процедурных объектов:
+- Объекты с `objectType: 'tree'` сворачиваются до параметров: `primitives` не включаются, сохраняются `treeData` и материалы.
+- При загрузке сцены примитивы таких объектов восстанавливаются детерминированно на лету по `treeData` (см. `features/object-editing/tree-generation.md`).
+
 ### Object Management / Управление объектами
 
 #### `addObject(object: SceneObject): void`
