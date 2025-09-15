@@ -682,6 +682,10 @@ export class SceneAPI {
         multiColor?: import('@/entities/layer').GfxMultiColorConfig
         textureId?: string
         uvRepeat?: [number, number]
+        multiTexture?: {
+          layers: Array<{ textureId: string; height: number; uvRepeat?: [number, number] }>
+          exposure?: number
+        }
       }
     }
   ): Promise<{ success: boolean; layerId?: string; error?: string }> {
