@@ -10,16 +10,20 @@
   },
   {
     "name": "sprite11",
-    "x": 75,
+    "x": 70,
     "y": 307,
-    "width": 850,
-    "height": 325
+    "width": 857,
+    "height": 325,
+    "anchorX": 857,
+    "anchorY": 53
   },
   {
     "name": "sprite12",
-    "x": 140,
-    "y": 631,
-    "width": 751,
-    "height": 282
+    "x": 30,
+    "y": 647,
+    "width": 927,
+    "height": 360,
+    "anchorX": 927,
+    "anchorY": 165
   }
 ]
