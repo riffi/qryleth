@@ -242,7 +242,10 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         const sz = uniformScale
 
         dummy.position.set(vLocal.x, vLocal.y, vLocal.z)
-        dummy.quaternion.copy(qFinal)
+        // Дополнительный поворот вокруг нормали плоскости так, чтобы направление "от anchor к центру"
+        // совпадало с локальной +Y (строго наружу). Это гарантирует, что лист отклонён от ветки
+        // в сторону, противоположную pivot.
+        let qWithRoll = new THREE.Quaternion().copy(qFinal)
         // Смещение на точку основания спрайта (delta относительно нижней середины, которую уже учитывает генератор)
         if (sh === 'texture') {
           const u = anchorUV?.[0] ?? 0.5
@@ -251,9 +254,16 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
           const dx = (0.5 - u) * sx
           const dy = (v - 0.5) * sy
           const off = new THREE.Vector3(dx, dy, 0)
-          off.applyQuaternion(qFinal)
+          // Вычисляем угол поворота вокруг нормали плоскости: -atan2(vx, vy)
+          const vx = (0.5 - u)
+          const vy = (v - 0.5)
+          const roll = -Math.atan2(vx, vy)
+          const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), roll)
+          qWithRoll.multiply(qRoll)
+          off.applyQuaternion(qWithRoll)
           dummy.position.add(off)
         }
+        dummy.quaternion.copy(qWithRoll)
         dummy.scale.set(sx, sy, sz)
         dummy.updateMatrix()
         meshRef.current.setMatrixAt(k, dummy.matrix)
