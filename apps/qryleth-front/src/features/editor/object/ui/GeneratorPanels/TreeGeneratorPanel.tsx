@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select, Tabs } from '@mantine/core'
-import { IconTrees, IconGitBranch, IconLeaf } from '@tabler/icons-react'
+import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select, Tabs, ActionIcon, Tooltip } from '@mantine/core'
+import { IconTrees, IconGitBranch, IconLeaf, IconDice5 } from '@tabler/icons-react'
 import classes from './TreeGeneratorPanel.module.css'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
@@ -215,8 +215,36 @@ export const TreeGeneratorPanel: React.FC = () => {
 
   // Готовые контролы сгруппированы по секциям
   return (
-    <Box p="sm" style={{ height: '100%', overflow: 'auto' }}>
-      <Stack gap="sm">
+    <Box p="sm" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Stack gap="sm" style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column' }}>
+        {/* Sticky header: заголовок, случайность и вкладки */}
+        <Box className={classes.headerSticky}>
+          <Group justify="space-between" mb={6}>
+            <Text fw={600}>Генератор дерева</Text>
+            <Switch label="Очистить перед генерацией" checked={clearBefore} onChange={(e) => setClearBefore(e.currentTarget.checked)} />
+          </Group>
+          <Divider label="Случайность" />
+          <Group align="end" gap="xs" wrap="nowrap">
+            <NumberInput style={{ flex: 1 }} label="Seed" value={params.seed} onChange={(v) => setParams(p => ({ ...p, seed: Number(v) || 0 }))} step={1} clampBehavior="strict"/>
+            <Tooltip label="Перебросить seed" withArrow>
+              <ActionIcon variant="subtle" color="blue" mt={22} onClick={() => setParams(p => ({ ...p, seed: Math.floor(Math.random() * 1_000_000) }))}>
+                <IconDice5 size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <NumberInput style={{ flex: 1 }} label="Случайность" value={params.randomness} onChange={(v) => setParams(p => ({ ...p, randomness: Math.max(0, Math.min(1, Number(v) || 0)) }))} step={0.05} min={0} max={1}/>
+          </Group>
+          <Tabs value={activeTab} onChange={(v) => setActiveTab((v as any) as 'trunk'|'branches'|'leaves')} variant="unstyled" classNames={{ tab: classes.tab, list: classes.tabsList }}>
+            <Tabs.List grow>
+              <Tabs.Tab value="trunk" leftSection={<IconTrees size={16} />}>Ствол</Tabs.Tab>
+              <Tabs.Tab value="branches" leftSection={<IconGitBranch size={16} />}>Ветви</Tabs.Tab>
+              <Tabs.Tab value="leaves" leftSection={<IconLeaf size={16} />}>Листья</Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
+        </Box>
+
+        {/* Прокручиваемая центральная область */}
+        <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Stack gap="sm">
         {/**
          * Локальные флаги доступности контролов:
          * - trunkBranchDisabled: нет разветвления ствола → отключаем его параметры
@@ -228,33 +256,11 @@ export const TreeGeneratorPanel: React.FC = () => {
         {(() => {
           return null
         })()}
-        <Group justify="space-between"><Text fw={600}>Генератор дерева</Text><Switch label="Очистить перед генерацией" checked={clearBefore} onChange={(e) => setClearBefore(e.currentTarget.checked)} /></Group>
+        
 
-        <Divider label="Случайность" />
-        <Group grow>
-          <NumberInput label="Seed" value={params.seed} onChange={(v) => setParams(p => ({ ...p, seed: Number(v) || 0 }))} step={1} clampBehavior="strict"/>
-          <NumberInput label="Случайность" value={params.randomness} onChange={(v) => setParams(p => ({ ...p, randomness: Math.max(0, Math.min(1, Number(v) || 0)) }))} step={0.05} min={0} max={1}/>
-        </Group>
-
-        {/* Вкладки: Ствол / Ветви / Листья */}
-        {(() => {
-          // Локальное состояние выбранной вкладки
-          // Комментарий: вкладки управляют видимостью ниже расположенных секций
-          return null
-        })()}
-        {/** Текущее значение вкладки */}
-        {(() => null)()}
-        {/* Заголовок вкладок */}
-        <Tabs value={activeTab} onChange={(v) => setActiveTab((v as any) as 'trunk'|'branches'|'leaves')} variant="unstyled" classNames={{ tab: classes.tab }}>
-          <Tabs.List grow>
-            <Tabs.Tab value="trunk" leftSection={<IconTrees size={16} />}>Ствол</Tabs.Tab>
-            <Tabs.Tab value="branches" leftSection={<IconGitBranch size={16} />}>Ветви</Tabs.Tab>
-            <Tabs.Tab value="leaves" leftSection={<IconLeaf size={16} />}>Листья</Tabs.Tab>
-          </Tabs.List>
-        </Tabs>
+        {/* Контент активной вкладки */}
 
         {activeTab === 'trunk' && (<>
-        <Divider label="Ствол" />
         <Group grow>
           <NumberInput label="Высота" value={params.trunkHeight} onChange={(v) => setParams(p => ({ ...p, trunkHeight: Math.max(0.5, Number(v) || 0) }))} min={0.5} step={0.1}/>
           <NumberInput label="Радиус" value={params.trunkRadius} onChange={(v) => setParams(p => ({ ...p, trunkRadius: Math.max(0.02, Number(v) || 0) }))} min={0.02} step={0.02}/>
@@ -329,7 +335,6 @@ export const TreeGeneratorPanel: React.FC = () => {
         </>)}
 
         {activeTab === 'branches' && (<>
-        <Divider label="Ветви" />
         <Group grow>
           <NumberInput label="Уровни" value={params.branchLevels} onChange={(v) => setParams(p => ({ ...p, branchLevels: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
           <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1} disabled={params.branchLevels <= 0}/>
@@ -392,7 +397,6 @@ export const TreeGeneratorPanel: React.FC = () => {
         </>)}
 
         {activeTab === 'leaves' && (<>
-        <Divider label="Листья" />
         <Group grow>
           <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
           <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
@@ -460,17 +464,23 @@ export const TreeGeneratorPanel: React.FC = () => {
         </Group>
         </>)}
 
-        <Divider label="Материалы" />
-        <Group grow>
-          <ColorInput label="Цвет коры" value={barkColor} onChange={setBarkColor} format="hex" withEyeDropper/>
-          <ColorInput label="Цвет листвы" value={leafColor} onChange={setLeafColor} format="hex" withEyeDropper/>
-        </Group>
+        </Stack>
+        </Box>
 
-        <Group justify="flex-end" mt="sm">
-          <Button variant="light" onClick={openExportJson}>Экспорт JSON</Button>
-          <Button variant="light" onClick={openImportJson}>Импорт JSON</Button>
-          <Button onClick={handleGenerate}>Сгенерировать</Button>
-        </Group>
+        {/* Sticky footer */}
+        <Box className={classes.footerSticky}>
+          <Divider label="Материалы" />
+          <Group grow>
+            <ColorInput label="Цвет коры" value={barkColor} onChange={setBarkColor} format="hex" withEyeDropper/>
+            <ColorInput label="Цвет листвы" value={leafColor} onChange={setLeafColor} format="hex" withEyeDropper/>
+          </Group>
+
+          <Group justify="flex-end" mt="sm">
+            <Button variant="light" onClick={openExportJson}>Экспорт JSON</Button>
+            <Button variant="light" onClick={openImportJson}>Импорт JSON</Button>
+            <Button onClick={handleGenerate}>Сгенерировать</Button>
+          </Group>
+        </Box>
       </Stack>
 
       {/* Модальное окно конфигурации JSON (импорт/экспорт) */}

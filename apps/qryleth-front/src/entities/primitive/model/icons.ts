@@ -37,6 +37,9 @@ export function getPrimitiveIcon(
       return IconSquare
     case 'torus':
       return IconCircle
+    case 'mesh':
+      // Пользовательская произвольная геометрия — отображаем как куб по умолчанию
+      return IconCube
     default:
       assertNever(type)
       return IconCube
