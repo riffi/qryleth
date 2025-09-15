@@ -83,6 +83,17 @@ export interface TreeGeneratorParams {
    */
   leafTextureSpriteName?: string
   /**
+   * Использовать все спрайты атласа (равномерно в случайном порядке).
+   * Применяется только при leafShape='texture'. Если true и задан массив leafSpriteNames,
+   * то при генерации каждому листу выбирается имя спрайта из списка детерминированным rng.
+   */
+  useAllLeafSprites?: boolean
+  /**
+   * Список имён спрайтов, доступных для выбора при useAllLeafSprites.
+   * Если не задан — поведение как при useAllLeafSprites=false (используется leafTextureSpriteName).
+   */
+  leafSpriteNames?: string[]
+  /**
    * Схема размещения листвы: только на концах ветвей ('end') или вдоль ветви ('along').
    */
   leafPlacement?: 'end' | 'along'

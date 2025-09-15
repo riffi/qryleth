@@ -910,11 +910,22 @@ export function generateTree(params: TreeGeneratorParams & {
               leafEuler[2] += roll
             }
 
+            // Выбор спрайта: один указанный или случайный из списка
+            let texName: string | undefined = undefined
+            if ((params.leafShape || 'billboard') === 'texture') {
+              if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
+                const names = params.leafSpriteNames
+                const idx = Math.floor(rng() * names.length) % names.length
+                texName = names[idx]
+              } else {
+                texName = params.leafTextureSpriteName || undefined
+              }
+            }
             primitives.push({
               uuid: generateUUID(),
               type: 'leaf',
               name: 'Лист',
-              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
+              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName as any },
               objectMaterialUuid: leafMaterialUuid,
               visible: true,
               transform: {
@@ -963,11 +974,21 @@ export function generateTree(params: TreeGeneratorParams & {
                 leafEuler = eulerFromDir(nDir)
                 leafEuler[2] += roll
               }
+              let texName2: string | undefined = undefined
+              if ((params.leafShape || 'billboard') === 'texture') {
+                if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
+                  const names = params.leafSpriteNames
+                  const idx = Math.floor(rng() * names.length) % names.length
+                  texName2 = names[idx]
+                } else {
+                  texName2 = params.leafTextureSpriteName || undefined
+                }
+              }
               primitives.push({
                 uuid: generateUUID(),
                 type: 'leaf',
                 name: 'Лист',
-                geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: (params.leafShape === 'texture' ? (params.leafTextureSpriteName || undefined) : undefined) as any },
+                geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName2 as any },
                 objectMaterialUuid: leafMaterialUuid,
                 visible: true,
                 transform: {

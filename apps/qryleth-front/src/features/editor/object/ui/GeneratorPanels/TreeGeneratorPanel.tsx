@@ -455,16 +455,39 @@ export const TreeGeneratorPanel: React.FC = () => {
               checked={leafRectDebug}
               onChange={(e) => setLeafRectDebug(e.currentTarget.checked)}
             />
-            <Select
-              label="Спрайт из атласа"
-              placeholder={atlasOptions.length ? 'Выберите' : 'Атлас не найден'}
-              data={atlasOptions}
-              value={params.leafTextureSpriteName || null}
-              onChange={(v) => setParams(p => ({ ...p, leafTextureSpriteName: v || undefined }))}
-              searchable
-              clearable
-              disabled={params.branchLevels <= 0}
-            />
+            <Stack gap="xs" style={{ flex: 1 }}>
+              <Group gap="xs" justify="space-between">
+                <Text size="sm">Спрайты</Text>
+                <Switch
+                  size="xs"
+                  label="Использовать все"
+                  checked={!!params.useAllLeafSprites}
+                  onChange={(e) => {
+                    const checked = e.currentTarget.checked
+                    setParams(p => ({
+                      ...p,
+                      useAllLeafSprites: checked,
+                      leafSpriteNames: checked ? atlasOptions.map(o => o.value) : p.leafSpriteNames
+                    }))
+                  }}
+                />
+              </Group>
+              {!params.useAllLeafSprites && (
+                <Select
+                  label="Спрайт из атласа"
+                  placeholder={atlasOptions.length ? 'Выберите' : 'Атлас не найден'}
+                  data={atlasOptions}
+                  value={params.leafTextureSpriteName || null}
+                  onChange={(v) => setParams(p => ({ ...p, leafTextureSpriteName: v || undefined }))}
+                  searchable
+                  clearable
+                  disabled={params.branchLevels <= 0}
+                />
+              )}
+              {params.useAllLeafSprites && (
+                <Text size="xs" c="dimmed">Будут использованы все спрайты из атласа, равномерно в случайном порядке.</Text>
+              )}
+            </Stack>
           </Group>
         )}
         <Group grow>
