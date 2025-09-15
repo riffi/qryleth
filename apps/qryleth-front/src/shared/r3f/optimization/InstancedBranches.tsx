@@ -186,22 +186,46 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
 
   // Материал MeshStandard + модификация вершинника
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  /**
+   * Настраивает материал инстансированного цилиндра (ствол/ветви):
+   * - добавляет вершинный шейдер с профилем радиуса и «воротником» у основания ветвей;
+   * - реализует скрытие торцевых крышек (caps) через ОТБРАСЫВАНИЕ фрагментов во фрагментном шейдере,
+   *   а не через схлопывание радиуса до нуля в вершиннике.
+   *
+   * ВАЖНО: ранняя реализация схлопывала вершины крышек к r=0, из-за чего при сильном
+   * скосе (trunkShearStrength > ~0.2) появлялись артефакты — тонкие «иголки»/фрагменты
+   * почти нулевого радиуса между сегментами. Теперь крышки не искажают профиль радиуса —
+   * мы маркируем вершины крышек во вершиннике и отбрасываем соответствующие фрагменты
+   * во фрагментнике, если cap отключён.
+   */
   const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
     if (!mat) return
     materialRef.current = mat
     mat.onBeforeCompile = (shader) => {
+      // Добавляем атрибуты и varyings для маскировки крышек во фрагментном шейдере
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
-          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;\nattribute float aCapTop;\nattribute float aCapBottom;`
+          `#include <common>\nattribute float aHeight;\nattribute float aRadiusTop;\nattribute float aRadiusBottom;\nattribute float aCollarFrac;\nattribute float aCollarScale;\nattribute float aIsBranch;\nattribute float aCapTop;\nattribute float aCapBottom;\nvarying float vIsTopCap;\nvarying float vIsBottomCap;\nvarying float vCapTopEnabled;\nvarying float vCapBottomEnabled;`
         )
         .replace(
           '#include <begin_vertex>',
-          `\n// Unit‑cylinder: профиль радиуса с «воротником», и скрытием крышек по флагам\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\n// Скрытие крышек: опознаём вершины крышек по нормали (почти вдоль оси Y)\nif (abs(normal.y) > 0.9) {\n  if (pos.y > 0.49 && aCapTop < 0.5) { r = 0.0; }\n  if (pos.y < -0.49 && aCapBottom < 0.5) { r = 0.0; }\n}\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
+          `\n// Unit‑cylinder: профиль радиуса с «воротником»\nvec3 pos = position;\nfloat t = clamp(pos.y + 0.5, 0.0, 1.0);\nfloat r = mix(aRadiusBottom, aRadiusTop, t);\nfloat s = 1.0;\nif (aIsBranch > 0.5 && aCollarFrac > 0.0) {\n  if (t < aCollarFrac) {\n    float k = clamp(t / max(1e-4, aCollarFrac), 0.0, 1.0);\n    s = mix(aCollarScale, 1.0, k);\n  }\n}\n// Определяем, принадлежит ли вершина крышке (не схлопываем радиус)\nfloat topCap = (abs(normal.y) > 0.9 && pos.y > 0.49) ? 1.0 : 0.0;\nfloat bottomCap = (abs(normal.y) > 0.9 && pos.y < -0.49) ? 1.0 : 0.0;\nvIsTopCap = topCap;\nvIsBottomCap = bottomCap;\nvCapTopEnabled = aCapTop;\nvCapBottomEnabled = aCapBottom;\n\nr *= s;\npos.y *= aHeight;\npos.xz *= r;\nvec3 transformed = pos;`
+        )
+
+      // Во фрагментном шейдере отбрасываем фрагменты крышек, если они отключены
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>\nvarying float vIsTopCap;\nvarying float vIsBottomCap;\nvarying float vCapTopEnabled;\nvarying float vCapBottomEnabled;`
+        )
+        .replace(
+          'void main() {',
+          `void main() {\n  if ((vIsTopCap > 0.5 && vCapTopEnabled < 0.5) || (vIsBottomCap > 0.5 && vCapBottomEnabled < 0.5)) discard;`
         )
     }
-    mat.needsUpdate = true
-  }
+      mat.needsUpdate = true
+    }
 
   // Единая геометрия: unit‑cylinder (r=1, h=1)
   const geometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, radialSegments), [radialSegments])

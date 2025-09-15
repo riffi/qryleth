@@ -385,8 +385,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       {
         let frag = shader.fragmentShader
         if (shape !== 'texture') {
+          // Не дублируем объявление varying: vLeafUv объявим единообразно ниже в общем блоке
           frag = frag
-            .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nvarying vec2 vLeafUv;`)
+            .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;`)
             .replace('#include <alphatest_fragment>', `
               // Эллиптическая маска листа в UV, мягкий край
               float dx = (vLeafUv.x - 0.5) / 0.5;

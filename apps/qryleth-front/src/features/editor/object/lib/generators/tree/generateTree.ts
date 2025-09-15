@@ -492,14 +492,43 @@ export function generateTree(params: TreeGeneratorParams & {
     const indices: number[] = []
     const ringBaseIndex: number[] = []
 
+    // Поддерживаем непрерывную ориентацию колец посредством «параллельного транспорта» базиса
+    // Это предотвращает резкие повороты/флипы между соседними кольцами и появление «перетянутых» полигонов
+    let prevT: THREE.Vector3 | null = null
+    let n1Prev: THREE.Vector3 | null = null
+    let n2Prev: THREE.Vector3 | null = null
+
     for (let i = 0; i < rings; i++) {
       const c = mainTrunk.path.centers[i]
       const r = Math.max(0.005, mainTrunk.path.radii[i])
-      const t = normalize(mainTrunk.path.tangents[i])
-      const tmp: [number,number,number] = Math.abs(t[1]) < 0.99 ? [0,1,0] : [1,0,0]
-      // Локальный ортонормированный базис поперёк касательной
-      const n1v = new THREE.Vector3().crossVectors(new THREE.Vector3(...t), new THREE.Vector3(...tmp)).normalize()
-      const n2v = new THREE.Vector3().crossVectors(new THREE.Vector3(...t), n1v).normalize()
+      const tArr = normalize(mainTrunk.path.tangents[i])
+      const tVec = new THREE.Vector3(tArr[0], tArr[1], tArr[2]).normalize()
+
+      let n1v: THREE.Vector3
+      let n2v: THREE.Vector3
+      if (i === 0 || !prevT || !n1Prev || !n2Prev) {
+        // Инициализация базиса для первого кольца обычным способом (произвольный tmp)
+        const tmp: [number,number,number] = Math.abs(tArr[1]) < 0.99 ? [0,1,0] : [1,0,0]
+        n1v = new THREE.Vector3().crossVectors(tVec, new THREE.Vector3(...tmp)).normalize()
+        n2v = new THREE.Vector3().crossVectors(tVec, n1v).normalize()
+      } else {
+        // Параллельно переносим предыдущий базис вдоль изменения касательной
+        const q = new THREE.Quaternion().setFromUnitVectors(prevT.clone().normalize(), tVec)
+        n1v = n1Prev.clone().applyQuaternion(q)
+        n2v = n2Prev.clone().applyQuaternion(q)
+        // Ре-ортонормируем на случай накопления числ. ошибок
+        n1v.normalize()
+        // гарантируем ортонормированный триэдр: n2 = t x n1
+        n2v = new THREE.Vector3().crossVectors(tVec, n1v).normalize()
+        // и n1 = n2 x t (на случай микросмещений)
+        n1v = new THREE.Vector3().crossVectors(n2v, tVec).normalize()
+      }
+
+      // Обновляем состояние для следующего кольца
+      prevT = tVec
+      n1Prev = n1v
+      n2Prev = n2v
+
       const n1: [number,number,number] = [n1v.x, n1v.y, n1v.z]
       const n2: [number,number,number] = [n2v.x, n2v.y, n2v.z]
 

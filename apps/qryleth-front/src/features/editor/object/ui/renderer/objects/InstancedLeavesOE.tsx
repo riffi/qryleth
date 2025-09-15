@@ -274,8 +274,10 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         .replace('#include <uv_vertex>', `#include <uv_vertex>`)
       // Для текстурных листьев используем альфа из PNG; не подмешиваем круговую маску
       if (shape !== 'texture') {
+        // Вставляем только необходимые uniform'ы, без дублирования объявления vLeafUv
+        // Объявление varying vLeafUv выполняется ниже в едином блоке для всех режимов
         shader.fragmentShader = shader.fragmentShader
-          .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nvarying vec2 vLeafUv;`)
+          .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;`)
           .replace('#include <alphatest_fragment>', `
             float dx = (vLeafUv.x - 0.5) / 0.5;
             float dy = (vLeafUv.y - 0.5) / 0.5 / uAspect;
