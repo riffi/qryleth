@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select, Tabs, ActionIcon, Tooltip } from '@mantine/core'
 import { IconTrees, IconGitBranch, IconLeaf, IconDice5 } from '@tabler/icons-react'
 import classes from './TreeGeneratorPanel.module.css'
@@ -157,6 +157,33 @@ export const TreeGeneratorPanel: React.FC = () => {
     materials,
     updateMaterial,
   } = useObjectStore()
+
+  // Достаём тип объекта и treeData из стора для инициализации контролов из GfxObject
+  const objectTypeStore = useObjectStore(s => s.objectType)
+  const treeDataStore = useObjectStore(s => s.treeData)
+
+  /**
+   * Инициализация контролов панели из текущего объекта (если это процедурное дерево).
+   * Выполняется при первом открытии и при фактической смене данных (по подписи).
+   */
+  const initSignatureRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (objectTypeStore !== 'tree' || !treeDataStore?.params) return
+
+    // Предпочитаем поиск материалов по UUID из treeData; fallback — по имени
+    const barkMat = materials.find(m => m.uuid === treeDataStore.barkMaterialUuid) || materials.find(m => m.name.toLowerCase() === 'кора')
+    const leafMat = materials.find(m => m.uuid === treeDataStore.leafMaterialUuid) || materials.find(m => m.name.toLowerCase() === 'листья')
+
+    const nextSig = JSON.stringify({ params: treeDataStore.params, bark: barkMat?.properties?.color, leaf: leafMat?.properties?.color })
+    if (nextSig === initSignatureRef.current) return
+
+    // Применяем параметры генератора из объекта (не перетираем отсутствующие ключи)
+    setParams(prev => ({ ...prev, ...(treeDataStore.params as any) }))
+    if (barkMat?.properties?.color) setBarkColor(String(barkMat.properties.color))
+    if (leafMat?.properties?.color) setLeafColor(String(leafMat.properties.color))
+
+    initSignatureRef.current = nextSig
+  }, [objectTypeStore, treeDataStore, materials])
 
   /**
    * Генерация дерева и добавление его в текущий объект.
