@@ -382,7 +382,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       const tex = new THREE.TextureLoader().load(entry.colorMapUrl)
       tex.wrapS = THREE.RepeatWrapping
       tex.wrapT = THREE.RepeatWrapping
-      ;(tex as any).colorSpace = (THREE as any).SRGBColorSpace || (THREE as any).sRGBEncoding
+      ;(tex as any).colorSpace = (THREE as any).SRGBColorSpace// || (THREE as any).sRGBEncoding
       const r = layer.uvRepeat || item.material?.uvRepeat || [1, 1]
       tex.repeat.set(r[0], r[1])
       return tex
@@ -496,17 +496,27 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       `
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\n' + mixCode)
-        .replace(
+      // Исправленный фрагментный шейдер для смешивания текстур:
+      .replace(
           '#include <map_fragment>',
           `
-            vec4 w = computeWeights(vWorldY);
-            vec4 s0 = texture2D(uTex0, vUv * uRepeat0);
-            vec4 s1 = texture2D(uTex1, vUv * uRepeat1);
-            vec4 texelColor = s0 * w.x + s1 * w.y;
-            texelColor.rgb = clamp(texelColor.rgb * uExposure, 0.0, 1.0);
-            diffuseColor *= texelColor;
-          `
-        )
+  vec4 w = computeWeights(vWorldY);
+  
+  // Получаем цвета из текстур (уже в линейном пространстве после sRGB декодирования)
+  vec4 s0 = texture2D(uTex0, vUv * uRepeat0);
+  vec4 s1 = texture2D(uTex1, vUv * uRepeat1);
+  
+  // Смешиваем текстуры
+  vec4 texelColor = s0 * w.x + s1 * w.y;
+  
+  // Применяем exposure БЕЗ clamp (пусть tone mapping сделает свою работу)
+  texelColor.rgb *= uExposure;
+  
+  // Применяем к diffuseColor (который по умолчанию vec4(1.0))
+  diffuseColor.rgb *= texelColor.rgb;
+  diffuseColor.a *= texelColor.a;
+  `
+      )
       .replace(
           '#include <normal_fragment_maps>',
           `
@@ -567,7 +577,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     >
       <meshStandardMaterial
         ref={materialRef}
-        color={materialColor}
+        color={new THREE.Color('#ffffff')}
         map={item.material?.multiTexture ? whiteTex : (useVertexColors ? undefined : textureMap || undefined)}
         normalMap={item.material?.multiTexture ? undefined : (useVertexColors ? undefined : normalMap || undefined)}
         roughnessMap={item.material?.multiTexture ? undefined : (useVertexColors ? undefined : roughnessMap || undefined)}
