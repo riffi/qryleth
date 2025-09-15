@@ -83,9 +83,6 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
     }
     applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)
     setTexAspect(rect.width / rect.height)
-    // Debug
-    // eslint-disable-next-line no-console
-    console.log('[LeafBillboard3D] rect applied', { spriteName, rect, W, H, repX, repY, offX, offYFlipTrue, offYFlipFalse })
     // Anchor
     const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
     const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
@@ -93,12 +90,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
       const uN = Math.min(1, Math.max(0, ax / rect.width))
       const vN = Math.min(1, Math.max(0, ay / rect.height))
       setAnchorUV([uN, vN])
-      // eslint-disable-next-line no-console
-      console.log('[LeafBillboard3D] anchor from atlas', { ax, ay, u: uN, v: vN })
     } else {
       setAnchorUV([0.5, 1.0])
-      // eslint-disable-next-line no-console
-      console.log('[LeafBillboard3D] anchor default bottom-center')
     }
   }, [shape, atlas, diffuseMap, alphaMap, normalMap, roughnessMap, spriteName])
 
@@ -120,11 +113,9 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
     const v = anchorUV?.[1] ?? 1.0
     const dx = (0.5 - u) * sx
     const dy = (v - 0.5) * sy
-    const v3 = new THREE.Vector3(dx, dy, 0)
-    // eslint-disable-next-line no-console
-    console.log('[LeafBillboard3D] offVec', { u, v, sx, sy, dx, dy, groupRot })
-    return v3
-  }, [shape, anchorUV, sx, sy, groupRot])
+    // В локальных координатах плоскости; поворот применяется на родительской группе
+    return new THREE.Vector3(dx, dy, 0)
+  }, [shape, anchorUV, sx, sy])
 
   return (
     <group position={groupPos} rotation={groupRot} scale={[1,1,1]} {...restMeshProps}>
