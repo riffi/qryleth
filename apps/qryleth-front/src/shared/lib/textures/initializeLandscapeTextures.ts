@@ -20,5 +20,17 @@ export function initializeLandscapeTextures(): void {
     aoMapUrl: base + 'Grass006_1K-JPG_AmbientOcclusion.jpg',
     displacementMapUrl: base + 'Grass006_1K-JPG_Displacement.jpg',
   })
-}
 
+  // Дополнительная текстура: Grass005 (1K, JPG)
+  const base005 = '/texture/landscape/Grass005_1K-JPG/'
+  landscapeTextureRegistry.register({
+    id: 'grass005-1k-jpg',
+    name: 'Grass 005 (1K, JPG)',
+    previewUrl: base005 + 'Grass005.png',
+    colorMapUrl: base005 + 'Grass005_1K-JPG_Color.jpg',
+    normalMapUrl: base005 + 'Grass005_1K-JPG_NormalGL.jpg',
+    roughnessMapUrl: base005 + 'Grass005_1K-JPG_Roughness.jpg',
+    aoMapUrl: base005 + 'Grass005_1K-JPG_AmbientOcclusion.jpg',
+    displacementMapUrl: base005 + 'Grass005_1K-JPG_Displacement.jpg',
+  })
+}
