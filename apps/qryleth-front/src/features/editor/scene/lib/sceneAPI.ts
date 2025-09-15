@@ -424,14 +424,37 @@ export class SceneAPI {
       const rec = await db.getObject(libUuid)
       if (!rec) continue
       const objectUuid = generateUUID()
-      const obj: SceneObject = {
-        uuid: objectUuid,
-        name: rec.name,
-        primitives: rec.objectData.primitives,
-        materials: rec.objectData.materials || [],
-        boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: rec.objectData.primitives } as any),
-        layerId: 'objects',
-        libraryUuid: rec.uuid
+      // Если объект из библиотеки — процедурное дерево, восстановим примитивы из treeData
+      let obj: SceneObject
+      if (rec.objectData.objectType === 'tree' && rec.objectData.treeData?.params) {
+        // Генерация примитивов дерева с учётом сохранённых параметров и материалов
+        const generated = generateTree({
+          ...(rec.objectData.treeData.params as any),
+          barkMaterialUuid: rec.objectData.treeData.barkMaterialUuid,
+          leafMaterialUuid: rec.objectData.treeData.leafMaterialUuid
+        })
+        obj = {
+          uuid: objectUuid,
+          name: rec.name,
+          primitives: generated,
+          // Материалы берём из записи (если сохранены) — UUID должны совпадать с bark/leaf
+          materials: rec.objectData.materials || [],
+          objectType: 'tree',
+          treeData: rec.objectData.treeData,
+          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+          layerId: 'objects',
+          libraryUuid: rec.uuid
+        }
+      } else {
+        obj = {
+          uuid: objectUuid,
+          name: rec.name,
+          primitives: rec.objectData.primitives,
+          materials: rec.objectData.materials || [],
+          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: rec.objectData.primitives } as any),
+          layerId: 'objects',
+          libraryUuid: rec.uuid
+        }
       }
       state.addObject(obj)
       map.set(libUuid, objectUuid)
