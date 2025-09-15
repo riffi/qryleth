@@ -5,9 +5,10 @@ import { PlayControls, usePlayHotkeys } from '@/features/scene-play-mode'
 import { useGlobalPanelState } from '@/features/editor/object/hooks'
 import { ObjectEditor } from '@/widgets/ObjectEditor'
 import { buildUpdatedObject } from '@/features/editor/object'
-import { Modal, Group, Tooltip, ActionIcon, Text } from '@mantine/core'
+import { Modal, Group, Tooltip, ActionIcon, Text, Divider } from '@mantine/core'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { SaveModal, saveNewScene, updateExistingScene } from '@/features/scene-persistence'
+import { ObjectTypeIndicator } from '@/features/editor/object/ui/ObjectTypeIndicator'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { UiMode } from '@/shared/types/ui'
@@ -156,6 +157,10 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
           <Group justify="space-between" style={{ width: '100%' }}>
             <Text size="lg" fw={500}>{editingObjectData ? `Редактор объекта: ${editingObjectData.name}` : 'Редактор объекта'}</Text>
             <Group gap="xs">
+              {/* Индикатор типа объекта и кнопка изменения типа (модальный заголовок) */}
+              <Divider orientation="vertical" mx="xs" />
+              <ObjectTypeIndicator size="md" withLabel={true} />
+              <Divider orientation="vertical" mx="xs" />
               <Tooltip label="Сохранить" withArrow>
                 <ActionIcon color="gray" variant="subtle" onClick={handleEditorSaveClick}>
                   <IconDeviceFloppy size={24} />

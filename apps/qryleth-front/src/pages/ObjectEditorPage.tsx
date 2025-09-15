@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '@/widgets/layouts/MainLayout'
 import { ObjectEditor } from '@/widgets/ObjectEditor'
-import { Title, Group, ActionIcon, Tooltip, Modal, Stack, TextInput, Button } from '@mantine/core'
+import { Title, Group, ActionIcon, Tooltip, Modal, Stack, TextInput, Button, Divider } from '@mantine/core'
+import { ObjectTypeIndicator } from '@/features/editor/object/ui/ObjectTypeIndicator'
 import { IconDeviceFloppy } from '@tabler/icons-react'
 import { db } from '@/shared/lib/database'
 import type { ObjectRecord } from '@/shared/api/types'
@@ -191,7 +192,11 @@ const ObjectEditorPage: React.FC = () => {
       <Title order={4} mr="3rem">
         {objectRecord?.objectData ? `Редактор объекта: ${objectRecord.objectData.name}` : 'Новый объект'}
       </Title>
-      <Group gap="xs">
+      <Group gap="xs" align="center">
+        {/* Индикатор типа объекта (увеличенный, с подписью) */}
+        <Divider orientation="vertical" mx="xs" />
+        <ObjectTypeIndicator size="lg" withLabel={true} />
+        <Divider orientation="vertical" mx="xs" />
         <Tooltip label="Сохранить" withArrow>
           <ActionIcon variant="subtle"  color="white"onClick={handleSaveClick}>
             <IconDeviceFloppy size={24} />  
