@@ -7,6 +7,7 @@ import { buildGfxTerrainGeometry } from '@/features/editor/scene/lib/terrain/Geo
 import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiColorProcessor'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { GfxLayerType } from '@/entities/layer'
+import { landscapeTextureRegistry } from '@/shared/lib/textures'
 
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
 // Ключ: baseGeometry.uuid + параметры многоцветной палитры.
@@ -71,7 +72,6 @@ function releaseTriangleGeometry(cacheKey: string | null | undefined): void {
     triangleGeometryCache.delete(cacheKey)
   }
 }
-import {FrontSide} from "three/src/constants";
 
 /**
  * Рендер ландшафта (новая архитектура): читает элементы из `landscapeContent.items`
@@ -200,15 +200,142 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     }
   }, [finalGeometry, baseGeometry])
 
+  // URL карты цвета из реестра по textureId (если указан).
+  const texEntry = useMemo(() => {
+    const texId = item.material?.textureId
+    if (!texId) return null
+    return landscapeTextureRegistry.get(texId) || null
+  }, [item.material?.textureId])
+
+  const colorMapUrl = useMemo(() => texEntry?.colorMapUrl || null, [texEntry])
+  const normalMapUrl = useMemo(() => texEntry?.normalMapUrl || null, [texEntry])
+  const roughnessMapUrl = useMemo(() => texEntry?.roughnessMapUrl || null, [texEntry])
+  const aoMapUrl = useMemo(() => texEntry?.aoMapUrl || null, [texEntry])
+
+  // Повторение UV для всех карт. По умолчанию [1,1].
+  const uvRepeat = useMemo<[number, number]>(() => {
+    const r = item.material?.uvRepeat
+    if (!r || r.length !== 2) return [1, 1]
+    const rx = Number.isFinite(r[0]) ? r[0] : 1
+    const ry = Number.isFinite(r[1]) ? r[1] : 1
+    return [rx, ry]
+  }, [item.material?.uvRepeat])
+
+  // Загрузка карты цвета по URL вручную с кэшем three.js; управляем жизненным циклом текстуры.
+  const [textureMap, setTextureMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    let disposed = false
+    if (!colorMapUrl) {
+      setTextureMap(null)
+      return
+    }
+    const loader = new THREE.TextureLoader()
+    const tex = loader.load(colorMapUrl, (t) => {
+      if (disposed) return
+      t.wrapS = THREE.RepeatWrapping
+      t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(uvRepeat[0], uvRepeat[1])
+      // Цветовая карта — в sRGB пространстве для корректной тонмаппинга
+      ;(t as any).colorSpace = (THREE as any).SRGBColorSpace || (THREE as any).sRGBEncoding
+      t.needsUpdate = true
+      setTextureMap(t)
+    })
+    return () => {
+      disposed = true
+      // Не освобождаем текстуру в cleanup из-за StrictMode двойного монтирования в dev.
+      // R3F/Three кэшируют текстуры; освобождение произойдёт при dispose материала/геометрии.
+    }
+  }, [colorMapUrl, uvRepeat[0], uvRepeat[1]])
+
+  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    let disposed = false
+    if (!normalMapUrl) { setNormalMap(null); return }
+    const loader = new THREE.TextureLoader()
+    const tex = loader.load(normalMapUrl, (t) => {
+      if (disposed) return
+      t.wrapS = THREE.RepeatWrapping
+      t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(uvRepeat[0], uvRepeat[1])
+      setNormalMap(t)
+    })
+    return () => { disposed = true }
+  }, [normalMapUrl, uvRepeat[0], uvRepeat[1]])
+
+  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    let disposed = false
+    if (!roughnessMapUrl) { setRoughnessMap(null); return }
+    const loader = new THREE.TextureLoader()
+    const tex = loader.load(roughnessMapUrl, (t) => {
+      if (disposed) return
+      t.wrapS = THREE.RepeatWrapping
+      t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(uvRepeat[0], uvRepeat[1])
+      setRoughnessMap(t)
+    })
+    return () => { disposed = true }
+  }, [roughnessMapUrl, uvRepeat[0], uvRepeat[1]])
+
+  const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    let disposed = false
+    if (!aoMapUrl) { setAoMap(null); return }
+    const loader = new THREE.TextureLoader()
+    const tex = loader.load(aoMapUrl, (t) => {
+      if (disposed) return
+      t.wrapS = THREE.RepeatWrapping
+      t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(uvRepeat[0], uvRepeat[1])
+      setAoMap(t)
+    })
+    return () => { disposed = true }
+  }, [aoMapUrl, uvRepeat[0], uvRepeat[1]])
+
+  // Подбор источника цвета: приоритет multiColor, затем textureId (если карта загружена), затем fallback color.
   const materialColor = useMemo(() => {
     if (item.material?.multiColor) return new THREE.Color('#ffffff')
+    if (item.material?.textureId && textureMap) return new THREE.Color('#ffffff')
     if (item.material?.color) return new THREE.Color(item.material.color)
     return new THREE.Color(DEFAULT_LANDSCAPE_COLOR)
-  }, [item.material?.color, item.material?.multiColor])
+  }, [item.material?.color, item.material?.multiColor, item.material?.textureId, textureMap])
+
+  // Для AO требуется uv2. Если используем aoMap — дублируем uv -> uv2.
+  useEffect(() => {
+    if (!finalGeometry) return
+    if (!aoMap) return
+    const uv = finalGeometry.getAttribute('uv') as THREE.BufferAttribute | undefined
+    const uv2 = finalGeometry.getAttribute('uv2') as THREE.BufferAttribute | undefined
+    if (uv && !uv2) {
+      finalGeometry.setAttribute('uv2', new THREE.BufferAttribute(uv.array as any, 2))
+      ;(finalGeometry.attributes as any).uv2.needsUpdate = true
+    }
+  }, [finalGeometry, aoMap])
 
   const rotation = item.shape === 'terrain' ? [0, 0, 0] as const : [-Math.PI / 2, 0, 0] as const
   const position = useMemo(() => ([item.center?.[0] ?? 0, 0.1, item.center?.[1] ?? 0] as const), [item.center])
   const useVertexColors = Boolean(item.material?.multiColor)
+
+  // Императивная синхронизация карт материала (на случай, если декларативный проп map не применился)
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  useEffect(() => {
+    const mat = materialRef.current
+    if (!mat) return
+    // Применяем карты только если не используется многоцветная раскраска по вершинам
+    if (!useVertexColors) {
+      mat.map = textureMap || null
+      mat.normalMap = normalMap || null
+      mat.roughnessMap = roughnessMap || null
+      mat.aoMap = aoMap || null
+      mat.needsUpdate = true
+    } else {
+      mat.map = null
+      mat.normalMap = null
+      mat.roughnessMap = null
+      mat.aoMap = null
+      mat.needsUpdate = true
+    }
+  }, [useVertexColors, textureMap, normalMap, roughnessMap, aoMap])
 
   return (
     <mesh
@@ -222,15 +349,22 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       position={position}
       receiveShadow
     >
-      <meshLambertMaterial
+      <meshStandardMaterial
+        ref={materialRef}
         color={materialColor}
+        map={useVertexColors ? undefined : textureMap || undefined}
+        normalMap={useVertexColors ? undefined : normalMap || undefined}
+        roughnessMap={useVertexColors ? undefined : roughnessMap || undefined}
+        aoMap={useVertexColors ? undefined : aoMap || undefined}
+        roughness={1.0}
+        metalness={0.0}
         side={THREE.FrontSide}
         depthTest={true}
         wireframe={wireframe}
         transparent={false}
-        //transparent={Boolean(item.material?.multiColor?.palette?.some(s => (s.alpha ?? 1) < 1)) || Boolean(item.material?.multiColor)}
         opacity={1.0}
         vertexColors={useVertexColors}
+        aoMapIntensity={1.0}
       />
     </mesh>
   )

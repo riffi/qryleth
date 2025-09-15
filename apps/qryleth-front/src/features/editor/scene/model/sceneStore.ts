@@ -298,32 +298,72 @@ export const useSceneStore = create<SceneStore>()(
 
     /**
      * Обновляет объект сцены по его UUID.
-     * Если передан новый список примитивов, он предварительно
-     * нормализуется и заменяет текущий. Все поля, отсутствующие
-     * во входящих данных, остаются без изменений.
+     *
+     * Поведение:
+     * - Для обычных объектов ('regular'): если передан массив примитивов, он нормализуется и заменяет текущий;
+     *   boundingBox пересчитывается.
+     * - Для процедурных деревьев ('tree'): примитивы восстанавливаются из `treeData.params` с учётом UUID
+     *   материалов (bark/leaf). Это предотвращает исчезновение дерева при сохранении, когда в обновлении
+     *   приходят пустые `primitives` (т.к. в ObjectEditor дерево хранится процедурно).
+     * - При ошибке реконструкции дерева — используется явно переданный массив примитивов (если он есть).
+     *
+     * Все остальные поля, отсутствующие во входящих данных, остаются без изменений.
      */
     updateObject: (objectUuid: string, updates: Partial<SceneObject>) => {
-      const normalizedUpdates: Partial<SceneObject> = { ...updates }
-
-      if (updates.primitives) {
-        normalizedUpdates.primitives = ensurePrimitiveNames(
-          updates.primitives.map(normalizePrimitive)
-        )
-      }
-
+      // Обновление объекта с учётом процедурных деревьев:
+      // если объект имеет objectType 'tree' и валидный treeData,
+      // примитивы пересобираются из параметров генератора, а не затираются пустым массивом.
       const objects = get().objects.map(obj => {
         if (obj.uuid !== objectUuid) return obj
 
-        const updated = { ...obj, ...normalizedUpdates }
-        if (normalizedUpdates.primitives) {
+        // Базовое объединение полей
+        const merged: Partial<SceneObject> = { ...obj, ...updates }
+
+        // Определяем, нужно ли пересобрать примитивы из treeData
+        const isTree = (merged as any).objectType === 'tree'
+        const tree = (merged as any).treeData as any | undefined
+
+        let nextPrimitives = obj.primitives
+        let primitivesChanged = false
+
+        if (isTree && tree?.params) {
+          try {
+            const restored = generateTree({
+              ...(tree.params as any),
+              barkMaterialUuid: tree.barkMaterialUuid,
+              leafMaterialUuid: tree.leafMaterialUuid
+            })
+            nextPrimitives = ensurePrimitiveNames(restored.map(normalizePrimitive))
+            primitivesChanged = true
+          } catch (e) {
+            console.warn('updateObject: не удалось восстановить примитивы дерева из treeData:', e)
+            // Если не удалось восстановить — пробуем применить явно переданные примитивы (если есть)
+            if (updates.primitives) {
+              nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
+              primitivesChanged = true
+            }
+          }
+        } else if (updates.primitives) {
+          // Обычный объект: применяем переданные примитивы
+          nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
+          primitivesChanged = true
+        }
+
+        const updated: SceneObject = {
+          ...(merged as SceneObject),
+          primitives: nextPrimitives
+        }
+
+        if (primitivesChanged) {
           updated.boundingBox = calculateObjectBoundingBox({
             uuid: obj.uuid,
             name: obj.name,
-            primitives: normalizedUpdates.primitives
+            primitives: nextPrimitives
           })
         }
         return updated
       })
+
       set({ objects })
       get().saveToHistory()
       get().markSceneAsModified()

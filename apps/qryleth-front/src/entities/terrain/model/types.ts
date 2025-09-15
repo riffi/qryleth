@@ -242,8 +242,21 @@ export interface GfxLandscape {
   /** Конфигурация террейна, если shape = 'terrain' */
   terrain?: GfxTerrainConfig
   /**
-   * Описание простого материала: одноцветный или многоцветный по высоте.
-   * Если задан multiColor — имеет приоритет над color.
+   * Описание материала площадки:
+   * - одноцветный (color),
+   * - многоцветный по высоте (multiColor),
+   * - либо по идентификатору текстуры из реестра ландшафта (textureId).
+   * Если задано multiColor — имеет приоритет над остальными. Если задан textureId — используется
+   * текстурная карта; color выступает как резервный цвет (fallback), если текстура не найдена.
    */
-  material?: { color?: string; multiColor?: GfxMultiColorConfig }
+  material?: {
+    /** Однотонный цвет материала (fallback при отсутствии текстуры/мультиколора) */
+    color?: string
+    /** Многоцветная окраска по высоте/крутизне; имеет наивысший приоритет */
+    multiColor?: GfxMultiColorConfig
+    /** Идентификатор текстуры из реестра ландшафта */
+    textureId?: string
+    /** Повторение UV для всех карт текстуры (map/normal/roughness/ao). По умолчанию [1,1]. */
+    uvRepeat?: [number, number]
+  }
 }

@@ -10,10 +10,12 @@
   },
   {
     "name": "sprite2",
-    "x": 421,
-    "y": 86,
-    "width": 187,
-    "height": 275
+    "x": 383,
+    "y": 0,
+    "width": 257,
+    "height": 336,
+    "anchorX": 131,
+    "anchorY": 336
   },
   {
     "name": "sprite3",

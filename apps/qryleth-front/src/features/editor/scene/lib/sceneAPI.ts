@@ -671,8 +671,18 @@ export class SceneAPI {
       center?: [number, number]
       /** Размер площадки, переопределяет размеры из terrain.worldWidth/worldDepth. */
       size?: { width: number; depth: number }
-      /** Материал площадки: одноцветный или многоцветный по высоте. */
-      material?: { color?: string; multiColor?: import('@/entities/layer').GfxMultiColorConfig }
+      /**
+       * Материал площадки: 
+       * - одноцветный (color) или многоцветный (multiColor),
+       * - либо по идентификатору текстуры из реестра ландшафта (textureId).
+       * Если задан multiColor — имеет приоритет. Если задан textureId — применяется текстура.
+       */
+      material?: {
+        color?: string
+        multiColor?: import('@/entities/layer').GfxMultiColorConfig
+        textureId?: string
+        uvRepeat?: [number, number]
+      }
     }
   ): Promise<{ success: boolean; layerId?: string; error?: string }> {
     try {
