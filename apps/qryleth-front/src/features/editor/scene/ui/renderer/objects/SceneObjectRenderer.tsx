@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
@@ -7,6 +7,9 @@ import { useRenderMode } from '../../../model/sceneStore.ts'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { paletteRegistry } from '@/shared/lib/palette'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
+import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
+import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
+import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import type {
   ObjectTransformEvent,
   RenderMode,
@@ -85,6 +88,29 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   const ungroupedPrimitives = sceneObject.primitives?.map((primitive, index) => ({ primitive, index }))
     .filter(({ primitive }) => !assignments[primitive.uuid]) || []
 
+  /**
+   * Оптимизированный рендер одиночного дерева.
+   * Детальная мотивация: дерево состоит из множества примитивов (ветви/листья),
+   * и рендер каждого отдельного `mesh` создаёт большое число draw calls.
+   * Даже при единственном инстансе объекта выгодно объединить их в InstancedMesh,
+   * что мы и делаем, повторно используя InstancedBranches/InstancedLeaves.
+   */
+  const isTreeObject = sceneObject.objectType === 'tree' || sceneObject.primitives?.some(p => p.type === 'trunk' || p.type === 'branch' || p.type === 'leaf')
+
+  // Ленивая классификация примитивов дерева: ветви/ствол, листья, прочее
+  const treeBuckets = useMemo(() => {
+    if (!isTreeObject) return null
+    const cylinders: { primitive: any; index: number }[] = []
+    const leaves: { primitive: any; index: number }[] = []
+    const rest: { primitive: any; index: number }[] = []
+    sceneObject.primitives?.forEach((p, idx) => {
+      if (p.type === 'trunk' || p.type === 'branch') cylinders.push({ primitive: p, index: idx })
+      else if (p.type === 'leaf') leaves.push({ primitive: p, index: idx })
+      else rest.push({ primitive: p, index: idx })
+    })
+    return { cylinders, leaves, rest }
+  }, [isTreeObject, sceneObject.primitives])
+
   return (
     <group
       ref={groupRef}
@@ -103,37 +129,125 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {/* Рендеринг корневых групп */}
-      {rootGroups.map(group => (
-        <SceneGroupRenderer
-          key={group.uuid}
-          groupUuid={group.uuid}
-          groupName={group.name}
-          sceneObject={sceneObject}
-          instance={instance}
-          renderMode={renderMode}
-          onClick={onClick}
-        />
-      ))}
-      
-      {/* Рендеринг примитивов без группы (обратная совместимость) */}
-      {ungroupedPrimitives.map(({ primitive, index }) => (
-        <PrimitiveRenderer
-          key={primitive.uuid || index}
-          primitive={primitive}
-          renderMode={renderMode}
-          objectMaterials={sceneObject.materials}
-          activePalette={activePalette as any}
-          userData={{
-            generated: true,
-            primitiveIndex: index,
-            objectUuid: instance.objectUuid,
-            objectInstanceUuid: instance.uuid,
-            layerId: sceneObject.layerId || 'objects'
-          }}
-          onClick={handleClick}
-        />
-      ))}
+      {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
+      {isTreeObject && treeBuckets ? (
+        <>
+          {treeBuckets.cylinders.length > 0 && (
+            <InstancedBranches
+              sceneObject={sceneObject}
+              cylinders={treeBuckets.cylinders as any}
+              instances={[instance]}
+              materials={sceneObject.materials}
+              onClick={(e) => onClick?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                point: (e as any).point,
+                object: (e as any).object,
+              })}
+              onHover={(e) => onHover?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                objectInstanceIndex: instanceIndex,
+                object: (e as any).object,
+              })}
+            />
+          )}
+
+          {treeBuckets.leaves.length > 0 && (
+            <InstancedLeaves
+              sceneObject={sceneObject}
+              spheres={treeBuckets.leaves as any}
+              instances={[instance]}
+              materials={sceneObject.materials}
+              onClick={(e) => onClick?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                point: (e as any).point,
+                object: (e as any).object,
+              })}
+              onHover={(e) => onHover?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                objectInstanceIndex: instanceIndex,
+                object: (e as any).object,
+              })}
+            />
+          )}
+
+          {treeBuckets.leaves.length > 0 && (
+            <InstancedLeafSpheres
+              sceneObject={sceneObject}
+              leaves={treeBuckets.leaves as any}
+              instances={[instance]}
+              materials={sceneObject.materials}
+              onClick={(e) => onClick?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                point: (e as any).point,
+                object: (e as any).object,
+              })}
+              onHover={(e) => onHover?.({
+                objectUuid: instance.objectUuid,
+                instanceId: instance.uuid,
+                objectInstanceIndex: instanceIndex,
+                object: (e as any).object,
+              })}
+            />
+          )}
+
+          {treeBuckets.rest.map(({ primitive, index }) => (
+            <PrimitiveRenderer
+              key={primitive.uuid || index}
+              primitive={primitive}
+              renderMode={renderMode}
+              objectMaterials={sceneObject.materials}
+              activePalette={activePalette as any}
+              userData={{
+                generated: true,
+                primitiveIndex: index,
+                objectUuid: instance.objectUuid,
+                objectInstanceUuid: instance.uuid,
+                layerId: sceneObject.layerId || 'objects'
+              }}
+              onClick={handleClick}
+            />
+          ))}
+        </>
+      ) : (
+        <>
+          {/* Рендеринг корневых групп */}
+          {rootGroups.map(group => (
+            <SceneGroupRenderer
+              key={group.uuid}
+              groupUuid={group.uuid}
+              groupName={group.name}
+              sceneObject={sceneObject}
+              instance={instance}
+              renderMode={renderMode}
+              onClick={onClick}
+            />
+          ))}
+
+          {/* Рендеринг примитивов без группы (обратная совместимость) */}
+          {ungroupedPrimitives.map(({ primitive, index }) => (
+            <PrimitiveRenderer
+              key={primitive.uuid || index}
+              primitive={primitive}
+              renderMode={renderMode}
+              objectMaterials={sceneObject.materials}
+              activePalette={activePalette as any}
+              userData={{
+                generated: true,
+                primitiveIndex: index,
+                objectUuid: instance.objectUuid,
+                objectInstanceUuid: instance.uuid,
+                layerId: sceneObject.layerId || 'objects'
+              }}
+              onClick={handleClick}
+            />
+          ))}
+        </>
+      )}
     </group>
   )
 }

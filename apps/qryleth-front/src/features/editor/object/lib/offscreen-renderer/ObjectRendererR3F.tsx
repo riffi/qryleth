@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react' 
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { GroupRenderer } from '../../ui/renderer/objects/GroupRenderer.tsx'
@@ -7,6 +7,9 @@ import type { RenderMode } from '@/shared/types/ui'
 import type { GfxObject } from '@/entities/object'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
+import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
+import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
+import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 
 export interface ObjectRendererR3FProps {
   /** Объект для рендеринга */
@@ -20,6 +23,13 @@ export interface ObjectRendererR3FProps {
  * Используется как в основном редакторе, так и для генерации превью.
  * 
  * Поддерживает группы примитивов с трансформациями и правильную иерархию.
+ */
+/**
+ * Рендерер объекта для оффскрин‑превью.
+ *
+ * Оптимизация для objectType='tree': даже при одном инстансе используем
+ * InstancedMesh (ветви/ствол и листья), чтобы убрать сотни мелких draw calls
+ * и обеспечить быструю отрисовку одиночного дерева.
  */
 export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
   gfxObject,
@@ -38,6 +48,39 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
   const primitiveGroupAssignments = gfxObject.primitiveGroupAssignments ?? {}
   const materials = gfxObject.materials ?? []
 
+  // Признак дерева по типу или по наличию tree‑примитивов
+  const isTreeObject = gfxObject.objectType === 'tree' || primitives?.some(p => (p as any).type === 'trunk' || (p as any).type === 'branch' || (p as any).type === 'leaf')
+
+  // Для instanced‑компонентов подготовим scene/instance‑заглушки
+  const sceneLike = React.useMemo(() => ({
+    // передаём минимально необходимое: uuid, имя, материалы, treeData, layerId
+    ...gfxObject,
+    layerId: 'objects',
+    visible: true,
+  }) as any, [gfxObject])
+
+  const singleInstance = React.useMemo(() => ({
+    uuid: 'preview-instance',
+    objectUuid: gfxObject.uuid,
+    visible: true,
+    transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+  }), [gfxObject.uuid])
+
+  // Классифицируем примитивы дерева: цилиндры (ствол/ветви), листья, остальные
+  const treeBuckets = React.useMemo(() => {
+    if (!isTreeObject) return null
+    const cylinders: { primitive: any; index: number }[] = []
+    const leaves: { primitive: any; index: number }[] = []
+    const rest: { primitive: any; index: number }[] = []
+    ;(primitives || []).forEach((p, idx) => {
+      const t = (p as any).type
+      if (t === 'trunk' || t === 'branch') cylinders.push({ primitive: p, index: idx })
+      else if (t === 'leaf') leaves.push({ primitive: p, index: idx })
+      else rest.push({ primitive: p, index: idx })
+    })
+    return { cylinders, leaves, rest }
+  }, [isTreeObject, primitives])
+
   // Строим дерево групп для определения корневых групп
   const rootGroups = React.useMemo(() => {
     const groupTree = buildGroupTree(primitiveGroups)
@@ -53,34 +96,88 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
 
   return (
     <group>
-      {/* Рендерим корневые группы с их подгруппами */}
-      {rootGroups.map(group => (
-        <GroupRendererStatic
-          key={group.uuid}
-          group={group}
-          allGroups={primitiveGroups}
-          primitives={primitives}
-          groupAssignments={primitiveGroupAssignments}
-          renderMode={renderMode}
-          objectMaterials={materials}
-          onPrimitiveClick={handleObjectClick}
-        />
-      ))}
-      
-      {/* Рендерим примитивы, не привязанные к группам */}
-      {primitives.map((primitive, index) => (
-        primitiveGroupAssignments[primitive.uuid] || primitive.visible === false ? null : (
-          <PrimitiveRenderer
-            key={`root-${primitive.uuid}`}
-            primitive={primitive}
-            renderMode={renderMode}
-            objectMaterials={materials}
-            activePalette={paletteRegistry.get('default') as any}
-            userData={{ generated: true, primitiveIndex: index }}
-            onClick={handleObjectClick}
-          />
-        )
-      ))}
+      {isTreeObject && treeBuckets ? (
+        <>
+          {/* Instanced ветви/ствол */}
+          {treeBuckets.cylinders.length > 0 && (
+            <InstancedBranches
+              sceneObject={sceneLike}
+              cylinders={treeBuckets.cylinders as any}
+              instances={[singleInstance] as any}
+              materials={materials}
+              onClick={handleObjectClick}
+            />
+          )}
+
+          {/* Instanced листья (биллборды/текстуры/кресты) */}
+          {treeBuckets.leaves.length > 0 && (
+            <InstancedLeaves
+              sceneObject={sceneLike}
+              spheres={treeBuckets.leaves as any}
+              instances={[singleInstance] as any}
+              materials={materials}
+              onClick={handleObjectClick}
+            />
+          )}
+
+          {/* Сферические листья, если используются */}
+          {treeBuckets.leaves.length > 0 && (
+            <InstancedLeafSpheres
+              sceneObject={sceneLike}
+              leaves={treeBuckets.leaves as any}
+              instances={[singleInstance] as any}
+              materials={materials}
+              onClick={handleObjectClick}
+            />
+          )}
+
+          {/* Прочие примитивы дерева, если такие есть */}
+          {treeBuckets.rest.map(({ primitive, index }) => (
+            (primitive as any).visible === false ? null : (
+              <PrimitiveRenderer
+                key={`root-${(primitive as any).uuid || index}`}
+                primitive={primitive as any}
+                renderMode={renderMode}
+                objectMaterials={materials}
+                activePalette={paletteRegistry.get('default') as any}
+                userData={{ generated: true, primitiveIndex: index }}
+                onClick={handleObjectClick}
+              />
+            )
+          ))}
+        </>
+      ) : (
+        <>
+          {/* Рендерим корневые группы с их подгруппами */}
+          {rootGroups.map(group => (
+            <GroupRendererStatic
+              key={group.uuid}
+              group={group}
+              allGroups={primitiveGroups}
+              primitives={primitives}
+              groupAssignments={primitiveGroupAssignments}
+              renderMode={renderMode}
+              objectMaterials={materials}
+              onPrimitiveClick={handleObjectClick}
+            />
+          ))}
+
+          {/* Рендерим примитивы, не привязанные к группам */}
+          {primitives.map((primitive, index) => (
+            primitiveGroupAssignments[(primitive as any).uuid] || (primitive as any).visible === false ? null : (
+              <PrimitiveRenderer
+                key={`root-${(primitive as any).uuid}`}
+                primitive={primitive as any}
+                renderMode={renderMode}
+                objectMaterials={materials}
+                activePalette={paletteRegistry.get('default') as any}
+                userData={{ generated: true, primitiveIndex: index }}
+                onClick={handleObjectClick}
+              />
+            )
+          ))}
+        </>
+      )}
     </group>
   )
 }
