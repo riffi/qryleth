@@ -431,9 +431,10 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
     }
   }, [onHover, objectUuid, instances, sceneObject])
 
-  // Специальный материал для единого меша ствола у процедурных деревьев
-  // (primitive.type === 'mesh' и у объекта есть treeData.params).
-  const isTreeUnifiedTrunk = sceneObject.objectType === 'tree' && primitive.type === 'mesh'
+  // Специальный материал для единого меша ствола у процедурных деревьев.
+  // Условие расширено: считаем это стволом, если примитив типа 'mesh' И у объекта есть treeData.params
+  // (даже если objectType !== 'tree', например, после развёртки дерева в примитивы с сохранением treeData).
+  const isTreeUnifiedTrunk = primitive.type === 'mesh' && !!(sceneObject as any)?.treeData?.params
   // Ленивая инициализация реестра текстур коры
   if (isTreeUnifiedTrunk && woodTextureRegistry.size === 0) {
     try { initializeWoodTextures() } catch { /* no-op */ }
@@ -442,6 +443,8 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
   const [barkNormalMap, setBarkNormalMap] = React.useState<THREE.Texture | null>(null)
   const [barkRoughnessMap, setBarkRoughnessMap] = React.useState<THREE.Texture | null>(null)
   const [barkAoMap, setBarkAoMap] = React.useState<THREE.Texture | null>(null)
+  // Ссылка на материал для явного обновления при смене карт
+  const trunkMatRef = React.useRef<THREE.MeshStandardMaterial | null>(null)
   React.useEffect(() => {
     if (!isTreeUnifiedTrunk) return
     const params = (sceneObject as any)?.treeData?.params || {}
@@ -466,6 +469,13 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
     if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setBarkAoMap(t) })
     else setBarkAoMap(null)
   }, [isTreeUnifiedTrunk, sceneObject])
+  // Явно помечаем материал на обновление при смене карт
+  React.useEffect(() => {
+    if (!isTreeUnifiedTrunk) return
+    if (trunkMatRef.current) {
+      trunkMatRef.current.needsUpdate = true
+    }
+  }, [isTreeUnifiedTrunk, barkColorMap, barkNormalMap, barkRoughnessMap, barkAoMap])
 
   return (
     <Instances
@@ -483,11 +493,9 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
       <PrimitiveGeometry primitive={primitive} />
       {isTreeUnifiedTrunk ? (
         <meshStandardMaterial
-          map={barkColorMap || undefined}
-          normalMap={barkNormalMap || undefined}
-          roughnessMap={barkRoughnessMap || undefined}
-          aoMap={barkAoMap || undefined}
-          // Базовые физические свойства можно унаследовать из материала «Кора», если он есть
+          key={`tree-unified-trunk-${primitive.uuid}-${barkColorMap ? 'tex' : 'notex'}`}
+          ref={trunkMatRef as any}
+          // ВАЖНО: сначала базовые свойства, затем назначение карт, чтобы карты не были перезатёрты
           {...materialToThreePropsWithPalette(
             resolveMaterial({
               directMaterial: primitive.material,
@@ -497,6 +505,10 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
             }),
             paletteRegistry.get((useSceneStore.getState().environmentContent?.paletteUuid || 'default')) as any
           )}
+          map={barkColorMap || undefined}
+          normalMap={barkNormalMap || undefined}
+          roughnessMap={barkRoughnessMap || undefined}
+          aoMap={barkAoMap || undefined}
         />
       ) : (
         <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} />
