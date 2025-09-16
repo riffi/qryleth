@@ -211,7 +211,7 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
   }, [geom.positions, geom.normals, geom.indices, geom.uvs])
 
   return (
-    <mesh {...(meshProps || {})} castShadow receiveShadow>
+    <mesh {...(meshProps || {})} castShadow receiveShadow={false}>
       <primitive object={bufferGeometry} attach="geometry" />
       <meshStandardMaterial
         ref={m => { materialRef.current = m }}

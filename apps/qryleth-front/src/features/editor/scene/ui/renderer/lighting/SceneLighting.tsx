@@ -94,8 +94,8 @@ export const SceneLighting: React.FC = () => {
         shadow-camera-near={0.3}
         shadow-camera-far={300}
         // Слегка смещаем расчёт глубины, чтобы избежать артефактов (shadow acne)
-        shadow-bias={-0.0001}
-        shadow-normalBias={-0.001}
+        shadow-bias={-0.001}
+        shadow-normalBias={0.04}
         // Направляем цель света в центр сцены (или в указанную точку),
         // чтобы камера теней ориентировалась на область интереса.
         target-position={[0, 0, 0]}

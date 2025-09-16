@@ -9,7 +9,7 @@ export const LIGHTING_PRESETS = {
   'bright-day': {
     name: 'Яркий день',
     ambient: { color: '#87CEEB', intensity: 1.2 },
-    directional: { color: '#FFD700', intensity: 1.2, position: [50, 50, 50] as [number, number, number] },
+    directional: { color: '#FFD700', intensity: 4, position: [50, 50, 50] as [number, number, number] },
     backgroundColor: '#87CEEB',
     exposure: 1,
     sky: {
