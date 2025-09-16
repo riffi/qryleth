@@ -129,125 +129,150 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
-      {isTreeObject && treeBuckets ? (
-        <>
-          {treeBuckets.cylinders.length > 0 && (
-            <InstancedBranches
-              sceneObject={sceneObject}
-              cylinders={treeBuckets.cylinders as any}
-              instances={[instance]}
-              materials={sceneObject.materials}
-              onClick={(e) => onClick?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                point: (e as any).point,
-                object: (e as any).object,
-              })}
-              onHover={(e) => onHover?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                objectInstanceIndex: instanceIndex,
-                object: (e as any).object,
-              })}
-            />
-          )}
+      {/**
+       * ВАЖНО (позиционирование одиночных деревьев в SceneEditor):
+       *
+       * Компоненты InstancedBranches/InstancedLeaves/InstancedLeafSpheres принимают список
+       * инстансов и внутри себя ПРИМЕНЯЮТ трансформации каждого инстанса (позиция/поворот/масштаб)
+       * к матрицам instancedMesh. В SceneObjectRenderer эти компоненты рендерятся ВНУТРИ <group>,
+       * на который уже выставлены трансформации текущего инстанса объекта (position/rotation/scale).
+       * Если передать в instanced‑компоненты исходный инстанс ещё раз, трансформация будет
+       * применена ДВАЖДЫ (на группе и в instancedMesh), что приводит к смещению/искажению.
+       *
+       * Чтобы избежать двойного применения, передаём в instanced‑компоненты «нормализованный»
+       * инстанс с единичной трансформацией (0/0/0, 0/0/0, 1/1/1). Локальные смещения самих
+       * примитивов (ствола, ветвей, листьев) сохраняются и рендерятся корректно в координатах
+       * группы — то есть относительно единожды применённой трансформации выбранного инстанса.
+       */}
+      {(() => {
+        const normalizedInstance = {
+          ...instance,
+          transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
+        }
+        return (
+          <>
+            {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
+            {isTreeObject && treeBuckets ? (
+              <>
+                {treeBuckets.cylinders.length > 0 && (
+                  <InstancedBranches
+                    sceneObject={sceneObject}
+                    cylinders={treeBuckets.cylinders as any}
+                    instances={[normalizedInstance]}
+                    materials={sceneObject.materials}
+                    onClick={(e) => onClick?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      point: (e as any).point,
+                      object: (e as any).object,
+                    })}
+                    onHover={(e) => onHover?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      objectInstanceIndex: instanceIndex,
+                      object: (e as any).object,
+                    })}
+                  />
+                )}
 
-          {treeBuckets.leaves.length > 0 && (
-            <InstancedLeaves
-              sceneObject={sceneObject}
-              spheres={treeBuckets.leaves as any}
-              instances={[instance]}
-              materials={sceneObject.materials}
-              onClick={(e) => onClick?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                point: (e as any).point,
-                object: (e as any).object,
-              })}
-              onHover={(e) => onHover?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                objectInstanceIndex: instanceIndex,
-                object: (e as any).object,
-              })}
-            />
-          )}
+                {treeBuckets.leaves.length > 0 && (
+                  <InstancedLeaves
+                    sceneObject={sceneObject}
+                    spheres={treeBuckets.leaves as any}
+                    instances={[normalizedInstance]}
+                    materials={sceneObject.materials}
+                    onClick={(e) => onClick?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      point: (e as any).point,
+                      object: (e as any).object,
+                    })}
+                    onHover={(e) => onHover?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      objectInstanceIndex: instanceIndex,
+                      object: (e as any).object,
+                    })}
+                  />
+                )}
 
-          {treeBuckets.leaves.length > 0 && (
-            <InstancedLeafSpheres
-              sceneObject={sceneObject}
-              leaves={treeBuckets.leaves as any}
-              instances={[instance]}
-              materials={sceneObject.materials}
-              onClick={(e) => onClick?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                point: (e as any).point,
-                object: (e as any).object,
-              })}
-              onHover={(e) => onHover?.({
-                objectUuid: instance.objectUuid,
-                instanceId: instance.uuid,
-                objectInstanceIndex: instanceIndex,
-                object: (e as any).object,
-              })}
-            />
-          )}
+                {treeBuckets.leaves.length > 0 && (
+                  <InstancedLeafSpheres
+                    sceneObject={sceneObject}
+                    leaves={treeBuckets.leaves as any}
+                    instances={[normalizedInstance]}
+                    materials={sceneObject.materials}
+                    onClick={(e) => onClick?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      point: (e as any).point,
+                      object: (e as any).object,
+                    })}
+                    onHover={(e) => onHover?.({
+                      objectUuid: instance.objectUuid,
+                      instanceId: instance.uuid,
+                      objectInstanceIndex: instanceIndex,
+                      object: (e as any).object,
+                    })}
+                  />
+                )}
 
-          {treeBuckets.rest.map(({ primitive, index }) => (
-            <PrimitiveRenderer
-              key={primitive.uuid || index}
-              primitive={primitive}
-              renderMode={renderMode}
-              objectMaterials={sceneObject.materials}
-              activePalette={activePalette as any}
-              userData={{
-                generated: true,
-                primitiveIndex: index,
-                objectUuid: instance.objectUuid,
-                objectInstanceUuid: instance.uuid,
-                layerId: sceneObject.layerId || 'objects'
-              }}
-              onClick={handleClick}
-            />
-          ))}
-        </>
-      ) : (
-        <>
-          {/* Рендеринг корневых групп */}
-          {rootGroups.map(group => (
-            <SceneGroupRenderer
-              key={group.uuid}
-              groupUuid={group.uuid}
-              groupName={group.name}
-              sceneObject={sceneObject}
-              instance={instance}
-              renderMode={renderMode}
-              onClick={onClick}
-            />
-          ))}
+                {treeBuckets.rest.map(({ primitive, index }) => (
+                  <PrimitiveRenderer
+                    key={primitive.uuid || index}
+                    primitive={primitive}
+                    renderMode={renderMode}
+                    objectMaterials={sceneObject.materials}
+                    activePalette={activePalette as any}
+                    userData={{
+                      generated: true,
+                      primitiveIndex: index,
+                      objectUuid: instance.objectUuid,
+                      objectInstanceUuid: instance.uuid,
+                      layerId: sceneObject.layerId || 'objects'
+                    }}
+                    onClick={handleClick}
+                  />
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Рендеринг корневых групп */}
+                {rootGroups.map(group => (
+                  <SceneGroupRenderer
+                    key={group.uuid}
+                    groupUuid={group.uuid}
+                    groupName={group.name}
+                    sceneObject={sceneObject}
+                    instance={instance}
+                    renderMode={renderMode}
+                    onClick={onClick}
+                  />
+                ))}
 
-          {/* Рендеринг примитивов без группы (обратная совместимость) */}
-          {ungroupedPrimitives.map(({ primitive, index }) => (
-            <PrimitiveRenderer
-              key={primitive.uuid || index}
-              primitive={primitive}
-              renderMode={renderMode}
-              objectMaterials={sceneObject.materials}
-              activePalette={activePalette as any}
-              userData={{
-                generated: true,
-                primitiveIndex: index,
-                objectUuid: instance.objectUuid,
-                objectInstanceUuid: instance.uuid,
-                layerId: sceneObject.layerId || 'objects'
-              }}
-              onClick={handleClick}
-            />
-          ))}
-        </>
-      )}
+                {/* Рендеринг примитивов без группы (обратная совместимость) */}
+                {ungroupedPrimitives.map(({ primitive, index }) => (
+                  <PrimitiveRenderer
+                    key={primitive.uuid || index}
+                    primitive={primitive}
+                    renderMode={renderMode}
+                    objectMaterials={sceneObject.materials}
+                    activePalette={activePalette as any}
+                    userData={{
+                      generated: true,
+                      primitiveIndex: index,
+                      objectUuid: instance.objectUuid,
+                      objectInstanceUuid: instance.uuid,
+                      layerId: sceneObject.layerId || 'objects'
+                    }}
+                    onClick={handleClick}
+                  />
+                ))}
+              </>
+            )}
+          </>
+        )
+      })()}
     </group>
   )
 }

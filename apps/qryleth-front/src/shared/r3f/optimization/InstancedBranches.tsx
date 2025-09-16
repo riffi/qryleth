@@ -275,6 +275,12 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
     <instancedMesh
       ref={meshRef}
       args={[geometry, undefined as any, count]}
+      // Отключаем отсечение по пирамиде видимости для инстансированного ствола/ветвей.
+      // Причина: реальная высота/радиусы задаются в вершинном шейдере через атрибуты (aHeight и др.),
+      // а CPU‑расчёт границ использует исходную unit‑геометрию (1x1), что приводит к ошибочному
+      // отбрасыванию меша при частичном выходе «настоящей» геометрии за пределы малого bounding sphere.
+      // В SceneEditor это проявлялось как пропадание ствола у одиночных деревьев.
+      frustumCulled={false}
       castShadow
       receiveShadow
       onClick={handleClick}
