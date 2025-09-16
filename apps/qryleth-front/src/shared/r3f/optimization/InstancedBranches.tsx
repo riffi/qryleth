@@ -269,7 +269,19 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
     }
 
   // Единая геометрия: unit‑cylinder (r=1, h=1)
-  const geometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, radialSegments), [radialSegments])
+  // ВАЖНО: для работы aoMap нужен второй UV‑набор 'uv2'.
+  // CylinderGeometry имеет только 'uv', поэтому дублируем 'uv' в 'uv2',
+  // иначе aoMap будет семплироваться из (0,0) и равномерно затемнять меш.
+  const geometry = useMemo(() => {
+    const g = new THREE.CylinderGeometry(1, 1, 1, radialSegments)
+    const uv = g.getAttribute('uv') as THREE.BufferAttribute | undefined
+    const uv2 = g.getAttribute('uv2') as THREE.BufferAttribute | undefined
+    if (uv && !uv2) {
+      g.setAttribute('uv2', new THREE.BufferAttribute(uv.array as any, 2))
+      ;(g.attributes as any).uv2.needsUpdate = true
+    }
+    return g
+  }, [radialSegments])
 
   return (
     <instancedMesh
@@ -289,6 +301,9 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
       <meshStandardMaterial
         ref={onMaterialRef}
         {...materialProps}
+        // Если подключена цветовая карта коры, убираем доп. тинт: устанавливаем белый базовый цвет.
+        // Иначе mapColor будет умножаться на material.color, что визуально затемняет результат.
+        color={colorMap ? '#ffffff' : (materialProps as any).color}
         map={colorMap || undefined}
         normalMap={normalMap || undefined}
         roughnessMap={roughnessMap || undefined}

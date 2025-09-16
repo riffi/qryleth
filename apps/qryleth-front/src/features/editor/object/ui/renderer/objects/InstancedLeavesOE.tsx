@@ -70,6 +70,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     // Загружаем карты по ссылкам из набора: Color + Opacity, чтобы соответствовать atlas.json
     loader.load(colorUrl, (t2) => {
       onTex(t2)
+      // Цветовая карта листьев должна быть в sRGB, иначе получится визуально темнее.
+      ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
       t2.center.set(0.0, 0.0)
       t2.rotation = 0
       setDiffuseMap(t2)
@@ -355,6 +357,9 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         key={`leafMat-${spriteNameKey}`}
         ref={onMaterialRef}
         {...materialProps}
+        // Для режимов с цветовой картой листа избегаем двойного умножения цвета (tint),
+        // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.
+        color={(sample as any)?.geometry?.shape === 'texture' ? '#ffffff' : (materialProps as any).color}
         map={(sample as any)?.geometry?.shape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={(sample as any)?.geometry?.shape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={(sample as any)?.geometry?.shape === 'texture' ? normalMap || undefined : undefined}

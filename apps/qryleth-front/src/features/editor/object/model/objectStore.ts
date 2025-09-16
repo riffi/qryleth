@@ -141,7 +141,7 @@ export type ObjectStore = ObjectStoreState & ObjectStoreActions
 const initialLighting: LightingSettings = {
   ambient: {
     uuid: 'ambient-light',
-    color: '#404040',
+    color: '#FFFFFF',
     intensity: 1,
   },
   directional: {

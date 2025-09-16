@@ -181,7 +181,25 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       mat.needsUpdate = true
     }
 
-  const geometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, 12), [])
+  // ВНИМАНИЕ: для корректной работы карты амбиентной окклюзии (aoMap) в three.js
+  // требуется второй набор UV-координат (атрибут 'uv2'). Стандартная геометрия
+  // CylinderGeometry содержит только 'uv'. Если назначить aoMap без 'uv2', шейдер
+  // будет семплировать AO в точке (0,0) для всех фрагментов, что визуально даёт
+  // сильное равномерное затемнение всего меша.
+  //
+  // Решение: сразу после создания unit-цилиндра дублируем атрибут 'uv' в 'uv2'.
+  // Это обеспечивает корректное чтение aoMap по тем же координатам, что и базовая
+  // карта цвета.
+  const geometry = useMemo(() => {
+    const g = new THREE.CylinderGeometry(1, 1, 1, 12)
+    const uv = g.getAttribute('uv') as THREE.BufferAttribute | undefined
+    const uv2 = g.getAttribute('uv2') as THREE.BufferAttribute | undefined
+    if (uv && !uv2) {
+      g.setAttribute('uv2', new THREE.BufferAttribute(uv.array as any, 2))
+      ;(g.attributes as any).uv2.needsUpdate = true
+    }
+    return g
+  }, [])
 
   return (
     <instancedMesh
@@ -195,6 +213,10 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
       <meshStandardMaterial
         ref={onMaterialRef}
         {...materialProps}
+        // Если используется цветовая текстура коры (map), устанавливаем базовый цвет материала в белый,
+        // чтобы избежать дополнительного умножения (tint) и ненамеренного затемнения текстуры.
+        // В three.js finalColor = mapColor * material.color, поэтому любой не‑белый tint делает результат темнее.
+        color={colorMap ? '#ffffff' : (materialProps as any).color}
         map={colorMap || undefined}
         normalMap={normalMap || undefined}
         roughnessMap={roughnessMap || undefined}

@@ -115,6 +115,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     // Используем ссылки из реестра (JPG Color + JPG Opacity), чтобы соответствовать atlas.json
     loader.load(colorUrl, (t2) => {
       onTex(t2)
+      // Цветовая карта листьев должна быть в sRGB, иначе изображение выглядит темнее из-за линейной интерпретации
+      ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
       t2.center.set(0.0,0.0)
       t2.rotation = 0
       setDiffuseMap(t2)
@@ -477,6 +479,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRef}
         {...materialProps}
+        // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
+        // чтобы не затемнять текстуру. Базовый цвет — белый.
+        color={effectiveShape === 'texture' ? '#ffffff' : (materialProps as any).color}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
