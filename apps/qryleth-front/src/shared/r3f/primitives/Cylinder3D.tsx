@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import type {GfxPrimitive} from '@/entities/primitive';
 import * as THREE from 'three'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
-import { woodTextureRegistry } from '@/shared/lib/textures'
+import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 
 
 /** Свойства компонента Cylinder3D */
@@ -20,6 +20,10 @@ interface Cylinder3DProps {
  * Использует параметры из `primitive.geometry` согласно новой структуре типов.
  */
 export const Cylinder3D: React.FC<Cylinder3DProps> = ({ primitive, materialProps, meshProps }) => {
+  // Ленивая инициализация реестра текстур коры
+  if (woodTextureRegistry.size === 0) {
+    try { initializeWoodTextures() } catch { /* no-op */ }
+  }
   if (primitive.type !== 'cylinder' && primitive.type !== 'trunk' && primitive.type !== 'branch') {
     throw new Error('Cylinder3D expects cylinder/trunk/branch primitive')
   }
@@ -35,7 +39,6 @@ export const Cylinder3D: React.FC<Cylinder3DProps> = ({ primitive, materialProps
   const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
   const [aoMap, setAoMap] = useState<THREE.Texture | null>(null)
   useEffect(() => {
-    if (!barkSetId) return
     const set = (barkSetId && woodTextureRegistry.get(barkSetId)) || woodTextureRegistry.list()[0]
     if (!set) return
     const loader = new THREE.TextureLoader()

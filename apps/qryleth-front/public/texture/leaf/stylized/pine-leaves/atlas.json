@@ -1,0 +1,16 @@
+[
+  {
+    "name": "sprite1",
+    "x": 45,
+    "y": 40,
+    "width": 694,
+    "height": 961
+  },
+  {
+    "name": "sprite2",
+    "x": 839,
+    "y": 243,
+    "width": 122,
+    "height": 692
+  }
+]

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { GfxPrimitive } from '@/entities/primitive'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
-import { woodTextureRegistry } from '@/shared/lib/textures'
+import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 
 
 interface Primitive3DProps {
@@ -119,11 +120,38 @@ interface Mesh3DProps {
  * Предназначено для единого меша ствола без видимых стыков.
  */
 export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshProps }) => {
+  // Ленивая инициализация реестра текстур коры
+  if (woodTextureRegistry.size === 0) {
+    try { initializeWoodTextures() } catch { /* no-op */ }
+  }
   const geom = primitive.geometry as any
-  // Выбор набора коры из стора процедурного дерева или предпросмотра
-  const barkSetId: string | undefined = useObjectStore(s => s.treeData?.params?.barkTextureSetId)
-  const barkRepeatU: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatU ?? 1))
-  const barkRepeatV: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatV ?? 1))
+  // Выбор набора коры: приоритет SceneEditor → ObjectEditor → дефолт
+  // 1) SceneEditor: читаем параметры дерева из sceneStore по UUID объекта в userData
+  // Возвращаем примитивы (string/number), чтобы избежать пересоздания объектов и лишних апдейтов.
+  const objectUuid: string | undefined = (meshProps?.userData && (meshProps.userData as any).objectUuid) || undefined
+  const sceneBarkId: string | undefined = useSceneStore(s => {
+    if (!objectUuid) return undefined
+    const obj = s.objects.find(o => o.uuid === objectUuid)
+    return (obj as any)?.treeData?.params?.barkTextureSetId as string | undefined
+  })
+  const sceneBarkRu: number | undefined = useSceneStore(s => {
+    if (!objectUuid) return undefined
+    const obj = s.objects.find(o => o.uuid === objectUuid)
+    return (obj as any)?.treeData?.params?.barkUvRepeatU as number | undefined
+  })
+  const sceneBarkRv: number | undefined = useSceneStore(s => {
+    if (!objectUuid) return undefined
+    const obj = s.objects.find(o => o.uuid === objectUuid)
+    return (obj as any)?.treeData?.params?.barkUvRepeatV as number | undefined
+  })
+  // 2) ObjectEditor: fallback к objectStore
+  const oeBarkSetId: string | undefined = useObjectStore(s => s.treeData?.params?.barkTextureSetId)
+  const oeBarkRepeatU: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatU ?? 1))
+  const oeBarkRepeatV: number = useObjectStore(s => (s.treeData?.params?.barkUvRepeatV ?? 1))
+  // Итоговые значения
+  const barkSetId: string | undefined = sceneBarkId ?? oeBarkSetId
+  const barkRepeatU: number = (sceneBarkRu ?? oeBarkRepeatU ?? 1)
+  const barkRepeatV: number = (sceneBarkRv ?? oeBarkRepeatV ?? 1)
   // Карты PBR для коры
   const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
   const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
@@ -136,7 +164,6 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
    * Применяется только для процедурного дерева; для прочих объектов не активируется.
    */
   useEffect(() => {
-    if (!barkSetId) return
     const set = (barkSetId && woodTextureRegistry.get(barkSetId)) || woodTextureRegistry.list()[0]
     if (!set) return
     const loader = new THREE.TextureLoader()

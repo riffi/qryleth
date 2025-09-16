@@ -18,5 +18,22 @@ export function initializeWoodTextures(): void {
     aoMapUrl: base + 'Bark014_1K-JPG_AmbientOcclusion.jpg',
     displacementMapUrl: base + 'Bark014_1K-JPG_Displacement.jpg',
   })
-}
 
+  /**
+   * Набор «Pine Tree Bark (Stylized)».
+   *
+   * Источник файлов: `public/texture/wood/stylized/pine-tree-bark`.
+   * Доступные карты:
+   * - Цвет (PineTree_Bark.png) — используется и как превью.
+   * - Нормали (PineTree_Bark_Normal.png).
+   * Дополнительные PBR‑карты (шероховатость/окклюзия/смещение) отсутствуют — рендер учитывает это как опциональные карты.
+   */
+  const pineBase = '/texture/wood/stylized/pine-tree-bark/'
+  woodTextureRegistry.register({
+    id: 'pine-tree-bark-stylized',
+    name: 'Pine Tree Bark (Stylized)',
+    previewUrl: pineBase + 'PineTree_Bark.png',
+    colorMapUrl: pineBase + 'PineTree_Bark.png',
+    normalMapUrl: pineBase + 'PineTree_Bark_Normal.png',
+  })
+}

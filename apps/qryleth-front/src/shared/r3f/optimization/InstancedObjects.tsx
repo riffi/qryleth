@@ -11,6 +11,7 @@ import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSph
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
+import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 
 // Component for rendering primitives in Instances
 const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
@@ -430,6 +431,42 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
     }
   }, [onHover, objectUuid, instances, sceneObject])
 
+  // Специальный материал для единого меша ствола у процедурных деревьев
+  // (primitive.type === 'mesh' и у объекта есть treeData.params).
+  const isTreeUnifiedTrunk = sceneObject.objectType === 'tree' && primitive.type === 'mesh'
+  // Ленивая инициализация реестра текстур коры
+  if (isTreeUnifiedTrunk && woodTextureRegistry.size === 0) {
+    try { initializeWoodTextures() } catch { /* no-op */ }
+  }
+  const [barkColorMap, setBarkColorMap] = React.useState<THREE.Texture | null>(null)
+  const [barkNormalMap, setBarkNormalMap] = React.useState<THREE.Texture | null>(null)
+  const [barkRoughnessMap, setBarkRoughnessMap] = React.useState<THREE.Texture | null>(null)
+  const [barkAoMap, setBarkAoMap] = React.useState<THREE.Texture | null>(null)
+  React.useEffect(() => {
+    if (!isTreeUnifiedTrunk) return
+    const params = (sceneObject as any)?.treeData?.params || {}
+    const barkId: string | undefined = params.barkTextureSetId
+    const ru: number = (params.barkUvRepeatU ?? 1)
+    const rv: number = (params.barkUvRepeatV ?? 1)
+    const set = (barkId && woodTextureRegistry.get(barkId)) || woodTextureRegistry.list()[0]
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, ru || 1), Math.max(0.05, rv || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setBarkColorMap(t) })
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setBarkNormalMap(t) })
+    else setBarkNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setBarkRoughnessMap(t) })
+    else setBarkRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setBarkAoMap(t) })
+    else setBarkAoMap(null)
+  }, [isTreeUnifiedTrunk, sceneObject])
+
   return (
     <Instances
       limit={1000} // Maximum instances
@@ -444,7 +481,26 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
       onPointerOver={handleInstanceHover}
     >
       <PrimitiveGeometry primitive={primitive} />
-      <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} />
+      {isTreeUnifiedTrunk ? (
+        <meshStandardMaterial
+          map={barkColorMap || undefined}
+          normalMap={barkNormalMap || undefined}
+          roughnessMap={barkRoughnessMap || undefined}
+          aoMap={barkAoMap || undefined}
+          // Базовые физические свойства можно унаследовать из материала «Кора», если он есть
+          {...materialToThreePropsWithPalette(
+            resolveMaterial({
+              directMaterial: primitive.material,
+              objectMaterialUuid: primitive.objectMaterialUuid,
+              globalMaterialUuid: primitive.globalMaterialUuid,
+              objectMaterials: materials || sceneObject.materials,
+            }),
+            paletteRegistry.get((useSceneStore.getState().environmentContent?.paletteUuid || 'default')) as any
+          )}
+        />
+      ) : (
+        <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} />
+      )}
 
       {instances.map((instance, index) => {
         // Combine instance and primitive transforms

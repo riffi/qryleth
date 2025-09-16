@@ -5,7 +5,7 @@ import type { GfxMaterial } from '@/entities/material'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { usePalettePreviewUuid } from '../../../model/palettePreviewStore'
-import { woodTextureRegistry } from '@/shared/lib/textures' 
+import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures' 
 import { useObjectStore } from '../../../model/objectStore'
 
 interface InstancedBranchesOEProps {
@@ -23,6 +23,10 @@ interface InstancedBranchesOEProps {
  * Использует unit‑cylinder и инстанс‑атрибуты радиусов/высоты, как в SceneEditor.
  */
 export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylinders, objectMaterials, onPrimitiveClick, onPrimitiveHover }) => {
+  // Ленивая инициализация реестра текстур коры для редактора объекта
+  if (woodTextureRegistry.size === 0) {
+    try { initializeWoodTextures() } catch { /* no-op */ }
+  }
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const paletteUuid = usePalettePreviewUuid()
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
@@ -120,8 +124,7 @@ export const InstancedBranchesOE: React.FC<InstancedBranchesOEProps> = ({ cylind
     const id = st?.treeData?.params?.barkTextureSetId
     const ru: number = (st?.treeData?.params?.barkUvRepeatU ?? 1)
     const rv: number = (st?.treeData?.params?.barkUvRepeatV ?? 1)
-    if (!id) { setColorMap(null); setNormalMap(null); setRoughnessMap(null); setAoMap(null); return }
-    const set = woodTextureRegistry.get(id) || woodTextureRegistry.list()[0]
+    const set = (id && woodTextureRegistry.get(id)) || woodTextureRegistry.list()[0]
     if (!set) return
     const loader = new THREE.TextureLoader()
     const onTex = (t: THREE.Texture | null) => {

@@ -5,7 +5,13 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
-import { woodTextureRegistry } from '@/shared/lib/textures'
+import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
+
+// Ленивая инициализация реестра текстур коры на случай,
+// если initializeWoodTextures() не был вызван при старте приложения (например, в изолированном рендере сцены)
+if (woodTextureRegistry.size === 0) {
+  try { initializeWoodTextures() } catch { /* no-op */ }
+}
 
 interface CylinderPrimitiveLike {
   type: 'trunk' | 'branch'
@@ -198,8 +204,7 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
     const barkId: string | undefined = (sceneObject as any)?.treeData?.params?.barkTextureSetId
     const ru: number = ((sceneObject as any)?.treeData?.params?.barkUvRepeatU ?? 1)
     const rv: number = ((sceneObject as any)?.treeData?.params?.barkUvRepeatV ?? 1)
-    if (!barkId) { setColorMap(null); setNormalMap(null); setRoughnessMap(null); setAoMap(null); return }
-    const set = woodTextureRegistry.get(barkId) || woodTextureRegistry.list()[0]
+    const set = (barkId && woodTextureRegistry.get(barkId)) || woodTextureRegistry.list()[0]
     if (!set) return
     const loader = new THREE.TextureLoader()
     const onTex = (t: THREE.Texture | null) => {

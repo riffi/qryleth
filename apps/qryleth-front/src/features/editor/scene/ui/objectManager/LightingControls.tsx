@@ -255,7 +255,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                                     value={lighting.ambient?.intensity || 0.4}
                                     onChange={(value) => handleAmbientChange('intensity', value)}
                                     min={0}
-                                    max={1}
+                                    max={4}
                                     step={0.1}
                                     style={{width: 60}}
                                 />
@@ -280,7 +280,7 @@ export const LightingControls: React.FC<LightingControlsProps> = ({
                                     value={lighting.directional?.intensity || 0.8}
                                     onChange={(value) => handleDirectionalChange('intensity', value)}
                                     min={0}
-                                    max={1}
+                                    max={4}
                                     step={0.1}
                                     style={{width: 60}}
                                 />
