@@ -1251,6 +1251,7 @@ export function generateTree(params: TreeGeneratorParams & {
               //   phi — угол 0..90°.
               const r = radial.clone().normalize()
               const t = new THREE.Vector3(...axisN).normalize()
+              // Базовый угол наклона (0..90)
               const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
               // Нормаль плоскости листа: из r к t по дуге на угол phi
               let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
@@ -1259,9 +1260,32 @@ export function generateTree(params: TreeGeneratorParams & {
               let x = new THREE.Vector3().crossVectors(t, z)
               if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
               x.normalize()
-              const yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-              // Гарантируем «вовне»: z·r = cos(phi) >= 0, но защитим от численных артефактов
-              if (z.dot(r) < 0) z.multiplyScalar(-1)
+              let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
+              // Глобальный фактор «стремления» вверх/вниз: вращаем В ПЛОСКОСТИ вокруг z так,
+              // чтобы yAxis тянулся к проекции мировой оси ±Y на плоскость листа.
+              {
+                const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
+                const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
+                if (mode !== 'none' && level > 0) {
+                  // Цель: 'up' → +Y, 'down' → -Y (тянем «длину» листа к мировой оси Y/−Y)
+                  const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
+                  const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
+                  if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
+                    const yProjN = yProj.clone().normalize()
+                    const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
+                    const ang = Math.acos(dotY)
+                    if (ang > 1e-5) {
+                      const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
+                      const rotAng = ang * level * s
+                      const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
+                      x = x.applyQuaternion(q).normalize()
+                      yAxis = yAxis.applyQuaternion(q).normalize()
+                    }
+                  }
+                }
+              }
+              // Гарантию «вовне» применяем только при отсутствии глобального фактора
+              if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
               const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
               leafEuler = [e.x, e.y, e.z]
               // Позиция не смещается: привязка anchor выполняется в рендере
@@ -1336,11 +1360,34 @@ export function generateTree(params: TreeGeneratorParams & {
                 const t = new THREE.Vector3(...axisN).normalize()
                 const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
                 let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
+                // Базис в плоскости
                 let x = new THREE.Vector3().crossVectors(t, z)
                 if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
                 x.normalize()
-                const yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-                if (z.dot(r) < 0) z.multiplyScalar(-1)
+                let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
+                // Глобальный фактор: вращаем в плоскости вокруг z к проекции ±Y
+                {
+                  const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
+                  const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
+                  if (mode !== 'none' && level > 0) {
+                    // Цель: 'up' → +Y, 'down' → -Y
+                    const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
+                    const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
+                    if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
+                      const yProjN = yProj.clone().normalize()
+                      const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
+                      const ang = Math.acos(dotY)
+                      if (ang > 1e-5) {
+                        const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
+                        const rotAng = ang * level * s
+                        const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
+                        x = x.applyQuaternion(q).normalize()
+                        yAxis = yAxis.applyQuaternion(q).normalize()
+                      }
+                    }
+                  }
+                }
+                if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
                 const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
                 leafEuler = [e.x, e.y, e.z]
               } else {

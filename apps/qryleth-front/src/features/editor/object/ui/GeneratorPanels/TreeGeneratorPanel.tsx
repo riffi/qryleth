@@ -52,6 +52,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafShape: 'billboard',
     leafPlacement: 'end',
     leafTiltDeg: 25,
+    leafGlobalTiltMode: 'none',
+    leafGlobalTiltLevel: 0,
     leavesPerMeter: 6,
     angleSpread: 1,
     embedFactor: 1,
@@ -145,7 +147,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafPlacement', 'leavesPerMeter',
         'embedFactor', 'barkTexDensityPerMeter',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
@@ -619,12 +621,35 @@ export const TreeGeneratorPanel: React.FC = () => {
             <NumberInput
               label="Наклон листа к ветви (°)"
               value={params.leafTiltDeg ?? 25}
-              onChange={(v) => setParams(p => ({ ...p, leafTiltDeg: Math.max(0, Math.min(85, Number(v) || 0)) }))}
+              onChange={(v) => setParams(p => ({ ...p, leafTiltDeg: Math.max(0, Math.min(90, Number(v) || 0)) }))}
               min={0}
-              max={85}
+              max={90}
               step={1}
               disabled={params.branchLevels <= 0}
             />
+            <Select
+              label="Глобальный фактор поворота"
+              data={[
+                { value: 'none', label: 'Не учитывать' },
+                { value: 'up', label: 'Стремление вверх' },
+                { value: 'down', label: 'Стремление вниз' },
+              ]}
+              value={(params.leafGlobalTiltMode || 'none') as any}
+              onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltMode: (v as any) || 'none' }))}
+              disabled={params.branchLevels <= 0}
+            />
+            <Box>
+              <Text size="sm" mb={4}>Уровень стремления</Text>
+              <Slider
+                value={params.leafGlobalTiltLevel ?? 0}
+                onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltLevel: Array.isArray(v) ? v[0] : v }))}
+                min={0}
+                max={1}
+                step={0.01}
+                marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+                disabled={params.branchLevels <= 0 || (params.leafGlobalTiltMode || 'none') === 'none'}
+              />
+            </Box>
             <Switch
               label="Обводка листа (debug)"
               checked={leafRectDebug}
