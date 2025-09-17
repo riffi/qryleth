@@ -310,7 +310,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         {(() => {
           return null
         })()}
-        
+
 
         {/* Контент активной вкладки */}
 
@@ -425,7 +425,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         <Group grow>
           <NumberInput label="Уровни" value={params.branchLevels} onChange={(v) => setParams(p => ({ ...p, branchLevels: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1}/>
           <NumberInput label="Ветвей/сегмент" value={params.branchesPerSegment} onChange={(v) => setParams(p => ({ ...p, branchesPerSegment: Math.max(0, Number(v) || 0) }))} min={0} step={1} disabled={params.branchLevels <= 0}/>
-          <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1} disabled={params.branchLevels <= 0}/>
+          <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.1, Number(v) || 0) }))} min={0.1} step={0.1} disabled={params.branchLevels <= 0}/>
         </Group>
         <Box>
           <Text size="sm" mb={4}>Разброс количества дочерних</Text>
@@ -602,8 +602,8 @@ export const TreeGeneratorPanel: React.FC = () => {
             <Button variant="light" onClick={() => setLeafSetModalOpen(true)}>Выбрать набор</Button>
           </Group>
           <Group grow>
-            <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
-            <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
+            <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.leafPlacement === 'along'}/>
+            <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01}/>
           </Group>
         <SegmentedControl
           value={params.leafShape || 'billboard'}
@@ -626,7 +626,6 @@ export const TreeGeneratorPanel: React.FC = () => {
                 min={0}
                 max={90}
                 step={1}
-                disabled={params.branchLevels <= 0}
               />
               <Switch
                 label="Обводка листа (debug)"
@@ -646,7 +645,6 @@ export const TreeGeneratorPanel: React.FC = () => {
                     { label: (<IconArrowUp size={16} />) as any, value: 'up' },
                     { label: (<IconArrowDown size={16} />) as any, value: 'down' },
                   ]}
-                  disabled={params.branchLevels <= 0}
                 />
               </Stack>
               <Stack gap={4} style={{ flex: 1 }}>
@@ -658,7 +656,7 @@ export const TreeGeneratorPanel: React.FC = () => {
                   max={1}
                   step={0.01}
                   marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
-                  disabled={params.branchLevels <= 0 || (params.leafGlobalTiltMode || 'none') === 'none'}
+                  disabled={(params.leafGlobalTiltMode || 'none') === 'none'}
                 />
               </Stack>
             </Group>
@@ -689,7 +687,6 @@ export const TreeGeneratorPanel: React.FC = () => {
                   onChange={(v) => setParams(p => ({ ...p, leafTextureSpriteName: v || undefined }))}
                   searchable
                   clearable
-                  disabled={params.branchLevels <= 0}
                 />
               )}
               {params.useAllLeafSprites && (
@@ -706,7 +703,6 @@ export const TreeGeneratorPanel: React.FC = () => {
               { label: 'На концах', value: 'end' },
               { label: 'Вдоль ветви', value: 'along' },
             ]}
-            disabled={params.branchLevels <= 0}
           />
           {params.leafPlacement === 'along' && (
             <Slider
@@ -716,7 +712,6 @@ export const TreeGeneratorPanel: React.FC = () => {
               max={12}
               step={0.5}
               marks={[{ value: 2, label: '2/м' }, { value: 6, label: '6/м' }, { value: 10, label: '10/м' }]}
-              disabled={params.branchLevels <= 0}
             />
           )}
         </Group>
