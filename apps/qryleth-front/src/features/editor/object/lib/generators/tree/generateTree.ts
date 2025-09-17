@@ -1196,15 +1196,17 @@ export function generateTree(params: TreeGeneratorParams & {
           const countAlong = Math.max(1, Math.round(density * len))
           // Распределяем листья вдоль последней части ветви (например, 30%..100%)
           const tStart = 0.3
+          // Кривая текущей ветви для получения локальных точек/касательных и корректного учёта сужения радиуса
+          const curve = new THREE.CatmullRomCurve3(curvePts, false, 'catmullrom', 0.5)
           for (let j = 0; j < countAlong; j++) {
             const tj = tStart + (1 - tStart) * ((j + rng() * 0.3) / countAlong)
             // Точка на оси ветви
-            const axisPoint: [number, number, number] = [
-              // Для изогнутой ветви берём точку на кривой вместо прямой интерполяции
-              ...(() => { const p = new THREE.CatmullRomCurve3(curvePts, false, 'catmullrom', 0.5).getPoint(Math.min(1, Math.max(0, tj))); return [p.x, p.y, p.z] as [number, number, number] })(),
-            ]
-            // Радиальное направление и смещение РОВНО на поверхность ветки (rad + eps)
-            const axisN = normalize(nDir)
+            const p = curve.getPoint(Math.min(1, Math.max(0, tj)))
+            const axisPoint: [number, number, number] = [p.x, p.y, p.z]
+            // Радиальное направление и смещение РОВНО на поверхность ветки с учётом локального радиуса (сужения)
+            // Вместо глобальной оси ветви берём локальную касательную на кривой, чтобы ориентация соответствовала геометрии
+            const tVec = curve.getTangent(Math.min(1, Math.max(0, tj))).normalize()
+            const axisN = [tVec.x, tVec.y, tVec.z] as [number, number, number]
             const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
             const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
             const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
@@ -1214,8 +1216,10 @@ export function generateTree(params: TreeGeneratorParams & {
               o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
               o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
             )
-            const eps = Math.max(0.003, rad * 0.08)
-            const radialDist = rad + eps
+            // Локальный радиус ветви с учётом taper: r(t) = rad * (1 - tipTaper * t)
+            const localRadius = Math.max(0.003, rad * (1 - tipTaper * Math.min(1, Math.max(0, tj))))
+            const eps = Math.max(0.003, localRadius * 0.08)
+            const radialDist = localRadius + eps
             const pos: [number, number, number] = [
               axisPoint[0] + radial.x * radialDist,
               axisPoint[1] + radial.y * radialDist,
@@ -1291,8 +1295,10 @@ export function generateTree(params: TreeGeneratorParams & {
               o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
               o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
             )
-            const eps = Math.max(0.003, rad * 0.08)
-            const radialDist = rad + eps
+            // Используем ИМЕННО конечный радиус трубки, а не базовый: лист прилипает к фактической геометрии торца
+            const endRadius = Math.max(0.003, tube.endRadius)
+            const eps = Math.max(0.003, endRadius * 0.08)
+            const radialDist = endRadius + eps
             const pos: [number, number, number] = [
               curvedEnd[0] + radial.x * radialDist,
               curvedEnd[1] + radial.y * radialDist,
