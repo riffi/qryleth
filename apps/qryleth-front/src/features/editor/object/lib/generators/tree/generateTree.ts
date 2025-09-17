@@ -20,6 +20,208 @@ function mulberry32(seed: number) {
 }
 
 /**
+ * Создаёт 3–5 контрольных точек кривой ветви с небольшим прогибом вниз и шумом.
+ *
+ * - Начальная точка совпадает с местом крепления ветви (baseInside).
+ * - Основное направление ростка — вдоль nDir на длину len.
+ * - Добавляется лёгкая «оседлость» вниз по миру (‑Y) и небольшой боковой шум в плоскости, перпендикулярной оси ветви.
+ * - Количество точек подбирается динамически: 4 точки (0, ~0.3L, ~0.65L, L) дают мягкий изгиб.
+ */
+function buildBranchCurvePoints(
+  baseInside: [number, number, number],
+  nDir: [number, number, number],
+  len: number,
+  rng: () => number,
+): THREE.Vector3[] {
+  // Ортонормальный базис вокруг оси ветви: o1, o2 — перпендикулярные nDir
+  const axis = new THREE.Vector3(nDir[0], nDir[1], nDir[2]).normalize()
+  const tmp = Math.abs(axis.y) < 0.95 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
+  const o1 = new THREE.Vector3().crossVectors(axis, tmp).normalize()
+  const o2 = new THREE.Vector3().crossVectors(axis, o1).normalize()
+
+  // Коэффициент «провиса» вниз: сильнее для более горизонтальных ветвей
+  const up = Math.max(0, Math.min(1, axis.y))
+  const droopBase = (1 - up) * 0.12 // до ~12% длины вниз при почти горизонтальной ветви
+
+  // Боковой шум в перпендикулярной плоскости: небольшой (до ~4% длины)
+  const lateralAmp = 0.04 * len
+  const jitter = (amp: number) => {
+    const a = (rng() * 2 - 1) * amp
+    const b = (rng() * 2 - 1) * amp
+    return new THREE.Vector3().addScaledVector(o1, a).addScaledVector(o2, b)
+  }
+
+  const P0 = new THREE.Vector3(baseInside[0], baseInside[1], baseInside[2])
+  const P1 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.32 * len)
+    .add(new THREE.Vector3(0, -droopBase * len * 0.35, 0))
+    .add(jitter(lateralAmp * 0.25))
+  const P2 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.66 * len)
+    .add(new THREE.Vector3(0, -droopBase * len * 0.65, 0))
+    .add(jitter(lateralAmp * 0.5))
+  const P3 = new THREE.Vector3().copy(P0).addScaledVector(axis, 1.00 * len)
+    .add(new THREE.Vector3(0, -droopBase * len * 0.95, 0))
+    .add(jitter(lateralAmp * 0.3))
+
+  return [P0, P1, P2, P3]
+}
+
+/**
+ * Строит один общий mesh‑примитив трубки по кривой с лёгким сужением к кончику.
+ *
+ * Реализация:
+ * - Кривая: THREE.CatmullRomCurve3 через заданные точки (не закрытая, непрерывная касательная).
+ * - Сужение: трубка разбивается на 2–3 под‑секции с уменьшающимся радиусом; геометрии сшиваются в один буфер.
+ * - UV: используем uv TubeGeometry и нормируем компоненту v по общей длине (для непрерывной коры).
+ */
+function buildTaperedTubeMesh(
+  points: THREE.Vector3[],
+  baseRadius: number,
+  options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number }
+): { positions: number[]; normals: number[]; indices: number[]; uvs: number[]; endPoint: [number, number, number]; endTangent: [number, number, number]; endRadius: number } {
+  const tubularSegments = Math.max(8, Math.min(96, options?.tubularSegments ?? 24))
+  const radialSegments = Math.max(6, Math.min(24, options?.radialSegments ?? 8))
+  const taper = options?.taper || ((t: number) => 1 - 0.35 * t) // линейное сужение к концу
+  const collarFrac = Math.max(0, Math.min(1, options?.collarFrac ?? 0))
+  const collarScale = Math.max(1, options?.collarScale ?? 1)
+
+  // Единая Catmull‑Rom кривая по всем точкам
+  const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5)
+  // Френе‑кадры для стабильных ориентиров колец
+  const frames = curve.computeFrenetFrames(tubularSegments, false)
+
+  const ringCount = tubularSegments + 1
+  const vertexCount = ringCount * (radialSegments + 1)
+  const positions = new Array<number>(vertexCount * 3)
+  // Временные нормали пересчитаем через BufferGeometry.computeVertexNormals()
+  const normals = new Array<number>(vertexCount * 3)
+  const uvs = new Array<number>(vertexCount * 2)
+  const indices: number[] = []
+  // Радиальные векторы для проверки ориентации нормалей (dot>0 — нормали наружу)
+  const radialRef = new Array<number>(vertexCount * 3)
+
+  // Генерация колец
+  for (let i = 0; i < ringCount; i++) {
+    const t = i / tubularSegments
+    const center = curve.getPoint(t)
+    const normal = frames.normals[i]
+    const binormal = frames.binormals[i]
+    // «Воротник» у основания: плавное уменьшение от collarScale к 1 на участке [0..collarFrac]
+    let collar = 1
+    if (collarFrac > 0 && t < collarFrac) {
+      const k = t / Math.max(1e-4, collarFrac)
+      collar = collarScale * (1 - k) + 1 * k
+    }
+    const radius = Math.max(0.003, baseRadius * Math.max(0.05, taper(t)) * collar)
+    for (let j = 0; j <= radialSegments; j++) {
+      const u = j / radialSegments
+      const angle = u * Math.PI * 2
+      const cx = Math.cos(angle), sx = Math.sin(angle)
+      const rx = normal.x * cx + binormal.x * sx
+      const ry = normal.y * cx + binormal.y * sx
+      const rz = normal.z * cx + binormal.z * sx
+
+      const vx = center.x + radius * rx
+      const vy = center.y + radius * ry
+      const vz = center.z + radius * rz
+
+      const idx = i * (radialSegments + 1) + j
+      positions[3 * idx + 0] = vx
+      positions[3 * idx + 1] = vy
+      positions[3 * idx + 2] = vz
+      // Нормаль — радиальный вектор без учёта taper (для гладкого освещения)
+      // Сохраняем референс радиального направления для пост‑проверки ориентации
+      radialRef[3 * idx + 0] = rx
+      radialRef[3 * idx + 1] = ry
+      radialRef[3 * idx + 2] = rz
+      uvs[2 * idx + 0] = u
+      uvs[2 * idx + 1] = t
+    }
+  }
+
+  // Индексы между соседними кольцами
+  for (let i = 0; i < tubularSegments; i++) {
+    for (let j = 0; j < radialSegments; j++) {
+      const a = i * (radialSegments + 1) + j
+      const b = (i + 1) * (radialSegments + 1) + j
+      const c = (i + 1) * (radialSegments + 1) + (j + 1)
+      const d = i * (radialSegments + 1) + (j + 1)
+      indices.push(a, b, d)
+      indices.push(b, c, d)
+    }
+  }
+
+  // Крышки трубки: начало (t=0) и конец (t=1)
+  // Начальный центр и нормаль наружу (вдоль -tangent)
+  const startCenterIndex = (positions.length / 3) | 0
+  const p0 = curve.getPoint(0)
+  const t0 = frames.tangents[0].clone().normalize()
+  positions.push(p0.x, p0.y, p0.z)
+  uvs.push(0.5, 0.5)
+  // нормаль будет перерасчитана, но зададим приблизительно для правильного направления
+  normals.push(-t0.x, -t0.y, -t0.z)
+  const base0 = 0
+  for (let j = 0; j < radialSegments; j++) {
+    const a = base0 + j
+    const b = base0 + (j + 1)
+    // Оба порядка вершин: гарантируем видимость при любом глобальном развороте меша
+    indices.push(startCenterIndex, b, a)
+    indices.push(startCenterIndex, a, b)
+  }
+
+  // Конечный центр и нормаль наружу (вдоль +tangent)
+  const endCenterIndex = (positions.length / 3) | 0
+  const p1 = curve.getPoint(1)
+  const t1 = frames.tangents[frames.tangents.length - 1].clone().normalize()
+  positions.push(p1.x, p1.y, p1.z)
+  uvs.push(0.5, 0.5)
+  normals.push(t1.x, t1.y, t1.z)
+  const baseN = tubularSegments * (radialSegments + 1)
+  for (let j = 0; j < radialSegments; j++) {
+    const a = baseN + j
+    const b = baseN + (j + 1)
+    // Оба порядка вершин
+    indices.push(endCenterIndex, a, b)
+    indices.push(endCenterIndex, b, a)
+  }
+
+  // Пересчёт нормалей по истинной геометрии — сглаживает освещение и учитывает taper
+  const bg = new THREE.BufferGeometry()
+  bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+  bg.setIndex(indices)
+  bg.computeVertexNormals()
+  const nAttr = bg.getAttribute('normal') as THREE.BufferAttribute
+  for (let i = 0; i < nAttr.count; i++) {
+    normals[3*i+0] = nAttr.getX(i)
+    normals[3*i+1] = nAttr.getY(i)
+    normals[3*i+2] = nAttr.getZ(i)
+  }
+  // Проверка ориентации нормалей: если усреднённый dot < 0, переворачиваем все нормали
+  let dotSum = 0
+  for (let i = 0; i < vertexCount; i++) {
+    const nx = normals[3*i], ny = normals[3*i+1], nz = normals[3*i+2]
+    const rx = radialRef[3*i], ry = radialRef[3*i+1], rz = radialRef[3*i+2]
+    dotSum += nx*rx + ny*ry + nz*rz
+  }
+  if (dotSum < 0) {
+    // Инвертируем нормали и переворачиваем порядок вершин в каждом треугольнике (меняем ориентацию граней наружу)
+    for (let i = 0; i < normals.length; i++) normals[i] = -normals[i]
+    for (let k = 0; k < indices.length; k += 3) {
+      const tmp = indices[k + 1]
+      indices[k + 1] = indices[k + 2]
+      indices[k + 2] = tmp
+    }
+  }
+  bg.dispose()
+
+  const endVec = curve.getPoint(1)
+  const endPoint: [number, number, number] = [endVec.x, endVec.y, endVec.z]
+  const endTanV = frames.tangents[frames.tangents.length - 1].clone().normalize()
+  const endTangent: [number, number, number] = [endTanV.x, endTanV.y, endTanV.z]
+  const endRadius = Math.max(0.003, baseRadius * Math.max(0.05, (options?.taper || ((t:number)=>1-0.35*t))(1)))
+  return { positions, normals, indices, uvs, endPoint, endTangent, endRadius }
+}
+
+/**
  * Возвращает случайное число в диапазоне [min, max), детерминированно для сидов.
  */
 function randRange(rng: () => number, min: number, max: number) {
@@ -267,6 +469,19 @@ export function generateTree(params: TreeGeneratorParams & {
   const primitives: GfxPrimitive[] = []
   // Реестр уже размещённых сегментов ветвей для проверки коллизий при подборе направлений
   const placed: PlacedSegment[] = []
+  // ЕДИНЫЙ МЕШ для ствола и всех ветвей: аккумуляторы геометрии
+  const unifiedPos: number[] = []
+  const unifiedNor: number[] = []
+  const unifiedUv: number[] = []
+  const unifiedIdx: number[] = []
+  function appendToUnified(geom: { positions: number[]; normals: number[]; uvs?: number[]; indices?: number[] }) {
+    const base = Math.floor(unifiedPos.length / 3)
+    unifiedPos.push(...geom.positions)
+    unifiedNor.push(...geom.normals)
+    if (geom.uvs) unifiedUv.push(...geom.uvs)
+    const idx = geom.indices || []
+    for (let i = 0; i < idx.length; i++) unifiedIdx.push(base + idx[i])
+  }
 
   // 1) Ствол(ы): один вертикальный + опциональные разветвления, с плавными стыками
   const segH = trunkHeight / Math.max(1, trunkSegments)
@@ -596,15 +811,8 @@ export function generateTree(params: TreeGeneratorParams & {
       indices.push(topCenterIndex, a, b)
     }
 
-    primitives.push({
-      uuid: generateUUID(),
-      type: 'mesh',
-      name: 'Ствол (единый меш)',
-      geometry: { positions, normals, indices, uvs },
-      objectMaterialUuid: barkMaterialUuid,
-      visible: true,
-      transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] },
-    } as any)
+    // Добавляем ствол в общий аккумулятор единого меша
+    appendToUnified({ positions, normals, indices, uvs })
   }
 
   type TrunkNode = { base: [number,number,number]; axis: [number,number,number]; height: number; radius: number; segments: number; endPoint: [number,number,number]; endAxis: [number,number,number] }
@@ -690,9 +898,11 @@ export function generateTree(params: TreeGeneratorParams & {
     parentSeg?: PlacedSegment
     /** Масштаб локального количества ветвей (для биаса к верху) */
     countScale?: number
+    /** Присоединение к КОНЦУ родителя: требует дополнительного осевого заглубления */
+    attachToParentTip?: boolean
   }
 
-  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale }: BranchArgs) => {
+  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale, attachToParentTip }: BranchArgs) => {
     if (level > branchLevels) return
 
     const scale = countScale == null ? 1 : Math.max(0, countScale)
@@ -764,24 +974,19 @@ export function generateTree(params: TreeGeneratorParams & {
         const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
         const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
         const rad = Math.max(0.01, branchRadius * Math.pow(0.7, level - 1))
-        const epsInside = Math.max(0.001, parentRadius * 0.03)
-        const sinTheta = Math.max(1e-4, Math.sqrt(Math.max(0, 1 - dot * dot)))
-        const embedMin = rad * Math.abs(dot) / sinTheta + 1e-3
-        const embedFactor = params.embedFactor ?? 0.6
-        const embedBase = Math.max(0, Math.min(1, embedFactor)) * Math.min(parentRadius, rad)
-        const embedDepth = Math.max(embedBase, embedMin)
+        // Толщина воротника у основания не должна превышать радиус родителя: r0 <= parentRadius - margin
+        const margin = Math.max(0.002, parentRadius * 0.02)
+        const r0 = Math.min(rad * 1.15, Math.max(0.005, parentRadius - margin))
+        const collarScaleLocal = Math.max(1.02, Math.min(1.8, r0 / Math.max(1e-3, rad)))
+        // Радиальное заглубление центра базы внутрь родителя так, чтобы круглая грань воротника была внутри
+        const epsInside = Math.max(0.001, parentRadius * 0.02)
+        const depthRadial = attachToParentTip ? 0 : Math.max(0, parentRadius - (epsInside + r0))
+        const axialEmbed = attachToParentTip ? r0 : 0
         const baseInside: [number, number, number] = [
-          basePoint[0] + perp[0] * (parentRadius - epsInside),
-          basePoint[1] + perp[1] * (parentRadius - epsInside),
-          basePoint[2] + perp[2] * (parentRadius - epsInside),
+          basePoint[0] + perp[0] * depthRadial - parentAxisN[0] * axialEmbed,
+          basePoint[1] + perp[1] * depthRadial - parentAxisN[1] * axialEmbed,
+          basePoint[2] + perp[2] * depthRadial - parentAxisN[2] * axialEmbed,
         ]
-        const height = len + embedDepth
-        const center: [number, number, number] = [
-          baseInside[0] + nDir[0] * ((len - embedDepth) / 2),
-          baseInside[1] + nDir[1] * ((len - embedDepth) / 2),
-          baseInside[2] + nDir[2] * ((len - embedDepth) / 2),
-        ]
-        const rotation = eulerFromDir(nDir)
         const endPoint: [number, number, number] = [
           baseInside[0] + nDir[0] * len,
           baseInside[1] + nDir[1] * len,
@@ -789,7 +994,14 @@ export function generateTree(params: TreeGeneratorParams & {
         ]
 
         let score = 0
-        score += trunkPathPenalty(mainTrunk.path ?? null, trunkHeight, trunkRadius, baseInside, nDir, len, rad)
+        // В штрафе за вхождение в ствол пропускаем начальный участок, соответствующий заглублению: сдвигаем старт вперёд
+        const shift = Math.max(axialEmbed, Math.min(len * 0.25, r0 * 1.2))
+        const baseForPenalty: [number, number, number] = [
+          baseInside[0] + nDir[0] * shift,
+          baseInside[1] + nDir[1] * shift,
+          baseInside[2] + nDir[2] * shift,
+        ]
+        score += trunkPathPenalty(mainTrunk.path ?? null, trunkHeight, trunkRadius, baseForPenalty, nDir, Math.max(0.01, len - shift), rad)
         for (const seg of placed) {
           if (parentSeg && seg === parentSeg) continue
           const { dist, u, v } = segmentDistance(baseInside, endPoint, seg.a, seg.b)
@@ -823,36 +1035,25 @@ export function generateTree(params: TreeGeneratorParams & {
           score += simPenalty
         }
 
-        if (!best || score < best.score) best = { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint, score, perpOrtho: perp }
+        if (!best || score < best.score) best = { nDir, baseInside, len, rad, endPoint, score, perpOrtho: perp, collarScale: collarScaleLocal }
       }
 
       if (!best) continue
-      const { nDir, baseInside, embedDepth, height, center, rotation, len, rad, endPoint, perpOrtho } = best
+      const { nDir, baseInside, len, rad, endPoint, perpOrtho, collarScale } = best
 
-      primitives.push({
-        uuid: generateUUID(),
-        type: 'branch',
-        name: `Ветвь L${level}`,
-        geometry: {
-          radiusTop: rad * 0.8,
-          radiusBottom: rad,
-          height,
-          radialSegments: 8,
-          // Для ветвей скрываем нижнюю крышку (утоплена в родителе) и оставляем верхнюю
-          capBottom: false,
-          capTop: true,
-        },
-        objectMaterialUuid: barkMaterialUuid,
-        visible: true,
-        transform: {
-          position: center,
-          rotation,
-          scale: [1, 1, 1],
-        },
-      })
+      // Генерируем изогнутую трубку по кривой (Catmull-Rom) с лёгким сужением к концу
+      // 1) Кривая
+      const curvePts = buildBranchCurvePoints(baseInside, nDir, len, rng)
+      // 2) Сборка трубки из 2–3 секций с убывающим радиусом
+      // Параметры воротника для бесшовного стыка с родителем
+      const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale })
+
+      // Добавляем геометрию ветви в единый меш
+      appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
 
       // Регистрируем сегмент ветви для последующих проверок
-      const currentSeg: PlacedSegment = { a: baseInside, b: endPoint, radius: rad }
+      const curvedEnd: [number, number, number] = tube.endPoint
+      const currentSeg: PlacedSegment = { a: baseInside, b: curvedEnd, radius: rad }
       placed.push(currentSeg)
       // Добавляем выбранное ортонормальное направление для штрафа схожести следующих веток
       siblingOrthoDirs.push(new THREE.Vector3(perpOrtho[0], perpOrtho[1], perpOrtho[2]))
@@ -869,9 +1070,8 @@ export function generateTree(params: TreeGeneratorParams & {
             const tj = tStart + (1 - tStart) * ((j + rng() * 0.3) / countAlong)
             // Точка на оси ветви
             const axisPoint: [number, number, number] = [
-              baseInside[0] + nDir[0] * (tj * len),
-              baseInside[1] + nDir[1] * (tj * len),
-              baseInside[2] + nDir[2] * (tj * len),
+              // Для изогнутой ветви берём точку на кривой вместо прямой интерполяции
+              ...(() => { const p = new THREE.CatmullRomCurve3(curvePts, false, 'catmullrom', 0.5).getPoint(Math.min(1, Math.max(0, tj))); return [p.x, p.y, p.z] as [number, number, number] })(),
             ]
             // Радиальное направление и смещение РОВНО на поверхность ветки (rad + eps)
             const axisN = normalize(nDir)
@@ -948,10 +1148,10 @@ export function generateTree(params: TreeGeneratorParams & {
             })
           }
         } else {
-          // На конце ветви — размещаем на поверхности торца/цилиндра, а не в воздухе
+          // На конце ветви — размещаем на поверхности торца/трубки, а не в воздухе
           const leaves = Math.max(0, Math.round(leavesPerBranch))
           for (let j = 0; j < leaves; j++) {
-            const axisN = normalize(nDir)
+            const axisN = normalize(tube.endTangent as any)
             const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
             const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
             const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
@@ -964,9 +1164,9 @@ export function generateTree(params: TreeGeneratorParams & {
             const eps = Math.max(0.003, rad * 0.08)
             const radialDist = rad + eps
             const pos: [number, number, number] = [
-              endPoint[0] + radial.x * radialDist,
-              endPoint[1] + radial.y * radialDist,
-              endPoint[2] + radial.z * radialDist,
+              curvedEnd[0] + radial.x * radialDist,
+              curvedEnd[1] + radial.y * radialDist,
+              curvedEnd[2] + radial.z * radialDist,
             ]
               const isTexture = (params.leafShape || 'billboard') === 'texture'
               let leafEuler: [number, number, number]
@@ -1013,11 +1213,11 @@ export function generateTree(params: TreeGeneratorParams & {
         }
       } else {
         // Иначе — ответвления следующего уровня из конца текущей ветви (видимой части)
-        const nextBase: [number, number, number] = endPoint
-        // Радиус родителя для следующего уровня — радиус вершины текущей ветки
-        const parentRadiusNext = Math.max(0.005, rad * 0.8)
+        const nextBase: [number, number, number] = curvedEnd
+        // Радиус родителя для следующего уровня — фактический радиус на конце трубки
+        const parentRadiusNext = Math.max(0.005, tube.endRadius)
         // Для следующих уровней случай распределяем равномерно вокруг новой оси родителя
-        genBranches({ basePoint: nextBase, level: level + 1, parentAxis: nDir, parentRadius: parentRadiusNext, parentSeg: currentSeg })
+        genBranches({ basePoint: nextBase, level: level + 1, parentAxis: tube.endTangent, parentRadius: parentRadiusNext, parentSeg: currentSeg, attachToParentTip: true })
       }
     }
   }
@@ -1036,8 +1236,21 @@ export function generateTree(params: TreeGeneratorParams & {
       const h01 = (att.point[1] - minY) / span
       // Вес: при 0 — равномерно (1), при 1 — квадратичная концентрация к верху (0..1 -> 0..1^2)
       const topWeight = (1 - bias) * 1 + bias * (h01 * h01)
-      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight })
+      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight, attachToParentTip: false })
     }
+  }
+
+  // 3) Финальный единый меш (ствол + все ветви)
+  if (unifiedPos.length > 0) {
+    primitives.push({
+      uuid: generateUUID(),
+      type: 'mesh',
+      name: 'Дерево: ствол+ветви (единый меш)',
+      geometry: { positions: unifiedPos, normals: unifiedNor, indices: unifiedIdx, uvs: unifiedUv },
+      objectMaterialUuid: barkMaterialUuid,
+      visible: true,
+      transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] },
+    } as any)
   }
 
   return primitives
