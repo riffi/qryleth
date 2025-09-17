@@ -1138,8 +1138,7 @@ export function generateTree(params: TreeGeneratorParams & {
         vScale: Math.max(1, len * texD),
         // Фиксируем исходную ориентацию «U=0» через refNormal, чтобы исключить кручение по окружности вдоль длины
         refNormal: [refNormalVec.x, refNormalVec.y, refNormalVec.z],
-        // Единая плотность по U с минимальным 1 повтором вокруг основания
-        uRefRadius: (rad / Math.max(1, 2 * Math.PI * rad * texD)),
+        // U: классическая угловая развёртка по окружности — стабильна по кругу без косых искажений
       })
 
       // Добавляем геометрию ветви в единый меш
