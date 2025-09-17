@@ -32,6 +32,8 @@ function buildBranchCurvePoints(
   nDir: [number, number, number],
   len: number,
   rng: () => number,
+  bendBase?: number,
+  bendJitter?: number,
 ): THREE.Vector3[] {
   // Ортонормальный базис вокруг оси ветви: o1, o2 — перпендикулярные nDir
   const axis = new THREE.Vector3(nDir[0], nDir[1], nDir[2]).normalize()
@@ -41,10 +43,13 @@ function buildBranchCurvePoints(
 
   // Коэффициент «провиса» вниз: сильнее для более горизонтальных ветвей
   const up = Math.max(0, Math.min(1, axis.y))
-  const droopBase = (1 - up) * 0.12 // до ~12% длины вниз при почти горизонтальной ветви
+  const styr = Math.max(0, Math.min(1, bendBase ?? 0.5))
+  // Базовая «оседлость» вниз масштабируется styr: 0 → 20% от базового, 1 → 200% от базового
+  const droopBase = (1 - up) * 0.12 * (0.2 + 1.8 * styr)
 
   // Боковой шум в перпендикулярной плоскости: небольшой (до ~4% длины)
-  const lateralAmp = 0.04 * len
+  const jitterLevel = Math.max(0, Math.min(1, bendJitter ?? 0.4))
+  const lateralAmp = 0.04 * len * (0.2 + 1.8 * jitterLevel)
   const jitter = (amp: number) => {
     const a = (rng() * 2 - 1) * amp
     const b = (rng() * 2 - 1) * amp
@@ -53,13 +58,13 @@ function buildBranchCurvePoints(
 
   const P0 = new THREE.Vector3(baseInside[0], baseInside[1], baseInside[2])
   const P1 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.32 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * 0.35, 0))
+    .add(new THREE.Vector3(0, -droopBase * len * (0.25 + 0.5 * jitterLevel * rng()), 0))
     .add(jitter(lateralAmp * 0.25))
   const P2 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.66 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * 0.65, 0))
+    .add(new THREE.Vector3(0, -droopBase * len * (0.55 + 0.7 * jitterLevel * rng()), 0))
     .add(jitter(lateralAmp * 0.5))
   const P3 = new THREE.Vector3().copy(P0).addScaledVector(axis, 1.00 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * 0.95, 0))
+    .add(new THREE.Vector3(0, -droopBase * len * (0.85 + 0.3 * jitterLevel * rng()), 0))
     .add(jitter(lateralAmp * 0.3))
 
   return [P0, P1, P2, P3]
@@ -1086,7 +1091,7 @@ export function generateTree(params: TreeGeneratorParams & {
 
       // Генерируем изогнутую трубку по кривой (Catmull-Rom) с лёгким сужением к концу
       // 1) Кривая
-      const curvePts = buildBranchCurvePoints(baseInside, nDir, len, rng)
+      const curvePts = buildBranchCurvePoints(baseInside, nDir, len, rng, params.branchBendBase, params.branchBendJitter)
       // 2) Сборка трубки из 2–3 секций с убывающим радиусом
       // Параметры воротника для бесшовного стыка с родителем
       const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))

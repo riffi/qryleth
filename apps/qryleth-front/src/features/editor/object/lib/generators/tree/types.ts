@@ -85,6 +85,17 @@ export interface TreeGeneratorParams {
    * Используется в функции taper трубки ветки. По умолчанию 0.35.
    */
   branchTipTaper?: number
+
+  /**
+   * Базовый уровень изгиба ветвей (0..1).
+   * 0 — почти прямые ветки, 1 — заметный прогиб и плавный изгиб.
+   */
+  branchBendBase?: number
+  /**
+   * Уровень разброса изгиба ветвей (0..1): усиливает случайные вариации
+   * прогиба и бокового отклонения контрольных точек кривой.
+   */
+  branchBendJitter?: number
   /** Тип листвы: billboard, sphere, coniferCross или texture */
   leafShape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture'
   /**

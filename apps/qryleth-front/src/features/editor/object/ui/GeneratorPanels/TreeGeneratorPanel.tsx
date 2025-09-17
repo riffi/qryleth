@@ -45,6 +45,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     leavesPerBranch: 3,
     leafSize: 0.16,
     branchTipTaper: 0.35,
+    branchBendBase: 0.5,
+    branchBendJitter: 0.4,
     leafShape: 'billboard',
     leafPlacement: 'end',
     leafTiltDeg: 25,
@@ -138,7 +140,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor', 'trunkShearStrength',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
-        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
+        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
         'embedFactor',
@@ -453,6 +455,32 @@ export const TreeGeneratorPanel: React.FC = () => {
               max={0.9}
               step={0.01}
               marks={[{ value: 0, label: '0' }, { value: 0.35, label: '0.35' }, { value: 0.7, label: '0.7' }]}
+              disabled={params.branchLevels <= 0}
+            />
+          </Box>
+        </Group>
+        <Group grow>
+          <Box>
+            <Text size="sm" mb={4}>Базовый изгиб ветвей</Text>
+            <Slider
+              value={params.branchBendBase ?? 0.5}
+              onChange={(v) => setParams(p => ({ ...p, branchBendBase: Array.isArray(v) ? v[0] : v }))}
+              min={0}
+              max={1}
+              step={0.01}
+              marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
+              disabled={params.branchLevels <= 0}
+            />
+          </Box>
+          <Box>
+            <Text size="sm" mb={4}>Разброс изгиба</Text>
+            <Slider
+              value={params.branchBendJitter ?? 0.4}
+              onChange={(v) => setParams(p => ({ ...p, branchBendJitter: Array.isArray(v) ? v[0] : v }))}
+              min={0}
+              max={1}
+              step={0.01}
+              marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
               disabled={params.branchLevels <= 0}
             />
           </Box>
