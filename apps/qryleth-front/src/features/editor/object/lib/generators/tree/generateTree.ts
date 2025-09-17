@@ -81,8 +81,8 @@ function buildBranchCurvePoints(
 function buildTaperedTubeMesh(
   points: THREE.Vector3[],
   baseRadius: number,
-  options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number; collarBulgeExtra?: number; vStart?: number; vScale?: number; uAngleOffset?: number; uRefRadius?: number; useParallelTransport?: boolean; refNormal?: [number,number,number] }
-): { positions: number[]; normals: number[]; indices: number[]; uvs: number[]; endPoint: [number, number, number]; endTangent: [number, number, number]; endRadius: number } {
+  options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number; collarBulgeExtra?: number; vStart?: number; vScale?: number; uAngleOffset?: number; uRefRadius?: number; useParallelTransport?: boolean; refNormal?: [number,number,number]; capStart?: boolean; capEnd?: boolean; overrideStartRingPositions?: number[]; overrideStartRingUVs?: number[] }
+): { positions: number[]; normals: number[]; indices: number[]; uvs: number[]; endPoint: [number, number, number]; endTangent: [number, number, number]; endRadius: number; endRingPositions?: number[]; endRingUVs?: number[] } {
   const tubularSegments = Math.max(8, Math.min(96, options?.tubularSegments ?? 24))
   const radialSegments = Math.max(6, Math.min(24, options?.radialSegments ?? 8))
   const taper = options?.taper || ((t: number) => 1 - 0.35 * t) // линейное сужение к концу
@@ -169,37 +169,51 @@ function buildTaperedTubeMesh(
     }
     const radius = Math.max(0.003, baseRadius * Math.max(0.05, taper(t)) * collar)
     for (let j = 0; j <= radialSegments; j++) {
-      const uNorm = j / radialSegments
-      const angle = uNorm * Math.PI * 2 + uOffset
-      const cx = Math.cos(angle), sx = Math.sin(angle)
-      const rx = normal.x * cx + binormal.x * sx
-      const ry = normal.y * cx + binormal.y * sx
-      const rz = normal.z * cx + binormal.z * sx
-
-      const vx = center.x + radius * rx
-      const vy = center.y + radius * ry
-      const vz = center.z + radius * rz
-
       const idx = i * (radialSegments + 1) + j
-      positions[3 * idx + 0] = vx
-      positions[3 * idx + 1] = vy
-      positions[3 * idx + 2] = vz
-      // Нормаль — радиальный вектор без учёта taper (для гладкого освещения)
-      // Сохраняем референс радиального направления для пост‑проверки ориентации
-      radialRef[3 * idx + 0] = rx
-      radialRef[3 * idx + 1] = ry
-      radialRef[3 * idx + 2] = rz
-      // U: по дуговой длине для согласования плотности с радиусом опоры
-      if (uRefRadius && uRefRadius > 1e-6) {
-        const s = (angle) * radius // дуговая длина при угле 'angle'
-        const sRef = 2 * Math.PI * uRefRadius
-        uvs[2 * idx + 0] = s / sRef
+      if (i === 0 && options?.overrideStartRingPositions && options.overrideStartRingPositions.length >= (radialSegments + 1) * 3) {
+        const ox = options.overrideStartRingPositions[3 * j + 0]
+        const oy = options.overrideStartRingPositions[3 * j + 1]
+        const oz = options.overrideStartRingPositions[3 * j + 2]
+        positions[3 * idx + 0] = ox
+        positions[3 * idx + 1] = oy
+        positions[3 * idx + 2] = oz
+        // Радиальный вектор — от центра к вершине
+        const dx = ox - center.x, dy = oy - center.y, dz = oz - center.z
+        const invr = 1 / Math.max(1e-6, Math.hypot(dx, dy, dz))
+        radialRef[3 * idx + 0] = dx * invr
+        radialRef[3 * idx + 1] = dy * invr
+        radialRef[3 * idx + 2] = dz * invr
+        if (options.overrideStartRingUVs && options.overrideStartRingUVs.length >= (radialSegments + 1) * 2) {
+          uvs[2 * idx + 0] = options.overrideStartRingUVs[2 * j + 0]
+          uvs[2 * idx + 1] = options.overrideStartRingUVs[2 * j + 1]
+        } else {
+          const uNorm0 = j / radialSegments
+          uvs[2 * idx + 0] = uNorm0
+          const vAlong0 = (cumLen[i] * invTotalLen)
+          uvs[2 * idx + 1] = vStart + vAlong0 * vScale
+        }
       } else {
+        const uNorm = j / radialSegments
+        const angle = uNorm * Math.PI * 2 + uOffset
+        const cx = Math.cos(angle), sx = Math.sin(angle)
+        const rx = normal.x * cx + binormal.x * sx
+        const ry = normal.y * cx + binormal.y * sx
+        const rz = normal.z * cx + binormal.z * sx
+
+        const vx = center.x + radius * rx
+        const vy = center.y + radius * ry
+        const vz = center.z + radius * rz
+
+        positions[3 * idx + 0] = vx
+        positions[3 * idx + 1] = vy
+        positions[3 * idx + 2] = vz
+        radialRef[3 * idx + 0] = rx
+        radialRef[3 * idx + 1] = ry
+        radialRef[3 * idx + 2] = rz
         uvs[2 * idx + 0] = uNorm
+        const vAlong = (cumLen[i] * invTotalLen)
+        uvs[2 * idx + 1] = vStart + vAlong * vScale
       }
-      // V: равномерно по дуговой длине для устранения растяжений на участках разной кривизны
-      const vAlong = (cumLen[i] * invTotalLen)
-      uvs[2 * idx + 1] = vStart + vAlong * vScale
     }
   }
 
@@ -216,37 +230,41 @@ function buildTaperedTubeMesh(
   }
 
   // Крышки трубки: начало (t=0) и конец (t=1)
-  // Начальный центр и нормаль наружу (вдоль -tangent)
-  const startCenterIndex = (positions.length / 3) | 0
-  const p0 = curve.getPoint(0)
-  const t0 = tangents[0].clone().normalize()
-  positions.push(p0.x, p0.y, p0.z)
-  uvs.push(0.5, 0.5)
-  // нормаль будет перерасчитана, но зададим приблизительно для правильного направления
-  normals.push(-t0.x, -t0.y, -t0.z)
-  const base0 = 0
-  for (let j = 0; j < radialSegments; j++) {
-    const a = base0 + j
-    const b = base0 + (j + 1)
-    // Оба порядка вершин: гарантируем видимость при любом глобальном развороте меша
-    indices.push(startCenterIndex, b, a)
-    indices.push(startCenterIndex, a, b)
+  if (options?.capStart !== false) {
+    // Начальный центр и нормаль наружу (вдоль -tangent)
+    const startCenterIndex = (positions.length / 3) | 0
+    const p0 = curve.getPoint(0)
+    const t0 = tangents[0].clone().normalize()
+    positions.push(p0.x, p0.y, p0.z)
+    uvs.push(0.5, 0.5)
+    // нормаль будет перерасчитана, но зададим приблизительно для правильного направления
+    normals.push(-t0.x, -t0.y, -t0.z)
+    const base0 = 0
+    for (let j = 0; j < radialSegments; j++) {
+      const a = base0 + j
+      const b = base0 + (j + 1)
+      // Оба порядка вершин: гарантируем видимость при любом глобальном развороте меша
+      indices.push(startCenterIndex, b, a)
+      indices.push(startCenterIndex, a, b)
+    }
   }
 
-  // Конечный центр и нормаль наружу (вдоль +tangent)
-  const endCenterIndex = (positions.length / 3) | 0
-  const p1 = curve.getPoint(1)
-  const t1 = tangents[tangents.length - 1].clone().normalize()
-  positions.push(p1.x, p1.y, p1.z)
-  uvs.push(0.5, 0.5)
-  normals.push(t1.x, t1.y, t1.z)
-  const baseN = tubularSegments * (radialSegments + 1)
-  for (let j = 0; j < radialSegments; j++) {
-    const a = baseN + j
-    const b = baseN + (j + 1)
-    // Оба порядка вершин
-    indices.push(endCenterIndex, a, b)
-    indices.push(endCenterIndex, b, a)
+  if (options?.capEnd !== false) {
+    // Конечный центр и нормаль наружу (вдоль +tangent)
+    const endCenterIndex = (positions.length / 3) | 0
+    const p1 = curve.getPoint(1)
+    const t1 = tangents[tangents.length - 1].clone().normalize()
+    positions.push(p1.x, p1.y, p1.z)
+    uvs.push(0.5, 0.5)
+    normals.push(t1.x, t1.y, t1.z)
+    const baseN = tubularSegments * (radialSegments + 1)
+    for (let j = 0; j < radialSegments; j++) {
+      const a = baseN + j
+      const b = baseN + (j + 1)
+      // Оба порядка вершин
+      indices.push(endCenterIndex, a, b)
+      indices.push(endCenterIndex, b, a)
+    }
   }
 
   // Пересчёт нормалей по истинной геометрии — сглаживает освещение и учитывает taper
@@ -282,8 +300,23 @@ function buildTaperedTubeMesh(
   const endPoint: [number, number, number] = [endVec.x, endVec.y, endVec.z]
   const endTanV = tangents[tangents.length - 1].clone().normalize()
   const endTangent: [number, number, number] = [endTanV.x, endTanV.y, endTanV.z]
+  // Сохраняем последнее кольцо позиций/UV для идеального сопряжения с продолжением
+  const endRingPositions: number[] = []
+  const endRingUVs: number[] = []
+  const baseLast = (ringCount - 1) * (radialSegments + 1)
+  for (let j = 0; j <= radialSegments; j++) {
+    endRingPositions.push(
+      positions[3 * (baseLast + j) + 0],
+      positions[3 * (baseLast + j) + 1],
+      positions[3 * (baseLast + j) + 2],
+    )
+    endRingUVs.push(
+      uvs[2 * (baseLast + j) + 0],
+      uvs[2 * (baseLast + j) + 1],
+    )
+  }
   const endRadius = Math.max(0.003, baseRadius * Math.max(0.05, (options?.taper || ((t:number)=>1-0.35*t))(1)))
-  return { positions, normals, indices, uvs, endPoint, endTangent, endRadius }
+  return { positions, normals, indices, uvs, endPoint, endTangent, endRadius, endRingPositions, endRingUVs }
 }
 
 /**
@@ -912,6 +945,8 @@ export function generateTree(params: TreeGeneratorParams & {
     parentAxis: [number, number, number]
     /** Радиус родительского цилиндра в точке присоединения */
     parentRadius: number
+    /** Точный радиус родителя на конце (для ветки‑продолжения) */
+    parentEndRadius?: number
     dirHintAzimuth?: number // предпочтительное направление по азимуту, радианы
     /** Сегмент‑родитель (для игнорирования коллизий у самой базы) */
     parentSeg?: PlacedSegment
@@ -930,7 +965,7 @@ export function generateTree(params: TreeGeneratorParams & {
     tipBias?: number
   }
 
-  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale, attachToParentTip, parentCurvePts, parentBaseRadius, parentCollarScale, parentTipTaper, avoidBaseFrac, tipBias }: BranchArgs) => {
+  const genBranches = ({ basePoint, level, parentAxis, parentRadius, parentEndRadius, dirHintAzimuth, parentSeg, countScale, attachToParentTip, parentCurvePts, parentBaseRadius, parentCollarScale, parentTipTaper, avoidBaseFrac, tipBias, parentEndRingPositions, parentEndRingUVs, parentRadialSegments }: BranchArgs) => {
     if (level > branchLevels) return
 
     const scale = countScale == null ? 1 : Math.max(0, countScale)
@@ -1317,6 +1352,7 @@ export function generateTree(params: TreeGeneratorParams & {
           level: level + 1,
           parentAxis: tube.endTangent,
           parentRadius: tube.endRadius,
+          parentEndRadius: tube.endRadius,
           parentSeg: currentSeg,
           // Кривая и параметры радиуса вдоль неё
           parentCurvePts: curvePts,
@@ -1352,24 +1388,57 @@ export function generateTree(params: TreeGeneratorParams & {
         const tTip = 1
         const anchor = endPoint
         const tangent = curve.getTangent(tTip).normalize()
-        const parentRadiusLoc = Math.max(0.005, parentBaseRadius * (1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tTip))
+        const parentRadiusLoc = Math.max(0.003, (parentEndRadius ?? (parentBaseRadius * Math.max(0.05, 1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tTip))))
         const aN: [number,number,number] = [tangent.x, tangent.y, tangent.z]
-        // Радиус дочерней и воротник у основания — с ограничением толщины родителя
-        const falloff = Math.max(0.4, Math.min(0.95, params.branchRadiusFalloff ?? 0.7))
-        const radBase = Math.max(0.01, branchRadius * Math.pow(falloff, level - 1))
-        const parentLimit = Math.max(0.005, parentRadiusLoc - Math.max(0.002, parentRadiusLoc * 0.02))
-        const rad = Math.max(0.005, Math.min(radBase, parentLimit))
-        const margin = Math.max(0.002, parentRadiusLoc * 0.02)
-        const r0 = Math.min(rad * 1.10, Math.max(0.005, parentRadiusLoc - margin))
-        const collarScaleLocal = Math.max(0.2, Math.min(1.8, r0 / Math.max(1e-3, rad)))
-        const axialEmbed = r0
-        const baseInside: [number,number,number] = [anchor.x - aN[0]*axialEmbed, anchor.y - aN[1]*axialEmbed, anchor.z - aN[2]*axialEmbed]
+        // Точное соответствие радиуса: делаем базовый радиус дочерней равным радиусу родителя на стыке
+        const rad = parentRadiusLoc
+        // Кап стартовый скрываем (не рисуем) и не утопляем осево — труба начинается прямо в плоскости стыка
+        const baseInside: [number,number,number] = [anchor.x, anchor.y, anchor.z]
         const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
         const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
         const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
         const curvePts = buildBranchCurvePoints(baseInside, aN, len, rng)
-        // Для «ветка→ветка» воротник отключаем: используем старую схему без видимого утолщения
-        const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0, collarScale: 1, taper: (t)=>1 - tipTaper*t })
+        // Вычислим конечную нормаль родителя (минимальное кручение) и длину родителя для непрерывного UV
+        const samples = 64
+        let nEnd: THREE.Vector3 | null = null
+        let totalLen = 0
+        let prevP = curve.getPoint(0)
+        // начальная нормаль — проект мировой up на плоскость, перпендикулярную касательной
+        const t0 = curve.getTangent(0).normalize()
+        let ref = (Math.abs(t0.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0))
+        ref = ref.sub(t0.clone().multiplyScalar(ref.dot(t0))).normalize()
+        let nPrev = ref.clone()
+        for (let s = 1; s <= samples; s++) {
+          const tt = s / samples
+          const p = curve.getPoint(tt)
+          totalLen += p.distanceTo(prevP)
+          const tPrev = curve.getTangent((s-1)/samples).normalize()
+          const tCur = curve.getTangent(tt).normalize()
+          const q = new THREE.Quaternion().setFromUnitVectors(tPrev, tCur)
+          nPrev = nPrev.clone().applyQuaternion(q).normalize()
+          // Ре-ортонормировка
+          const b = new THREE.Vector3().crossVectors(tCur, nPrev).normalize()
+          nPrev = new THREE.Vector3().crossVectors(b, tCur).normalize()
+          prevP = p
+          if (s === samples) nEnd = nPrev.clone()
+        }
+        const vStartCont = Math.max(1, totalLen * Math.max(1e-6, (params as any).barkTexDensityPerMeter ?? 1))
+        // Для «ветка→ветка»: без воротника и БЕЗ стартовой крышки для идеального сопряжения по радиусу
+        const tube = buildTaperedTubeMesh(curvePts, rad, {
+          tubularSegments: 20,
+          radialSegments: (parentRadialSegments || 10),
+          collarFrac: 0,
+          collarScale: 1,
+          capStart: false,
+          // Продолжаем UV по V от родителя и фиксируем начальную нормаль
+          vStart: vStartCont,
+          vScale: Math.max(1, len * Math.max(1e-6, (params as any).barkTexDensityPerMeter ?? 1)),
+          refNormal: nEnd ? [nEnd.x, nEnd.y, nEnd.z] : undefined,
+          // Жёсткая привязка первого кольца к последнему кольцу родителя
+          overrideStartRingPositions: parentEndRingPositions,
+          overrideStartRingUVs: parentEndRingUVs,
+          taper: (t)=>1 - tipTaper*t,
+        })
         appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
         const curvedEnd: [number,number,number] = tube.endPoint
         placed.push({ a: baseInside, b: curvedEnd, radius: rad })
@@ -1385,7 +1454,7 @@ export function generateTree(params: TreeGeneratorParams & {
             parentSeg: undefined,
             parentCurvePts: curvePts,
             parentBaseRadius: rad,
-            parentCollarScale: collarScaleLocal,
+            parentCollarScale: 1,
             parentTipTaper: tipTaper,
             avoidBaseFrac: Math.max(0, Math.min(0.5, params.branchChildAvoidBaseFrac ?? 0.1)),
             tipBias: Math.max(0, Math.min(1, params.branchChildTipBias ?? 0.5)),
