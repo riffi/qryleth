@@ -234,6 +234,35 @@ function buildTaperedTubeMesh(
 }
 
 /**
+ * Создаёт точки кривой ствола по высоте с лёгким боковым изгибом без «провиса» вниз.
+ * Сила изгиба масштабируется параметром shearStrength (0..1) и randomness.
+ */
+function buildTrunkCurvePoints(
+  height: number,
+  shearStrength: number | undefined,
+  rng: () => number,
+  randomness: number | undefined,
+): THREE.Vector3[] {
+  const s = Math.max(0, Math.min(1, shearStrength ?? 0))
+  const rnd = Math.max(0, Math.min(1, randomness ?? 0.3))
+  const up = new THREE.Vector3(0, 1, 0)
+  // Случайная ориентация бокового отклонения
+  const phi = rng() * Math.PI * 2
+  const side = new THREE.Vector3(Math.cos(phi), 0, Math.sin(phi))
+  const side2 = new THREE.Vector3(-Math.sin(phi), 0, Math.cos(phi))
+  // Амплитуда бокового изгиба: до ~10% высоты при s=1, усиливаем рандомом
+  const amp = height * (0.04 + 0.08 * s) * (0.7 + 0.6 * rnd)
+  const jitter = (k: number) => side.clone().multiplyScalar(amp * k * (0.6 + 0.8 * (rng() - 0.5)))
+    .add(side2.clone().multiplyScalar(amp * k * (rng() - 0.5) * 0.5))
+
+  const P0 = new THREE.Vector3(0, 0, 0)
+  const P1 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 0.33).add(jitter(0.4))
+  const P2 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 0.66).add(jitter(0.8))
+  const P3 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 1.00).add(jitter(0.5))
+  return [P0, P1, P2, P3]
+}
+
+/**
  * Возвращает случайное число в диапазоне [min, max), детерминированно для сидов.
  */
 function randRange(rng: () => number, min: number, max: number) {
@@ -710,123 +739,37 @@ export function generateTree(params: TreeGeneratorParams & {
   const tbHeightFactor = Math.max(0.3, Math.min(0.95, trunkBranchChildHeightFactor ?? 0.7))
 
   // Список всех точек крепления веток (по всем стволам)
-  const trunkAttachments: { point: [number,number,number]; axis: [number,number,number]; radius: number }[] = [...mainTrunk.attachments]
+  const trunkAttachments: { point: [number,number,number]; axis: [number,number,number]; radius: number }[] = []
 
-  // Сборка единого меша ствола из пути (centers/radii/tangents)
-  if (mainTrunk.path) {
-    const rings = mainTrunk.path.centers.length
-    const M = 18 // радиальных сегментов для круглого сечения
-    // Массивы геометрии единого ствола: позиции, нормали, UV и индексы.
-    // UV добавлены по цилиндрической развёртке: u — по окружности, v — вдоль высоты.
-    const positions: number[] = []
-    const normals: number[] = []
-    const uvs: number[] = []
-    const indices: number[] = []
-    const ringBaseIndex: number[] = []
+  // Сборка единого меша ствола: та же трубка по кривой, что и для ветвей
+  {
+    const curvePts = buildTrunkCurvePoints(trunkHeight, trunkShearStrength, rng, randomness)
+    const taper = Math.max(0, Math.min(0.95, trunkTaperFactor ?? 0.4))
+    const tube = buildTaperedTubeMesh(curvePts, trunkRadius, {
+      tubularSegments: Math.max(12, trunkSegments * 4),
+      radialSegments: 18,
+      taper: (t) => 1 - taper * t,
+      collarFrac: 0,
+      collarScale: 1,
+    })
+    appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
 
-    // Поддерживаем непрерывную ориентацию колец посредством «параллельного транспорта» базиса
-    // Это предотвращает резкие повороты/флипы между соседними кольцами и появление «перетянутых» полигонов
-    let prevT: THREE.Vector3 | null = null
-    let n1Prev: THREE.Vector3 | null = null
-    let n2Prev: THREE.Vector3 | null = null
-
-    for (let i = 0; i < rings; i++) {
-      const c = mainTrunk.path.centers[i]
-      const r = Math.max(0.005, mainTrunk.path.radii[i])
-      const tArr = normalize(mainTrunk.path.tangents[i])
-      const tVec = new THREE.Vector3(tArr[0], tArr[1], tArr[2]).normalize()
-
-      let n1v: THREE.Vector3
-      let n2v: THREE.Vector3
-      if (i === 0 || !prevT || !n1Prev || !n2Prev) {
-        // Инициализация базиса для первого кольца обычным способом (произвольный tmp)
-        const tmp: [number,number,number] = Math.abs(tArr[1]) < 0.99 ? [0,1,0] : [1,0,0]
-        n1v = new THREE.Vector3().crossVectors(tVec, new THREE.Vector3(...tmp)).normalize()
-        n2v = new THREE.Vector3().crossVectors(tVec, n1v).normalize()
-      } else {
-        // Параллельно переносим предыдущий базис вдоль изменения касательной
-        const q = new THREE.Quaternion().setFromUnitVectors(prevT.clone().normalize(), tVec)
-        n1v = n1Prev.clone().applyQuaternion(q)
-        n2v = n2Prev.clone().applyQuaternion(q)
-        // Ре-ортонормируем на случай накопления числ. ошибок
-        n1v.normalize()
-        // гарантируем ортонормированный триэдр: n2 = t x n1
-        n2v = new THREE.Vector3().crossVectors(tVec, n1v).normalize()
-        // и n1 = n2 x t (на случай микросмещений)
-        n1v = new THREE.Vector3().crossVectors(n2v, tVec).normalize()
-      }
-
-      // Обновляем состояние для следующего кольца
-      prevT = tVec
-      n1Prev = n1v
-      n2Prev = n2v
-
-      const n1: [number,number,number] = [n1v.x, n1v.y, n1v.z]
-      const n2: [number,number,number] = [n2v.x, n2v.y, n2v.z]
-
-      ringBaseIndex[i] = positions.length / 3
-      // v‑координата вдоль высоты для текущего кольца (0..1)
-      const v = rings > 1 ? (i / (rings - 1)) : 0
-      for (let k = 0; k < M; k++) {
-        const a = (k / M) * Math.PI * 2
-        const cx = n1[0] * Math.cos(a) + n2[0] * Math.sin(a)
-        const cy = n1[1] * Math.cos(a) + n2[1] * Math.sin(a)
-        const cz = n1[2] * Math.cos(a) + n2[2] * Math.sin(a)
-        const px = c[0] + r * cx
-        const py = c[1] + r * cy
-        const pz = c[2] + r * cz
-        positions.push(px, py, pz)
-        // Нормаль — чисто радиальная (перпендикуляр касательной)
-        normals.push(cx, cy, cz)
-        // u‑координата по окружности (0..1)
-        const u = k / M
-        uvs.push(u, v)
-      }
+    // Синхронизация точек крепления веток с новой кривой ствола:
+    // берём вершины сегментов (верх каждой из trunkSegments частей) и используем
+    // локальную касательную и радиус ствола на этой высоте
+    const curve = new THREE.CatmullRomCurve3(curvePts, false, 'catmullrom', 0.5)
+    const segs = Math.max(1, trunkSegments)
+    for (let i = 0; i < segs; i++) {
+      const t = (i + 1) / segs
+      const p = curve.getPoint(t)
+      const tan = curve.getTangent(t).normalize()
+      const r = Math.max(0.02, radiusAt01(trunkRadius, t))
+      trunkAttachments.push({
+        point: [p.x, p.y, p.z],
+        axis: [tan.x, tan.y, tan.z],
+        radius: r,
+      })
     }
-
-    // Боковые поверхности (квады → два треугольника)
-    for (let i = 0; i < rings - 1; i++) {
-      const baseA = ringBaseIndex[i]
-      const baseB = ringBaseIndex[i + 1]
-      for (let k = 0; k < M; k++) {
-        const kNext = (k + 1) % M
-        const a = baseA + k
-        const b = baseA + kNext
-        const c = baseB + kNext
-        const d = baseB + k
-        indices.push(a, b, c, a, c, d)
-      }
-    }
-
-    // Крышки: низ и верх (одним треугольным фаном)
-    const bottomCenterIndex = positions.length / 3
-    const c0 = mainTrunk.path.centers[0]
-    positions.push(c0[0], c0[1], c0[2])
-    const t0 = normalize(mainTrunk.path.tangents[0])
-    normals.push(-t0[0], -t0[1], -t0[2])
-    // Простейшие UV для центра нижней крышки
-    uvs.push(0.5, 0.5)
-    for (let k = 0; k < M; k++) {
-      const a = ringBaseIndex[0] + k
-      const b = ringBaseIndex[0] + ((k + 1) % M)
-      indices.push(bottomCenterIndex, b, a)
-    }
-
-    const topCenterIndex = positions.length / 3
-    const cN = mainTrunk.path.centers[rings - 1]
-    positions.push(cN[0], cN[1], cN[2])
-    const tN = normalize(mainTrunk.path.tangents[rings - 1])
-    normals.push(tN[0], tN[1], tN[2])
-    // Простейшие UV для центра верхней крышки
-    uvs.push(0.5, 0.5)
-    for (let k = 0; k < M; k++) {
-      const a = ringBaseIndex[rings - 1] + k
-      const b = ringBaseIndex[rings - 1] + ((k + 1) % M)
-      indices.push(topCenterIndex, a, b)
-    }
-
-    // Добавляем ствол в общий аккумулятор единого меша
-    appendToUnified({ positions, normals, indices, uvs })
   }
 
   type TrunkNode = { base: [number,number,number]; axis: [number,number,number]; height: number; radius: number; segments: number; endPoint: [number,number,number]; endAxis: [number,number,number] }
