@@ -34,4 +34,19 @@ export function initializeLeafTextures(): void {
     roughnessMapUrl: base24 + 'LeafSet024_1K-JPG_Roughness.jpg',
     atlasUrl: base24 + 'atlas.json',
   })
+
+  // Стилизованные хвойные листья (одна текстура с альфа‑каналом и атласом спрайтов)
+  // В наборе отсутствуют отдельные карты нормалей и шероховатости,
+  // прозрачность берётся из альфа‑канала основного изображения.
+  const stylizedPineBase = '/texture/leaf/stylized/pine-leaves/'
+  leafTextureRegistry.register({
+    id: 'stylized-pine-leaves',
+    name: 'Pine Leaves (Stylized)',
+    previewUrl: stylizedPineBase + 'PineTree_Leaves.png',
+    colorMapUrl: stylizedPineBase + 'PineTree_Leaves.png',
+    normalMapUrl: stylizedPineBase + 'PineTree_Leaves_NormalMap.png',
+    // В PNG присутствует альфа‑канал — используем его как карту прозрачности
+    opacityMapUrl: stylizedPineBase + 'PineTree_Leaves_Opacity.png',
+    atlasUrl: stylizedPineBase + 'atlas.json',
+  })
 }

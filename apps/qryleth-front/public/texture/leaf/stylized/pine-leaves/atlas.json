@@ -4,7 +4,9 @@
     "x": 45,
     "y": 40,
     "width": 694,
-    "height": 961
+    "height": 961,
+    "anchorX": 272,
+    "anchorY": 961
   },
   {
     "name": "sprite2",
