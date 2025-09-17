@@ -81,7 +81,7 @@ function buildBranchCurvePoints(
 function buildTaperedTubeMesh(
   points: THREE.Vector3[],
   baseRadius: number,
-  options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number }
+  options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number; collarBulgeExtra?: number }
 ): { positions: number[]; normals: number[]; indices: number[]; uvs: number[]; endPoint: [number, number, number]; endTangent: [number, number, number]; endRadius: number } {
   const tubularSegments = Math.max(8, Math.min(96, options?.tubularSegments ?? 24))
   const radialSegments = Math.max(6, Math.min(24, options?.radialSegments ?? 8))
@@ -89,6 +89,8 @@ function buildTaperedTubeMesh(
   const collarFrac = Math.max(0, Math.min(1, options?.collarFrac ?? 0))
   // Разрешаем collarScale < 1 для сужения основания, если родитель тоньше
   const collarScale = Math.max(0.2, options?.collarScale ?? 1)
+  // Дополнительная «высота» воротника (0..1): усиливает стартовый максимум, но профиль остаётся МОНОТОННО спадающим
+  const collarBulgeExtra = Math.max(0, Math.min(1, options?.collarBulgeExtra ?? 0))
 
   // Единая Catmull‑Rom кривая по всем точкам
   const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5)
@@ -111,11 +113,15 @@ function buildTaperedTubeMesh(
     const center = curve.getPoint(t)
     const normal = frames.normals[i]
     const binormal = frames.binormals[i]
-    // «Воротник» у основания: плавное уменьшение от collarScale к 1 на участке [0..collarFrac]
+    // «Воротник» у основания: МОНОТОННОЕ уменьшение от стартового максимума к 1 на участке [0..collarFrac]
     let collar = 1
     if (collarFrac > 0 && t < collarFrac) {
       const k = t / Math.max(1e-4, collarFrac)
-      collar = collarScale * (1 - k) + 1 * k
+      // Применяем воротник только при collarScale>1 (если <1 — сужение уже учтено базовым радиусом)
+      const startScale = collarScale > 1 ? collarScale * (1 + 0.5 * collarBulgeExtra) : 1
+      // Плавный спад (smoothstep) от startScale к 1
+      const s = k * k * (3 - 2 * k)
+      collar = startScale * (1 - s) + 1 * s
     }
     const radius = Math.max(0.003, baseRadius * Math.max(0.05, taper(t)) * collar)
     for (let j = 0; j <= radialSegments; j++) {
@@ -969,7 +975,7 @@ export function generateTree(params: TreeGeneratorParams & {
           const tangent = curve.getTangent(tAttach).normalize()
           basePointLoc = [anchor.x, anchor.y, anchor.z]
           parentAxisN = [tangent.x, tangent.y, tangent.z]
-          const collarFracLocal = 0.22
+          const collarFracLocal = Math.max(0, Math.min(0.6, params.branchCollarFrac ?? 0.22))
           const collarK = tAttach < collarFracLocal && parentCollarScale ? (parentCollarScale * (1 - tAttach / collarFracLocal) + 1 * (tAttach / collarFracLocal)) : 1
           parentRadiusLoc = Math.max(0.005, parentBaseRadius * (1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tAttach) * collarK)
           attachToTip = tAttach > 0.98
@@ -1095,7 +1101,31 @@ export function generateTree(params: TreeGeneratorParams & {
       // 2) Сборка трубки из 2–3 секций с убывающим радиусом
       // Параметры воротника для бесшовного стыка с родителем
       const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
-      const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale, taper: (t) => 1 - tipTaper * t })
+      // Параметры воротника применяем ТОЛЬКО для сочленения со стволом (когда parentCurvePts отсутствует)
+      const isTrunkParent = !parentCurvePts
+      const collarBulge = isTrunkParent ? Math.max(0, Math.min(1, params.branchCollarSize ?? 0.6)) : 0
+      const collarFrac = isTrunkParent ? Math.max(0, Math.min(0.6, params.branchCollarFrac ?? 0.22)) : 0
+      // Ограничиваем стартовое расширение воротника с учётом ТЕКУЩЕГО радиуса ствола на высоте:
+      // rad * startScale <= (parentRadius - margin). С учётом дополнительного усиления bulge.
+      let collarScaleUse = 1
+      if (isTrunkParent) {
+        const margin = Math.max(0.002, parentRadius * 0.02)
+        const maxStartScale = Math.max(0.2, (parentRadius - margin) / Math.max(1e-3, rad))
+        const bulgeFactor = (1 + 0.5 * collarBulge)
+        const allowedScale = maxStartScale / Math.max(1e-3, bulgeFactor)
+        collarScaleUse = Math.min(collarScale, allowedScale)
+        if (!isFinite(collarScaleUse) || collarScaleUse <= 0) collarScaleUse = 1
+      } else {
+        collarScaleUse = 1
+      }
+      const tube = buildTaperedTubeMesh(curvePts, rad, {
+        tubularSegments: 20,
+        radialSegments: 10,
+        collarFrac,
+        collarScale: collarScaleUse,
+        collarBulgeExtra: collarBulge,
+        taper: (t) => 1 - tipTaper * t,
+      })
 
       // Добавляем геометрию ветви в единый меш
       appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
@@ -1324,7 +1354,8 @@ export function generateTree(params: TreeGeneratorParams & {
         const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
         const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
         const curvePts = buildBranchCurvePoints(baseInside, aN, len, rng)
-        const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale: collarScaleLocal, taper: (t)=>1 - tipTaper*t })
+        // Для «ветка→ветка» воротник отключаем: используем старую схему без видимого утолщения
+        const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0, collarScale: 1, taper: (t)=>1 - tipTaper*t })
         appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
         const curvedEnd: [number,number,number] = tube.endPoint
         placed.push({ a: baseInside, b: curvedEnd, radius: rad })

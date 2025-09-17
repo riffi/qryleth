@@ -96,6 +96,15 @@ export interface TreeGeneratorParams {
    * прогиба и бокового отклонения контрольных точек кривой.
    */
   branchBendJitter?: number
+
+  /**
+   * Размер «воротника» у основания веток (0..1):
+   * увеличивает выраженность плавного утолщения на стыке с родителем,
+   * при этом сама круглая грань остаётся утопленной и не видна.
+   */
+  branchCollarSize?: number
+  /** Длина воротника (доля длины ветки от основания, 0..0.6). */
+  branchCollarFrac?: number
   /** Тип листвы: billboard, sphere, coniferCross или texture */
   leafShape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture'
   /**
@@ -193,6 +202,7 @@ export interface TreeGeneratorParams {
    * Помогает избежать конфликта с воротником у основания родительской ветки.
    */
   branchChildAvoidBaseFrac?: number
+
 }
 
 /**

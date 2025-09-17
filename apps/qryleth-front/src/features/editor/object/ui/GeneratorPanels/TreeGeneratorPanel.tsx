@@ -47,6 +47,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     branchTipTaper: 0.35,
     branchBendBase: 0.5,
     branchBendJitter: 0.4,
+    branchCollarSize: 0.6,
+    branchCollarFrac: 0.22,
     leafShape: 'billboard',
     leafPlacement: 'end',
     leafTiltDeg: 25,
@@ -140,7 +142,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor', 'trunkShearStrength',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
-        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
+        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
         'embedFactor',
@@ -485,6 +487,31 @@ export const TreeGeneratorPanel: React.FC = () => {
             />
           </Box>
         </Group>
+        <Box>
+          <Text size="sm" mb={4}>Размер воротника стыка</Text>
+          <Slider
+            value={params.branchCollarSize ?? 0.6}
+            onChange={(v) => setParams(p => ({ ...p, branchCollarSize: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
+        <Box>
+          <Text size="sm" mb={4}>Длина воротника (доля)</Text>
+          <Slider
+            value={params.branchCollarFrac ?? 0.22}
+            onChange={(v) => setParams(p => ({ ...p, branchCollarFrac: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={0.6}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.22, label: '0.22' }, { value: 0.5, label: '0.5' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
+        {/* Переключатель крепления по поверхности убран по запросу */}
         <Box>
           <Text size="sm" mb={4}>Стремление крепления к концу</Text>
           <Slider
