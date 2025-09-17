@@ -903,17 +903,31 @@ export function generateTree(params: TreeGeneratorParams & {
     countScale?: number
     /** Присоединение к КОНЦУ родителя: требует дополнительного осевого заглубления */
     attachToParentTip?: boolean
+    /** Если задано — родительская кривая (Catmull-Rom) и параметры для вычисления локального радиуса вдоль неё */
+    parentCurvePts?: THREE.Vector3[]
+    parentBaseRadius?: number
+    parentCollarScale?: number
+    parentTipTaper?: number
+    /** Доля, которую избегаем от базы родителя (0..0.8) */
+    avoidBaseFrac?: number
+    /** Биас к концу родителя (0..1) при выборе точки крепления */
+    tipBias?: number
   }
 
-  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale, attachToParentTip }: BranchArgs) => {
+  const genBranches = ({ basePoint, level, parentAxis, parentRadius, dirHintAzimuth, parentSeg, countScale, attachToParentTip, parentCurvePts, parentBaseRadius, parentCollarScale, parentTipTaper, avoidBaseFrac, tipBias }: BranchArgs) => {
     if (level > branchLevels) return
 
     const scale = countScale == null ? 1 : Math.max(0, countScale)
     const baseCount = branchesPerSegment * scale
-    const count = Math.max(0, Math.round(baseCount + (rng() - 0.5) * 2 * randomness))
+    const jitter = Math.max(0, Math.min(1, params.branchCountJitter ?? 0))
+    const expected = baseCount
+    const delta = Math.round(expected * jitter * ((rng() * 2) - 1))
+    const count = Math.max(0, Math.round(expected) + delta)
     // Чтобы ветки одного узла не «смотрели» все в одну сторону,
     // вводим штраф за схожесть азимута относительно оси родителя.
     const siblingOrthoDirs: THREE.Vector3[] = []
+    // Локальный список баз дочерних ветвей для пост‑анализа (необходим для добавления «продолжения»)
+    const childBases: [number,number,number][] = []
     for (let i = 0; i < count; i++) {
       // Подбор направления с учётом коллизий (см. цикл maxAttempts ниже)
       // Выбор лучшего направления из нескольких попыток (минимум пересечений)
@@ -933,7 +947,29 @@ export function generateTree(params: TreeGeneratorParams & {
       } = null
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const a = normalize(parentAxis)
+        // Локальные параметры крепления: по умолчанию — как пришло в аргументах
+        let basePointLoc = basePoint
+        let parentAxisN = normalize(parentAxis)
+        let parentRadiusLoc = parentRadius
+        let attachToTip = !!attachToParentTip
+        // Если есть кривая родителя — выбираем якорь случайно вдоль неё (с биасом к концу и избеганием базы)
+        if (parentCurvePts && parentCurvePts.length >= 2 && parentBaseRadius && parentTipTaper != null) {
+          const curve = new THREE.CatmullRomCurve3(parentCurvePts, false, 'catmullrom', 0.5)
+          const tipB = Math.max(0, Math.min(1, tipBias ?? (params.branchChildTipBias ?? 0.5)))
+          const minT = Math.max(0, Math.min(0.8, avoidBaseFrac ?? 0.1))
+          const powK = 1 + 4 * tipB
+          const u = rng()
+          const tAttach = minT + (1 - minT) * (1 - Math.pow(1 - u, powK))
+          const anchor = curve.getPoint(tAttach)
+          const tangent = curve.getTangent(tAttach).normalize()
+          basePointLoc = [anchor.x, anchor.y, anchor.z]
+          parentAxisN = [tangent.x, tangent.y, tangent.z]
+          const collarFracLocal = 0.22
+          const collarK = tAttach < collarFracLocal && parentCollarScale ? (parentCollarScale * (1 - tAttach / collarFracLocal) + 1 * (tAttach / collarFracLocal)) : 1
+          parentRadiusLoc = Math.max(0.005, parentBaseRadius * (1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tAttach) * collarK)
+          attachToTip = tAttach > 0.98
+        }
+        const a = normalize(parentAxisN)
         const tmp: [number, number, number] = Math.abs(a[1]) < 0.99 ? [0,1,0] : [1,0,0]
         const b1v = new THREE.Vector3().crossVectors(new THREE.Vector3(...a), new THREE.Vector3(...tmp)).normalize()
         const b2v = new THREE.Vector3().crossVectors(new THREE.Vector3(...a), b1v).normalize()
@@ -959,7 +995,6 @@ export function generateTree(params: TreeGeneratorParams & {
         ])
         const nDir = normalize(dir)
 
-        const parentAxisN = normalize(parentAxis)
         const dot = nDir[0]*parentAxisN[0] + nDir[1]*parentAxisN[1] + nDir[2]*parentAxisN[2]
         let perp: [number, number, number] = [
           nDir[0] - dot * parentAxisN[0],
@@ -979,11 +1014,11 @@ export function generateTree(params: TreeGeneratorParams & {
         const falloff = Math.max(0.4, Math.min(0.95, params.branchRadiusFalloff ?? 0.7))
         const radBase = Math.max(0.01, branchRadius * Math.pow(falloff, level - 1))
         // Радиус у основания дочерней ветви не должен превышать радиус родителя в точке сочленения
-        const parentLimit = Math.max(0.005, parentRadius - Math.max(0.002, parentRadius * 0.02))
+        const parentLimit = Math.max(0.005, parentRadiusLoc - Math.max(0.002, parentRadiusLoc * 0.02))
         const rad = Math.max(0.005, Math.min(radBase, parentLimit))
         // Толщина воротника у основания не должна превышать радиус родителя: r0 <= parentRadius - margin
-        const margin = Math.max(0.002, parentRadius * 0.02)
-        const r0 = Math.min(rad * 1.15, Math.max(0.005, parentRadius - margin))
+        const margin = Math.max(0.002, parentRadiusLoc * 0.02)
+        const r0 = Math.min(rad * 1.15, Math.max(0.005, parentRadiusLoc - margin))
         // Допускаем уменьшение основания (collarScale < 1), если родитель тоньше
         const collarScaleLocal = Math.max(0.2, Math.min(1.8, r0 / Math.max(1e-3, rad)))
         // Радиальное заглубление центра базы внутрь родителя так, чтобы круглая грань воротника была внутри
@@ -991,9 +1026,9 @@ export function generateTree(params: TreeGeneratorParams & {
         const depthRadial = attachToParentTip ? 0 : Math.max(0, parentRadius - (epsInside + r0))
         const axialEmbed = attachToParentTip ? r0 : 0
         const baseInside: [number, number, number] = [
-          basePoint[0] + perp[0] * depthRadial - parentAxisN[0] * axialEmbed,
-          basePoint[1] + perp[1] * depthRadial - parentAxisN[1] * axialEmbed,
-          basePoint[2] + perp[2] * depthRadial - parentAxisN[2] * axialEmbed,
+          basePointLoc[0] + perp[0] * depthRadial - parentAxisN[0] * axialEmbed,
+          basePointLoc[1] + perp[1] * depthRadial - parentAxisN[1] * axialEmbed,
+          basePointLoc[2] + perp[2] * depthRadial - parentAxisN[2] * axialEmbed,
         ]
         const endPoint: [number, number, number] = [
           baseInside[0] + nDir[0] * len,
@@ -1066,6 +1101,8 @@ export function generateTree(params: TreeGeneratorParams & {
       placed.push(currentSeg)
       // Добавляем выбранное ортонормальное направление для штрафа схожести следующих веток
       siblingOrthoDirs.push(new THREE.Vector3(perpOrtho[0], perpOrtho[1], perpOrtho[2]))
+      // Регистрируем базу дочерней ветви
+      childBases.push(baseInside)
 
       // Если достигли максимального уровня — создаём листья согласно схеме размещения
       if (level === branchLevels) {
@@ -1222,11 +1259,88 @@ export function generateTree(params: TreeGeneratorParams & {
         }
       } else {
         // Иначе — ответвления следующего уровня из конца текущей ветви (видимой части)
-        const nextBase: [number, number, number] = curvedEnd
-        // Радиус родителя для следующего уровня — фактический радиус на конце трубки
-        const parentRadiusNext = Math.max(0.005, tube.endRadius)
-        // Для следующих уровней случай распределяем равномерно вокруг новой оси родителя
-        genBranches({ basePoint: nextBase, level: level + 1, parentAxis: tube.endTangent, parentRadius: parentRadiusNext, parentSeg: currentSeg, attachToParentTip: true })
+        // Выбираем точку крепления дочерней ветки на ТЕКУЩЕЙ кривой с биасом к концу
+        // Передаём в генератор следующего уровня полную информацию о кривой родителя,
+        // чтобы для КАЖДОЙ дочерней ветви выбирать свою точку крепления вдоль кривой
+        const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
+        genBranches({
+          basePoint: curvedEnd,
+          level: level + 1,
+          parentAxis: tube.endTangent,
+          parentRadius: tube.endRadius,
+          parentSeg: currentSeg,
+          // Кривая и параметры радиуса вдоль неё
+          parentCurvePts: curvePts,
+          parentBaseRadius: rad,
+          parentCollarScale: collarScale,
+          parentTipTaper: tipTaper,
+          avoidBaseFrac: Math.max(0, Math.min(0.5, (params.branchChildAvoidBaseFrac as any) ?? 0.1)),
+          tipBias: Math.max(0, Math.min(1, params.branchChildTipBias ?? 0.5))
+        } as any)
+      }
+    }
+    // Пост‑обработка: если это дочерние для ветки (есть кривая родителя), убеждаемся, что у самого
+    // кончика родителя есть как минимум две дочерние. Если меньше — добавляем «продолжение».
+    if (parentCurvePts && parentCurvePts.length >= 2 && parentBaseRadius && parentTipTaper != null) {
+      const curve = new THREE.CatmullRomCurve3(parentCurvePts, false, 'catmullrom', 0.5)
+      const endPoint = curve.getPoint(1)
+      // Оценим, сколько баз оказалось у кончика (t ≳ 0.98)
+      let tipCount = 0
+      const samples = 32
+      for (const b of childBases) {
+        // Грубая аппроксимация t через выбор ближайшей из 32 точек
+        let bestT = 0, bestD = Infinity
+        for (let s = 0; s <= samples; s++) {
+          const t = s / samples
+          const p = curve.getPoint(t)
+          const d = Math.hypot(b[0]-p.x, b[1]-p.y, b[2]-p.z)
+          if (d < bestD) { bestD = d; bestT = t }
+        }
+        if (bestT > 0.98) tipCount++
+      }
+      if (tipCount < 2) {
+        // Добавляем одну дополнительную ветку‑продолжение
+        const tTip = 1
+        const anchor = endPoint
+        const tangent = curve.getTangent(tTip).normalize()
+        const parentRadiusLoc = Math.max(0.005, parentBaseRadius * (1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tTip))
+        const aN: [number,number,number] = [tangent.x, tangent.y, tangent.z]
+        // Радиус дочерней и воротник у основания — с ограничением толщины родителя
+        const falloff = Math.max(0.4, Math.min(0.95, params.branchRadiusFalloff ?? 0.7))
+        const radBase = Math.max(0.01, branchRadius * Math.pow(falloff, level - 1))
+        const parentLimit = Math.max(0.005, parentRadiusLoc - Math.max(0.002, parentRadiusLoc * 0.02))
+        const rad = Math.max(0.005, Math.min(radBase, parentLimit))
+        const margin = Math.max(0.002, parentRadiusLoc * 0.02)
+        const r0 = Math.min(rad * 1.10, Math.max(0.005, parentRadiusLoc - margin))
+        const collarScaleLocal = Math.max(0.2, Math.min(1.8, r0 / Math.max(1e-3, rad)))
+        const axialEmbed = r0
+        const baseInside: [number,number,number] = [anchor.x - aN[0]*axialEmbed, anchor.y - aN[1]*axialEmbed, anchor.z - aN[2]*axialEmbed]
+        const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
+        const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
+        const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
+        const curvePts = buildBranchCurvePoints(baseInside, aN, len, rng)
+        const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale: collarScaleLocal, taper: (t)=>1 - tipTaper*t })
+        appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
+        const curvedEnd: [number,number,number] = tube.endPoint
+        placed.push({ a: baseInside, b: curvedEnd, radius: rad })
+        // Рекурсия на следующий уровень
+        if (level < branchLevels) {
+          const nextBase: [number, number, number] = curvedEnd
+          const parentRadiusNext = Math.max(0.005, tube.endRadius)
+          genBranches({
+            basePoint: nextBase,
+            level: level + 1,
+            parentAxis: tube.endTangent,
+            parentRadius: parentRadiusNext,
+            parentSeg: undefined,
+            parentCurvePts: curvePts,
+            parentBaseRadius: rad,
+            parentCollarScale: collarScaleLocal,
+            parentTipTaper: tipTaper,
+            avoidBaseFrac: Math.max(0, Math.min(0.5, params.branchChildAvoidBaseFrac ?? 0.1)),
+            tipBias: Math.max(0, Math.min(1, params.branchChildTipBias ?? 0.5)),
+          })
+        }
       }
     }
   }

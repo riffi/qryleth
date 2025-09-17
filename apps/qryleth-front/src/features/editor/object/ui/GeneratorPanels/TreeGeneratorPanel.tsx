@@ -30,7 +30,10 @@ export const TreeGeneratorPanel: React.FC = () => {
     trunkBranchChildHeightFactor: 0.7,
     branchLevels: 2,
     branchesPerSegment: 2,
+    branchCountJitter: 0.3,
     branchTopBias: 0,
+    branchChildTipBias: 0.5,
+    branchChildAvoidBaseFrac: 0.1,
     branchLength: 1.4,
     branchLengthJitter: 0.3,
     branchRadius: 0.08,
@@ -134,8 +137,8 @@ export const TreeGeneratorPanel: React.FC = () => {
         'seed',
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor', 'trunkShearStrength',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
-        'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
-        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
+        'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
+        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
         'embedFactor',
@@ -405,6 +408,18 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Длина ветви" value={params.branchLength} onChange={(v) => setParams(p => ({ ...p, branchLength: Math.max(0.2, Number(v) || 0) }))} min={0.2} step={0.1} disabled={params.branchLevels <= 0}/>
         </Group>
         <Box>
+          <Text size="sm" mb={4}>Разброс количества дочерних</Text>
+          <Slider
+            value={params.branchCountJitter ?? 0}
+            onChange={(v) => setParams(p => ({ ...p, branchCountJitter: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
+        <Box>
           <Text size="sm" mb={4}>Разброс длины ветви</Text>
           <Slider
             value={params.branchLengthJitter ?? params.randomness}
@@ -442,6 +457,30 @@ export const TreeGeneratorPanel: React.FC = () => {
             />
           </Box>
         </Group>
+        <Box>
+          <Text size="sm" mb={4}>Стремление крепления к концу</Text>
+          <Slider
+            value={params.branchChildTipBias ?? 0.5}
+            onChange={(v) => setParams(p => ({ ...p, branchChildTipBias: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={1}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
+        <Box>
+          <Text size="sm" mb={4}>Избегать базу родителя (%)</Text>
+          <Slider
+            value={params.branchChildAvoidBaseFrac ?? 0.1}
+            onChange={(v) => setParams(p => ({ ...p, branchChildAvoidBaseFrac: Array.isArray(v) ? v[0] : v }))}
+            min={0}
+            max={0.5}
+            step={0.01}
+            marks={[{ value: 0, label: '0' }, { value: 0.25, label: '25%' }, { value: 0.5, label: '50%' }]}
+            disabled={params.branchLevels <= 0}
+          />
+        </Box>
         <Box>
           <Text size="sm" mb={4}>Привязка ветвей к верху</Text>
           <Slider
