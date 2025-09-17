@@ -118,7 +118,7 @@ export const LightingControlPanel: React.FC = () => {
                 value={lighting.ambient?.intensity || 0.6}
                 onChange={(value) => handleAmbientChange('intensity', value)}
                 min={0}
-                max={2}
+                max={8}
                 step={0.1}
                 style={{ width: 70 }}
               />
@@ -140,7 +140,7 @@ export const LightingControlPanel: React.FC = () => {
                 value={lighting.directional?.intensity || 1}
                 onChange={(value) => handleDirectionalChange('intensity', value)}
                 min={0}
-                max={2}
+                max={8}
                 step={0.1}
                 style={{ width: 70 }}
               />
@@ -168,7 +168,7 @@ export const LightingControlPanel: React.FC = () => {
                 onChange={(event) => handleAmbientOcclusionChange('enabled', event.currentTarget.checked)}
               />
             </Group>
-            
+
             {lighting.ambientOcclusion?.enabled && (
               <Stack gap="xs">
                 <Box>

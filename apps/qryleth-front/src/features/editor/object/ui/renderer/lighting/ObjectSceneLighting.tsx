@@ -32,6 +32,8 @@ export const ObjectSceneLighting: React.FC = () => {
         shadow-mapSize-width={shadowMapSize[0]}
         shadow-mapSize-height={shadowMapSize[1]}
         shadow-camera-far={shadowCameraFar}
+        shadow-bias={-0.001}
+        shadow-normalBias={0.04}
       />
     </>
   )
