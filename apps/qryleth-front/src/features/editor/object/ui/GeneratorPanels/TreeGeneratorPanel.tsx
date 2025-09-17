@@ -34,12 +34,14 @@ export const TreeGeneratorPanel: React.FC = () => {
     branchLength: 1.4,
     branchLengthJitter: 0.3,
     branchRadius: 0.08,
+    branchRadiusFalloff: 0.7,
     branchAngleDeg: 35,
     branchAngleDegFirst: 35,
     branchAngleDegNext: 28,
     randomness: 0.3,
     leavesPerBranch: 3,
     leafSize: 0.16,
+    branchTipTaper: 0.35,
     leafShape: 'billboard',
     leafPlacement: 'end',
     leafTiltDeg: 25,
@@ -133,7 +135,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'trunkHeight', 'trunkRadius', 'trunkSegments', 'trunkTaperFactor', 'trunkShearStrength',
         'trunkBranchLevels', 'trunkBranchesPerLevel', 'trunkBranchAngleDeg', 'trunkBranchChildHeightFactor',
         'branchLevels', 'branchesPerSegment', 'branchTopBias', 'branchUpBias',
-        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
+        'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
         'embedFactor',
@@ -414,6 +416,32 @@ export const TreeGeneratorPanel: React.FC = () => {
             disabled={params.branchLevels <= 0}
           />
         </Box>
+        <Group grow>
+          <Box>
+            <Text size="sm" mb={4}>Радиус следующего уровня</Text>
+            <Slider
+              value={params.branchRadiusFalloff ?? 0.7}
+              onChange={(v) => setParams(p => ({ ...p, branchRadiusFalloff: Array.isArray(v) ? v[0] : v }))}
+              min={0.4}
+              max={0.95}
+              step={0.01}
+              marks={[{ value: 0.5, label: '0.5' }, { value: 0.7, label: '0.7' }, { value: 0.9, label: '0.9' }]}
+              disabled={params.branchLevels <= 0}
+            />
+          </Box>
+          <Box>
+            <Text size="sm" mb={4}>Сужение к кончику</Text>
+            <Slider
+              value={params.branchTipTaper ?? 0.35}
+              onChange={(v) => setParams(p => ({ ...p, branchTipTaper: Array.isArray(v) ? v[0] : v }))}
+              min={0}
+              max={0.9}
+              step={0.01}
+              marks={[{ value: 0, label: '0' }, { value: 0.35, label: '0.35' }, { value: 0.7, label: '0.7' }]}
+              disabled={params.branchLevels <= 0}
+            />
+          </Box>
+        </Group>
         <Box>
           <Text size="sm" mb={4}>Привязка ветвей к верху</Text>
           <Slider

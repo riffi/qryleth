@@ -82,7 +82,8 @@ function buildTaperedTubeMesh(
   const radialSegments = Math.max(6, Math.min(24, options?.radialSegments ?? 8))
   const taper = options?.taper || ((t: number) => 1 - 0.35 * t) // линейное сужение к концу
   const collarFrac = Math.max(0, Math.min(1, options?.collarFrac ?? 0))
-  const collarScale = Math.max(1, options?.collarScale ?? 1)
+  // Разрешаем collarScale < 1 для сужения основания, если родитель тоньше
+  const collarScale = Math.max(0.2, options?.collarScale ?? 1)
 
   // Единая Catmull‑Rom кривая по всем точкам
   const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5)
@@ -458,10 +459,12 @@ export function generateTree(params: TreeGeneratorParams & {
     branchTopBias,
     branchLength,
     branchRadius,
+    branchRadiusFalloff,
     branchAngleDeg,
     randomness,
     leavesPerBranch,
     leafSize,
+    branchTipTaper,
     barkMaterialUuid,
     leafMaterialUuid,
   } = params
@@ -973,11 +976,16 @@ export function generateTree(params: TreeGeneratorParams & {
         }
         const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
         const len = branchLength * Math.pow(0.75, level - 1) * (1 - 0.3 * j + 0.6 * j * rng())
-        const rad = Math.max(0.01, branchRadius * Math.pow(0.7, level - 1))
+        const falloff = Math.max(0.4, Math.min(0.95, params.branchRadiusFalloff ?? 0.7))
+        const radBase = Math.max(0.01, branchRadius * Math.pow(falloff, level - 1))
+        // Радиус у основания дочерней ветви не должен превышать радиус родителя в точке сочленения
+        const parentLimit = Math.max(0.005, parentRadius - Math.max(0.002, parentRadius * 0.02))
+        const rad = Math.max(0.005, Math.min(radBase, parentLimit))
         // Толщина воротника у основания не должна превышать радиус родителя: r0 <= parentRadius - margin
         const margin = Math.max(0.002, parentRadius * 0.02)
         const r0 = Math.min(rad * 1.15, Math.max(0.005, parentRadius - margin))
-        const collarScaleLocal = Math.max(1.02, Math.min(1.8, r0 / Math.max(1e-3, rad)))
+        // Допускаем уменьшение основания (collarScale < 1), если родитель тоньше
+        const collarScaleLocal = Math.max(0.2, Math.min(1.8, r0 / Math.max(1e-3, rad)))
         // Радиальное заглубление центра базы внутрь родителя так, чтобы круглая грань воротника была внутри
         const epsInside = Math.max(0.001, parentRadius * 0.02)
         const depthRadial = attachToParentTip ? 0 : Math.max(0, parentRadius - (epsInside + r0))
@@ -1046,7 +1054,8 @@ export function generateTree(params: TreeGeneratorParams & {
       const curvePts = buildBranchCurvePoints(baseInside, nDir, len, rng)
       // 2) Сборка трубки из 2–3 секций с убывающим радиусом
       // Параметры воротника для бесшовного стыка с родителем
-      const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale })
+      const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
+      const tube = buildTaperedTubeMesh(curvePts, rad, { tubularSegments: 20, radialSegments: 10, collarFrac: 0.22, collarScale, taper: (t) => 1 - tipTaper * t })
 
       // Добавляем геометрию ветви в единый меш
       appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })

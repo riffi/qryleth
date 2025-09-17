@@ -53,6 +53,12 @@ export interface TreeGeneratorParams {
   branchLengthJitter?: number
   /** Радиус ветви на первом уровне (тоньше на следующих уровнях) */
   branchRadius: number
+  /**
+   * Коэффициент уменьшения радиуса веток на каждом следующем уровне (0..1).
+   * Пример: 0.7 означает, что радиус веток уровня N+1 равен 0.7 × радиуса уровня N.
+   * По умолчанию 0.7.
+   */
+  branchRadiusFalloff?: number
   /** Угол наклона ветви от вертикали, в градусах */
   branchAngleDeg: number
   /**
@@ -69,6 +75,11 @@ export interface TreeGeneratorParams {
   leavesPerBranch: number
   /** Размер (радиус) листа, если рендерим лист как сферу */
   leafSize: number
+  /**
+   * Сужение ветки к кончику (0..1). 0 — без сужения; 1 — стремится к нулю у кончика.
+   * Используется в функции taper трубки ветки. По умолчанию 0.35.
+   */
+  branchTipTaper?: number
   /** Тип листвы: billboard, sphere, coniferCross или texture */
   leafShape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture'
   /**
