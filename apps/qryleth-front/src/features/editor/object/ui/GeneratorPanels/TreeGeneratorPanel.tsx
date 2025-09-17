@@ -58,7 +58,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     leafTextureSetId: 'leafset019-1k-jpg',
     barkTextureSetId: 'bark014-1k-jpg',
     barkUvRepeatU: 1,
-    barkUvRepeatV: 1
+    barkUvRepeatV: 1,
+    barkTexDensityPerMeter: 1,
   })
 
   // Параметры материалов
@@ -145,7 +146,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafTextureSpriteName', 'leafTextureSetId',
-        'embedFactor',
+        'embedFactor', 'barkTexDensityPerMeter',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
         'seed',
@@ -336,6 +337,19 @@ export const TreeGeneratorPanel: React.FC = () => {
           <NumberInput label="Высота" value={params.trunkHeight} onChange={(v) => setParams(p => ({ ...p, trunkHeight: Math.max(0.5, Number(v) || 0) }))} min={0.5} step={0.1}/>
           <NumberInput label="Радиус" value={params.trunkRadius} onChange={(v) => setParams(p => ({ ...p, trunkRadius: Math.max(0.02, Number(v) || 0) }))} min={0.02} step={0.02}/>
           <NumberInput label="Сегменты" value={params.trunkSegments} onChange={(v) => setParams(p => ({ ...p, trunkSegments: Math.max(1, Math.round(Number(v) || 1)) }))} min={1} step={1}/>
+        </Group>
+        <Group grow>
+          <Box>
+            <Text size="sm" mb={4}>Плотность коры (повторов/м)</Text>
+            <Slider
+              value={params.barkTexDensityPerMeter ?? 1}
+              onChange={(v) => setParams(p => ({ ...p, barkTexDensityPerMeter: Array.isArray(v) ? v[0] : v }))}
+              min={0.1}
+              max={5}
+              step={0.05}
+              marks={[{ value: 0.5, label: '0.5' }, { value: 1, label: '1' }, { value: 2, label: '2' }]}
+            />
+          </Box>
         </Group>
         <Box>
           <Text size="sm" mb={4}>Сужение ствола к верху</Text>
