@@ -1205,7 +1205,12 @@ export function generateTree(params: TreeGeneratorParams & {
             const axisPoint: [number, number, number] = [p.x, p.y, p.z]
             // Радиальное направление и смещение РОВНО на поверхность ветки с учётом локального радиуса (сужения)
             // Вместо глобальной оси ветви берём локальную касательную на кривой, чтобы ориентация соответствовала геометрии
-            const tVec = curve.getTangent(Math.min(1, Math.max(0, tj))).normalize()
+            let tVec = curve.getTangent(Math.min(1, Math.max(0, tj))).normalize()
+            // Принудительное направление касательной к ТОЧКЕ РОСТА (к концу ветки):
+            // если касательная смотрит в сторону начала (обратна вектору на конец), инвертируем знак.
+            const endP = curve.getPoint(1)
+            const toEnd = new THREE.Vector3(endP.x - p.x, endP.y - p.y, endP.z - p.z)
+            if (tVec.dot(toEnd) < 0) tVec = tVec.multiplyScalar(-1)
             const axisN = [tVec.x, tVec.y, tVec.z] as [number, number, number]
             const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
             const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
@@ -1238,18 +1243,28 @@ export function generateTree(params: TreeGeneratorParams & {
             // Радиус текущего листа (детерминированный для разброса) — используем и для сдвига центра
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
             if (isTexture) {
-              // Базис плоскости листа: локальная ось +Y — радиально наружу от ветки (от anchor наружу)
-              const y = radial.clone().normalize()
-              const axisVec = new THREE.Vector3(...axisN)
-              const tangent = new THREE.Vector3().crossVectors(axisVec, y).normalize()
-              // Наклон листа к оси ветви на заданный угол (без случайного знака)
-              const theta = degToRad((params.leafTiltDeg ?? 25))
-              // Наклон «наружу»: меняем направление вращения вокруг касательной, чтобы лист не давил внутрь ветки
-              const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(-Math.sin(theta))).normalize()
-              const x = new THREE.Vector3().crossVectors(y, z).normalize()
-              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z), 'XYZ')
+              // Требование: 0° — плоскость листа параллельна ДЛИННОЙ оси ветки и «смотрит» наружу,
+              // 90° — лист перпендикулярен оси ветки.
+              // Обозначения:
+              //   r — радиальная нормаль цилиндра (наружу),
+              //   t — касательная (ось ветки), направленная к концу ветви,
+              //   phi — угол 0..90°.
+              const r = radial.clone().normalize()
+              const t = new THREE.Vector3(...axisN).normalize()
+              const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
+              // Нормаль плоскости листа: из r к t по дуге на угол phi
+              let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
+              // Внутриплоскостные оси. Строим x из приоритетного вектора cross(t, z),
+              // при вырождении (phi≈90°, z≈t) — fallback cross(r, z).
+              let x = new THREE.Vector3().crossVectors(t, z)
+              if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
+              x.normalize()
+              const yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
+              // Гарантируем «вовне»: z·r = cos(phi) >= 0, но защитим от численных артефактов
+              if (z.dot(r) < 0) z.multiplyScalar(-1)
+              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
               leafEuler = [e.x, e.y, e.z]
-              // Не смещаем позицию: привязку anchor делает рендерер
+              // Позиция не смещается: привязка anchor выполняется в рендере
             } else {
               const roll = (rng() - 0.5) * Math.PI
               leafEuler = eulerFromDir(nDir)
@@ -1285,7 +1300,7 @@ export function generateTree(params: TreeGeneratorParams & {
           // На конце ветви — размещаем на поверхности торца/трубки, а не в воздухе
           const leaves = Math.max(0, Math.round(leavesPerBranch))
           for (let j = 0; j < leaves; j++) {
-            const axisN = normalize(tube.endTangent as any)
+            let axisN = normalize(tube.endTangent as any)
             const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
             const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
             const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
@@ -1295,6 +1310,14 @@ export function generateTree(params: TreeGeneratorParams & {
               o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
               o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
             )
+            // Инвертируем ось, если она направлена в начало ветви: сравниваем с направлением из предпоследней точки к концу
+            const lastIdx = Math.max(1, curvePts.length - 1)
+            const prevEnd = curvePts[lastIdx - 1]
+            const toEnd2 = new THREE.Vector3(curvedEnd[0] - prevEnd.x, curvedEnd[1] - prevEnd.y, curvedEnd[2] - prevEnd.z)
+            const axisVecCheck = new THREE.Vector3(...axisN)
+            if (axisVecCheck.dot(toEnd2) < 0) {
+              axisN = [-axisN[0], -axisN[1], -axisN[2]]
+            }
             // Используем ИМЕННО конечный радиус трубки, а не базовый: лист прилипает к фактической геометрии торца
             const endRadius = Math.max(0.003, tube.endRadius)
             const eps = Math.max(0.003, endRadius * 0.08)
@@ -1308,14 +1331,17 @@ export function generateTree(params: TreeGeneratorParams & {
               let leafEuler: [number, number, number]
               const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
               if (isTexture) {
-                const y = radial.clone().normalize()
-                const axisVec = new THREE.Vector3(...axisN)
-                const tangent = new THREE.Vector3().crossVectors(axisVec, y).normalize()
-                const theta = degToRad((params.leafTiltDeg ?? 25))
-                // Наклон «наружу»: меняем знак синуса
-                const z = axisVec.clone().multiplyScalar(Math.cos(theta)).add(tangent.clone().multiplyScalar(-Math.sin(theta))).normalize()
-                const x = new THREE.Vector3().crossVectors(y, z).normalize()
-                const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z), 'XYZ')
+                // Та же модель на торце ветви
+                const r = radial.clone().normalize()
+                const t = new THREE.Vector3(...axisN).normalize()
+                const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
+                let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
+                let x = new THREE.Vector3().crossVectors(t, z)
+                if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
+                x.normalize()
+                const yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
+                if (z.dot(r) < 0) z.multiplyScalar(-1)
+                const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
                 leafEuler = [e.x, e.y, e.z]
               } else {
                 const roll = (rng() - 0.5) * Math.PI
