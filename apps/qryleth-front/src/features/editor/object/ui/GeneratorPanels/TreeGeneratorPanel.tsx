@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Group, NumberInput, Stack, Switch, Text, ColorInput, Divider, SegmentedControl, Slider, Modal, Textarea, Select, Tabs, ActionIcon, Tooltip } from '@mantine/core'
-import { IconTrees, IconGitBranch, IconLeaf, IconDice5 } from '@tabler/icons-react'
+import { IconTrees, IconGitBranch, IconLeaf, IconDice5, IconArrowUp, IconArrowDown, IconMinus } from '@tabler/icons-react'
 import classes from './TreeGeneratorPanel.module.css'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultTreeMaterials, generateTree } from '../../lib/generators/tree/generateTree'
@@ -617,45 +617,53 @@ export const TreeGeneratorPanel: React.FC = () => {
           disabled={params.branchLevels <= 0}
         />
         {params.leafShape === 'texture' && (
-          <Group grow>
-            <NumberInput
-              label="Наклон листа к ветви (°)"
-              value={params.leafTiltDeg ?? 25}
-              onChange={(v) => setParams(p => ({ ...p, leafTiltDeg: Math.max(0, Math.min(90, Number(v) || 0)) }))}
-              min={0}
-              max={90}
-              step={1}
-              disabled={params.branchLevels <= 0}
-            />
-            <Select
-              label="Глобальный фактор поворота"
-              data={[
-                { value: 'none', label: 'Не учитывать' },
-                { value: 'up', label: 'Стремление вверх' },
-                { value: 'down', label: 'Стремление вниз' },
-              ]}
-              value={(params.leafGlobalTiltMode || 'none') as any}
-              onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltMode: (v as any) || 'none' }))}
-              disabled={params.branchLevels <= 0}
-            />
-            <Box>
-              <Text size="sm" mb={4}>Уровень стремления</Text>
-              <Slider
-                value={params.leafGlobalTiltLevel ?? 0}
-                onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltLevel: Array.isArray(v) ? v[0] : v }))}
+          <Stack gap="xs">
+            <Group grow align="end">
+              <NumberInput
+                label="Наклон листа к ветви (°)"
+                value={params.leafTiltDeg ?? 25}
+                onChange={(v) => setParams(p => ({ ...p, leafTiltDeg: Math.max(0, Math.min(90, Number(v) || 0)) }))}
                 min={0}
-                max={1}
-                step={0.01}
-                marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
-                disabled={params.branchLevels <= 0 || (params.leafGlobalTiltMode || 'none') === 'none'}
+                max={90}
+                step={1}
+                disabled={params.branchLevels <= 0}
               />
-            </Box>
-            <Switch
-              label="Обводка листа (debug)"
-              checked={leafRectDebug}
-              onChange={(e) => setLeafRectDebug(e.currentTarget.checked)}
-            />
-            <Stack gap="xs" style={{ flex: 1 }}>
+              <Switch
+                label="Обводка листа (debug)"
+                checked={leafRectDebug}
+                onChange={(e) => setLeafRectDebug(e.currentTarget.checked)}
+              />
+            </Group>
+
+            <Group grow align="center">
+              <Stack gap={4} style={{ flex: 1 }}>
+                <Text size="sm">Стремление листвы</Text>
+                <SegmentedControl
+                  value={(params.leafGlobalTiltMode || 'none') as any}
+                  onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltMode: (v as any) || 'none' }))}
+                  data={[
+                    { label: (<IconMinus size={16} />) as any, value: 'none' },
+                    { label: (<IconArrowUp size={16} />) as any, value: 'up' },
+                    { label: (<IconArrowDown size={16} />) as any, value: 'down' },
+                  ]}
+                  disabled={params.branchLevels <= 0}
+                />
+              </Stack>
+              <Stack gap={4} style={{ flex: 1 }}>
+                <Text size="sm">Уровень стремления</Text>
+                <Slider
+                  value={params.leafGlobalTiltLevel ?? 0}
+                  onChange={(v) => setParams(p => ({ ...p, leafGlobalTiltLevel: Array.isArray(v) ? v[0] : v }))}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+                  disabled={params.branchLevels <= 0 || (params.leafGlobalTiltMode || 'none') === 'none'}
+                />
+              </Stack>
+            </Group>
+
+            <Stack gap="xs">
               <Group gap="xs" justify="space-between">
                 <Text size="sm">Спрайты</Text>
                 <Switch
@@ -688,7 +696,7 @@ export const TreeGeneratorPanel: React.FC = () => {
                 <Text size="xs" c="dimmed">Будут использованы все спрайты из атласа, равномерно в случайном порядке.</Text>
               )}
             </Stack>
-          </Group>
+          </Stack>
         )}
         <Group grow>
           <SegmentedControl
