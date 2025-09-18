@@ -6,6 +6,8 @@ import { normalize as v3normalize } from '@/shared/lib/math/vector3'
 import { mulberry32 } from '@/shared/lib/utils/prng'
 import { buildBranchCurvePoints as buildBranchCurvePointsImpl, buildTrunkCurvePoints as buildTrunkCurvePointsImpl, eulerFromDir as eulerFromDirImpl } from './internal/curves'
 import { buildTaperedTubeMesh as buildTaperedTubeMeshImpl } from './internal/tube'
+import { computeLeafEuler } from './internal/leaves'
+import { trunkRadiusAt01, linearTaper } from './internal/geometry'
 import { segmentDistance as segmentDistanceImpl, trunkPathPenalty as trunkPathPenaltyImpl, outwardPenalty as outwardPenaltyImpl, nearestOnCenterline as nearestOnCenterlineImpl } from './internal/collisions'
 import type { TreeGeneratorParams, TreeGeneratorResult } from './types'
 import * as THREE from 'three'
@@ -77,7 +79,6 @@ function randomTiltRad(baseDeg: number, spread: number, rng: () => number) {
   return degToRad(baseDeg + jitter)
 }
 
-// (удалено) cylinderCenterAt — не используется в текущей реализации
 
 /**
  * Вычисляет эйлеровы углы (в радианах) для поворота вектора оси Y (0,1,0)
@@ -85,7 +86,6 @@ function randomTiltRad(baseDeg: number, spread: number, rng: () => number) {
  */
 function eulerFromDir(dir: [number, number, number]): [number, number, number] { return eulerFromDirImpl(dir) }
 
-// (удалено) computeRollToAlignNormal — не используется
 
 /**
  * Нормализует 3D‑вектор. Если длина близка к нулю — возвращает ось Y.
@@ -100,7 +100,6 @@ function normalize(v: [number, number, number]): [number, number, number] {
  * параметры u,v (0..1) ближайших точек на каждом из них.
  * Используется для оценки пересечений/слишком близких ветвей.
  */
-// (удалено) segmentDistance — используем версию из internal/collisions
 
 /**
  * Быстрая оценка штрафа за «вход в ствол»: дискретно сэмплируем путь ветки
@@ -108,16 +107,13 @@ function normalize(v: [number, number, number]): [number, number, number] {
  * Если точка попадает внутрь ствола — добавляем большой штраф.
  */
 // Находит ближайшую точку на полилинии (centers) и возвращает индекс сегмента и параметр t (0..1)
-// (удалено) nearestOnCenterline — используем версию из internal/collisions
 
 // Оценка штрафа входа ветви внутрь ствола по реальной осевой полилинии ствола
-// (удалено) trunkPathPenalty — используем версию из internal/collisions
 
 /**
  * Эвристика «направления наружу»: штрафует направления, идущие не радиально
  * от оси ствола (в XZ‑плоскости). Чем меньше проекция на радиальный вектор, тем больше штраф.
  */
-// (удалено) outwardPenalty — используем версию из internal/collisions
 
 /** Запись о размещённой ветви/сегменте для проверки коллизий. */
 type PlacedSegment = { a: [number,number,number]; b: [number,number,number]; radius: number }
@@ -203,7 +199,7 @@ export function generateTree(params: TreeGeneratorParams & {
   /**
    * Функция радиуса ствола на расстоянии s [0..1] вдоль его высоты с учётом taper.
    */
-  const radiusAt01 = (rBase: number, s01: number) => Math.max(0.02, rBase * (1 - Math.max(0, Math.min(1, taper)) * s01))
+  const radiusAt01 = (rBase: number, s01: number) => trunkRadiusAt01(rBase, s01, taper)
 
   /**
    * Генерирует цепочку сегментов ствола вдоль произвольного направления axis.
@@ -419,7 +415,7 @@ export function generateTree(params: TreeGeneratorParams & {
     const tube = buildTaperedTubeMesh(curvePts, trunkRadius, {
       tubularSegments: Math.max(12, trunkSegments * 4),
       radialSegments: trunkRadialSegments,
-      taper: (t) => 1 - taper * t,
+      taper: linearTaper(taper),
       collarFrac: 0,
       collarScale: 1,
       // Единая плотность по UV: repeats = длина(м) * texD
@@ -777,7 +773,7 @@ export function generateTree(params: TreeGeneratorParams & {
         collarFrac,
         collarScale: collarScaleUse,
         collarBulgeExtra: collarBulge,
-        taper: (t) => 1 - tipTaper * t,
+        taper: linearTaper(tipTaper),
         // Согласование UV по V с местом крепления на стволе
         vStart: isTrunkParent && mainTrunk.path ? (() => { const q = nearestOnCenterlineImpl(mainTrunk.path.centers, baseInside); const total = Math.max(1, mainTrunk.path.centers.length - 1); return Math.max(0, Math.min(1, (q.seg + q.t) / total)) })() : 0,
         // Единая плотность по V: repeats = len * texD, но минимум 1 повтор
@@ -855,58 +851,8 @@ export function generateTree(params: TreeGeneratorParams & {
             let leafEuler: [number, number, number]
             // Радиус текущего листа (детерминированный для разброса) — используем и для сдвига центра
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
-            if (isTexture) {
-              // Требование: 0° — плоскость листа параллельна ДЛИННОЙ оси ветки и «смотрит» наружу,
-              // 90° — лист перпендикулярен оси ветки.
-              // Обозначения:
-              //   r — радиальная нормаль цилиндра (наружу),
-              //   t — касательная (ось ветки), направленная к концу ветви,
-              //   phi — угол 0..90°.
-              const r = radial.clone().normalize()
-              const t = new THREE.Vector3(...axisN).normalize()
-              // Базовый угол наклона (0..90)
-              const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
-              // Нормаль плоскости листа: из r к t по дуге на угол phi
-              let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
-              // Внутриплоскостные оси. Строим x из приоритетного вектора cross(t, z),
-              // при вырождении (phi≈90°, z≈t) — fallback cross(r, z).
-              let x = new THREE.Vector3().crossVectors(t, z)
-              if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
-              x.normalize()
-              let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-              // Глобальный фактор «стремления» вверх/вниз: вращаем В ПЛОСКОСТИ вокруг z так,
-              // чтобы yAxis тянулся к проекции мировой оси ±Y на плоскость листа.
-              {
-                const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
-                const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
-                if (mode !== 'none' && level > 0) {
-                  // Цель: 'up' → +Y, 'down' → -Y (тянем «длину» листа к мировой оси Y/−Y)
-                  const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
-                  const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
-                  if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
-                    const yProjN = yProj.clone().normalize()
-                    const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
-                    const ang = Math.acos(dotY)
-                    if (ang > 1e-5) {
-                      const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
-                      const rotAng = ang * level * s
-                      const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
-                      x = x.applyQuaternion(q).normalize()
-                      yAxis = yAxis.applyQuaternion(q).normalize()
-                    }
-                  }
-                }
-              }
-              // Гарантию «вовне» применяем только при отсутствии глобального фактора
-              if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
-              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
-              leafEuler = [e.x, e.y, e.z]
-              // Позиция не смещается: привязка anchor выполняется в рендере
-            } else {
-              const roll = (rng() - 0.5) * Math.PI
-              leafEuler = eulerFromDir(nDir)
-              leafEuler[2] += roll
-            }
+            // Единообразно считаем ориентацию листа
+            leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
 
             // Выбор спрайта: один указанный или случайный из списка
             let texName: string | undefined = undefined
@@ -965,43 +911,7 @@ export function generateTree(params: TreeGeneratorParams & {
             const isTexture = (params.leafShape || 'billboard') === 'texture'
             let leafEuler: [number, number, number]
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
-            if (isTexture) {
-              const r = radial.clone().normalize()
-              const t = new THREE.Vector3(...axisN).normalize()
-              const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
-              let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
-              let x = new THREE.Vector3().crossVectors(t, z)
-              if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
-              x.normalize()
-              let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-              {
-                const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
-                const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
-                if (mode !== 'none' && level > 0) {
-                  const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
-                  const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
-                  if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
-                    const yProjN = yProj.clone().normalize()
-                    const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
-                    const ang = Math.acos(dotY)
-                    if (ang > 1e-5) {
-                      const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
-                      const rotAng = ang * level * s
-                      const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
-                      x = x.applyQuaternion(q).normalize()
-                      yAxis = yAxis.applyQuaternion(q).normalize()
-                    }
-                  }
-                }
-              }
-              if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
-              const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
-              leafEuler = [e.x, e.y, e.z]
-            } else {
-              const roll = (rng() - 0.5) * Math.PI
-              leafEuler = eulerFromDir(nDir)
-              leafEuler[2] += roll
-            }
+            leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
             let texName2: string | undefined = undefined
             if ((params.leafShape || 'billboard') === 'texture') {
               if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
@@ -1060,47 +970,7 @@ export function generateTree(params: TreeGeneratorParams & {
               const isTexture = (params.leafShape || 'billboard') === 'texture'
               let leafEuler: [number, number, number]
               const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
-              if (isTexture) {
-                // Та же модель на торце ветви
-                const r = radial.clone().normalize()
-                const t = new THREE.Vector3(...axisN).normalize()
-                const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
-                let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
-                // Базис в плоскости
-                let x = new THREE.Vector3().crossVectors(t, z)
-                if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
-                x.normalize()
-                let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-                // Глобальный фактор: вращаем в плоскости вокруг z к проекции ±Y
-                {
-                  const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
-                  const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
-                  if (mode !== 'none' && level > 0) {
-                    // Цель: 'up' → +Y, 'down' → -Y
-                    const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
-                    const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
-                    if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
-                      const yProjN = yProj.clone().normalize()
-                      const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
-                      const ang = Math.acos(dotY)
-                      if (ang > 1e-5) {
-                        const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
-                        const rotAng = ang * level * s
-                        const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
-                        x = x.applyQuaternion(q).normalize()
-                        yAxis = yAxis.applyQuaternion(q).normalize()
-                      }
-                    }
-                  }
-                }
-                if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
-                const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
-                leafEuler = [e.x, e.y, e.z]
-              } else {
-                const roll = (rng() - 0.5) * Math.PI
-                leafEuler = eulerFromDir(nDir)
-                leafEuler[2] += roll
-              }
+              leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
               let texName2: string | undefined = undefined
               if ((params.leafShape || 'billboard') === 'texture') {
                 if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
@@ -1223,7 +1093,7 @@ export function generateTree(params: TreeGeneratorParams & {
           // Жёсткая привязка первого кольца к последнему кольцу родителя
           overrideStartRingPositions: parentEndRingPositions,
           overrideStartRingUVs: parentEndRingUVs,
-          taper: (t)=>1 - tipTaper*t,
+          taper: linearTaper(tipTaper),
         })
         appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
         const curvedEnd: [number,number,number] = tube.endPoint
@@ -1300,7 +1170,7 @@ export function generateTree(params: TreeGeneratorParams & {
       vScale: Math.max(1, len * texD),
       overrideStartRingPositions: trunkEndRingPositions,
       overrideStartRingUVs: trunkEndRingUVs,
-      taper: (t) => 1 - tipTaper * t,
+      taper: linearTaper(tipTaper),
     })
     appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
     const curvedEnd: [number, number, number] = tube.endPoint
@@ -1353,41 +1223,7 @@ export function generateTree(params: TreeGeneratorParams & {
           const isTexture = (params.leafShape || 'billboard') === 'texture'
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
-          if (isTexture) {
-            const r = radial.clone().normalize()
-            const t = new THREE.Vector3(...axisN).normalize()
-            const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
-            let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
-            let x = new THREE.Vector3().crossVectors(t, z)
-            if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
-            x.normalize()
-            let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-            const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
-            const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
-            if (mode !== 'none' && level > 0) {
-              const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
-              const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
-              if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
-                const yProjN = yProj.clone().normalize()
-                const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
-                const ang = Math.acos(dotY)
-                if (ang > 1e-5) {
-                  const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
-                  const rotAng = ang * level * s
-                  const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
-                  x = x.applyQuaternion(q).normalize()
-                  yAxis = yAxis.applyQuaternion(q).normalize()
-                }
-              }
-            }
-            if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
-            const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
-            leafEuler = [e.x, e.y, e.z]
-          } else {
-            const roll = (rng() - 0.5) * Math.PI
-            leafEuler = eulerFromDir(tVec as any)
-            leafEuler[2] += roll
-          }
+          leafEuler = computeLeafEuler(axisN, radial, params as any, rng, [tVec.x, tVec.y, tVec.z])
           let texName: string | undefined
           if ((params.leafShape || 'billboard') === 'texture') {
             if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
@@ -1432,41 +1268,7 @@ export function generateTree(params: TreeGeneratorParams & {
           const isTexture = (params.leafShape || 'billboard') === 'texture'
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
-          if (isTexture) {
-            const r = radial.clone().normalize()
-            const t = new THREE.Vector3(...axisN).normalize()
-            const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
-            let z = r.clone().multiplyScalar(Math.cos(phi)).add(t.clone().multiplyScalar(Math.sin(phi))).normalize()
-            let x = new THREE.Vector3().crossVectors(t, z)
-            if (x.lengthSq() < 1e-10) x = new THREE.Vector3().crossVectors(r, z)
-            x.normalize()
-            let yAxis = new THREE.Vector3().crossVectors(z, x).normalize()
-            const mode = (params.leafGlobalTiltMode || 'none') as 'up' | 'down' | 'none'
-            const level = Math.max(0, Math.min(1, params.leafGlobalTiltLevel ?? 0))
-            if (mode !== 'none' && level > 0) {
-              const target = mode === 'up' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0)
-              const yProj = target.clone().sub(z.clone().multiplyScalar(target.dot(z)))
-              if (yProj.lengthSq() > 1e-12 && yAxis.lengthSq() > 1e-12) {
-                const yProjN = yProj.clone().normalize()
-                const dotY = Math.max(-1, Math.min(1, yAxis.dot(yProjN)))
-                const ang = Math.acos(dotY)
-                if (ang > 1e-5) {
-                  const s = Math.sign(new THREE.Vector3().crossVectors(yAxis, yProjN).dot(z)) || 1
-                  const rotAng = ang * level * s
-                  const q = new THREE.Quaternion().setFromAxisAngle(z, rotAng)
-                  x = x.applyQuaternion(q).normalize()
-                  yAxis = yAxis.applyQuaternion(q).normalize()
-                }
-              }
-            }
-            if ((params.leafGlobalTiltLevel ?? 0) <= 0 && z.dot(r) < 0) z.multiplyScalar(-1)
-            const e = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, yAxis, z), 'XYZ')
-            leafEuler = [e.x, e.y, e.z]
-          } else {
-            const roll = (rng() - 0.5) * Math.PI
-            leafEuler = eulerFromDir(tube.endTangent as any)
-            leafEuler[2] += roll
-          }
+          leafEuler = computeLeafEuler(axisN, radial, params as any, rng, tube.endTangent as any)
           let texName2: string | undefined
           if ((params.leafShape || 'billboard') === 'texture') {
             if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
