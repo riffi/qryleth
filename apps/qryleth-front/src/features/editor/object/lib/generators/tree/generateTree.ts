@@ -193,6 +193,33 @@ export function generateTree(params: TreeGeneratorParams & {
   // Число радиальных сегментов у ствола (нужно для совпадения топологии кольца)
   const trunkRadialSegments = 18
 
+  /**
+   * Регистр всех вершин (апексов) стволовых цепочек.
+   *
+   * Зачем:
+   * - Нужно, чтобы не порождать «штатные» ветви прямо из верхушки любого ствола
+   *   (включая дочерние при разветвлении ствола). Тем самым гарантируем, что
+   *   «ветка кроны» (ветвь на самой верхушке дерева) всегда будет ровно одна —
+   *   это отдельная ветвь-продолжение, создаваемая ниже для ГЛАВНОГО ствола.
+   * - Также используем радиус апекса для устойчивого радиального порога.
+   */
+  const trunkApexes: { point: [number, number, number]; radius: number }[] = []
+
+  /**
+   * Проверяет, находится ли произвольная точка p вблизи любой вершины ствола.
+   * Возвращает true, если расстояние меньше адаптивного порога (зависящего от радиуса апекса).
+   *
+   * Примечание: используем 0.6 от радиуса апекса, чтобы совпасть с логикой ранее
+   * применяемой для верхушки основного ствола.
+   */
+  function isNearAnyTrunkApex(p: [number, number, number]): boolean {
+    for (const ap of trunkApexes) {
+      const d = Math.hypot(p[0] - ap.point[0], p[1] - ap.point[1], p[2] - ap.point[2])
+      if (d <= Math.max(0.02, ap.radius * 0.6)) return true
+    }
+    return false
+  }
+
   // 1) Ствол(ы): один вертикальный + опциональные разветвления, с плавными стыками
   const segH = trunkHeight / Math.max(1, trunkSegments)
   const taper = trunkTaperFactor ?? 0.4
@@ -434,6 +461,11 @@ export function generateTree(params: TreeGeneratorParams & {
     trunkEndRingPositions = tube.endRingPositions
     trunkEndRingUVs = tube.endRingUVs
 
+    // Регистрируем апекс главного ствола как запретную зону для «штатных» ветвей
+    if (trunkEndPoint && trunkEndRadius) {
+      trunkApexes.push({ point: trunkEndPoint, radius: trunkEndRadius })
+    }
+
     // Синхронизация точек крепления веток с новой кривой ствола:
     // берём вершины сегментов (верх каждой из trunkSegments частей) и используем
     // локальную касательную и радиус ствола на этой высоте
@@ -517,6 +549,10 @@ export function generateTree(params: TreeGeneratorParams & {
         trunkAttachments.push(...child.attachments)
         const childEndAxis: [number,number,number] = child.path ? normalize(child.path.tangents[child.path.tangents.length - 1]) : childAxis
         nextLevel.push({ base: startPoint, axis: childAxis, height: childHeight, radius: childRadius, segments: childSegs, endPoint: child.endPoint, endAxis: childEndAxis })
+
+        // Регистрируем апекс дочернего ствола, чтобы не позволять «штатные» ветви из его верхушки
+        const childApexRadius = radiusAt01(childRadius, 1)
+        trunkApexes.push({ point: child.endPoint, radius: Math.max(0.02, childApexRadius) })
       }
     }
     currentLevel = nextLevel
@@ -564,14 +600,11 @@ export function generateTree(params: TreeGeneratorParams & {
     if (maxCountOverride != null) {
       count = Math.min(count, Math.max(0, Math.floor(maxCountOverride)))
     } else {
-      // Автокап для верхушки основного ствола: максимум одна «штатная» ветвь
-      if (level === 1 && trunkEndPoint && trunkEndRadius && (!parentCurvePts || parentCurvePts.length === 0)) {
-        const dApex = Math.hypot(
-          basePoint[0] - trunkEndPoint[0],
-          basePoint[1] - trunkEndPoint[1],
-          basePoint[2] - trunkEndPoint[2],
-        )
-        if (dApex <= Math.max(0.02, trunkEndRadius * 0.6)) count = 0
+      // Запрет «штатных» ветвей из верхушки ЛЮБОГО ствола (главного или дочернего)
+      // Раньше ограничение действовало только на основной ствол; теперь используем
+      // реестр всех апексов (trunkApexes), чтобы ветка кроны была всегда только одна.
+      if (level === 1 && (!parentCurvePts || parentCurvePts.length === 0)) {
+        if (isNearAnyTrunkApex(basePoint)) count = 0
       }
     }
     // Чтобы ветки одного узла не «смотрели» все в одну сторону,
@@ -1093,14 +1126,9 @@ export function generateTree(params: TreeGeneratorParams & {
       const h01 = (att.point[1] - minY) / span
       // Вес: при 0 — равномерно (1), при 1 — квадратичная концентрация к верху (0..1 -> 0..1^2)
       const topWeight = (1 - bias) * 1 + bias * (h01 * h01)
-      // На верхушке ствола оставляем максимум одну «штатную» ветвь
-      const isApex = !!(trunkEndPoint && trunkEndRadius && Math.hypot(
-        att.point[0] - trunkEndPoint[0],
-        att.point[1] - trunkEndPoint[1],
-        att.point[2] - trunkEndPoint[2],
-      ) <= Math.max(0.02, trunkEndRadius * 0.6))
-      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight, attachToParentTip: false, maxCountOverride: isApex ? 0 : undefined })
-      // На верхушке ствола жёстко ограничиваем максимум обычных ответвлений до 1
+      // На верхушке ЛЮБОГО ствола не создаём «штатные» ветви вообще.
+      const isNearApex = isNearAnyTrunkApex(att.point)
+      genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight, attachToParentTip: false, maxCountOverride: isNearApex ? 0 : undefined })
     }
   }
 
@@ -1214,23 +1242,8 @@ export function generateTree(params: TreeGeneratorParams & {
         }
       }
 
-      if (branchLevels > 1) {
-        const parentRadiusNext = Math.max(0.005, tube.endRadius)
-        genBranches({
-          basePoint: curvedEnd,
-          level: 1,
-          parentAxis: tube.endTangent,
-          parentRadius: parentRadiusNext,
-          parentSeg: undefined,
-          parentCurvePts: curvePts,
-          parentBaseRadius: rad,
-          parentCollarScale: 1,
-          parentTipTaper: tipTaper,
-          avoidBaseFrac: Math.max(0, Math.min(0.5, params.branchChildAvoidBaseFrac ?? 0.1)),
-          tipBias: Math.max(0, Math.min(1, params.branchChildTipBias ?? 0.5)),
-          parentRadialSegments: trunkRadialSegments,
-        } as any)
-      }
+      // Ветка кроны никогда не разветвляется: не запускаем рекурсию ниже,
+      // даже если branchLevels > 1. Это гарантирует единственность верхней ветки.
     }
   }
 // 3) Сводный меш коры (ствол + ветви)
