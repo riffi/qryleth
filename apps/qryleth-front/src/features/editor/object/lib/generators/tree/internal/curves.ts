@@ -102,6 +102,22 @@ export function eulerFromDir(dir: [number, number, number]): [number, number, nu
 }
 
 /**
+ * Возвращает случайное радиальное направление вокруг оси axisN (в плоскости, перпендикулярной оси).
+ * Удобно для распределения листьев/шипов по окружности цилиндра.
+ */
+export function randomRadialDirection(axisN: [number, number, number], rng: () => number): THREE.Vector3 {
+  const axis = new THREE.Vector3(axisN[0], axisN[1], axisN[2]).normalize()
+  const { o1, o2 } = orthonormalBasis(axis)
+  const ang = rng() * Math.PI * 2
+  return new THREE.Vector3(
+    o1.x * Math.cos(ang) + o2.x * Math.sin(ang),
+    o1.y * Math.cos(ang) + o2.y * Math.sin(ang),
+    o1.z * Math.cos(ang) + o2.z * Math.sin(ang),
+  ).normalize()
+}
+
+
+/**
  * Вычисляет требуемый угол «кручения» (roll) вокруг оси axisN, чтобы нормаль плоскости листа
  * совпала с заданным радиальным направлением radial. Используется для листьев-текстур.
  */
@@ -120,4 +136,3 @@ export function computeRollToAlignNormal(axisN: [number, number, number], radial
   angle *= sign
   return angle
 }
-

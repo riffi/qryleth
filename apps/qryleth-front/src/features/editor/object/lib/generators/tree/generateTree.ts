@@ -4,9 +4,9 @@ import { generateUUID } from '@/shared/lib/uuid'
 import { degToRad } from '@/shared/lib/math/number'
 import { normalize as v3normalize } from '@/shared/lib/math/vector3'
 import { mulberry32 } from '@/shared/lib/utils/prng'
-import { buildBranchCurvePoints as buildBranchCurvePointsImpl, buildTrunkCurvePoints as buildTrunkCurvePointsImpl, eulerFromDir as eulerFromDirImpl } from './internal/curves'
+import { buildBranchCurvePoints as buildBranchCurvePointsImpl, buildTrunkCurvePoints as buildTrunkCurvePointsImpl, eulerFromDir as eulerFromDirImpl, randomRadialDirection } from './internal/curves'
 import { buildTaperedTubeMesh as buildTaperedTubeMeshImpl } from './internal/tube'
-import { computeLeafEuler } from './internal/leaves'
+import { computeLeafEuler, selectLeafSprite } from './internal/leaves'
 import { trunkRadiusAt01, linearTaper } from './internal/geometry'
 import { segmentDistance as segmentDistanceImpl, trunkPathPenalty as trunkPathPenaltyImpl, outwardPenalty as outwardPenaltyImpl, nearestOnCenterline as nearestOnCenterlineImpl } from './internal/collisions'
 import type { TreeGeneratorParams, TreeGeneratorResult } from './types'
@@ -821,15 +821,7 @@ export function generateTree(params: TreeGeneratorParams & {
             const toEnd = new THREE.Vector3(endP.x - p.x, endP.y - p.y, endP.z - p.z)
             if (tVec.dot(toEnd) < 0) tVec = tVec.multiplyScalar(-1)
             const axisN = [tVec.x, tVec.y, tVec.z] as [number, number, number]
-            const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
-            const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
-            const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
-            const aJ = rng() * Math.PI * 2
-            const radial = new THREE.Vector3(
-              o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
-              o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
-              o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
-            )
+            const radial = randomRadialDirection(axisN, rng)
             // Локальный радиус ветви с учётом taper: r(t) = rad * (1 - tipTaper * t)
             const localRadius = Math.max(0.003, rad * (1 - tipTaper * tj01))
             const eps = Math.max(0.003, localRadius * 0.08)
@@ -855,16 +847,7 @@ export function generateTree(params: TreeGeneratorParams & {
             leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
 
             // Выбор спрайта: один указанный или случайный из списка
-            let texName: string | undefined = undefined
-            if ((params.leafShape || 'billboard') === 'texture') {
-              if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
-                const names = params.leafSpriteNames
-                const idx = Math.floor(rng() * names.length) % names.length
-                texName = names[idx]
-              } else {
-                texName = params.leafTextureSpriteName || undefined
-              }
-            }
+            const texName: string | undefined = selectLeafSprite(params as any, rng)
             primitives.push({
               uuid: generateUUID(),
               type: 'leaf',
@@ -883,15 +866,7 @@ export function generateTree(params: TreeGeneratorParams & {
           // Гарантируем хотя бы один листик на самом кончике ветви
           if (!tipLeafPlaced) {
             let axisN = normalize(tube.endTangent as any)
-            const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
-            const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
-            const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
-            const aJ = rng() * Math.PI * 2
-            const radial = new THREE.Vector3(
-              o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
-              o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
-              o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ),
-            )
+            const radial = randomRadialDirection(axisN, rng)
             // Инвертируем ось, если она направлена в начало ветви
             const lastIdx = Math.max(1, curvePts.length - 1)
             const prevEnd = curvePts[lastIdx - 1]
@@ -912,16 +887,7 @@ export function generateTree(params: TreeGeneratorParams & {
             let leafEuler: [number, number, number]
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
             leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
-            let texName2: string | undefined = undefined
-            if ((params.leafShape || 'billboard') === 'texture') {
-              if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
-                const names = params.leafSpriteNames
-                const idx = Math.floor(rng() * names.length) % names.length
-                texName2 = names[idx]
-              } else {
-                texName2 = params.leafTextureSpriteName || undefined
-              }
-            }
+            const texName2: string | undefined = selectLeafSprite(params as any, rng)
             primitives.push({
               uuid: generateUUID(),
               type: 'leaf',
@@ -971,16 +937,7 @@ export function generateTree(params: TreeGeneratorParams & {
               let leafEuler: [number, number, number]
               const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
               leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
-              let texName2: string | undefined = undefined
-              if ((params.leafShape || 'billboard') === 'texture') {
-                if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
-                  const names = params.leafSpriteNames
-                  const idx = Math.floor(rng() * names.length) % names.length
-                  texName2 = names[idx]
-                } else {
-                  texName2 = params.leafTextureSpriteName || undefined
-                }
-              }
+              const texName2: string | undefined = selectLeafSprite(params as any, rng)
               primitives.push({
                 uuid: generateUUID(),
                 type: 'leaf',
@@ -1197,15 +1154,7 @@ export function generateTree(params: TreeGeneratorParams & {
           const toEnd = new THREE.Vector3(endP.x - p.x, endP.y - p.y, endP.z - p.z)
           if (tVec.dot(toEnd) < 0) tVec = tVec.multiplyScalar(-1)
           const axisN = [tVec.x, tVec.y, tVec.z] as [number, number, number]
-          const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
-          const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
-          const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
-          const aJ = rng() * Math.PI * 2
-          const radial = new THREE.Vector3(
-            o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
-            o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
-            o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ)
-          )
+          const radial = randomRadialDirection(axisN, rng)
           const localRadius = Math.max(0.003, rad * (1 - tipTaper * tj01))
           const eps = Math.max(0.003, localRadius * 0.08)
           const radialDist = localRadius + eps
@@ -1224,16 +1173,7 @@ export function generateTree(params: TreeGeneratorParams & {
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
           leafEuler = computeLeafEuler(axisN, radial, params as any, rng, [tVec.x, tVec.y, tVec.z])
-          let texName: string | undefined
-          if ((params.leafShape || 'billboard') === 'texture') {
-            if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
-              const names = params.leafSpriteNames
-              const idx = Math.floor(rng() * names.length) % names.length
-              texName = names[idx]
-            } else {
-              texName = params.leafTextureSpriteName || undefined
-            }
-          }
+          const texName: string | undefined = selectLeafSprite(params as any, rng)
           primitives.push({
             uuid: generateUUID(),
             type: 'leaf',
@@ -1248,15 +1188,7 @@ export function generateTree(params: TreeGeneratorParams & {
         const leaves = Math.max(0, Math.round(leavesPerBranch))
         for (let jj = 0; jj < leaves; jj++) {
           let axisN = normalize(tube.endTangent as any)
-          const tmp: [number, number, number] = Math.abs(axisN[1]) < 0.99 ? [0,1,0] : [1,0,0]
-          const o1 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), new THREE.Vector3(...tmp)).normalize()
-          const o2 = new THREE.Vector3().crossVectors(new THREE.Vector3(...axisN), o1).normalize()
-          const aJ = rng() * Math.PI * 2
-          const radial = new THREE.Vector3(
-            o1.x * Math.cos(aJ) + o2.x * Math.sin(aJ),
-            o1.y * Math.cos(aJ) + o2.y * Math.sin(aJ),
-            o1.z * Math.cos(aJ) + o2.z * Math.sin(aJ)
-          )
+          const radial = randomRadialDirection(axisN, rng)
           const endRadius = Math.max(0.003, tube.endRadius)
           const eps = Math.max(0.003, endRadius * 0.08)
           const radialDist = endRadius + eps
@@ -1269,16 +1201,7 @@ export function generateTree(params: TreeGeneratorParams & {
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
           leafEuler = computeLeafEuler(axisN, radial, params as any, rng, tube.endTangent as any)
-          let texName2: string | undefined
-          if ((params.leafShape || 'billboard') === 'texture') {
-            if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
-              const names = params.leafSpriteNames
-              const idx = Math.floor(rng() * names.length) % names.length
-              texName2 = names[idx]
-            } else {
-              texName2 = params.leafTextureSpriteName || undefined
-            }
-          }
+          const texName2: string | undefined = selectLeafSprite(params as any, rng)
           primitives.push({
             uuid: generateUUID(),
             type: 'leaf',

@@ -65,3 +65,18 @@ export function computeLeafEuler(
   return [e.x, e.y, e.z]
 }
 
+/**
+ * Выбор имени спрайта листвы в текстурном режиме.
+ * Если включён режим useAllLeafSprites и задан список имён — берёт детерминированно случайный из списка.
+ * Иначе — возвращает одиночное имя из params.leafTextureSpriteName (или undefined).
+ */
+export function selectLeafSprite(params: TreeGeneratorParams, rng: () => number): string | undefined {
+  if ((params.leafShape || 'billboard') !== 'texture') return undefined
+  if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
+    const names = params.leafSpriteNames
+    const idx = Math.floor(rng() * names.length) % names.length
+    return names[idx]
+  }
+  return params.leafTextureSpriteName || undefined
+}
+
