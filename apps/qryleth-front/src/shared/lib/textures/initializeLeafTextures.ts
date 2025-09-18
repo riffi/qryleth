@@ -49,4 +49,17 @@ export function initializeLeafTextures(): void {
     opacityMapUrl: stylizedPineBase + 'PineTree_Leaves_Opacity.png',
     atlasUrl: stylizedPineBase + 'atlas.json',
   })
+
+  // Стилизованные листья березы
+  // Включает основную текстуру, карту нормалей, карту прозрачности и атлас спрайтов
+  const stylizedBirchBase = '/texture/leaf/stylized/birch-leaves/'
+  leafTextureRegistry.register({
+    id: 'stylized-birch-leaves',
+    name: 'Birch Leaves (Stylized)',
+    previewUrl: stylizedBirchBase + 'BirchTree_Leaves.png',
+    colorMapUrl: stylizedBirchBase + 'BirchTree_Leaves.png',
+    normalMapUrl: stylizedBirchBase + 'BirchTree_Leaves_NormalMap.png',
+    opacityMapUrl: stylizedBirchBase + 'BirchTree_Leaves_Opacity.png',
+    atlasUrl: stylizedBirchBase + 'atlas.json',
+  })
 }
