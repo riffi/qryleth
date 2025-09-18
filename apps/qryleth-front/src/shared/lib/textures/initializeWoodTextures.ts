@@ -36,4 +36,22 @@ export function initializeWoodTextures(): void {
     colorMapUrl: pineBase + 'PineTree_Bark.png',
     normalMapUrl: pineBase + 'PineTree_Bark_Normal.png',
   })
+
+  /**
+   * Набор «Birch Tree Bark (Stylized)».
+   *
+   * Источник файлов: `public/texture/wood/stylized/birch-tree-bark`.
+   * Доступные карты:
+   * - Цвет (BirchTree_Bark.png) — используется и как превью.
+   * - Нормали (BirchTree_Bark_Normal.png).
+   * Дополнительные PBR‑карты (шероховатость/окклюзия/смещение) отсутствуют — рендер учитывает это как опциональные карты.
+   */
+  const birchBase = '/texture/wood/stylized/birch-tree-bark/'
+  woodTextureRegistry.register({
+    id: 'birch-tree-bark-stylized',
+    name: 'Birch Tree Bark (Stylized)',
+    previewUrl: birchBase + 'BirchTree_Bark.png',
+    colorMapUrl: birchBase + 'BirchTree_Bark.png',
+    normalMapUrl: birchBase + 'BirchTree_Bark_Normal.png',
+  })
 }
