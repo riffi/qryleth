@@ -391,8 +391,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if (!mat) return
     materialRef.current = mat
     mat.side = THREE.DoubleSide
-    // Изначально без отсечения по альфе; включим позже при наличии карт
-    mat.alphaTest = 0.0
+    // Устанавливаем сразу 0.5, чтобы потом не было прыганья при изменении порога
+    mat.alphaTest = 0.5
     mat.onBeforeCompile = (shader) => {
       const shape = effectiveShape
       const aspect = shape === 'coniferCross' ? 2.4 : (shape === 'texture' ? (texAspect || 1) : 0.6)
@@ -555,6 +555,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       receiveShadow
       onClick={handleClick}
       onPointerOver={handleHover}
+      renderOrder={1}
     >
       {(() => { /* eslint-disable no-console */ console.log('[InstancedLeaves] render', { count, effectiveShape, hasTextureLeaves, maps: { d: !!diffuseMap, a: !!alphaMap, n: !!normalMap, r: !!roughnessMap } }); return null })()}
       <meshStandardMaterial
