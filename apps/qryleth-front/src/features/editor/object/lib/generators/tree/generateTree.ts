@@ -1740,7 +1740,11 @@ export function generateTree(params: TreeGeneratorParams & {
     const curvedEnd: [number, number, number] = tube.endPoint
     placed.push({ a: baseInside, b: curvedEnd, radius: rad })
 
-    if (branchLevels === 1) {
+    // Всегда отрисовываем листву на кроне вне зависимости от числа уровней ветвей.
+    // Ранее листья на кроне добавлялись только при `branchLevels === 1`,
+    // из-за чего при глубине ветвления > 1 верхушка получалась «лысой».
+    // Привязку листьев к обычным веткам не трогаем — она выполняется в генерации дочерних ветвей ниже.
+    if (branchLevels >= 1) {
       const placement = params.leafPlacement || 'end'
       if (placement === 'along') {
         const density = Math.max(0.5, params.leavesPerMeter ?? 6)
