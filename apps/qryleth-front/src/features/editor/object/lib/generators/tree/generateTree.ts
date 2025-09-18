@@ -615,6 +615,18 @@ export function generateTree(params: TreeGeneratorParams & {
     for (let i = 0; i < idx.length; i++) unifiedIdx.push(base + idx[i])
   }
 
+  // Данные о верхнем торце ствола для последующего «бесшовного» продолжения
+  // Эти значения заполняются при сборке единого меша ствола (трубки) и
+  // используются после генерации обычных веток, чтобы при необходимости
+  // добавить на самой верхушке ствола ветвь‑продолжение со сшивкой по кольцу.
+  let trunkEndPoint: [number, number, number] | null = null
+  let trunkEndTangent: [number, number, number] | null = null
+  let trunkEndRadius: number | null = null
+  let trunkEndRingPositions: number[] | null = null
+  let trunkEndRingUVs: number[] | null = null
+  // Число радиальных сегментов у ствола (нужно для совпадения топологии кольца)
+  const trunkRadialSegments = 18
+
   // 1) Ствол(ы): один вертикальный + опциональные разветвления, с плавными стыками
   const segH = trunkHeight / Math.max(1, trunkSegments)
   const taper = trunkTaperFactor ?? 0.4
@@ -836,7 +848,7 @@ export function generateTree(params: TreeGeneratorParams & {
     const taper = Math.max(0, Math.min(0.95, trunkTaperFactor ?? 0.4))
     const tube = buildTaperedTubeMesh(curvePts, trunkRadius, {
       tubularSegments: Math.max(12, trunkSegments * 4),
-      radialSegments: 18,
+      radialSegments: trunkRadialSegments,
       taper: (t) => 1 - taper * t,
       collarFrac: 0,
       collarScale: 1,
@@ -848,6 +860,13 @@ export function generateTree(params: TreeGeneratorParams & {
       refNormal: [1, 0, 0],
     })
     appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
+
+    // Сохраняем данные верхнего торца ствола для бесшовного продолжения
+    trunkEndPoint = tube.endPoint
+    trunkEndTangent = tube.endTangent
+    trunkEndRadius = tube.endRadius
+    trunkEndRingPositions = tube.endRingPositions
+    trunkEndRingUVs = tube.endRingUVs
 
     // Синхронизация точек крепления веток с новой кривой ствола:
     // берём вершины сегментов (верх каждой из trunkSegments частей) и используем
@@ -1558,6 +1577,72 @@ export function generateTree(params: TreeGeneratorParams & {
       // Вес: при 0 — равномерно (1), при 1 — квадратичная концентрация к верху (0..1 -> 0..1^2)
       const topWeight = (1 - bias) * 1 + bias * (h01 * h01)
       genBranches({ basePoint: att.point, level: 1, parentAxis: att.axis, parentRadius: att.radius, countScale: topWeight, attachToParentTip: false })
+    }
+  }
+
+  // Бесшовная «ветвь‑продолжение» на верхушке ствола
+  // По аналогии с ветвями: если у самого кончика родителя маловато дочерних,
+  // добавляем продолжение, сшитое по последнему кольцу геометрии родителя.
+  // Здесь роль «родителя» играет сам ствол: используем сохранённое верхнее кольцо.
+  if (trunkEndPoint && trunkEndTangent && trunkEndRadius && trunkEndRingPositions && trunkEndRingUVs) {
+    // Оцениваем, сколько сегментов веток стартует прямо из верхушки ствола.
+    // Для этого считаем сегменты из placed, чья база близка к trunkEndPoint.
+    let tipCount = 0
+    for (const seg of placed) {
+      const dx = seg.a[0] - trunkEndPoint[0]
+      const dy = seg.a[1] - trunkEndPoint[1]
+      const dz = seg.a[2] - trunkEndPoint[2]
+      const d = Math.hypot(dx, dy, dz)
+      if (d <= Math.max(0.02, trunkEndRadius * 0.6)) tipCount++
+    }
+    // Если «на макушке» меньше двух дочерних — добавляем одно продолжение
+    if (tipCount < 2) {
+      // База точно в плоскости верхнего торца ствола, без осевого заглубления
+      const baseInside: [number, number, number] = [
+        trunkEndPoint[0], trunkEndPoint[1], trunkEndPoint[2],
+      ]
+      const aN = normalize(trunkEndTangent)
+      const j = Math.max(0, Math.min(1, params.branchLengthJitter ?? randomness))
+      const len = branchLength * (1 - 0.3 * j + 0.6 * j * rng())
+      const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
+      const rad = Math.max(0.005, trunkEndRadius)
+      const curvePts = buildBranchCurvePoints(baseInside, aN, len, rng)
+      // Продолжаем UV бесшовно: старт по V = «пройденная длина» ствола (в нашей модели это trunkHeight*texD)
+      const vStartCont = Math.max(1, trunkHeight * texD)
+      const tube = buildTaperedTubeMesh(curvePts, rad, {
+        tubularSegments: 20,
+        radialSegments: trunkRadialSegments,
+        collarFrac: 0,
+        collarScale: 1,
+        capStart: false,
+        vStart: vStartCont,
+        vScale: Math.max(1, len * texD),
+        // Жёсткая привязка первого кольца к последнему кольцу ствола
+        overrideStartRingPositions: trunkEndRingPositions,
+        overrideStartRingUVs: trunkEndRingUVs,
+        taper: (t) => 1 - tipTaper * t,
+      })
+      appendToUnified({ positions: tube.positions, normals: tube.normals, indices: tube.indices, uvs: tube.uvs })
+      const curvedEnd: [number, number, number] = tube.endPoint
+      placed.push({ a: baseInside, b: curvedEnd, radius: rad })
+      // Порождаем дочерние уже от конца «продолжения» как от обычной ветви 1‑го уровня
+      if (branchLevels > 0) {
+        const parentRadiusNext = Math.max(0.005, tube.endRadius)
+        genBranches({
+          basePoint: curvedEnd,
+          level: 1,
+          parentAxis: tube.endTangent,
+          parentRadius: parentRadiusNext,
+          parentSeg: undefined,
+          parentCurvePts: curvePts,
+          parentBaseRadius: rad,
+          parentCollarScale: 1,
+          parentTipTaper: tipTaper,
+          avoidBaseFrac: Math.max(0, Math.min(0.5, params.branchChildAvoidBaseFrac ?? 0.1)),
+          tipBias: Math.max(0, Math.min(1, params.branchChildTipBias ?? 0.5)),
+          parentRadialSegments: trunkRadialSegments,
+        } as any)
+      }
     }
   }
 
