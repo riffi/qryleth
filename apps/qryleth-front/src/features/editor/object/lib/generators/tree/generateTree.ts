@@ -595,6 +595,11 @@ export function generateTree(params: TreeGeneratorParams & {
     leafMaterialUuid,
   } = params
 
+  // Отсечка по высоте для появления ветвей: все точки крепления ниже
+  // этой высоты полностью исключаются из генерации веток. Нормируем
+  // значение параметра на диапазон [0 .. trunkHeight]. Если не задано — 0.
+  const branchCutoffY = Math.max(0, Math.min(trunkHeight, (params as any).branchHeightCutoff ?? 0))
+
   // Единая плотность текстуры коры (повторов на метр) для согласования UV
   const texD = Math.max(1e-6, (params as any).barkTexDensityPerMeter ?? 1)
 
@@ -1053,6 +1058,12 @@ export function generateTree(params: TreeGeneratorParams & {
           const collarK = tAttach < collarFracLocal && parentCollarScale ? (parentCollarScale * (1 - tAttach / collarFracLocal) + 1 * (tAttach / collarFracLocal)) : 1
           parentRadiusLoc = Math.max(0.005, parentBaseRadius * (1 - Math.max(0, Math.min(0.95, parentTipTaper)) * tAttach) * collarK)
           attachToTip = tAttach > 0.98
+        }
+        // Отсечка веток по высоте: пропускаем попытку, если точка крепления
+        // ниже установленной высоты отсечки. Это полностью блокирует появление
+        // ветвей до заданной высоты на любом уровне и для любых родителей.
+        if (basePointLoc[1] < branchCutoffY) {
+          continue
         }
         const a = normalize(parentAxisN)
         const tmp: [number, number, number] = Math.abs(a[1]) < 0.99 ? [0,1,0] : [1,0,0]
@@ -1684,6 +1695,8 @@ export function generateTree(params: TreeGeneratorParams & {
     const span = Math.max(1e-4, maxY - minY)
     const bias = Math.min(1, Math.max(0, branchTopBias ?? 0))
     for (const att of trunkAttachments) {
+      // Пропускаем крепления на стволе, расположенные ниже отсечки
+      if (att.point[1] < branchCutoffY) continue
       const h01 = (att.point[1] - minY) / span
       // Вес: при 0 — равномерно (1), при 1 — квадратичная концентрация к верху (0..1 -> 0..1^2)
       const topWeight = (1 - bias) * 1 + bias * (h01 * h01)

@@ -62,6 +62,8 @@ export const TreeGeneratorPanel: React.FC = () => {
     barkUvRepeatU: 1,
     barkUvRepeatV: 1,
     barkTexDensityPerMeter: 1,
+    // Отсечка веток по высоте: по умолчанию без отсечки
+    branchHeightCutoff: 0,
   })
 
   // Параметры материалов
@@ -149,6 +151,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'randomness',
         'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafPlacement', 'leavesPerMeter',
         'embedFactor', 'barkTexDensityPerMeter',
+        'branchHeightCutoff',
       ]
       const requiredKeys: (keyof TreeGeneratorParams)[] = [
         'seed',
@@ -353,6 +356,18 @@ export const TreeGeneratorPanel: React.FC = () => {
             />
           </Box>
         </Group>
+        {/* Отсечка веток по высоте: 0..trunkHeight */}
+        <Slider
+          label={"Отсечка веток по высоте"}
+          value={params.branchHeightCutoff ?? 0}
+          onChange={(v) => setParams(p => ({ ...p, branchHeightCutoff: Array.isArray(v) ? v[0] : v }))}
+          min={0}
+          max={params.trunkHeight}
+          step={0.05}
+          marks={[{ value: 0, label: '0' }, { value: params.trunkHeight, label: String(params.trunkHeight) }]}
+          disabled={params.branchLevels <= 0}
+        />
+        <Text size="xs" c="dimmed">До этой высоты ветви не создаются вовсе</Text>
         <Box>
           <Text size="sm" mb={4}>Сужение ствола к верху</Text>
           <Slider

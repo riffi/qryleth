@@ -342,7 +342,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       ref={meshRef}
       args={[geometry as any, undefined as any, count]}
       castShadow
-      receiveShadow
+      receiveShadow={false}
       onClick={handleClick}
       onPointerOver={handleHover}
     >

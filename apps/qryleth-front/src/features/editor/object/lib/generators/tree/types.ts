@@ -224,6 +224,13 @@ export interface TreeGeneratorParams {
    */
   branchChildAvoidBaseFrac?: number
 
+  /**
+   * Отсечка появления веток по высоте (в абсолютных единицах Y).
+   * Ветки, чьи точки крепления находятся ниже этой высоты, не создаются вовсе.
+   * Диапазон слайдера в UI: [0 .. trunkHeight]. По умолчанию 0 (без отсечки).
+   */
+  branchHeightCutoff?: number
+
 }
 
 /**
