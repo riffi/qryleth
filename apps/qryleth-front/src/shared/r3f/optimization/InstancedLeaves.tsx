@@ -94,6 +94,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const spriteNameKey = ((textureSample as any)?.geometry?.texSpriteName) || 'default'
   // Идентификатор набора текстур берём из object.treeData.params
   const setIdFromObject: string | undefined = (sceneObject as any)?.treeData?.params?.leafTextureSetId
+  const paintFactorFromObject: number = (sceneObject as any)?.treeData?.params?.leafTexturePaintFactor ?? 0
 
   // Загрузка карт из реестра наборов текстур при выборе режима 'texture'
   useEffect(() => {
@@ -218,6 +219,13 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     objectMaterials: materials || sceneObject.materials,
   }), [samplePrimitive, materials, sceneObject.materials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
+  // Целевой цвет листвы из материала (линейное пространство) для HSV‑покраски
+  const targetLeafColorLinear = useMemo(() => {
+    const hex = (resolvedMaterial as any)?.properties?.color || (materialProps as any)?.color || '#2E8B57'
+    const c = new THREE.Color(hex)
+    ;(c as any).convertSRGBToLinear?.()
+    return c
+  }, [resolvedMaterial, materialProps])
   const count = instances.length * billboardLeaves.length
 
   useEffect(() => {
@@ -372,6 +380,12 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  /**
+   * Настраивает стандартный материал листьев (инстансированный) перед компиляцией.
+   * Помимо существующих правок (маска формы, изгиб, рамка/подсветка) добавляет
+   * униформы uLeafPaintFactor/uLeafTargetColor и вставку HSV‑покраски текстуры
+   * к цвету материала листвы (меняем Hue/Saturation по фактору, яркость сохраняем).
+   */
   const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
     if (!mat) return
     materialRef.current = mat
@@ -426,10 +440,10 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
               #include <alphatest_fragment>
             `)
         }
-        // Вставляем подсветку края после применения карты и добавляем прямоугольную рамку по UV плоскости
+        // Вставляем HSV‑покраску альбедо + подсветку края и прямоугольную рамку
         frag = frag
-          .replace('#include <common>', `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nvarying vec2 vLeafUv;`)
-          .replace('#include <map_fragment>', `#include <map_fragment>\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу до alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n`)
+          .replace('#include <common>', `#include <common>\n// Debug uniforms\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\n// HSV‑покраска\nuniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\n// RGB<->HSV\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }\nvarying vec2 vLeafUv;`)
+          .replace('#include <map_fragment>', `#include <map_fragment>\n// HSV‑покраска: тянем тон/насыщенность к цвету материала листвы, яркость сохраняем\n  if (uLeafPaintFactor > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, uLeafPaintFactor);\n    hsv.y = mix(hsv.y, tgt.y, uLeafPaintFactor);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0) );\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y) );\n    float wr = max(uRectWidth, fwidth(d) * 2.0 );\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d );\n    // Делаем рамку полностью видимой: увеличиваем альфу до alphaTest\n    diffuseColor.a = max(diffuseColor.a, edgeR );\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0) );\n  }\n`)
         // Для режима 'texture' дополнительно гарантируем повышение альфы перед alphaTest (после применения alphaMap)
         if (shape === 'texture') {
           frag = frag.replace('#include <alphatest_fragment>', `
@@ -452,6 +466,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       }
 
       // Пробрасываем униформы в материал
+      // Инициализируем униформы HSV‑покраски
+      shader.uniforms.uLeafPaintFactor = { value: paintFactorFromObject }
+      shader.uniforms.uLeafTargetColor = { value: new THREE.Color(targetLeafColorLinear.r, targetLeafColorLinear.g, targetLeafColorLinear.b) }
       ;(mat as any).userData.uniforms = shader.uniforms
     }
     mat.needsUpdate = true
@@ -471,6 +488,16 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     mat.alphaTest = diffuseMap ? 0.5 : 0.0
     mat.needsUpdate = true
   }, [effectiveShape, diffuseMap, alphaMap, normalMap, roughnessMap])
+
+  // Обновляем униформы покраски при изменении фактора/цвета
+  useEffect(() => {
+    if (!materialRef.current) return
+    if (effectiveShape !== 'texture') return
+    const uniforms = (materialRef.current as any)?.userData?.uniforms
+    if (!uniforms) return
+    if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = paintFactorFromObject
+    if (uniforms.uLeafTargetColor) uniforms.uLeafTargetColor.value.set(targetLeafColorLinear.r, targetLeafColorLinear.g, targetLeafColorLinear.b)
+  }, [effectiveShape, paintFactorFromObject, targetLeafColorLinear])
 
   return (
     <instancedMesh

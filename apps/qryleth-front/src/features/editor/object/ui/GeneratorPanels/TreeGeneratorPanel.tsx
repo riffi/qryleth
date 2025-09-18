@@ -58,6 +58,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     angleSpread: 1,
     embedFactor: 1,
     leafTextureSetId: 'leafset019-1k-jpg',
+    leafTexturePaintFactor: 0,
     barkTextureSetId: 'bark014-1k-jpg',
     barkUvRepeatU: 1,
     barkUvRepeatV: 1,
@@ -149,7 +150,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafPlacement', 'leavesPerMeter',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafTexturePaintFactor', 'leafPlacement', 'leavesPerMeter',
         'embedFactor', 'barkTexDensityPerMeter',
         'branchHeightCutoff',
       ]
@@ -711,6 +712,19 @@ export const TreeGeneratorPanel: React.FC = () => {
                 <Text size="xs" c="dimmed">Будут использованы все спрайты из атласа, равномерно в случайном порядке.</Text>
               )}
             </Stack>
+            <Box>
+              <Text size="sm" mb={4}>Покраска текстуры листвы</Text>
+              <Slider
+                value={params.leafTexturePaintFactor ?? 0}
+                onChange={(v) => setParams(p => ({ ...p, leafTexturePaintFactor: Array.isArray(v) ? v[0] : v }))}
+                min={0}
+                max={1}
+                step={0.01}
+                marks={[{ value: 0, label: '0' }, { value: 1, label: '1' }]}
+                disabled={params.branchLevels <= 0}
+              />
+              <Text size="xs" c="dimmed">0 — оставить цвета текстуры; 1 — максимально привести тон/насыщенность к цвету материала «Листья»</Text>
+            </Box>
           </Stack>
         )}
         <Group grow>

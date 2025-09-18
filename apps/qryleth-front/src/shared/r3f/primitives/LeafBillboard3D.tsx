@@ -19,6 +19,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   const spriteName: string | undefined = (primitive?.geometry as any)?.texSpriteName
   // Идентификатор набора текстур берём из параметров дерева текущего объекта (ObjectEditor)
   const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
+  // Фактор покраски текстурированных листьев (0..1)
+  const leafPaintFactor: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintFactor ?? 0)
 
   // Текстуры и параметры
   const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
@@ -144,12 +146,47 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
     return new THREE.Vector3(dx, dy, 0)
   }, [shape, anchorUV, sx, sy])
 
+  // Материал и HSV‑покраска (настраиваем через onBeforeCompile)
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  /**
+   * Настраивает материал листа перед компиляцией шейдера.
+   * Добавляет униформы для HSV‑покраски (фактор и целевой цвет) и вставляет
+   * в фрагментный шейдер функции RGB↔HSV и смешение оттенка/насыщенности
+   * к цвету материала «Листья». Значение яркости (V) сохраняется, чтобы
+   * не потерять объём и детали исходной текстуры.
+   */
+  const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
+    if (!mat) return
+    materialRef.current = mat
+    mat.onBeforeCompile = (shader) => {
+      // Униформы: фактор и целевой цвет листвы из пропсов (переводим в линейное пространство)
+      const c = new THREE.Color((materialProps as any)?.color || '#2E8B57')
+      ;(c as any).convertSRGBToLinear?.()
+      shader.uniforms.uLeafPaintFactor = { value: leafPaintFactor }
+      shader.uniforms.uLeafTargetColor = { value: new THREE.Color(c.r, c.g, c.b) }
+      // Вставляем функции HSV и смешение после выборки map
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\nuniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }`)
+        .replace('#include <map_fragment>', `#include <map_fragment>\n  if (uLeafPaintFactor > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, uLeafPaintFactor);\n    hsv.y = mix(hsv.y, tgt.y, uLeafPaintFactor);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n`)
+      ;(mat as any).userData.uniforms = shader.uniforms
+    }
+    mat.needsUpdate = true
+  }
+
+  // Обновление униформов при изменении фактора
+  useEffect(() => {
+    const uniforms = (materialRef.current as any)?.userData?.uniforms
+    if (!uniforms) return
+    if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = leafPaintFactor
+  }, [leafPaintFactor])
+
   return (
     <group position={groupPos} rotation={groupRot} scale={[1,1,1]} {...restMeshProps}>
       <mesh position={[offVec.x, offVec.y, offVec.z]} scale={[sx, sy, sz]}>
         <planeGeometry args={[1, 1, 1, 1]} />
         <meshStandardMaterial
           {...materialProps}
+          ref={onMaterialRef}
           side={THREE.DoubleSide}
           map={shape === 'texture' ? diffuseMap || undefined : undefined}
           alphaMap={shape === 'texture' ? alphaMap || undefined : undefined}
