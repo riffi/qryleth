@@ -180,6 +180,15 @@ export interface TreeGeneratorParams {
    */
   leafTexturePaintFactor?: number
   /**
+   * Разброс применения фактора покраски по листьям (0..1).
+   * 0 — у всех листьев одинаковый коэффициент покраски (равен leafTexturePaintFactor).
+   * 1 — максимальный разброс: для каждого листа коэффициент выбирается детерминированно
+   *     из диапазона [0 .. leafTexturePaintFactor]. Промежуточные значения линейно
+   *     сужают нижнюю границу диапазона: при 0.5 — [0.5*leafTexturePaintFactor .. leafTexturePaintFactor].
+   * Используется только при shape='texture'.
+   */
+  leafTexturePaintJitter?: number
+  /**
    * Схема размещения листвы: только на концах ветвей ('end') или вдоль ветви ('along').
    */
   leafPlacement?: 'end' | 'along'

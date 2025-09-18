@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { leafTextureRegistry } from '@/shared/lib/textures'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
@@ -19,8 +19,9 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   const spriteName: string | undefined = (primitive?.geometry as any)?.texSpriteName
   // Идентификатор набора текстур берём из параметров дерева текущего объекта (ObjectEditor)
   const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
-  // Фактор покраски текстурированных листьев (0..1)
+  // Фактор покраски и разброс по листьям
   const leafPaintFactor: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintFactor ?? 0)
+  const leafPaintJitter: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintJitter ?? 0)
 
   // Текстуры и параметры
   const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
@@ -148,6 +149,13 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
 
   // Материал и HSV‑покраска (настраиваем через onBeforeCompile)
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Стабильный множитель применения фактора для конкретного листа (единственного примитива)
+  const leafPaintMul = useMemo(() => {
+    const hashToUnit = (s: string) => { let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619) } return (h>>>0)/4294967295 }
+    const uid = (primitive as any)?.uuid || `${(primitive as any)?.name || 'leaf'}_single`
+    const rnd = hashToUnit(String(uid))
+    return 1 - Math.max(0, Math.min(1, leafPaintJitter)) * rnd
+  }, [primitive, leafPaintJitter])
   /**
    * Настраивает материал листа перед компиляцией шейдера.
    * Добавляет униформы для HSV‑покраски (фактор и целевой цвет) и вставляет
@@ -163,11 +171,12 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
       const c = new THREE.Color((materialProps as any)?.color || '#2E8B57')
       ;(c as any).convertSRGBToLinear?.()
       shader.uniforms.uLeafPaintFactor = { value: leafPaintFactor }
+      shader.uniforms.uLeafPaintMul = { value: leafPaintMul }
       shader.uniforms.uLeafTargetColor = { value: new THREE.Color(c.r, c.g, c.b) }
       // Вставляем функции HSV и смешение после выборки map
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nuniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }`)
-        .replace('#include <map_fragment>', `#include <map_fragment>\n  if (uLeafPaintFactor > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, uLeafPaintFactor);\n    hsv.y = mix(hsv.y, tgt.y, uLeafPaintFactor);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n`)
+        .replace('#include <common>', `#include <common>\nuniform float uLeafPaintFactor;\nuniform float uLeafPaintMul;\nuniform vec3 uLeafTargetColor;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }`)
+        .replace('#include <map_fragment>', `#include <map_fragment>\n  float leafEff = uLeafPaintFactor * uLeafPaintMul;\n  if (leafEff > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, leafEff);\n    hsv.y = mix(hsv.y, tgt.y, leafEff);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n`)
       ;(mat as any).userData.uniforms = shader.uniforms
     }
     mat.needsUpdate = true
@@ -178,7 +187,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
     const uniforms = (materialRef.current as any)?.userData?.uniforms
     if (!uniforms) return
     if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = leafPaintFactor
-  }, [leafPaintFactor])
+    if (uniforms.uLeafPaintMul) uniforms.uLeafPaintMul.value = leafPaintMul
+  }, [leafPaintFactor, leafPaintMul])
 
   return (
     <group position={groupPos} rotation={groupRot} scale={[1,1,1]} {...restMeshProps}>

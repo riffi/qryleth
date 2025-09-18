@@ -29,6 +29,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
   // Фактор покраски текстуры листьев (0..1)
   const leafPaintFactor: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintFactor ?? 0)
+  // Разброс применения фактора по листьям (0..1)
+  const leafPaintJitter: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintJitter ?? 0)
   const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
   /**
    * Карты текстур для режима shape = 'texture'. Загружаются лениво при первом появлении такого режима.
@@ -170,6 +172,16 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
 
   const count = leaves.length
 
+  /**
+   * Преобразует произвольную строку в детерминированное число в диапазоне [0..1].
+   * Нужен для стабильного рандома на лист: используем FNV‑подобный хеш.
+   */
+  const hashToUnit = (s: string): number => {
+    let h = 2166136261 >>> 0
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+    return (h >>> 0) / 4294967295
+  }
+
   useEffect(() => {
     if (!meshRef.current) return
     const dummy = new THREE.Object3D()
@@ -209,6 +221,26 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     }
     meshRef.current.instanceMatrix.needsUpdate = true
   }, [leaves, texAspect, anchorUV])
+
+  /**
+   * Инстансовый атрибут aLeafPaintMul: множитель применения глобального фактора для каждого листа.
+   * Формула: mul = 1 - jitter * rnd, где rnd детерминированно зависит от uuid листа.
+   */
+  useEffect(() => {
+    const shape = (sample as any)?.geometry?.shape || 'billboard'
+    if (shape !== 'texture') return
+    if (!meshRef.current) return
+    const g = meshRef.current.geometry as THREE.BufferGeometry
+    const arr = new Float32Array(count)
+    for (let k = 0; k < count; k++) {
+      const prim: any = leaves[k]?.primitive
+      const uuid = prim?.uuid || `${prim?.name || 'leaf'}_${k}`
+      const rnd = hashToUnit(String(uuid))
+      const mul = 1 - Math.max(0, Math.min(1, leafPaintJitter)) * rnd
+      arr[k] = mul
+    }
+    g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
+  }, [sample, count, leaves, leafPaintJitter])
 
   const handleClick = (event: any) => {
     if (!onPrimitiveClick) return
@@ -293,17 +325,18 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       shader.uniforms.uRectWidth = { value: 0.02 }
       // Центр поворота UV (держим для совместимости, хотя поворот геометрии)
       shader.uniforms.uTexCenter = { value: new THREE.Vector2(0.5, 0.5) }
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`)
-        .replace('#include <begin_vertex>', `
-          vec3 pos = position;
-          vLeafUv = uv;
-          float bend = (vLeafUv.y - 0.5);
-          // Небольшой изгиб вдоль нормали — подходит и для креста и текстуры
-          pos += normalize(normal) * ((bend * bend - 0.25) * uBend);
-          vec3 transformed = pos;
-        `)
-        .replace('#include <uv_vertex>', `#include <uv_vertex>`)
+      {
+        const vCommon = (shape === 'texture')
+          ? `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aLeafPaintMul;\nvarying float vLeafPaintMul;\nvarying vec2 vLeafUv;`
+          : `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`
+        const vBegin = (shape === 'texture')
+          ? `\n          vec3 pos = position;\n          vLeafUv = uv;\n          vLeafPaintMul = aLeafPaintMul;\n          float bend = (vLeafUv.y - 0.5);\n          // Небольшой изгиб вдоль нормали — подходит и для креста и текстуры\n          pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n          vec3 transformed = pos;\n        `
+          : `\n          vec3 pos = position;\n          vLeafUv = uv;\n          float bend = (vLeafUv.y - 0.5);\n          pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n          vec3 transformed = pos;\n        `
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', vCommon)
+          .replace('#include <begin_vertex>', vBegin)
+          .replace('#include <uv_vertex>', `#include <uv_vertex>`)
+      }
       // Для текстурных листьев используем альфа из PNG; не подмешиваем круговую маску
       if (shape !== 'texture') {
         // Вставляем только необходимые uniform'ы, без дублирования объявления vLeafUv
@@ -333,10 +366,18 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
             #include <alphatest_fragment>
           `)
       }
-      // Подсветка краёв + HSV‑покраска текстуры к цвету материала листвы
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\n// Debug uniforms\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\n// HSV‑покраска текстуры листвы\nuniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\n// RGB<->HSV\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }\nvarying vec2 vLeafUv;`)
-        .replace('#include <map_fragment>', `#include <map_fragment>\n// HSV‑покраска: тянем тон/насыщенность к цвету материала листвы, яркость сохраняем\n  if (uLeafPaintFactor > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, uLeafPaintFactor);\n    hsv.y = mix(hsv.y, tgt.y, uLeafPaintFactor);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n// Альфа-ориентированная подсветка\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n  }\n#endif\n// Прямоугольная рамка по UV краям плоскости для отладки кропа\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n    float wr = max(uRectWidth, fwidth(d) * 2.0);\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n    diffuseColor.a = max(diffuseColor.a, edgeR);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n  }\n`)
+      // Подсветка краёв + (для текстуры) HSV‑покраска текстуры к цвету материала листвы
+      {
+        let frag = shader.fragmentShader
+        // Debug‑uniforms (общие)
+        const debugCommon = `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\n${shape === 'texture' ? 'uniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }' : ''}\n${shape === 'texture' ? 'varying float vLeafPaintMul;\n' : ''}varying vec2 vLeafUv;`
+        frag = frag.replace('#include <common>', debugCommon)
+        // Вставка в map_fragment: сначала HSV‑покраска (только для текстуры), затем debug‑блок
+        const hsvBlock = (shape === 'texture') ? `\n  float leafEff = uLeafPaintFactor * vLeafPaintMul;\n  if (leafEff > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, leafEff);\n    hsv.y = mix(hsv.y, tgt.y, leafEff);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n` : ''
+        const debugMap = `#include <map_fragment>\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n    float wr = max(uRectWidth, fwidth(d) * 2.0);\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n    diffuseColor.a = max(diffuseColor.a, edgeR);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n  }\n`
+        frag = frag.replace('#include <map_fragment>', debugMap.replace('#include <map_fragment>', `#include <map_fragment>${hsvBlock}`))
+        shader.fragmentShader = frag
+      }
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <lights_fragment_end>', `
           #include <lights_fragment_end>

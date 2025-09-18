@@ -59,6 +59,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     embedFactor: 1,
     leafTextureSetId: 'leafset019-1k-jpg',
     leafTexturePaintFactor: 0,
+    leafTexturePaintJitter: 0,
     barkTextureSetId: 'bark014-1k-jpg',
     barkUvRepeatU: 1,
     barkUvRepeatV: 1,
@@ -150,7 +151,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafTexturePaintFactor', 'leafPlacement', 'leavesPerMeter',
+        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafTexturePaintFactor', 'leafTexturePaintJitter', 'leafPlacement', 'leavesPerMeter',
         'embedFactor', 'barkTexDensityPerMeter',
         'branchHeightCutoff',
       ]
@@ -724,6 +725,19 @@ export const TreeGeneratorPanel: React.FC = () => {
                 disabled={params.branchLevels <= 0}
               />
               <Text size="xs" c="dimmed">0 — оставить цвета текстуры; 1 — максимально привести тон/насыщенность к цвету материала «Листья»</Text>
+            </Box>
+            <Box>
+              <Text size="sm" mb={4}>Разброс покраски по листьям</Text>
+              <Slider
+                value={params.leafTexturePaintJitter ?? 0}
+                onChange={(v) => setParams(p => ({ ...p, leafTexturePaintJitter: Array.isArray(v) ? v[0] : v }))}
+                min={0}
+                max={1}
+                step={0.01}
+                marks={[{ value: 0, label: '0' }, { value: 0.5, label: '0.5' }, { value: 1, label: '1' }]}
+                disabled={params.branchLevels <= 0}
+              />
+              <Text size="xs" c="dimmed">0 — у всех листьев одинаково; 1 — у части листьев покраска может быть вплоть до 0; 0.5 — покраска листа = глобальный фактор минус 0–50%</Text>
             </Box>
           </Stack>
         )}
