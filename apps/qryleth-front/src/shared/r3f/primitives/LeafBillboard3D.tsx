@@ -34,11 +34,11 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   useEffect(() => {
     if (shape !== 'texture') return
     const loader = new THREE.TextureLoader()
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
-    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
-    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
-    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
+    const colorUrl = set?.colorMapUrl
+    const opacityUrl = set?.opacityMapUrl
+    const normalUrl = set?.normalMapUrl
+    const roughnessUrl = set?.roughnessMapUrl
     /**
      * Устанавливает параметры загруженной текстуры для корректной работы кропа и фильтрации.
      * Применяется ко всем картам набора.
@@ -49,29 +49,40 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
       t.anisotropy = 4
       t.needsUpdate = true
     }
-    loader.load(colorUrl, (t2) => {
-      onTex(t2)
-      t2.center.set(0.0, 0.0)
-      t2.rotation = 0
-      setDiffuseMap(t2)
-      const img2: any = t2.image
-      if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
-    })
-    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+    if (colorUrl) {
+      loader.load(colorUrl, (t2) => {
+        onTex(t2)
+        t2.center.set(0.0, 0.0)
+        t2.rotation = 0
+        setDiffuseMap(t2)
+        const img2: any = t2.image
+        if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
+      })
+    } else {
+      setDiffuseMap(null)
+    }
+    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
+    else setAlphaMap(null)
+    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
+    else setNormalMap(null)
+    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+    else setRoughnessMap(null)
   }, [shape, texSetId])
 
   // Загрузка атласа
   // Использует atlasUrl из активного набора реестра; при отсутствии — резервный путь.
   useEffect(() => {
     if (shape !== 'texture') return
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
-    fetch(atlasUrl)
-      .then(r => r.json())
-      .then(setAtlas)
-      .catch(() => setAtlas(null))
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
+    const atlasUrl = set?.atlasUrl
+    if (atlasUrl) {
+      fetch(atlasUrl)
+        .then(r => r.json())
+        .then(setAtlas)
+        .catch(() => setAtlas(null))
+    } else {
+      setAtlas(null)
+    }
   }, [shape, texSetId])
 
   // Применяем вырезку и anchor
@@ -144,8 +155,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
           alphaMap={shape === 'texture' ? alphaMap || undefined : undefined}
           normalMap={shape === 'texture' ? normalMap || undefined : undefined}
           roughnessMap={shape === 'texture' ? roughnessMap || undefined : undefined}
-          transparent={shape === 'texture' ? true : materialProps.transparent}
-          alphaTest={shape === 'texture' ? 0.5 : materialProps.alphaTest}
+          transparent={shape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
+          alphaTest={shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
         />
       </mesh>
     </group>

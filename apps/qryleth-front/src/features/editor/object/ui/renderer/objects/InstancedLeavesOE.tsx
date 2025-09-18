@@ -55,11 +55,11 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     const shape = (sample as any)?.geometry?.shape || 'billboard'
     if (shape !== 'texture') return
     const loader = new THREE.TextureLoader()
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
-    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
-    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
-    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
+    const colorUrl = set?.colorMapUrl
+    const opacityUrl = set?.opacityMapUrl
+    const normalUrl = set?.normalMapUrl
+    const roughnessUrl = set?.roughnessMapUrl
     const onTex = (t: THREE.Texture | null) => {
       if (!t) return
       t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
@@ -68,7 +68,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       t.needsUpdate = true
     }
     // Загружаем карты по ссылкам из набора: Color + Opacity, чтобы соответствовать atlas.json
-    loader.load(colorUrl, (t2) => {
+    if (colorUrl) loader.load(colorUrl, (t2) => {
       onTex(t2)
       // Цветовая карта листьев должна быть в sRGB, иначе получится визуально темнее.
       ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
@@ -78,9 +78,13 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       const img2: any = t2.image
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
     })
-    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+    else { setDiffuseMap(null) }
+    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
+    else setAlphaMap(null)
+    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
+    else setNormalMap(null)
+    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
+    else setRoughnessMap(null)
   }, [sample, texSetId])
 
   // Обновляем центр (держим rotation=0; не вращаем UV)
@@ -94,9 +98,10 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   useEffect(() => {
     const shape = (sample as any)?.geometry?.shape || 'billboard'
     if (shape !== 'texture') return
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
-    fetch(atlasUrl).then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
+    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
+    const atlasUrl = set?.atlasUrl
+    if (atlasUrl) fetch(atlasUrl).then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
+    else setAtlas(null)
   }, [sample, texSetId])
 
   // Применяем выбранный спрайт из атласа: repeat/offset, центр, aspect
@@ -359,13 +364,13 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         {...materialProps}
         // Для режимов с цветовой картой листа избегаем двойного умножения цвета (tint),
         // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.
-        color={(sample as any)?.geometry?.shape === 'texture' ? '#ffffff' : (materialProps as any).color}
+        color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
         map={(sample as any)?.geometry?.shape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={(sample as any)?.geometry?.shape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={(sample as any)?.geometry?.shape === 'texture' ? normalMap || undefined : undefined}
         roughnessMap={(sample as any)?.geometry?.shape === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={(sample as any)?.geometry?.shape === 'texture' ? true : materialProps.transparent}
-        alphaTest={(sample as any)?.geometry?.shape === 'texture' ? 0.5 : materialProps.alphaTest}
+        transparent={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
+        alphaTest={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />
     </instancedMesh>
   )

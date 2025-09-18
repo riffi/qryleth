@@ -100,11 +100,11 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     dbg('texture load effect start', { hasTextureLeaves })
     if (!hasTextureLeaves) return
     const loader = new THREE.TextureLoader()
-    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const colorUrl = set?.colorMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Color.jpg'
-    const opacityUrl = set?.opacityMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Opacity.jpg'
-    const normalUrl = set?.normalMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_NormalGL.jpg'
-    const roughnessUrl = set?.roughnessMapUrl || '/texture/leaf/LeafSet019_1K-JPG/LeafSet019_1K-JPG_Roughness.jpg'
+    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0]
+    const colorUrl = set?.colorMapUrl
+    const opacityUrl = set?.opacityMapUrl
+    const normalUrl = set?.normalMapUrl
+    const roughnessUrl = set?.roughnessMapUrl
     const onTex = (t: THREE.Texture | null) => {
       if (!t) return
       t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
@@ -113,7 +113,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       t.needsUpdate = true
     }
     // Используем ссылки из реестра (JPG Color + JPG Opacity), чтобы соответствовать atlas.json
-    loader.load(colorUrl, (t2) => {
+    if (colorUrl) loader.load(colorUrl, (t2) => {
       onTex(t2)
       // Цветовая карта листьев должна быть в sRGB, иначе изображение выглядит темнее из-за линейной интерпретации
       ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
@@ -126,9 +126,13 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     }, undefined, (err) => {
       dbg('ERROR loading diffuse', err)
     })
-    loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
-    loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
-    loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
+    else { setDiffuseMap(null) }
+    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
+    else setAlphaMap(null)
+    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
+    else setNormalMap(null)
+    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
+    else setRoughnessMap(null)
   }, [hasTextureLeaves, setIdFromObject])
 
   useEffect(() => {
@@ -145,12 +149,16 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   useEffect(() => {
     dbg('fetch atlas', { hasTextureLeaves })
     if (!hasTextureLeaves) return
-    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0] || leafTextureRegistry.get('leafset019-1k-jpg')
-    const atlasUrl = set?.atlasUrl || '/texture/leaf/LeafSet019_1K-JPG/atlas.json'
-    fetch(atlasUrl)
-      .then(r => r.json())
-      .then(a => { setAtlas(a); dbg('atlas loaded', a?.length) })
-      .catch((e) => { setAtlas(null); dbg('ERROR loading atlas', e) })
+    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0]
+    const atlasUrl = set?.atlasUrl
+    if (atlasUrl) {
+      fetch(atlasUrl)
+        .then(r => r.json())
+        .then(a => { setAtlas(a); dbg('atlas loaded', a?.length) })
+        .catch((e) => { setAtlas(null); dbg('ERROR loading atlas', e) })
+    } else {
+      setAtlas(null)
+    }
   }, [hasTextureLeaves, setIdFromObject])
 
   // Применяем выбранный прямоугольник: repeat/offset/center и aspect
@@ -368,7 +376,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if (!mat) return
     materialRef.current = mat
     mat.side = THREE.DoubleSide
-    mat.alphaTest = 0.5
+    // Изначально без отсечения по альфе; включим позже при наличии карт
+    mat.alphaTest = 0.0
     mat.onBeforeCompile = (shader) => {
       const shape = effectiveShape
       const aspect = shape === 'coniferCross' ? 2.4 : (shape === 'texture' ? (texAspect || 1) : 0.6)
@@ -457,8 +466,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     if (alphaMap) mat.alphaMap = alphaMap
     if (normalMap) mat.normalMap = normalMap
     if (roughnessMap) mat.roughnessMap = roughnessMap
-    mat.transparent = true
-    mat.alphaTest = 0.5
+    // Прозрачность и alphaTest активируем только при наличии текстур, иначе полагаемся на материал
+    mat.transparent = !!diffuseMap
+    mat.alphaTest = diffuseMap ? 0.5 : 0.0
     mat.needsUpdate = true
   }, [effectiveShape, diffuseMap, alphaMap, normalMap, roughnessMap])
 
@@ -478,7 +488,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         {...materialProps}
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
-        color={effectiveShape === 'texture' ? '#ffffff' : (materialProps as any).color}
+        color={effectiveShape === 'texture' ? (!!diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
