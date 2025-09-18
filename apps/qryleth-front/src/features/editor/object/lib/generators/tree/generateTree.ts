@@ -2,22 +2,15 @@ import type { GfxPrimitive } from '@/entities/primitive'
 import type { CreateGfxMaterial } from '@/entities/material'
 import { generateUUID } from '@/shared/lib/uuid'
 import { degToRad } from '@/shared/lib/math/number'
+import { normalize as v3normalize } from '@/shared/lib/math/vector3'
+import { mulberry32 } from '@/shared/lib/utils/prng'
+import { buildBranchCurvePoints as buildBranchCurvePointsImpl, buildTrunkCurvePoints as buildTrunkCurvePointsImpl, eulerFromDir as eulerFromDirImpl } from './internal/curves'
+import { buildTaperedTubeMesh as buildTaperedTubeMeshImpl } from './internal/tube'
+import { segmentDistance as segmentDistanceImpl, trunkPathPenalty as trunkPathPenaltyImpl, outwardPenalty as outwardPenaltyImpl, nearestOnCenterline as nearestOnCenterlineImpl } from './internal/collisions'
 import type { TreeGeneratorParams, TreeGeneratorResult } from './types'
 import * as THREE from 'three'
 
-/**
- * Простейший детерминированный ГПСЧ (Mulberry32) для процедурной генерации.
- * При одном и том же сид‑значении выдаёт одинаковую последовательность.
- */
-function mulberry32(seed: number) {
-  let t = seed >>> 0
-  return () => {
-    t += 0x6D2B79F5
-    let x = Math.imul(t ^ (t >>> 15), 1 | t)
-    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x)
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296
-  }
-}
+// PRNG перенесён в shared: используем mulberry32 из '@/shared/lib/utils/prng'.
 
 /**
  * Создаёт 3–5 контрольных точек кривой ветви с небольшим прогибом вниз и шумом.
@@ -27,6 +20,7 @@ function mulberry32(seed: number) {
  * - Добавляется лёгкая «оседлость» вниз по миру (‑Y) и небольшой боковой шум в плоскости, перпендикулярной оси ветви.
  * - Количество точек подбирается динамически: 4 точки (0, ~0.3L, ~0.65L, L) дают мягкий изгиб.
  */
+// Обёртка над реализацией из internal/curves.ts для построения кривой ветви.
 function buildBranchCurvePoints(
   baseInside: [number, number, number],
   nDir: [number, number, number],
@@ -34,41 +28,7 @@ function buildBranchCurvePoints(
   rng: () => number,
   bendBase?: number,
   bendJitter?: number,
-): THREE.Vector3[] {
-  // Ортонормальный базис вокруг оси ветви: o1, o2 — перпендикулярные nDir
-  const axis = new THREE.Vector3(nDir[0], nDir[1], nDir[2]).normalize()
-  const tmp = Math.abs(axis.y) < 0.95 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
-  const o1 = new THREE.Vector3().crossVectors(axis, tmp).normalize()
-  const o2 = new THREE.Vector3().crossVectors(axis, o1).normalize()
-
-  // Коэффициент «провиса» вниз: сильнее для более горизонтальных ветвей
-  const up = Math.max(0, Math.min(1, axis.y))
-  const styr = Math.max(0, Math.min(1, bendBase ?? 0.5))
-  // Базовая «оседлость» вниз масштабируется styr: 0 → 20% от базового, 1 → 200% от базового
-  const droopBase = (1 - up) * 0.12 * (0.2 + 1.8 * styr)
-
-  // Боковой шум в перпендикулярной плоскости: небольшой (до ~4% длины)
-  const jitterLevel = Math.max(0, Math.min(1, bendJitter ?? 0.4))
-  const lateralAmp = 0.04 * len * (0.2 + 1.8 * jitterLevel)
-  const jitter = (amp: number) => {
-    const a = (rng() * 2 - 1) * amp
-    const b = (rng() * 2 - 1) * amp
-    return new THREE.Vector3().addScaledVector(o1, a).addScaledVector(o2, b)
-  }
-
-  const P0 = new THREE.Vector3(baseInside[0], baseInside[1], baseInside[2])
-  const P1 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.32 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * (0.25 + 0.5 * jitterLevel * rng()), 0))
-    .add(jitter(lateralAmp * 0.25))
-  const P2 = new THREE.Vector3().copy(P0).addScaledVector(axis, 0.66 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * (0.55 + 0.7 * jitterLevel * rng()), 0))
-    .add(jitter(lateralAmp * 0.5))
-  const P3 = new THREE.Vector3().copy(P0).addScaledVector(axis, 1.00 * len)
-    .add(new THREE.Vector3(0, -droopBase * len * (0.85 + 0.3 * jitterLevel * rng()), 0))
-    .add(jitter(lateralAmp * 0.3))
-
-  return [P0, P1, P2, P3]
-}
+): THREE.Vector3[] { return buildBranchCurvePointsImpl(baseInside, nDir, len, rng, bendBase, bendJitter) }
 
 /**
  * Строит один общий mesh‑примитив трубки по кривой с лёгким сужением к кончику.
@@ -78,245 +38,13 @@ function buildBranchCurvePoints(
  * - Сужение: трубка разбивается на 2–3 под‑секции с уменьшающимся радиусом; геометрии сшиваются в один буфер.
  * - UV: используем uv TubeGeometry и нормируем компоненту v по общей длине (для непрерывной коры).
  */
+// Обёртка над реализацией построения трубки из internal/tube.ts
 function buildTaperedTubeMesh(
   points: THREE.Vector3[],
   baseRadius: number,
   options?: { tubularSegments?: number; radialSegments?: number; taper?: (t: number) => number; collarFrac?: number; collarScale?: number; collarBulgeExtra?: number; vStart?: number; vScale?: number; uAngleOffset?: number; uRefRadius?: number; useParallelTransport?: boolean; refNormal?: [number,number,number]; capStart?: boolean; capEnd?: boolean; overrideStartRingPositions?: number[]; overrideStartRingUVs?: number[] }
 ): { positions: number[]; normals: number[]; indices: number[]; uvs: number[]; endPoint: [number, number, number]; endTangent: [number, number, number]; endRadius: number; endRingPositions?: number[]; endRingUVs?: number[] } {
-  const tubularSegments = Math.max(8, Math.min(96, options?.tubularSegments ?? 24))
-  const radialSegments = Math.max(6, Math.min(24, options?.radialSegments ?? 8))
-  const taper = options?.taper || ((t: number) => 1 - 0.35 * t) // линейное сужение к концу
-  const collarFrac = Math.max(0, Math.min(1, options?.collarFrac ?? 0))
-  // Разрешаем collarScale < 1 для сужения основания, если родитель тоньше
-  const collarScale = Math.max(0.2, options?.collarScale ?? 1)
-  // Дополнительная «высота» воротника (0..1): усиливает стартовый максимум, но профиль остаётся МОНОТОННО спадающим
-  const collarBulgeExtra = Math.max(0, Math.min(1, options?.collarBulgeExtra ?? 0))
-
-  // Единая Catmull‑Rom кривая по всем точкам
-  const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5)
-  // Кадры: по умолчанию используем параллельный транспорт для минимального кручения
-  const usePT = options?.useParallelTransport ?? true
-  const tangents: THREE.Vector3[] = []
-  const normalsPT: THREE.Vector3[] = []
-  const binormalsPT: THREE.Vector3[] = []
-  for (let i = 0; i <= tubularSegments; i++) tangents.push(curve.getTangent(i / tubularSegments).normalize())
-  if (usePT) {
-    // Инициализация начальной нормали из refNormal (если задана) или из мирового up/x
-    const t0 = tangents[0]
-    let ref = options?.refNormal ? new THREE.Vector3(options.refNormal[0], options.refNormal[1], options.refNormal[2]) : (Math.abs(t0.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0))
-    // Проецируем ref на плоскость, перпендикулярную t0
-    ref = ref.sub(t0.clone().multiplyScalar(ref.dot(t0))).normalize()
-    normalsPT[0] = ref.clone()
-    binormalsPT[0] = new THREE.Vector3().crossVectors(t0, normalsPT[0]).normalize()
-    for (let i = 1; i <= tubularSegments; i++) {
-      const prevT = tangents[i-1]
-      const currT = tangents[i]
-      const q = new THREE.Quaternion().setFromUnitVectors(prevT.clone().normalize(), currT.clone().normalize())
-      normalsPT[i] = normalsPT[i-1].clone().applyQuaternion(q).normalize()
-      // Ре-ортонормировка
-      binormalsPT[i] = new THREE.Vector3().crossVectors(currT, normalsPT[i]).normalize()
-      normalsPT[i] = new THREE.Vector3().crossVectors(binormalsPT[i], currT).normalize()
-    }
-  }
-
-  const ringCount = tubularSegments + 1
-  const vertexCount = ringCount * (radialSegments + 1)
-  const positions = new Array<number>(vertexCount * 3)
-  // Временные нормали пересчитаем через BufferGeometry.computeVertexNormals()
-  const normals = new Array<number>(vertexCount * 3)
-  const uvs = new Array<number>(vertexCount * 2)
-  const indices: number[] = []
-  // Радиальные векторы для проверки ориентации нормалей (dot>0 — нормали наружу)
-  const radialRef = new Array<number>(vertexCount * 3)
-  const vStart = options?.vStart ?? 0
-  const vScale = options?.vScale ?? 1
-  const uOffset = options?.uAngleOffset ?? 0
-  const uRefRadius = options?.uRefRadius
-
-  // Предвычисляем центры и накопленную длину по дуге для равномерной плотности UV по V
-  const centers: THREE.Vector3[] = new Array(ringCount)
-  const cumLen: number[] = new Array(ringCount)
-  let totalLen = 0
-  for (let i = 0; i < ringCount; i++) {
-    const t = i / tubularSegments
-    const c = curve.getPoint(t)
-    centers[i] = c
-    if (i === 0) cumLen[i] = 0
-    else {
-      const prev = centers[i - 1]
-      const dl = Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z)
-      totalLen += dl
-      cumLen[i] = totalLen
-    }
-  }
-  const invTotalLen = totalLen > 1e-8 ? 1 / totalLen : 0
-
-  // Генерация колец
-  for (let i = 0; i < ringCount; i++) {
-    const t = i / tubularSegments
-    const center = centers[i]
-    const normal = usePT ? normalsPT[i] : curve.computeFrenetFrames(tubularSegments, false).normals[i]
-    const binormal = usePT ? binormalsPT[i] : curve.computeFrenetFrames(tubularSegments, false).binormals[i]
-    // «Воротник» у основания: МОНОТОННОЕ уменьшение от стартового максимума к 1 на участке [0..collarFrac]
-    let collar = 1
-    if (collarFrac > 0 && t < collarFrac) {
-      const k = t / Math.max(1e-4, collarFrac)
-      // Применяем воротник только при collarScale>1 (если <1 — сужение уже учтено базовым радиусом)
-      const startScale = collarScale > 1 ? collarScale * (1 + 0.5 * collarBulgeExtra) : 1
-      // Плавный спад (smoothstep) от startScale к 1
-      const s = k * k * (3 - 2 * k)
-      collar = startScale * (1 - s) + 1 * s
-    }
-    const radius = Math.max(0.003, baseRadius * Math.max(0.05, taper(t)) * collar)
-    for (let j = 0; j <= radialSegments; j++) {
-      const idx = i * (radialSegments + 1) + j
-      if (i === 0 && options?.overrideStartRingPositions && options.overrideStartRingPositions.length >= (radialSegments + 1) * 3) {
-        const ox = options.overrideStartRingPositions[3 * j + 0]
-        const oy = options.overrideStartRingPositions[3 * j + 1]
-        const oz = options.overrideStartRingPositions[3 * j + 2]
-        positions[3 * idx + 0] = ox
-        positions[3 * idx + 1] = oy
-        positions[3 * idx + 2] = oz
-        // Радиальный вектор — от центра к вершине
-        const dx = ox - center.x, dy = oy - center.y, dz = oz - center.z
-        const invr = 1 / Math.max(1e-6, Math.hypot(dx, dy, dz))
-        radialRef[3 * idx + 0] = dx * invr
-        radialRef[3 * idx + 1] = dy * invr
-        radialRef[3 * idx + 2] = dz * invr
-        if (options.overrideStartRingUVs && options.overrideStartRingUVs.length >= (radialSegments + 1) * 2) {
-          uvs[2 * idx + 0] = options.overrideStartRingUVs[2 * j + 0]
-          uvs[2 * idx + 1] = options.overrideStartRingUVs[2 * j + 1]
-        } else {
-          const uNorm0 = j / radialSegments
-          uvs[2 * idx + 0] = uNorm0
-          const vAlong0 = (cumLen[i] * invTotalLen)
-          uvs[2 * idx + 1] = vStart + vAlong0 * vScale
-        }
-      } else {
-        const uNorm = j / radialSegments
-        const angle = uNorm * Math.PI * 2 + uOffset
-        const cx = Math.cos(angle), sx = Math.sin(angle)
-        const rx = normal.x * cx + binormal.x * sx
-        const ry = normal.y * cx + binormal.y * sx
-        const rz = normal.z * cx + binormal.z * sx
-
-        const vx = center.x + radius * rx
-        const vy = center.y + radius * ry
-        const vz = center.z + radius * rz
-
-        positions[3 * idx + 0] = vx
-        positions[3 * idx + 1] = vy
-        positions[3 * idx + 2] = vz
-        radialRef[3 * idx + 0] = rx
-        radialRef[3 * idx + 1] = ry
-        radialRef[3 * idx + 2] = rz
-        uvs[2 * idx + 0] = uNorm
-        const vAlong = (cumLen[i] * invTotalLen)
-        uvs[2 * idx + 1] = vStart + vAlong * vScale
-      }
-    }
-  }
-
-  // Индексы между соседними кольцами
-  for (let i = 0; i < tubularSegments; i++) {
-    for (let j = 0; j < radialSegments; j++) {
-      const a = i * (radialSegments + 1) + j
-      const b = (i + 1) * (radialSegments + 1) + j
-      const c = (i + 1) * (radialSegments + 1) + (j + 1)
-      const d = i * (radialSegments + 1) + (j + 1)
-      indices.push(a, b, d)
-      indices.push(b, c, d)
-    }
-  }
-
-  // Крышки трубки: начало (t=0) и конец (t=1)
-  if (options?.capStart !== false) {
-    // Начальный центр и нормаль наружу (вдоль -tangent)
-    const startCenterIndex = (positions.length / 3) | 0
-    const p0 = curve.getPoint(0)
-    const t0 = tangents[0].clone().normalize()
-    positions.push(p0.x, p0.y, p0.z)
-    uvs.push(0.5, 0.5)
-    // нормаль будет перерасчитана, но зададим приблизительно для правильного направления
-    normals.push(-t0.x, -t0.y, -t0.z)
-    const base0 = 0
-    for (let j = 0; j < radialSegments; j++) {
-      const a = base0 + j
-      const b = base0 + (j + 1)
-      // Оба порядка вершин: гарантируем видимость при любом глобальном развороте меша
-      indices.push(startCenterIndex, b, a)
-      indices.push(startCenterIndex, a, b)
-    }
-  }
-
-  if (options?.capEnd !== false) {
-    // Конечный центр и нормаль наружу (вдоль +tangent)
-    const endCenterIndex = (positions.length / 3) | 0
-    const p1 = curve.getPoint(1)
-    const t1 = tangents[tangents.length - 1].clone().normalize()
-    positions.push(p1.x, p1.y, p1.z)
-    uvs.push(0.5, 0.5)
-    normals.push(t1.x, t1.y, t1.z)
-    const baseN = tubularSegments * (radialSegments + 1)
-    for (let j = 0; j < radialSegments; j++) {
-      const a = baseN + j
-      const b = baseN + (j + 1)
-      // Оба порядка вершин
-      indices.push(endCenterIndex, a, b)
-      indices.push(endCenterIndex, b, a)
-    }
-  }
-
-  // Пересчёт нормалей по истинной геометрии — сглаживает освещение и учитывает taper
-  const bg = new THREE.BufferGeometry()
-  bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
-  bg.setIndex(indices)
-  bg.computeVertexNormals()
-  const nAttr = bg.getAttribute('normal') as THREE.BufferAttribute
-  for (let i = 0; i < nAttr.count; i++) {
-    normals[3*i+0] = nAttr.getX(i)
-    normals[3*i+1] = nAttr.getY(i)
-    normals[3*i+2] = nAttr.getZ(i)
-  }
-  // Проверка ориентации нормалей: если усреднённый dot < 0, переворачиваем все нормали
-  let dotSum = 0
-  for (let i = 0; i < vertexCount; i++) {
-    const nx = normals[3*i], ny = normals[3*i+1], nz = normals[3*i+2]
-    const rx = radialRef[3*i], ry = radialRef[3*i+1], rz = radialRef[3*i+2]
-    dotSum += nx*rx + ny*ry + nz*rz
-  }
-  if (dotSum < 0) {
-    // Инвертируем нормали и переворачиваем порядок вершин в каждом треугольнике (меняем ориентацию граней наружу)
-    for (let i = 0; i < normals.length; i++) normals[i] = -normals[i]
-    for (let k = 0; k < indices.length; k += 3) {
-      const tmp = indices[k + 1]
-      indices[k + 1] = indices[k + 2]
-      indices[k + 2] = tmp
-    }
-  }
-  bg.dispose()
-
-  const endVec = curve.getPoint(1)
-  const endPoint: [number, number, number] = [endVec.x, endVec.y, endVec.z]
-  const endTanV = tangents[tangents.length - 1].clone().normalize()
-  const endTangent: [number, number, number] = [endTanV.x, endTanV.y, endTanV.z]
-  // Сохраняем последнее кольцо позиций/UV для идеального сопряжения с продолжением
-  const endRingPositions: number[] = []
-  const endRingUVs: number[] = []
-  const baseLast = (ringCount - 1) * (radialSegments + 1)
-  for (let j = 0; j <= radialSegments; j++) {
-    endRingPositions.push(
-      positions[3 * (baseLast + j) + 0],
-      positions[3 * (baseLast + j) + 1],
-      positions[3 * (baseLast + j) + 2],
-    )
-    endRingUVs.push(
-      uvs[2 * (baseLast + j) + 0],
-      uvs[2 * (baseLast + j) + 1],
-    )
-  }
-  const endRadius = Math.max(0.003, baseRadius * Math.max(0.05, (options?.taper || ((t:number)=>1-0.35*t))(1)))
-  return { positions, normals, indices, uvs, endPoint, endTangent, endRadius, endRingPositions, endRingUVs }
+  return buildTaperedTubeMeshImpl(points, baseRadius, options)
 }
 
 /**
@@ -329,23 +57,8 @@ function buildTrunkCurvePoints(
   rng: () => number,
   randomness: number | undefined,
 ): THREE.Vector3[] {
-  const s = Math.max(0, Math.min(1, shearStrength ?? 0))
-  const rnd = Math.max(0, Math.min(1, randomness ?? 0.3))
-  const up = new THREE.Vector3(0, 1, 0)
-  // Случайная ориентация бокового отклонения
-  const phi = rng() * Math.PI * 2
-  const side = new THREE.Vector3(Math.cos(phi), 0, Math.sin(phi))
-  const side2 = new THREE.Vector3(-Math.sin(phi), 0, Math.cos(phi))
-  // Амплитуда бокового изгиба: до ~10% высоты при s=1, усиливаем рандомом
-  const amp = height * (0.04 + 0.08 * s) * (0.7 + 0.6 * rnd)
-  const jitter = (k: number) => side.clone().multiplyScalar(amp * k * (0.6 + 0.8 * (rng() - 0.5)))
-    .add(side2.clone().multiplyScalar(amp * k * (rng() - 0.5) * 0.5))
-
-  const P0 = new THREE.Vector3(0, 0, 0)
-  const P1 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 0.33).add(jitter(0.4))
-  const P2 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 0.66).add(jitter(0.8))
-  const P3 = new THREE.Vector3().copy(P0).addScaledVector(up, height * 1.00).add(jitter(0.5))
-  return [P0, P1, P2, P3]
+  // Реализация вынесена в shared-совместимый модуль internal/curves.ts
+  return buildTrunkCurvePointsImpl(height, shearStrength, rng, randomness)
 }
 
 /**
@@ -364,63 +77,22 @@ function randomTiltRad(baseDeg: number, spread: number, rng: () => number) {
   return degToRad(baseDeg + jitter)
 }
 
-/**
- * Генерирует позицию цилиндра вдоль направления ветви, чтобы центр цилиндра
- * располагался посередине ветви.
- */
-function cylinderCenterAt(base: [number, number, number], dir: [number, number, number], length: number) {
-  const half = length / 2
-  return [
-    base[0] + dir[0] * half,
-    base[1] + dir[1] * half,
-    base[2] + dir[2] * half,
-  ] as [number, number, number]
-}
+// (удалено) cylinderCenterAt — не используется в текущей реализации
 
 /**
  * Вычисляет эйлеровы углы (в радианах) для поворота вектора оси Y (0,1,0)
  * в заданное нормализованное направление dir. Упрощённая аппроксимация через yaw/pitch.
  */
-function eulerFromDir(dir: [number, number, number]): [number, number, number] {
-  // Используем корректное выравнивание: вращаем ось Y в направление dir через кватернион.
-  const vFrom = new THREE.Vector3(0, 1, 0)
-  const vTo = new THREE.Vector3(dir[0], dir[1], dir[2]).normalize()
-  const q = new THREE.Quaternion().setFromUnitVectors(vFrom, vTo)
-  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ')
-  return [e.x, e.y, e.z]
-}
+function eulerFromDir(dir: [number, number, number]): [number, number, number] { return eulerFromDirImpl(dir) }
 
-/**
- * Вычисляет требуемый угол «кручения» (roll) вокруг оси axisN, чтобы нормаль плоскости листа
- * (которая при нулевом roll совпадает с мировым +Z, повёрнутым на ось через eulerFromDir)
- * совпала с заданным радиальным направлением radial.
- * Используется только для листьев с shape = 'texture', чтобы все прикреплялись одной стороной.
- */
-function computeRollToAlignNormal(axisN: [number, number, number], radial: THREE.Vector3): number {
-  const axis = new THREE.Vector3(axisN[0], axisN[1], axisN[2]).normalize()
-  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis)
-  // Нормаль плоскости при нулевом кручении (для PlaneGeometry(1,1) — исходная нормаль +Z)
-  const normal0 = new THREE.Vector3(0, 0, 1).applyQuaternion(q).normalize()
-  const target = radial.clone().normalize()
-  // Проекция на плоскость, перпендикулярную оси — исключаем компоненту вдоль оси
-  const proj = (v: THREE.Vector3) => v.clone().sub(axis.clone().multiplyScalar(v.dot(axis)))
-  const a = proj(normal0).normalize()
-  const b = proj(target).normalize()
-  const dot = THREE.MathUtils.clamp(a.dot(b), -1, 1)
-  let angle = Math.acos(dot)
-  const cross = new THREE.Vector3().crossVectors(a, b)
-  const sign = Math.sign(cross.dot(axis)) || 1
-  angle *= sign
-  return angle
-}
+// (удалено) computeRollToAlignNormal — не используется
 
 /**
  * Нормализует 3D‑вектор. Если длина близка к нулю — возвращает ось Y.
  */
 function normalize(v: [number, number, number]): [number, number, number] {
-  const len = Math.hypot(v[0], v[1], v[2])
-  if (len < 1e-6) return [0, 1, 0]
-  return [v[0] / len, v[1] / len, v[2] / len]
+  // Делегируем нормализацию вектора в shared-утилиту vector3.normalize
+  return v3normalize(v as any) as any
 }
 
 /**
@@ -428,51 +100,7 @@ function normalize(v: [number, number, number]): [number, number, number] {
  * параметры u,v (0..1) ближайших точек на каждом из них.
  * Используется для оценки пересечений/слишком близких ветвей.
  */
-function segmentDistance(
-  a0: [number, number, number], a1: [number, number, number],
-  b0: [number, number, number], b1: [number, number, number],
-): { dist: number, u: number, v: number } {
-  const ax = a0[0], ay = a0[1], az = a0[2]
-  const bx = b0[0], by = b0[1], bz = b0[2]
-  const u1x = a1[0] - ax, u1y = a1[1] - ay, u1z = a1[2] - az
-  const u2x = b1[0] - bx, u2y = b1[1] - by, u2z = b1[2] - bz
-
-  const rx = ax - bx, ry = ay - by, rz = az - bz
-  const a = u1x*u1x + u1y*u1y + u1z*u1z
-  const e = u2x*u2x + u2y*u2y + u2z*u2z
-  const f = u2x*rx + u2y*ry + u2z*rz
-
-  let s = 0, t = 0
-
-  if (a <= 1e-9 && e <= 1e-9) {
-    // Оба вырождены — расстояние между точками
-    const dx = ax - bx, dy = ay - by, dz = az - bz
-    return { dist: Math.hypot(dx, dy, dz), u: 0, v: 0 }
-  }
-  if (a <= 1e-9) {
-    // Первый вырожден — проекция точки A на отрезок B
-    t = Math.min(1, Math.max(0, f / e))
-  } else {
-    const c = u1x*rx + u1y*ry + u1z*rz
-    if (e <= 1e-9) {
-      // Второй вырожден — проекция точки B на отрезок A
-      s = Math.min(1, Math.max(0, -c / a))
-    } else {
-      const b = u1x*u2x + u1y*u2y + u1z*u2z
-      const denom = a*e - b*b
-      if (denom !== 0) s = Math.min(1, Math.max(0, (b*f - c*e) / denom))
-      else s = 0
-      t = (b*s + f) / e
-      if (t < 0) { t = 0; s = Math.min(1, Math.max(0, -c / a)) }
-      else if (t > 1) { t = 1; s = Math.min(1, Math.max(0, (b - c) / a)) }
-    }
-  }
-
-  const px = ax + u1x * s, py = ay + u1y * s, pz = az + u1z * s
-  const qx = bx + u2x * t, qy = by + u2y * t, qz = bz + u2z * t
-  const dx = px - qx, dy = py - qy, dz = pz - qz
-  return { dist: Math.hypot(dx, dy, dz), u: s, v: t }
-}
+// (удалено) segmentDistance — используем версию из internal/collisions
 
 /**
  * Быстрая оценка штрафа за «вход в ствол»: дискретно сэмплируем путь ветки
@@ -480,79 +108,16 @@ function segmentDistance(
  * Если точка попадает внутрь ствола — добавляем большой штраф.
  */
 // Находит ближайшую точку на полилинии (centers) и возвращает индекс сегмента и параметр t (0..1)
-function nearestOnCenterline(centers: [number,number,number][], p: [number,number,number]): { seg: number; t: number; point: [number,number,number] } {
-  let best: { seg: number; t: number; point: [number,number,number]; d2: number } | null = null
-  for (let i = 0; i < centers.length - 1; i++) {
-    const a = centers[i], b = centers[i+1]
-    const ab: [number,number,number] = [b[0]-a[0], b[1]-a[1], b[2]-a[2]]
-    const ap: [number,number,number] = [p[0]-a[0], p[1]-a[1], p[2]-a[2]]
-    const ab2 = ab[0]*ab[0]+ab[1]*ab[1]+ab[2]*ab[2]
-    const t = ab2 > 1e-8 ? Math.min(1, Math.max(0, (ap[0]*ab[0]+ap[1]*ab[1]+ap[2]*ab[2]) / ab2)) : 0
-    const q: [number,number,number] = [a[0]+ab[0]*t, a[1]+ab[1]*t, a[2]+ab[2]*t]
-    const dx = p[0]-q[0], dy = p[1]-q[1], dz = p[2]-q[2]
-    const d2 = dx*dx + dy*dy + dz*dz
-    if (!best || d2 < best.d2) best = { seg: i, t, point: q, d2 }
-  }
-  return { seg: best!.seg, t: best!.t, point: best!.point }
-}
+// (удалено) nearestOnCenterline — используем версию из internal/collisions
 
 // Оценка штрафа входа ветви внутрь ствола по реальной осевой полилинии ствола
-function trunkPathPenalty(
-  trunkPath: { centers: [number,number,number][]; radii: number[] } | null,
-  trunkHeight: number,
-  trunkRadius: number,
-  base: [number, number, number],
-  dir: [number, number, number],
-  len: number,
-  rad: number,
-): number {
-  let penalty = 0
-  const steps = 8
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps
-    const x = base[0] + dir[0] * (t * len)
-    const y = base[1] + dir[1] * (t * len)
-    const z = base[2] + dir[2] * (t * len)
-    let rAt = 0.0
-    if (trunkPath && trunkPath.centers.length >= 2) {
-      const q = nearestOnCenterline(trunkPath.centers, [x,y,z])
-      const r0 = trunkPath.radii[q.seg]
-      const r1 = trunkPath.radii[q.seg+1] ?? r0
-      rAt = Math.max(0.02, r0*(1-q.t) + r1*q.t)
-    } else {
-      if (y < 0 || y > trunkHeight) continue
-      const ratio = Math.min(Math.max(y / Math.max(1e-4, trunkHeight), 0), 1)
-      rAt = Math.max(0.02, trunkRadius * (1 - 0.4 * ratio))
-    }
-    // Радиальное расстояние до оси: если путь есть — до ближайшей точки q; иначе — до мировой оси
-    const distAxis = trunkPath ? Math.hypot(x - (nearestOnCenterline(trunkPath.centers, [x,y,z]).point[0]), z - (nearestOnCenterline(trunkPath.centers, [x,y,z]).point[2])) : Math.hypot(x, z)
-    const pen = (rAt + rad) - distAxis
-    if (pen > 0) penalty += pen * 1000
-    else penalty += Math.max(0, -pen) * 0.1
-  }
-  return penalty
-}
+// (удалено) trunkPathPenalty — используем версию из internal/collisions
 
 /**
  * Эвристика «направления наружу»: штрафует направления, идущие не радиально
  * от оси ствола (в XZ‑плоскости). Чем меньше проекция на радиальный вектор, тем больше штраф.
  */
-function outwardPenalty(base: [number,number,number], dir: [number,number,number], trunkPath?: { centers: [number,number,number][] }): number {
-  let radial: [number,number,number]
-  if (trunkPath && trunkPath.centers.length >= 1) {
-    const q = nearestOnCenterline(trunkPath.centers, base)
-    const v: [number,number,number] = [base[0]-q.point[0], 0, base[2]-q.point[2]]
-    const vlen = Math.hypot(v[0], v[2])
-    radial = vlen < 1e-6 ? [1,0,0] : [v[0]/vlen, 0, v[2]/vlen]
-  } else {
-    radial = normalize([base[0], 0, base[2]])
-  }
-  const dirXZLen = Math.hypot(dir[0], dir[2])
-  if (dirXZLen < 1e-6) return 10 // слишком вертикально — штраф
-  const dirXZ: [number,number,number] = [dir[0]/dirXZLen, 0, dir[2]/dirXZLen]
-  const d = radial[0]*dirXZ[0] + radial[2]*dirXZ[2]
-  return (1 - Math.max(0, d)) * 2 // 0..2
-}
+// (удалено) outwardPenalty — используем версию из internal/collisions
 
 /** Запись о размещённой ветви/сегменте для проверки коллизий. */
 type PlacedSegment = { a: [number,number,number]; b: [number,number,number]; radius: number }
@@ -1140,17 +705,18 @@ export function generateTree(params: TreeGeneratorParams & {
           baseInside[1] + nDir[1] * shift,
           baseInside[2] + nDir[2] * shift,
         ]
-        score += trunkPathPenalty(mainTrunk.path ?? null, trunkHeight, trunkRadius, baseForPenalty, nDir, Math.max(0.01, len - shift), rad)
+        // Используем реализацию штрафа «входа в ствол» из internal/collisions
+        score += trunkPathPenaltyImpl(mainTrunk.path ?? null as any, trunkHeight, trunkRadius, baseForPenalty, nDir, Math.max(0.01, len - shift), rad)
         for (const seg of placed) {
           if (parentSeg && seg === parentSeg) continue
-          const { dist, u, v } = segmentDistance(baseInside, endPoint, seg.a, seg.b)
+          const { dist, u, v } = segmentDistanceImpl(baseInside, endPoint, seg.a, seg.b)
           const nearBase = u < 0.08 && v < 0.08
           if (nearBase) continue
           const clearance = dist - (rad + seg.radius)
           if (clearance < 0) score += (-clearance) * 500
           else score += Math.max(0, 0.05 - clearance) * 50
         }
-        score += outwardPenalty(baseInside, nDir, mainTrunk.path ? { centers: mainTrunk.path.centers } : undefined) * 5
+        score += outwardPenaltyImpl(baseInside, nDir, mainTrunk.path ? { centers: mainTrunk.path.centers } as any : undefined) * 5
         // Стремление вверх: штрафуем направления с малой/отрицательной Y‑составляющей
         const upBias = Math.max(0, Math.min(1, params.branchUpBias ?? 0))
         if (upBias > 0) {
@@ -1213,7 +779,7 @@ export function generateTree(params: TreeGeneratorParams & {
         collarBulgeExtra: collarBulge,
         taper: (t) => 1 - tipTaper * t,
         // Согласование UV по V с местом крепления на стволе
-        vStart: isTrunkParent && mainTrunk.path ? (() => { const q = nearestOnCenterline(mainTrunk.path.centers, baseInside); const total = Math.max(1, mainTrunk.path.centers.length - 1); return Math.max(0, Math.min(1, (q.seg + q.t) / total)) })() : 0,
+        vStart: isTrunkParent && mainTrunk.path ? (() => { const q = nearestOnCenterlineImpl(mainTrunk.path.centers, baseInside); const total = Math.max(1, mainTrunk.path.centers.length - 1); return Math.max(0, Math.min(1, (q.seg + q.t) / total)) })() : 0,
         // Единая плотность по V: repeats = len * texD, но минимум 1 повтор
         vScale: Math.max(1, len * texD),
         // Переиспользуем кольцо вершин и UV последнего сегмента ствола для бесшовного стыка
