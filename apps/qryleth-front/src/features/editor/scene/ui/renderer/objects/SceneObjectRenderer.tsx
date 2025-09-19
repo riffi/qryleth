@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
@@ -10,6 +10,7 @@ import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
+import { useSingleTreeLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 import type {
   ObjectTransformEvent,
   RenderMode,
@@ -111,28 +112,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
     return { cylinders, leaves, rest }
   }, [isTreeObject, sceneObject.primitives])
 
-  /**
-   * LOD для деревьев: переключаемся между «ближним» (полная модель) и «дальним»
-   * (только ствол + меньше листьев, но крупнее) уровнями в зависимости от дистанции
-   * камеры до мировой позиции инстанса. Используем гистерезис, чтобы избежать дрожания.
-   */
-  const [lodFar, setLodFar] = useState(false)
-  // Пороговые расстояния для переключения (в мировых единицах сцены)
-  const LOD_NEAR = 40 // вернуться к детальной модели при приближении ближе этого значения
-  const LOD_FAR = 60  // перейти на дальний LOD при удалении дальше этого значения
-  useFrame(({ camera }) => {
-    const g = groupRef.current
-    if (!g) return
-    const wp = new THREE.Vector3()
-    g.getWorldPosition(wp)
-    const dist = wp.distanceTo(camera.position)
-    if (lodFar) {
-      if (dist < LOD_NEAR) setLodFar(false)
-    } else {
-      if (dist > LOD_FAR) setLodFar(true)
-    }
-    console.log('lod far', lodFar)
-  })
+  // Единая логика LOD и константы: общий хук
+  const { isFar: lodFar, leafSampleRatio, leafScaleMul, trunkRadialSegments } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
 
   return (
     <group
@@ -182,8 +163,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                   const cylindersNear = treeBuckets.cylinders
                   const cylindersFar = treeBuckets.cylinders.filter(c => c.primitive.type === 'trunk')
                   // Параметры листьев дальнего LOD: уменьшаем количество, увеличиваем размер
-                  const leafSample = 1
-                  const leafScaleMul = 22.55
+                  const leafSample = 0.4
+                  const leafScaleMul = 1.55
                   return (
                     <>
                       {(lodFar ? cylindersFar.length : cylindersNear.length) > 0 && (
@@ -192,7 +173,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           cylinders={(lodFar ? cylindersFar : cylindersNear) as any}
                           instances={[normalizedInstance]}
                           materials={sceneObject.materials}
-                          radialSegments={lodFar ? 8 : 12}
+                          radialSegments={trunkRadialSegments}
                           onClick={(e) => onClick?.({
                             objectUuid: instance.objectUuid,
                             instanceId: instance.uuid,
@@ -214,8 +195,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           spheres={treeBuckets.leaves as any}
                           instances={[normalizedInstance]}
                           materials={sceneObject.materials}
-                          sampleRatio={lodFar ? leafSample : undefined}
-                          scaleMul={lodFar ? leafScaleMul : 1}
+                          sampleRatio={leafSampleRatio}
+                          scaleMul={leafScaleMul}
                           onClick={(e) => onClick?.({
                             objectUuid: instance.objectUuid,
                             instanceId: instance.uuid,
@@ -237,8 +218,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           leaves={treeBuckets.leaves as any}
                           instances={[normalizedInstance]}
                           materials={sceneObject.materials}
-                          sampleRatio={lodFar ? leafSample : undefined}
-                          scaleMul={lodFar ? leafScaleMul : 1}
+                          sampleRatio={leafSampleRatio}
+                          scaleMul={leafScaleMul}
                           onClick={(e) => onClick?.({
                             objectUuid: instance.objectUuid,
                             instanceId: instance.uuid,
