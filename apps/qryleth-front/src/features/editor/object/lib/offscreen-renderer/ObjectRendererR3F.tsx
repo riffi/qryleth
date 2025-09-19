@@ -7,7 +7,6 @@ import type { RenderMode } from '@/shared/types/ui'
 import type { GfxObject } from '@/entities/object'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
-import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 
@@ -99,15 +98,7 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
       {isTreeObject && treeBuckets ? (
         <>
           {/* Instanced ветви/ствол */}
-          {treeBuckets.cylinders.length > 0 && (
-            <InstancedBranches
-              sceneObject={sceneLike}
-              cylinders={treeBuckets.cylinders as any}
-              instances={[singleInstance] as any}
-              materials={materials}
-              onClick={handleObjectClick}
-            />
-          )}
+          
 
           {/* Instanced листья (биллборды/текстуры/кресты) */}
           {treeBuckets.leaves.length > 0 && (
@@ -277,3 +268,4 @@ const GroupRendererStatic: React.FC<GroupRendererStaticProps> = ({
     </group>
   )
 }
+

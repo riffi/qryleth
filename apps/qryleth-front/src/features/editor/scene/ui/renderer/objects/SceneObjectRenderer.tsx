@@ -7,7 +7,6 @@ import { useRenderMode } from '../../../model/sceneStore.ts'
 import { useSceneStore } from '../../../model/sceneStore.ts'
 import { paletteRegistry } from '@/shared/lib/palette'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
-import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import { useSingleTreeLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
@@ -94,9 +93,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
    * Детальная мотивация: дерево состоит из множества примитивов (ветви/листья),
    * и рендер каждого отдельного `mesh` создаёт большое число draw calls.
    * Даже при единственном инстансе объекта выгодно объединить их в InstancedMesh,
-   * что мы и делаем, повторно используя InstancedBranches/InstancedLeaves.
    */
-  const isTreeObject = sceneObject.objectType === 'tree' || sceneObject.primitives?.some(p => p.type === 'trunk' || p.type === 'branch' || p.type === 'leaf')
+  const isTreeObject = sceneObject.objectType === 'tree' || sceneObject.primitives?.some(p => p.type === 'leaf' || (p as any).type === 'mesh')
 
   // Ленивая классификация примитивов дерева: ветви/ствол, листья, прочее
   const treeBuckets = useMemo(() => {
@@ -113,7 +111,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   }, [isTreeObject, sceneObject.primitives])
 
   // Единая логика LOD и константы: общий хук
-  const { isFar: lodFar, leafSampleRatio, leafScaleMul, trunkRadialSegments } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+  const { isFar: lodFar, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
 
   return (
     <group
@@ -136,7 +134,6 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
       {/**
        * ВАЖНО (позиционирование одиночных деревьев в SceneEditor):
        *
-       * Компоненты InstancedBranches/InstancedLeaves/InstancedLeafSpheres принимают список
        * инстансов и внутри себя ПРИМЕНЯЮТ трансформации каждого инстанса (позиция/поворот/масштаб)
        * к матрицам instancedMesh. В SceneObjectRenderer эти компоненты рендерятся ВНУТРИ <group>,
        * на который уже выставлены трансформации текущего инстанса объекта (position/rotation/scale).
@@ -154,7 +151,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
         }
         // Единые параметры LOD + кросс‑фейд
-        const { isFar: lodFar, lodBlend, leafSampleRatio, leafScaleMul, trunkRadialSegments } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+        const { isFar: lodFar, lodBlend, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
         const nearAlpha = 1 - lodBlend
         const farAlpha = lodBlend
         const blending = lodBlend > 0.001 && lodBlend < 0.999
@@ -164,24 +161,10 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
             {isTreeObject && treeBuckets ? (
               <>
                 {(() => {
-                  const cylindersNear = treeBuckets.cylinders
-                  const cylindersFar = treeBuckets.cylinders.filter(c => c.primitive.type === 'trunk')
                   return (
                     <>
                       {/* Near LOD — полная модель, с кросс‑фейдом */}
-                      {cylindersNear.length > 0 && (
-                        <InstancedBranches
-                          sceneObject={sceneObject}
-                          cylinders={cylindersNear as any}
-                          instances={[normalizedInstance]}
-                          materials={sceneObject.materials}
-                          radialSegments={defaultTreeLodConfig.nearTrunkRadialSegments}
-                          opacity={nearAlpha}
-                          depthWrite={!blending}
-                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
-                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
-                        />
-                      )}
+                      
                       {treeBuckets.leaves.length > 0 && (
                         <InstancedLeaves
                           sceneObject={sceneObject}
@@ -208,19 +191,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                       )}
 
                       {/* Far LOD — только ствол + редуцированные и крупнее листья, с кросс‑фейдом */}
-                      {cylindersFar.length > 0 && (
-                        <InstancedBranches
-                          sceneObject={sceneObject}
-                          cylinders={cylindersFar as any}
-                          instances={[normalizedInstance]}
-                          materials={sceneObject.materials}
-                          radialSegments={defaultTreeLodConfig.farTrunkRadialSegments}
-                          opacity={farAlpha}
-                          depthWrite={!blending}
-                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
-                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
-                        />
-                      )}
+                      
                       {treeBuckets.leaves.length > 0 && (
                         <InstancedLeaves
                           sceneObject={sceneObject}
@@ -312,3 +283,5 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
     </group>
   )
 }
+
+

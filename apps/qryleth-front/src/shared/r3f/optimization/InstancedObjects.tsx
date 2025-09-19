@@ -14,6 +14,11 @@ import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/m
 import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 
+// Флаг-рубильник: отключаем рендер цилиндров ствола/ветвей (InstancedBranches)
+// Единый меш коры уже используется по умолчанию; оставляем возможность включить в будущем.
+const ENABLE_CYLINDER_BRANCH_LOD = false;
+
+
 // Component for rendering primitives in Instances
 const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
   const { type, geometry } = primitive
@@ -301,7 +306,8 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   onHover
 }) => {
   // Единая логика LOD и константы: общий хук
-  const { nearInstances, farInstances, leafSampleRatioFar, leafScaleMulFar, trunkRadialSegmentsNear, trunkRadialSegmentsFar } = usePartitionInstancesByLod(instances, defaultTreeLodConfig)
+  const { nearInstances, farInstances, leafSampleRatioFar, leafScaleMulFar, trunkRadialSegmentsNear, trunkRadialSegmentsFar } = usePartitionInstancesByLod(instances, defaultTreeLodConfig);
+  if (!ENABLE_CYLINDER_BRANCH_LOD) { void trunkRadialSegmentsNear; void trunkRadialSegmentsFar; }
   // Попытка объединить все цилиндры (ветви/ствол) в один InstancedMesh с шейдером сужения
   const cylinders: { primitive: any; index: number }[] = []
   const spheres: { primitive: any; index: number }[] = []
@@ -315,7 +321,7 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   return (
     <group>
       {/* Ближние инстансы (полная модель) */}
-      {cylinders.length > 0 && nearInstances.length > 0 && (
+      {ENABLE_CYLINDER_BRANCH_LOD && cylinders.length > 0 && nearInstances.length > 0 && (
         <InstancedBranches
           sceneObject={sceneObject}
           cylinders={cylinders}
@@ -349,7 +355,7 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
       )}
 
       {/* Дальние инстансы (упрощенная модель) */}
-      {cylinders.length > 0 && farInstances.length > 0 && (
+      {ENABLE_CYLINDER_BRANCH_LOD && cylinders.length > 0 && farInstances.length > 0 && (
         <InstancedBranches
           sceneObject={sceneObject}
           cylinders={cylinders.filter(c => c.primitive.type === 'trunk')}
@@ -651,3 +657,4 @@ export const ConditionalInstancedObject: React.FC<ConditionalInstancedObjectProp
 }
 
 // TestInstancedMesh удалён
+
