@@ -13,7 +13,6 @@ import { Routes, Route } from 'react-router-dom'
 const LibraryPage = lazy(() => import('../pages/LibraryPage'))
 const ObjectEditorPage = lazy(() => import('../pages/ObjectEditorPage'))
 const SceneEditorPage = lazy(() => import('../pages/SceneEditorPage'))
-const InstancedMeshTestPage = lazy(() => import('../pages/InstancedMeshTestPage'))
 
 export default function Router() {
   return (
@@ -24,7 +23,7 @@ export default function Router() {
         <Route path="/scenes/:id/edit" element={<SceneEditorPage />} />
         <Route path="/objects/new" element={<ObjectEditorPage />} />
         <Route path="/objects/:id/edit" element={<ObjectEditorPage />} />
-        <Route path="/test/instanced-mesh" element={<InstancedMeshTestPage />} />
+        {/** demo route removed */}
       </Routes>
     </Suspense>
   )
