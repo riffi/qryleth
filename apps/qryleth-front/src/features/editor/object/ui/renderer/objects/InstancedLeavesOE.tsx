@@ -162,9 +162,18 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     objectMaterials
   }), [sample, objectMaterials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
-  // Целевой цвет листвы из материала (линейное пространство) — для HSV‑покраски
+  /**
+   * Вычисляет целевой цвет листвы в линейном пространстве для HSV‑покраски текстуры.
+   *
+   * Важно: при выборе роли из палитры (ColorSource.type = 'role') итоговый цвет должен
+   * браться из резолвнутых свойств материала с учётом активной палитры (materialProps.color),
+   * а не напрямую из material.properties.color. Иначе цвет палитры не применяется к листьям,
+   * так как у материала всегда есть базовый hex в properties.color, который «перебивает» палитру.
+   */
   const targetLeafColorLinear = useMemo(() => {
-    const hex = (resolvedMaterial?.properties as any)?.color || (materialProps as any)?.color || '#2E8B57'
+    // Сначала используем цвет, уже вычисленный с учётом палитры (materialProps.color),
+    // затем — сырой цвет из материала как запасной вариант.
+    const hex = (materialProps as any)?.color || (resolvedMaterial?.properties as any)?.color || '#2E8B57'
     const c = new THREE.Color(hex)
     ;(c as any).convertSRGBToLinear?.()
     return c

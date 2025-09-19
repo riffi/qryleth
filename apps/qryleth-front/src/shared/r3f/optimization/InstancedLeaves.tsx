@@ -220,9 +220,15 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     objectMaterials: materials || sceneObject.materials,
   }), [samplePrimitive, materials, sceneObject.materials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
-  // Целевой цвет листвы из материала (линейное пространство) для HSV‑покраски
+  /**
+   * Целевой цвет листвы (линейное пространство) для HSV‑покраски.
+   *
+   * При выборе роли из палитры (ColorSource: role) основной цвет должен браться из
+   * резолвнутых свойств с учётом активной палитры (materialProps.color). Использование
+   * сырого поля material.properties.color приводит к игнорированию палитры.
+   */
   const targetLeafColorLinear = useMemo(() => {
-    const hex = (resolvedMaterial as any)?.properties?.color || (materialProps as any)?.color || '#2E8B57'
+    const hex = (materialProps as any)?.color || (resolvedMaterial as any)?.properties?.color || '#2E8B57'
     const c = new THREE.Color(hex)
     ;(c as any).convertSRGBToLinear?.()
     return c
