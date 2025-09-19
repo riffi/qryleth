@@ -23,6 +23,16 @@ interface InstancedLeavesProps {
   instances: SceneObjectInstance[]
   materials?: any[]
   segments?: number
+  /**
+   * Доля листьев для отрисовки (LOD), 0..1. Если не задано — используются все листья.
+   * Сэмплинг детерминированный по UUID листа, чтобы набор был стабилен между кадрами.
+   */
+  sampleRatio?: number
+  /**
+   * Дополнительный множитель масштаба листьев. Используется для дальнего LOD,
+   * чтобы компенсировать уменьшение количества и сохранить визуальную плотность.
+   */
+  scaleMul?: number
   onClick?: (event: any) => void
   onHover?: (event: any) => void
 }
@@ -37,6 +47,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   instances,
   materials,
   segments = 16,
+  sampleRatio,
+  scaleMul = 1,
   onClick,
   onHover,
 }) => {
@@ -53,11 +65,27 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   // Ссылка на материал (для доступа к uniforms при установке uTexCenter из хука)
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   // Список биллборд‑листьев (исключаем сферические), используем ниже во всех мемо/эффектах
-  const billboardLeaves = useMemo(() => {
+  const billboardLeavesRaw = useMemo(() => {
     const arr = spheres.filter(s => s.primitive.geometry.shape !== 'sphere')
-    dbg('billboardLeaves computed', { total: spheres.length, billboard: arr.length })
+    dbg('billboardLeavesRaw computed', { total: spheres.length, billboard: arr.length })
     return arr
   }, [spheres])
+  /**
+   * Применяет детерминированный LOD‑сэмплинг листьев по UUID.
+   * При sampleRatio ∈ (0..1) выбирает стабильное подмножество, чтобы избежать «дрожания» набора.
+   */
+  const billboardLeaves = useMemo(() => {
+    if (sampleRatio == null || sampleRatio >= 0.999) return billboardLeavesRaw
+    const ratio = Math.max(0, Math.min(1, sampleRatio))
+    const out: typeof billboardLeavesRaw = []
+    const hashToUnit = (s: string): number => { let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h=Math.imul(h,16777619) } return (h>>>0)/4294967295 }
+    for (const it of billboardLeavesRaw) {
+      const id = ((it.primitive as any)?.uuid || `${(it.primitive as any)?.name || 'leaf'}`) as string
+      if (hashToUnit(id) <= ratio) out.push(it)
+    }
+    dbg('billboardLeaves LOD-sampled', { in: billboardLeavesRaw.length, out: out.length, ratio })
+    return out
+  }, [billboardLeavesRaw, sampleRatio])
   // Признак наличия текстурных листьев (по shape или по наличию texSpriteName)
   const hasTextureLeaves = useMemo(
     () => {
@@ -151,8 +179,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // Итоговый масштаб: радиус * scale примитива * scale инстанса (равномерный)
         const r = prim.geometry.radius || 0.5
         const shape = prim.geometry.shape || 'billboard'
-        const scaleMul = shape === 'coniferCross' ? 2.0 : 1.0
-        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * scaleMul
+        const shapeScaleMul = shape === 'coniferCross' ? 2.0 : 1.0
+        // Итоговый множитель масштаба = форма (для «креста» выше) × глобальный LOD‑множитель scaleMul
+        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * shapeScaleMul * (scaleMul || 1)
         const sh = prim.geometry.shape || 'billboard'
         const sx = sh === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
         const sy = uniformScale

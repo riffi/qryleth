@@ -299,6 +299,51 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   onClick,
   onHover
 }) => {
+  /**
+   * LOD для множественных инстансов одного объекта.
+   * Делим инстансы на ближние/дальние с гистерезисом, чтобы каждый кадр
+   * не «дёргать» состав. Для дальних: только ствол (без веток) и листья —
+   * подвыборка + увеличенный размер (визуально сохраняется плотность).
+   */
+  const groupRef = React.useRef<THREE.Group>(null)
+  const [lodFarMap, setLodFarMap] = React.useState<Record<string, boolean>>({})
+  const [nearInstances, setNearInstances] = React.useState<SceneObjectInstance[]>(instances)
+  const [farInstances, setFarInstances] = React.useState<SceneObjectInstance[]>([])
+
+  // Пороговые значения дистанции (мировые единицы)
+  const LOD_NEAR = 40
+  const LOD_FAR = 60
+
+  // Ежекадровая переоценка принадлежности инстансов зонам LOD
+  useFrame(({ camera }) => {
+    // Разворачиваем карту в новые списки с гистерезисом
+    let changed = false
+    const nextMap: Record<string, boolean> = { ...lodFarMap }
+    const nextNear: SceneObjectInstance[] = []
+    const nextFar: SceneObjectInstance[] = []
+
+    for (const inst of instances) {
+      const id = inst.uuid
+      const p = inst.transform?.position || [0, 0, 0]
+      const dist = Math.hypot(
+        (camera.position.x - p[0]),
+        (camera.position.y - p[1]),
+        (camera.position.z - p[2])
+      )
+      const wasFar = !!lodFarMap[id]
+      const nowFar = wasFar ? (dist > LOD_NEAR) : (dist > LOD_FAR)
+      if (nowFar !== wasFar) changed = true
+      nextMap[id] = nowFar
+      if (nowFar) nextFar.push(inst); else nextNear.push(inst)
+    }
+
+    // Обновляем состояние только при изменениях, чтобы избежать лишних перерисовок
+    if (changed || nextNear.length !== nearInstances.length || nextFar.length !== farInstances.length) {
+      setLodFarMap(nextMap)
+      setNearInstances(nextNear)
+      setFarInstances(nextFar)
+    }
+  })
   // Попытка объединить все цилиндры (ветви/ствол) в один InstancedMesh с шейдером сужения
   const cylinders: { primitive: any; index: number }[] = []
   const spheres: { primitive: any; index: number }[] = []
@@ -310,24 +355,25 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
   })
 
   return (
-    <group>
-      {cylinders.length > 0 && (
+    <group ref={groupRef}>
+      {/* Ближние инстансы (полная модель) */}
+      {cylinders.length > 0 && nearInstances.length > 0 && (
         <InstancedBranches
           sceneObject={sceneObject}
           cylinders={cylinders}
-          instances={instances}
+          instances={nearInstances}
           materials={sceneObject.materials}
           onClick={onClick}
           onHover={onHover}
         />
       )}
 
-      {spheres.length > 0 && (
+      {spheres.length > 0 && nearInstances.length > 0 && (
         <>
           <InstancedLeaves
             sceneObject={sceneObject}
             spheres={spheres}
-            instances={instances}
+            instances={nearInstances}
             materials={sceneObject.materials}
             onClick={onClick}
             onHover={onHover}
@@ -335,8 +381,46 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
           <InstancedLeafSpheres
             sceneObject={sceneObject}
             leaves={spheres as any}
-            instances={instances}
+            instances={nearInstances}
             materials={sceneObject.materials}
+            onClick={onClick}
+            onHover={onHover}
+          />
+        </>
+      )}
+
+      {/* Дальние инстансы (упрощенная модель) */}
+      {cylinders.length > 0 && farInstances.length > 0 && (
+        <InstancedBranches
+          sceneObject={sceneObject}
+          cylinders={cylinders.filter(c => c.primitive.type === 'trunk')}
+          instances={farInstances}
+          materials={sceneObject.materials}
+          radialSegments={8}
+          onClick={onClick}
+          onHover={onHover}
+        />
+      )}
+
+      {spheres.length > 0 && farInstances.length > 0 && (
+        <>
+          <InstancedLeaves
+            sceneObject={sceneObject}
+            spheres={spheres}
+            instances={farInstances}
+            materials={sceneObject.materials}
+            sampleRatio={0.4}
+            scaleMul={3}
+            onClick={onClick}
+            onHover={onHover}
+          />
+          <InstancedLeafSpheres
+            sceneObject={sceneObject}
+            leaves={spheres as any}
+            instances={farInstances}
+            materials={sceneObject.materials}
+            sampleRatio={0.4}
+            scaleMul={1.55}
             onClick={onClick}
             onHover={onHover}
           />

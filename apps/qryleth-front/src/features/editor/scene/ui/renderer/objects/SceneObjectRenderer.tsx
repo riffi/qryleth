@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PrimitiveRenderer } from '@/shared/r3f/primitives/PrimitiveRenderer.tsx'
@@ -80,7 +80,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   const assignments = sceneObject.primitiveGroupAssignments || {}
 
   // Получаем корневые группы (без parentGroupUuid)
-  const rootGroups = hasGroups 
+  const rootGroups = hasGroups
     ? Object.values(sceneObject.primitiveGroups!).filter(group => !group.parentGroupUuid)
     : []
 
@@ -110,6 +110,29 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
     })
     return { cylinders, leaves, rest }
   }, [isTreeObject, sceneObject.primitives])
+
+  /**
+   * LOD для деревьев: переключаемся между «ближним» (полная модель) и «дальним»
+   * (только ствол + меньше листьев, но крупнее) уровнями в зависимости от дистанции
+   * камеры до мировой позиции инстанса. Используем гистерезис, чтобы избежать дрожания.
+   */
+  const [lodFar, setLodFar] = useState(false)
+  // Пороговые расстояния для переключения (в мировых единицах сцены)
+  const LOD_NEAR = 40 // вернуться к детальной модели при приближении ближе этого значения
+  const LOD_FAR = 60  // перейти на дальний LOD при удалении дальше этого значения
+  useFrame(({ camera }) => {
+    const g = groupRef.current
+    if (!g) return
+    const wp = new THREE.Vector3()
+    g.getWorldPosition(wp)
+    const dist = wp.distanceTo(camera.position)
+    if (lodFar) {
+      if (dist < LOD_NEAR) setLodFar(false)
+    } else {
+      if (dist > LOD_FAR) setLodFar(true)
+    }
+    console.log('lod far', lodFar)
+  })
 
   return (
     <group
@@ -154,68 +177,85 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
             {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
             {isTreeObject && treeBuckets ? (
               <>
-                {treeBuckets.cylinders.length > 0 && (
-                  <InstancedBranches
-                    sceneObject={sceneObject}
-                    cylinders={treeBuckets.cylinders as any}
-                    instances={[normalizedInstance]}
-                    materials={sceneObject.materials}
-                    onClick={(e) => onClick?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      point: (e as any).point,
-                      object: (e as any).object,
-                    })}
-                    onHover={(e) => onHover?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      objectInstanceIndex: instanceIndex,
-                      object: (e as any).object,
-                    })}
-                  />
-                )}
+                {(() => {
+                  // Варианты LOD
+                  const cylindersNear = treeBuckets.cylinders
+                  const cylindersFar = treeBuckets.cylinders.filter(c => c.primitive.type === 'trunk')
+                  // Параметры листьев дальнего LOD: уменьшаем количество, увеличиваем размер
+                  const leafSample = 1
+                  const leafScaleMul = 22.55
+                  return (
+                    <>
+                      {(lodFar ? cylindersFar.length : cylindersNear.length) > 0 && (
+                        <InstancedBranches
+                          sceneObject={sceneObject}
+                          cylinders={(lodFar ? cylindersFar : cylindersNear) as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          radialSegments={lodFar ? 8 : 12}
+                          onClick={(e) => onClick?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            point: (e as any).point,
+                            object: (e as any).object,
+                          })}
+                          onHover={(e) => onHover?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            objectInstanceIndex: instanceIndex,
+                            object: (e as any).object,
+                          })}
+                        />
+                      )}
 
-                {treeBuckets.leaves.length > 0 && (
-                  <InstancedLeaves
-                    sceneObject={sceneObject}
-                    spheres={treeBuckets.leaves as any}
-                    instances={[normalizedInstance]}
-                    materials={sceneObject.materials}
-                    onClick={(e) => onClick?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      point: (e as any).point,
-                      object: (e as any).object,
-                    })}
-                    onHover={(e) => onHover?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      objectInstanceIndex: instanceIndex,
-                      object: (e as any).object,
-                    })}
-                  />
-                )}
+                      {treeBuckets.leaves.length > 0 && (
+                        <InstancedLeaves
+                          sceneObject={sceneObject}
+                          spheres={treeBuckets.leaves as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          sampleRatio={lodFar ? leafSample : undefined}
+                          scaleMul={lodFar ? leafScaleMul : 1}
+                          onClick={(e) => onClick?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            point: (e as any).point,
+                            object: (e as any).object,
+                          })}
+                          onHover={(e) => onHover?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            objectInstanceIndex: instanceIndex,
+                            object: (e as any).object,
+                          })}
+                        />
+                      )}
 
-                {treeBuckets.leaves.length > 0 && (
-                  <InstancedLeafSpheres
-                    sceneObject={sceneObject}
-                    leaves={treeBuckets.leaves as any}
-                    instances={[normalizedInstance]}
-                    materials={sceneObject.materials}
-                    onClick={(e) => onClick?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      point: (e as any).point,
-                      object: (e as any).object,
-                    })}
-                    onHover={(e) => onHover?.({
-                      objectUuid: instance.objectUuid,
-                      instanceId: instance.uuid,
-                      objectInstanceIndex: instanceIndex,
-                      object: (e as any).object,
-                    })}
-                  />
-                )}
+                      {treeBuckets.leaves.length > 0 && (
+                        <InstancedLeafSpheres
+                          sceneObject={sceneObject}
+                          leaves={treeBuckets.leaves as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          sampleRatio={lodFar ? leafSample : undefined}
+                          scaleMul={lodFar ? leafScaleMul : 1}
+                          onClick={(e) => onClick?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            point: (e as any).point,
+                            object: (e as any).object,
+                          })}
+                          onHover={(e) => onHover?.({
+                            objectUuid: instance.objectUuid,
+                            instanceId: instance.uuid,
+                            objectInstanceIndex: instanceIndex,
+                            object: (e as any).object,
+                          })}
+                        />
+                      )}
+                    </>
+                  )
+                })()}
 
                 {treeBuckets.rest.map(({ primitive, index }) => (
                   <PrimitiveRenderer

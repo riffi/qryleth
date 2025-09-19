@@ -20,6 +20,15 @@ interface InstancedLeafSpheresProps {
   instances: SceneObjectInstance[]
   materials?: any[]
   segments?: number
+  /**
+   * Доля сфер‑листьев для отрисовки (LOD), 0..1. Если не задано — все листья.
+   * Сэмплинг детерминированный по UUID для стабильности между кадрами.
+   */
+  sampleRatio?: number
+  /**
+   * Доп. множитель масштаба для дальнего LOD, чтобы компенсировать уменьшение количества листьев.
+   */
+  scaleMul?: number
   onClick?: (event: any) => void
   onHover?: (event: any) => void
 }
@@ -33,6 +42,8 @@ export const InstancedLeafSpheres: React.FC<InstancedLeafSpheresProps> = ({
   instances,
   materials,
   segments = 12,
+  sampleRatio,
+  scaleMul = 1,
   onClick,
   onHover,
 }) => {
@@ -49,7 +60,21 @@ export const InstancedLeafSpheres: React.FC<InstancedLeafSpheresProps> = ({
   }), [sample, materials, sceneObject.materials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
 
-  const sphereLeaves = useMemo(() => leaves.filter(l => l.primitive.geometry.shape === 'sphere'), [leaves])
+  const sphereLeavesRaw = useMemo(() => leaves.filter(l => l.primitive.geometry.shape === 'sphere'), [leaves])
+  /**
+   * Детерминированный LOD‑сэмплинг сферических листьев по UUID.
+   */
+  const sphereLeaves = useMemo(() => {
+    if (sampleRatio == null || sampleRatio >= 0.999) return sphereLeavesRaw
+    const ratio = Math.max(0, Math.min(1, sampleRatio))
+    const out: typeof sphereLeavesRaw = []
+    const hashToUnit = (s: string): number => { let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h=Math.imul(h,16777619) } return (h>>>0)/4294967295 }
+    for (const it of sphereLeavesRaw) {
+      const id = ((it.primitive as any)?.uuid || `${(it.primitive as any)?.name || 'leaf'}`) as string
+      if (hashToUnit(id) <= ratio) out.push(it)
+    }
+    return out
+  }, [sphereLeavesRaw, sampleRatio])
   const count = instances.length * sphereLeaves.length
 
   useEffect(() => {
@@ -80,7 +105,7 @@ export const InstancedLeafSpheres: React.FC<InstancedLeafSpheresProps> = ({
         vLocal.add(new THREE.Vector3(ix, iy, iz))
 
         const r = prim.geometry.radius || 0.5
-        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz))
+        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * (scaleMul || 1)
 
         dummy.position.set(vLocal.x, vLocal.y, vLocal.z)
         dummy.quaternion.copy(qFinal)
