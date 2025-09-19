@@ -28,6 +28,10 @@ interface InstancedBranchesProps {
   instances: SceneObjectInstance[]
   materials?: any[]
   radialSegments?: number
+  /** Прозрачность для кросс‑фейда LOD (0..1). Если указан < 1, материал станет прозрачным. */
+  opacity?: number
+  /** Переопределение depthWrite для избежания z‑конфликтов при фейде. */
+  depthWrite?: boolean
   onClick?: (event: any) => void
   onHover?: (event: any) => void
 }
@@ -43,6 +47,8 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
   instances,
   materials,
   radialSegments = 12,
+  opacity,
+  depthWrite,
   onClick,
   onHover,
 }) => {
@@ -301,6 +307,9 @@ export const InstancedBranches: React.FC<InstancedBranchesProps> = ({
       <meshStandardMaterial
         ref={onMaterialRef}
         {...materialProps}
+        opacity={opacity != null ? opacity : (materialProps as any).opacity}
+        depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
+        transparent={opacity != null ? (opacity < 1 || (materialProps as any).transparent) : (materialProps as any).transparent}
         // Если подключена цветовая карта коры, убираем доп. тинт: устанавливаем белый базовый цвет.
         // Иначе mapColor будет умножаться на material.color, что визуально затемняет результат.
         color={colorMap ? '#ffffff' : (materialProps as any).color}

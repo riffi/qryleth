@@ -153,42 +153,74 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           ...instance,
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
         }
+        // Единые параметры LOD + кросс‑фейд
+        const { isFar: lodFar, lodBlend, leafSampleRatio, leafScaleMul, trunkRadialSegments } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+        const nearAlpha = 1 - lodBlend
+        const farAlpha = lodBlend
+        const blending = lodBlend > 0.001 && lodBlend < 0.999
         return (
           <>
             {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
             {isTreeObject && treeBuckets ? (
               <>
                 {(() => {
-                  // Варианты LOD
                   const cylindersNear = treeBuckets.cylinders
                   const cylindersFar = treeBuckets.cylinders.filter(c => c.primitive.type === 'trunk')
-                  // Параметры листьев дальнего LOD: уменьшаем количество, увеличиваем размер
-                  const leafSample = 0.4
-                  const leafScaleMul = 1.55
                   return (
                     <>
-                      {(lodFar ? cylindersFar.length : cylindersNear.length) > 0 && (
+                      {/* Near LOD — полная модель, с кросс‑фейдом */}
+                      {cylindersNear.length > 0 && (
                         <InstancedBranches
                           sceneObject={sceneObject}
-                          cylinders={(lodFar ? cylindersFar : cylindersNear) as any}
+                          cylinders={cylindersNear as any}
                           instances={[normalizedInstance]}
                           materials={sceneObject.materials}
-                          radialSegments={trunkRadialSegments}
-                          onClick={(e) => onClick?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            point: (e as any).point,
-                            object: (e as any).object,
-                          })}
-                          onHover={(e) => onHover?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            objectInstanceIndex: instanceIndex,
-                            object: (e as any).object,
-                          })}
+                          radialSegments={defaultTreeLodConfig.nearTrunkRadialSegments}
+                          opacity={nearAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
+                        />
+                      )}
+                      {treeBuckets.leaves.length > 0 && (
+                        <InstancedLeaves
+                          sceneObject={sceneObject}
+                          spheres={treeBuckets.leaves as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          opacity={nearAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
+                        />
+                      )}
+                      {treeBuckets.leaves.length > 0 && (
+                        <InstancedLeafSpheres
+                          sceneObject={sceneObject}
+                          leaves={treeBuckets.leaves as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          opacity={nearAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
 
+                      {/* Far LOD — только ствол + редуцированные и крупнее листья, с кросс‑фейдом */}
+                      {cylindersFar.length > 0 && (
+                        <InstancedBranches
+                          sceneObject={sceneObject}
+                          cylinders={cylindersFar as any}
+                          instances={[normalizedInstance]}
+                          materials={sceneObject.materials}
+                          radialSegments={defaultTreeLodConfig.farTrunkRadialSegments}
+                          opacity={farAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
+                        />
+                      )}
                       {treeBuckets.leaves.length > 0 && (
                         <InstancedLeaves
                           sceneObject={sceneObject}
@@ -197,21 +229,12 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           materials={sceneObject.materials}
                           sampleRatio={leafSampleRatio}
                           scaleMul={leafScaleMul}
-                          onClick={(e) => onClick?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            point: (e as any).point,
-                            object: (e as any).object,
-                          })}
-                          onHover={(e) => onHover?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            objectInstanceIndex: instanceIndex,
-                            object: (e as any).object,
-                          })}
+                          opacity={farAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
-
                       {treeBuckets.leaves.length > 0 && (
                         <InstancedLeafSpheres
                           sceneObject={sceneObject}
@@ -220,18 +243,10 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           materials={sceneObject.materials}
                           sampleRatio={leafSampleRatio}
                           scaleMul={leafScaleMul}
-                          onClick={(e) => onClick?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            point: (e as any).point,
-                            object: (e as any).object,
-                          })}
-                          onHover={(e) => onHover?.({
-                            objectUuid: instance.objectUuid,
-                            instanceId: instance.uuid,
-                            objectInstanceIndex: instanceIndex,
-                            object: (e as any).object,
-                          })}
+                          opacity={farAlpha}
+                          depthWrite={!blending}
+                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
+                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
                     </>

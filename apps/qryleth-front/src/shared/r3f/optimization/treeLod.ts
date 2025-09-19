@@ -22,19 +22,25 @@ export interface TreeLodConfig {
   nearTrunkRadialSegments: number
   farTrunkRadialSegments: number
   includeBranchesFar: boolean
+  // Минимальная длительность удержания условия для переключения LOD (мс)
+  switchDebounceMs?: number
+  // Длительность плавного перехода между LOD (мс)
+  fadeDurationMs?: number
 }
 
 /**
  * Базовые значения LOD, подобранные для сохранения визуальной похожести дерева в дальнем LOD.
  */
 export const defaultTreeLodConfig: TreeLodConfig = {
-  nearDistance: 28,
-  farDistance: 42,
-  farLeafSampleRatio: 0.2,
+  nearDistance: 50,
+  farDistance: 70,
+  farLeafSampleRatio: 0.4,
   farLeafScaleMul: 2.55,
   nearTrunkRadialSegments: 12,
   farTrunkRadialSegments: 8,
   includeBranchesFar: false,
+  switchDebounceMs: 300,
+  fadeDurationMs: 300,
 }
 
 /**
@@ -48,17 +54,41 @@ export function useSingleTreeLod(
 ) {
   const cfg = { ...defaultTreeLodConfig, ...(config || {}) }
   const [isFar, setIsFar] = React.useState(false)
+  const [blend, setBlend] = React.useState(0) // 0..1
+  const pendingSinceRef = React.useRef<number | null>(null)
 
-  useFrame(({ camera }) => {
+  useFrame((state, delta) => {
+    const camera = state.camera
     const g = groupRef.current
     if (!g) return
     const wp = new THREE.Vector3()
     g.getWorldPosition(wp)
     const dist = wp.distanceTo(camera.position)
-    if (isFar) {
-      if (dist < cfg.nearDistance) setIsFar(false)
+    const desiredFar = isFar ? (dist > cfg.nearDistance) : (dist > cfg.farDistance)
+
+    if (desiredFar !== isFar) {
+      const now = performance.now()
+      if (pendingSinceRef.current == null) pendingSinceRef.current = now
+      const held = now - pendingSinceRef.current
+      if ((cfg.switchDebounceMs || 0) <= 0 || held >= (cfg.switchDebounceMs || 0)) {
+        setIsFar(desiredFar)
+        pendingSinceRef.current = null
+      }
     } else {
-      if (dist > cfg.farDistance) setIsFar(true)
+      pendingSinceRef.current = null
+    }
+
+    // Плавный фейд к целевому состоянию
+    const target = isFar ? 1 : 0
+    const durMs = Math.max(1, cfg.fadeDurationMs || 300)
+    const step = delta * (1000 / durMs)
+    if (Math.abs(blend - target) > 1e-3) {
+      setBlend(prev => {
+        let v = prev + (target > prev ? step : -step)
+        if (target > prev) v = Math.min(target, v)
+        else v = Math.max(target, v)
+        return v
+      })
     }
   })
 
@@ -68,6 +98,7 @@ export function useSingleTreeLod(
     leafScaleMul: isFar ? cfg.farLeafScaleMul : 1,
     trunkRadialSegments: isFar ? cfg.farTrunkRadialSegments : cfg.nearTrunkRadialSegments,
     includeBranchesInFar: cfg.includeBranchesFar,
+    lodBlend: blend,
     config: cfg,
   }
 }
@@ -83,10 +114,12 @@ export function usePartitionInstancesByLod(
 ) {
   const cfg = { ...defaultTreeLodConfig, ...(config || {}) }
   const [lodFarMap, setLodFarMap] = React.useState<Record<string, boolean>>({})
+  const pendingSinceRef = React.useRef<Record<string, number>>({})
   const [nearInstances, setNearInstances] = React.useState<SceneObjectInstance[]>(instances)
   const [farInstances, setFarInstances] = React.useState<SceneObjectInstance[]>([])
 
-  useFrame(({ camera }) => {
+  useFrame((state) => {
+    const camera = state.camera
     let changed = false
     const nextMap: Record<string, boolean> = { ...lodFarMap }
     const nextNear: SceneObjectInstance[] = []
@@ -100,12 +133,25 @@ export function usePartitionInstancesByLod(
       const dz = camera.position.z - p[2]
       const dist = Math.hypot(dx, dy, dz)
       const wasFar = !!lodFarMap[id]
-      // Гистерезис: если уже далеко — вернуться только при dist < near;
-      // если близко — уйти в far только при dist > far.
-      const nowFar = wasFar ? (dist > cfg.nearDistance) : (dist > cfg.farDistance)
-      if (nowFar !== wasFar) changed = true
-      nextMap[id] = nowFar
-      if (nowFar) nextFar.push(inst); else nextNear.push(inst)
+      const desiredFar = wasFar ? (dist > cfg.nearDistance) : (dist > cfg.farDistance)
+
+      if (desiredFar !== wasFar) {
+        const now = performance.now()
+        const since = pendingSinceRef.current[id] ?? now
+        pendingSinceRef.current[id] = since
+        if ((cfg.switchDebounceMs || 0) <= 0 || (now - since) >= (cfg.switchDebounceMs || 0)) {
+          nextMap[id] = desiredFar
+          changed = true
+          pendingSinceRef.current[id] = now
+        } else {
+          nextMap[id] = wasFar
+        }
+      } else {
+        pendingSinceRef.current[id] = performance.now()
+        nextMap[id] = wasFar
+      }
+
+      if (nextMap[id]) nextFar.push(inst); else nextNear.push(inst)
     }
 
     if (
@@ -130,4 +176,3 @@ export function usePartitionInstancesByLod(
     config: cfg,
   }
 }
-

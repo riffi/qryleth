@@ -33,6 +33,10 @@ interface InstancedLeavesProps {
    * чтобы компенсировать уменьшение количества и сохранить визуальную плотность.
    */
   scaleMul?: number
+  /** Прозрачность для кросс‑фейда LOD (0..1). Если указан < 1, материал станет прозрачным. */
+  opacity?: number
+  /** Переопределение depthWrite для избежания z‑конфликтов при фейде. */
+  depthWrite?: boolean
   onClick?: (event: any) => void
   onHover?: (event: any) => void
 }
@@ -49,6 +53,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   segments = 16,
   sampleRatio,
   scaleMul = 1,
+  opacity,
+  depthWrite,
   onClick,
   onHover,
 }) => {
@@ -345,6 +351,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRefPatched}
         {...materialProps}
+        opacity={opacity != null ? opacity : (materialProps as any).opacity}
+        depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
         color={effectiveShape === 'texture' ? (!!diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
@@ -352,7 +360,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
         roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={effectiveShape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
+        transparent={effectiveShape === 'texture'
+          ? (!!diffuseMap ? true : (opacity != null ? (opacity < 1) : false))
+          : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
         alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />
     </instancedMesh>

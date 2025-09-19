@@ -29,6 +29,10 @@ interface InstancedLeafSpheresProps {
    * Доп. множитель масштаба для дальнего LOD, чтобы компенсировать уменьшение количества листьев.
    */
   scaleMul?: number
+  /** Прозрачность для кросс‑фейда LOD (0..1). Если указан < 1, материал станет прозрачным. */
+  opacity?: number
+  /** Переопределение depthWrite для избежания z‑конфликтов при фейде. */
+  depthWrite?: boolean
   onClick?: (event: any) => void
   onHover?: (event: any) => void
 }
@@ -44,6 +48,8 @@ export const InstancedLeafSpheres: React.FC<InstancedLeafSpheresProps> = ({
   segments = 12,
   sampleRatio,
   scaleMul = 1,
+  opacity,
+  depthWrite,
   onClick,
   onHover,
 }) => {
@@ -170,7 +176,12 @@ export const InstancedLeafSpheres: React.FC<InstancedLeafSpheresProps> = ({
       onClick={handleClick}
       onPointerOver={handleHover}
     >
-      <meshStandardMaterial {...materialProps} />
+      <meshStandardMaterial
+        {...materialProps}
+        opacity={opacity != null ? opacity : (materialProps as any).opacity}
+        depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
+        transparent={opacity != null ? (opacity < 1 || (materialProps as any).transparent) : (materialProps as any).transparent}
+      />
     </instancedMesh>
   )
 }
