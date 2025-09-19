@@ -7,9 +7,12 @@ import {
   Badge,
   ScrollArea,
   Box,
-  Button
+  Button,
+  ActionIcon,
+  Tooltip,
+  Menu
 } from '@mantine/core'
-import { IconFolderPlus } from '@tabler/icons-react'
+import { IconFolderPlus, IconEye, IconEyeOff } from '@tabler/icons-react'
 import {
   useObjectPrimitives,
   useObjectSelectedPrimitiveIds,
@@ -20,6 +23,7 @@ import {
   useSelectedGroupUuids
 } from '../../model/objectStore.ts'
 import type { GfxPrimitive } from '@/entities/primitive'
+import { getPrimitiveIcon } from '@/entities/primitive'
 import type { GfxGroupTreeNode } from '@/entities/primitiveGroup'
 import { buildGroupTree, findGroupChildren } from '@/entities/primitiveGroup'
 import { movePrimitiveToGroup } from '@/entities/primitiveGroup/lib/coordinateUtils'
@@ -394,10 +398,96 @@ export const PrimitiveManager: React.FC = () => {
    * Рекурсивно рендерит узел дерева групп вместе с принадлежащими ему примитивами.
    * @param node узел дерева групп
    */
+  /**
+   * Рендерит узел дерева групп вместе с вложенными подгруппами и примитивами.
+   * Для примитивов типа 'leaf' (листья) в каждой группе не показывается
+   * детальный список — вместо этого отображается одна строка «листья».
+   * Это уменьшает визуальный шум при большом количестве листьев.
+   *
+   * @param node Узел дерева групп, содержащий информацию о группе и её детях
+   * @returns React-элементы для отображения группы и принадлежащих ей примитивов
+   */
   const renderGroupNode = (node: GfxGroupTreeNode): React.ReactNode => {
+    // Получаем примитивы, назначенные текущей группе
     const primitivesInGroup = primitives.filter(
       p => primitiveGroupAssignments[p.uuid] === node.group.uuid
     )
+    // Разделяем листья и остальные типы примитивов
+    const leafPrimitivesInGroup = primitivesInGroup.filter(p => p.type === 'leaf')
+    const nonLeafPrimitivesInGroup = primitivesInGroup.filter(p => p.type !== 'leaf')
+
+    /**
+     * Вспомогательная функция: рендер агрегированной строки для листьев в пределах группы.
+     * Отображает иконку листа, заголовок с количеством и переключатель видимости,
+     * а также иконку выпадающего меню (пока без действий).
+     * Переключатель видимости применяет состояние ко всем листьям группы сразу:
+     * если есть хотя бы один видимый лист — скрывает все, иначе показывает все.
+     */
+    const renderLeavesAggregateRow = () => {
+      const leafCount = leafPrimitivesInGroup.length
+      if (leafCount === 0) return null
+
+      const anyVisible = leafPrimitivesInGroup.some(p => p.visible !== false)
+      const Icon = getPrimitiveIcon('leaf')
+
+      /**
+       * Обработчик клика по переключателю видимости для агрегированной строки листьев.
+       * Устанавливает одинаковое состояние видимости для всех листьев в группе
+       * путём явного обновления поля visible у каждого соответствующего примитива.
+       */
+      const handleToggleLeavesVisibility = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        // Выставляем явное значение visible для всех листьев в группе
+        const newVisible = !anyVisible
+        leafPrimitivesInGroup.forEach(lp => {
+          const idx = primitives.findIndex(p => p.uuid === lp.uuid)
+          if (idx !== -1) {
+            updatePrimitive(idx, { visible: newVisible })
+          }
+        })
+      }
+
+      return (
+        <Box
+          style={{
+            padding: '4px 4px',
+            borderRadius: 4,
+            cursor: 'default',
+            backgroundColor: 'transparent',
+            border: '1px solid transparent'
+          }}
+        >
+          <Group gap="xs" wrap="nowrap">
+            <Icon size={16} color="var(--mantine-color-blue-4)" />
+            <Text size="sm" style={{ flex: 1, userSelect: 'none' }} fw={500}>
+              {`Листья (${leafCount})`}
+            </Text>
+            <Group gap="xs">
+              <Tooltip label={anyVisible ? 'Скрыть листья' : 'Показать листья'}>
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  color={anyVisible ? 'blue' : 'gray'}
+                  onClick={handleToggleLeavesVisibility}
+                >
+                  {anyVisible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                </ActionIcon>
+              </Tooltip>
+              <Menu shadow="md" width={150}>
+                <Menu.Target>
+                  <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
+                    <Text size="xs" fw={700}>⋮</Text>
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item disabled>Действий нет</Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+          </Group>
+        </Box>
+      )
+    }
 
     return (
       <PrimitiveGroupItem
@@ -422,7 +512,9 @@ export const PrimitiveManager: React.FC = () => {
       >
         <Stack gap="xs">
           {node.children.map(renderGroupNode)}
-          {primitivesInGroup.map(primitive => {
+          {renderLeavesAggregateRow()}
+          {/* Остальные примитивы рендерим поштучно */}
+          {nonLeafPrimitivesInGroup.map(primitive => {
             const originalIndex = primitives.findIndex(p => p.uuid === primitive.uuid)
             return renderPrimitive(primitive, originalIndex)
           })}
@@ -499,7 +591,69 @@ export const PrimitiveManager: React.FC = () => {
             >
               <Text size="sm" fw={500} c="dimmed" mb="xs">Без группы:</Text>
               <Stack gap="xs">
-                {ungroupedPrimitives.map(primitive => {
+                {/* Агрегированная строка для листьев вне групп */}
+                {(() => {
+                  const leaves = ungroupedPrimitives.filter(p => p.type === 'leaf')
+                  if (leaves.length === 0) return null
+                  const anyVisible = leaves.some(p => p.visible !== false)
+                  const Icon = getPrimitiveIcon('leaf')
+
+                  /**
+                   * Переключает видимость всех листьев без группы одновременно.
+                   * Если есть хотя бы один видимый лист — скрываем все, иначе показываем все.
+                   */
+                  const handleToggleUngroupedLeaves = (e: React.MouseEvent) => {
+                    e.stopPropagation()
+                    const newVisible = !anyVisible
+                    leaves.forEach(lp => {
+                      const idx = primitives.findIndex(p => p.uuid === lp.uuid)
+                      if (idx !== -1) updatePrimitive(idx, { visible: newVisible })
+                    })
+                  }
+
+                  return (
+                    <Box
+                      style={{
+                        padding: '4px 4px',
+                        borderRadius: 4,
+                        cursor: 'default',
+                        backgroundColor: 'transparent',
+                        border: '1px solid transparent'
+                      }}
+                    >
+                      <Group gap="xs" wrap="nowrap">
+                        <Icon size={16} color="var(--mantine-color-blue-4)" />
+                        <Text size="sm" style={{ flex: 1, userSelect: 'none' }} fw={500}>
+                          {`Листья (${leaves.length})`}
+                        </Text>
+                        <Group gap="xs">
+                          <Tooltip label={anyVisible ? 'Скрыть листья' : 'Показать листья'}>
+                            <ActionIcon
+                              size="xs"
+                              variant="subtle"
+                              color={anyVisible ? 'blue' : 'gray'}
+                              onClick={handleToggleUngroupedLeaves}
+                            >
+                              {anyVisible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
+                            </ActionIcon>
+                          </Tooltip>
+                          <Menu shadow="md" width={150}>
+                            <Menu.Target>
+                              <ActionIcon size="xs" variant="transparent" onClick={(e) => e.stopPropagation()}>
+                                <Text size="xs" fw={700}>⋮</Text>
+                              </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                              <Menu.Item disabled>Действий нет</Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Group>
+                      </Group>
+                    </Box>
+                  )
+                })()}
+                {/* Остальные примитивы перечисляем как раньше */}
+                {ungroupedPrimitives.filter(p => p.type !== 'leaf').map(primitive => {
                   const originalIndex = primitives.findIndex(p => p.uuid === primitive.uuid)
                   return (
                     <PrimitiveItem
