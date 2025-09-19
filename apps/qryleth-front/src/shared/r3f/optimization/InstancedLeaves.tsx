@@ -40,11 +40,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   onClick,
   onHover,
 }) => {
-  const dbg = (...args: any[]) => {
-    // Отладочные логи рендера листьев в Scene Editor
-    // eslint-disable-next-line no-console
-    console.log('[InstancedLeaves]', ...args)
-  }
+  // Беззвучный отладочный помощник (подавляет логи в консоль)
+  const dbg = (..._args: any[]) => {}
   const meshRef = useRef<THREE.InstancedMesh>(null)
 
   // Палитра сцены
@@ -314,7 +311,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       onPointerOver={handleHover}
       renderOrder={1}
     >
-      {(() => { /* eslint-disable no-console */ console.log('[InstancedLeaves] render', { count, effectiveShape, hasTextureLeaves, maps: { d: !!diffuseMap, a: !!alphaMap, n: !!normalMap, r: !!roughnessMap } }); return null })()}
+      {/* debug render log removed */}
       <meshStandardMaterial
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRefPatched}
