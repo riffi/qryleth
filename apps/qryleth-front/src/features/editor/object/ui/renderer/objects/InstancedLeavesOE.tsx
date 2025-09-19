@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { leafTextureRegistry } from '@/shared/lib/textures'
+import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
+import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useObjectStore } from '../../../model/objectStore'
 import type { GfxPrimitive } from '@/entities/primitive'
 import type { GfxMaterial } from '@/entities/material'
@@ -266,50 +268,27 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     onPrimitiveHover({ ...event, userData: { generated: true, primitiveIndex } })
   }
 
-  // Геометрия: для coniferCross используем «крест» из двух плоскостей, иначе — одиночную плоскость
+  // Геометрия: общий помощник для плоскости/«креста»
   const geometry = useMemo(() => {
     const shape = (sample as any)?.geometry?.shape || 'billboard'
-    const makePlane = () => new THREE.PlaneGeometry(1, 1, 1, 1)
-    if (shape === 'coniferCross') {
-      const p1 = makePlane()
-      const p2 = makePlane()
-      p2.rotateY(Math.PI / 2)
-      // Сшиваем вручную
-      const g = new THREE.BufferGeometry()
-      const pos1 = p1.getAttribute('position') as THREE.BufferAttribute
-      const pos2 = p2.getAttribute('position') as THREE.BufferAttribute
-      const uv1 = p1.getAttribute('uv') as THREE.BufferAttribute
-      const uv2 = p2.getAttribute('uv') as THREE.BufferAttribute
-      const normal1 = p1.getAttribute('normal') as THREE.BufferAttribute
-      const normal2 = p2.getAttribute('normal') as THREE.BufferAttribute
-      const index1 = p1.getIndex()!
-      const index2 = p2.getIndex()!
-      const positions = new Float32Array(pos1.array.length + pos2.array.length)
-      positions.set(pos1.array as any, 0)
-      positions.set(pos2.array as any, pos1.array.length)
-      const uvs = new Float32Array(uv1.array.length + uv2.array.length)
-      uvs.set(uv1.array as any, 0)
-      uvs.set(uv2.array as any, uv1.array.length)
-      const normals = new Float32Array(normal1.array.length + normal2.array.length)
-      normals.set(normal1.array as any, 0)
-      normals.set(normal2.array as any, normal1.array.length)
-      const idx = new Uint16Array(index1.array.length + index2.array.length)
-      idx.set(index1.array as any, 0)
-      const offset = pos1.count
-      for (let i = 0; i < index2.array.length; i++) idx[index1.array.length + i] = (index2.array as any)[i] + offset
-      g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-      g.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
-      g.setIndex(new THREE.BufferAttribute(idx, 1))
-      g.computeBoundingSphere()
-      g.computeBoundingBox()
-      return g
-    }
-    return makePlane()
+    return shape === 'coniferCross' ? makeConiferCrossGeometry() : makeLeafPlaneGeometry()
   }, [sample])
 
   // Тот же материал с onBeforeCompile: маска/изгиб/подсветка
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Унифицированная настройка материала через общий патчер шейдеров листвы
+  const onMaterialRefPatched = (mat: THREE.MeshStandardMaterial | null) => {
+    if (!mat) return
+    materialRef.current = mat
+    patchLeafMaterial(mat, {
+      shape: ((sample as any)?.geometry?.shape || 'billboard') as any,
+      texAspect: texAspect || 1,
+      rectDebug: !!leafRectDebug,
+      edgeDebug: false,
+      leafPaintFactor,
+      targetLeafColorLinear: targetLeafColorLinear,
+    })
+  }
   /**
    * Настройка материала листьев перед компиляцией шейдера.
    * Добавляет униформы и шейдерные вставки:
@@ -439,7 +418,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       */}
       <meshStandardMaterial
         key={`leafMat-${spriteNameKey}`}
-        ref={onMaterialRef}
+        ref={onMaterialRefPatched}
         {...materialProps}
         // Для режимов с цветовой картой листа избегаем двойного умножения цвета (tint),
         // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.

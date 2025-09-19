@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { leafTextureRegistry } from '@/shared/lib/textures'
+import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
+import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -346,47 +348,24 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
   // Переходим от сфер к плоским биллбордам-листьям: базовая геометрия — плоскость 1x1
   const geometry = useMemo(() => {
-    const shape = effectiveShape
-    const makePlane = () => new THREE.PlaneGeometry(1, 1, 1, 1)
-    if (shape === 'coniferCross') {
-      const p1 = makePlane()
-      const p2 = makePlane()
-      p2.rotateY(Math.PI / 2)
-      const g = new THREE.BufferGeometry()
-      const pos1 = p1.getAttribute('position') as THREE.BufferAttribute
-      const pos2 = p2.getAttribute('position') as THREE.BufferAttribute
-      const uv1 = p1.getAttribute('uv') as THREE.BufferAttribute
-      const uv2 = p2.getAttribute('uv') as THREE.BufferAttribute
-      const normal1 = p1.getAttribute('normal') as THREE.BufferAttribute
-      const normal2 = p2.getAttribute('normal') as THREE.BufferAttribute
-      const index1 = p1.getIndex()!
-      const index2 = p2.getIndex()!
-      const positions = new Float32Array(pos1.array.length + pos2.array.length)
-      positions.set(pos1.array as any, 0)
-      positions.set(pos2.array as any, pos1.array.length)
-      const uvs = new Float32Array(uv1.array.length + uv2.array.length)
-      uvs.set(uv1.array as any, 0)
-      uvs.set(uv2.array as any, uv1.array.length)
-      const normals = new Float32Array(normal1.array.length + normal2.array.length)
-      normals.set(normal1.array as any, 0)
-      normals.set(normal2.array as any, normal1.array.length)
-      const idx = new Uint16Array(index1.array.length + index2.array.length)
-      idx.set(index1.array as any, 0)
-      const offset = pos1.count
-      for (let i = 0; i < index2.array.length; i++) idx[index1.array.length + i] = (index2.array as any)[i] + offset
-      g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-      g.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
-      g.setIndex(new THREE.BufferAttribute(idx, 1))
-      g.computeBoundingSphere()
-      g.computeBoundingBox()
-      return g
-    }
-    return makePlane()
+    return effectiveShape === 'coniferCross' ? makeConiferCrossGeometry() : makeLeafPlaneGeometry()
   }, [effectiveShape])
 
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Унифицированная настройка материала через общий патчер шейдеров листвы
+  const onMaterialRefPatched = (mat: THREE.MeshStandardMaterial | null) => {
+    if (!mat) return
+    materialRef.current = mat
+    patchLeafMaterial(mat, {
+      shape: effectiveShape,
+      texAspect: texAspect || 1,
+      rectDebug: false,
+      edgeDebug: false,
+      leafPaintFactor: paintFactorFromObject,
+      targetLeafColorLinear: targetLeafColorLinear,
+    })
+  }
   /**
    * Настраивает стандартный материал листьев (инстансированный) перед компиляцией.
    * Помимо существующих правок (маска формы, изгиб, рамка/подсветка) добавляет
@@ -566,7 +545,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       {(() => { /* eslint-disable no-console */ console.log('[InstancedLeaves] render', { count, effectiveShape, hasTextureLeaves, maps: { d: !!diffuseMap, a: !!alphaMap, n: !!normalMap, r: !!roughnessMap } }); return null })()}
       <meshStandardMaterial
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
-        ref={onMaterialRef}
+        ref={onMaterialRefPatched}
         {...materialProps}
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
