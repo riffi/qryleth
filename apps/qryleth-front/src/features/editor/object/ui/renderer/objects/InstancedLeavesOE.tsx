@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { leafTextureRegistry } from '@/shared/lib/textures'
+import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
 import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useObjectStore } from '../../../model/objectStore'
@@ -34,129 +34,19 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   // Разброс применения фактора по листьям (0..1)
   const leafPaintJitter: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintJitter ?? 0)
   const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
-  /**
-   * Карты текстур для режима shape = 'texture'. Загружаются лениво при первом появлении такого режима.
-   * - diffuseMap: цветовая карта
-   * - alphaMap: карта прозрачности (маска формы листа)
-   * - normalMap: нормали (для микрорельефа)
-   * - roughnessMap: шероховатость
-   * - texAspect: отношение сторон текстуры (width/height) для корректного масштаба по X
-   */
-  const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
-  const [alphaMap, setAlphaMap] = useState<THREE.Texture | null>(null)
-  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
-  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
-  const [texAspect, setTexAspect] = useState<number>(1)
-  const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[] | null>(null)
-  // Нормированная точка основания спрайта внутри прямоугольника (u,v), u,v в [0..1] с началом в левом верхнем углу
-  const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
   // Текущее имя спрайта для материал‑ключа (форсируем ремонт при смене)
   const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
+  const shape = (sample as any)?.geometry?.shape || 'billboard'
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Общий хук: загрузка карт/atlas + crop и anchor/texAspect + uTexCenter
+  const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
+    texSetId,
+    shape === 'texture',
+    (sample as any)?.geometry?.texSpriteName,
+    () => (materialRef.current as any)?.userData?.uniforms,
+  )
 
-  /**
-   * Загружает текстуры листьев из реестра наборов, если выбран режим 'texture'.
-   * Используем первый доступный набор из реестра (или конкретный id), с резервом на прежние пути.
-   */
-  useEffect(() => {
-    const shape = (sample as any)?.geometry?.shape || 'billboard'
-    if (shape !== 'texture') return
-    const loader = new THREE.TextureLoader()
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
-    const colorUrl = set?.colorMapUrl
-    const opacityUrl = set?.opacityMapUrl
-    const normalUrl = set?.normalMapUrl
-    const roughnessUrl = set?.roughnessMapUrl
-    const onTex = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
-      // Оставляем flipY по умолчанию (true), чтобы формулы offset/UV совпадали с atlas.json
-      t.anisotropy = 4
-      t.needsUpdate = true
-    }
-    // Загружаем карты по ссылкам из набора: Color + Opacity, чтобы соответствовать atlas.json
-    if (colorUrl) loader.load(colorUrl, (t2) => {
-      onTex(t2)
-      // Цветовая карта листьев должна быть в sRGB, иначе получится визуально темнее.
-      ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
-      t2.center.set(0.0, 0.0)
-      t2.rotation = 0
-      setDiffuseMap(t2)
-      const img2: any = t2.image
-      if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
-    })
-    else { setDiffuseMap(null) }
-    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t) })
-    else setAlphaMap(null)
-    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t) })
-    else setNormalMap(null)
-    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t) })
-    else setRoughnessMap(null)
-  }, [sample, texSetId])
-
-  // Обновляем центр (держим rotation=0; не вращаем UV)
-  useEffect(() => {
-    if ((sample as any)?.geometry?.shape !== 'texture') return
-    const applyRot = (t: THREE.Texture | null) => { if (!t) return; t.center.set(0.0,0.0); t.rotation = 0; t.needsUpdate = true }
-    applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
-  }, [sample, diffuseMap, alphaMap, normalMap, roughnessMap])
-
-  // Загружаем atlas.json (переменные прямоугольники листьев) из активного набора реестра
-  useEffect(() => {
-    const shape = (sample as any)?.geometry?.shape || 'billboard'
-    if (shape !== 'texture') return
-    const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
-    const atlasUrl = set?.atlasUrl
-    if (atlasUrl) fetch(atlasUrl).then(r => r.json()).then(setAtlas).catch(() => setAtlas(null))
-    else setAtlas(null)
-  }, [sample, texSetId])
-
-  // Применяем выбранный спрайт из атласа: repeat/offset, центр, aspect
-  useEffect(() => {
-    if ((sample as any)?.geometry?.shape !== 'texture') return
-    if (!diffuseMap) return
-    const img: any = diffuseMap.image
-    if (!img || !img.width || !img.height) return
-    const W = img.width, H = img.height
-    const spriteName: string | undefined = (sample as any)?.geometry?.texSpriteName
-    const items = atlas || []
-    const rect: any = (items.find(i => i.name === spriteName) || items[0])
-    if (!rect) return
-    const repX = rect.width / W
-    const repY = rect.height / H
-    const offX = rect.x / W
-    const offYFlipTrue = 1 - (rect.y + rect.height) / H // конверсия от top-left к UV при flipY=true (по умолчанию)
-    const offYFlipFalse = rect.y / H // вариант для flipY=false
-    const cx = offX + repX * 0.5
-    const cyFlipTrue = offYFlipTrue + repY * 0.5
-    const cyFlipFalse = offYFlipFalse + repY * 0.5
-    const applyRect = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.repeat.set(repX, repY)
-      t.offset.set(offX, t.flipY ? offYFlipTrue : offYFlipFalse)
-      t.center.set(0.0, 0.0)
-      // Вращение выполняем в шейдере, здесь держим rotation=0, чтобы сначала применился crop
-      t.rotation = 0
-      t.needsUpdate = true
-    }
-    applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)
-    setTexAspect(rect.width / rect.height)
-    // Центр поворота внутри текущего спрайта (если будем вращать в шейдере)
-    if (materialRef.current && (materialRef.current as any).userData?.uniforms?.uTexCenter) {
-      const u = (materialRef.current as any).userData.uniforms
-      const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
-      u.uTexCenter.value.set(cx, cy)
-    }
-    // Читаем точку основания из атласа (anchorX/anchorY либо anchor: {x,y}); по умолчанию — нижняя середина (0.5, 1.0)
-    const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
-    const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
-    if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
-      const uN = Math.min(1, Math.max(0, ax / rect.width))
-      const vN = Math.min(1, Math.max(0, ay / rect.height))
-      setAnchorUV([uN, vN])
-    } else {
-      setAnchorUV([0.5, 1.0])
-    }
-  }, [atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (sample as any)?.geometry?.texSpriteName])
+  // useLeafTextures берёт на себя загрузку карт/atlas и расчёт anchor/texAspect/uTexCenter
   const resolvedMaterial = useMemo(() => resolveMaterial({
     directMaterial: sample?.material,
     objectMaterialUuid: sample?.objectMaterialUuid,
@@ -275,7 +165,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   }, [sample])
 
   // Тот же материал с onBeforeCompile: маска/изгиб/подсветка
-  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // materialRef объявлен выше
   // Унифицированная настройка материала через общий патчер шейдеров листвы
   const onMaterialRefPatched = (mat: THREE.MeshStandardMaterial | null) => {
     if (!mat) return
@@ -289,96 +179,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       targetLeafColorLinear: targetLeafColorLinear,
     })
   }
-  /**
-   * Настройка материала листьев перед компиляцией шейдера.
-   * Добавляет униформы и шейдерные вставки:
-   * - uAspect/uBend/Debug для маски/изгиба/рамки (как раньше);
-   * - uLeafPaintFactor/uLeafTargetColor и RGB↔HSV функции для покраски
-   *   текстуры к цвету материала листвы (Hue/Saturation), яркость сохраняется.
-   */
-  const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
-    if (!mat) return
-    materialRef.current = mat
-    mat.side = THREE.DoubleSide
-    mat.alphaTest = 0.5
-    mat.onBeforeCompile = (shader) => {
-      const shape = (sample as any)?.geometry?.shape || 'billboard'
-      const aspect = shape === 'coniferCross' ? 2.4 : (shape === 'texture' ? (texAspect || 1) : 0.6)
-      shader.uniforms.uAspect = { value: aspect }
-      shader.uniforms.uEdgeSoftness = { value: 0.18 }
-      shader.uniforms.uBend = { value: shape === 'coniferCross' ? 0.06 : 0.08 }
-      // Яркая прямоугольная рамка по UV краям плоскости (для texture)
-      shader.uniforms.uRectDebug = { value: (shape === 'texture' && leafRectDebug) ? 1.0 : 0.0 }
-      shader.uniforms.uRectColor = { value: new THREE.Color(0xff00ff) }
-      shader.uniforms.uRectWidth = { value: 0.02 }
-      // Центр поворота UV (держим для совместимости, хотя поворот геометрии)
-      shader.uniforms.uTexCenter = { value: new THREE.Vector2(0.5, 0.5) }
-      {
-        const vCommon = (shape === 'texture')
-          ? `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aLeafPaintMul;\nvarying float vLeafPaintMul;\nvarying vec2 vLeafUv;`
-          : `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`
-        const vBegin = (shape === 'texture')
-          ? `\n          vec3 pos = position;\n          vLeafUv = uv;\n          vLeafPaintMul = aLeafPaintMul;\n          float bend = (vLeafUv.y - 0.5);\n          // Небольшой изгиб вдоль нормали — подходит и для креста и текстуры\n          pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n          vec3 transformed = pos;\n        `
-          : `\n          vec3 pos = position;\n          vLeafUv = uv;\n          float bend = (vLeafUv.y - 0.5);\n          pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n          vec3 transformed = pos;\n        `
-        shader.vertexShader = shader.vertexShader
-          .replace('#include <common>', vCommon)
-          .replace('#include <begin_vertex>', vBegin)
-          .replace('#include <uv_vertex>', `#include <uv_vertex>`)
-      }
-      // Для текстурных листьев используем альфа из PNG; не подмешиваем круговую маску
-      if (shape !== 'texture') {
-        // Вставляем только необходимые uniform'ы, без дублирования объявления vLeafUv
-        // Объявление varying vLeafUv выполняется ниже в едином блоке для всех режимов
-        shader.fragmentShader = shader.fragmentShader
-          .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;`)
-          .replace('#include <alphatest_fragment>', `
-            float dx = (vLeafUv.x - 0.5) / 0.5;
-            float dy = (vLeafUv.y - 0.5) / 0.5 / uAspect;
-            float r2 = dx*dx + dy*dy;
-            float alphaMask = smoothstep(1.0 - uEdgeSoftness, 1.0, 1.0 - r2);
-            diffuseColor.a *= alphaMask;
-            #include <alphatest_fragment>
-          `)
-      }
-      // Гарантируем видимость прямоугольного контура независимо от alphaMap: усиливаем альфу перед alphaTest
-      if (shape === 'texture') {
-        shader.fragmentShader = shader.fragmentShader
-          .replace('#include <alphatest_fragment>', `
-            // Подмешиваем альфу рамки по UV‑краям плоскости перед пороговой отсечкой
-            if (uRectDebug > 0.5) {
-              float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));
-              float wr = max(uRectWidth, fwidth(d) * 2.0);
-              float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);
-              diffuseColor.a = max(diffuseColor.a, edgeR);
-            }
-            #include <alphatest_fragment>
-          `)
-      }
-      // Подсветка краёв + (для текстуры) HSV‑покраска текстуры к цвету материала листвы
-      {
-        let frag = shader.fragmentShader
-        // Debug‑uniforms (общие)
-        const debugCommon = `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\n${shape === 'texture' ? 'uniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }' : ''}\n${shape === 'texture' ? 'varying float vLeafPaintMul;\n' : ''}varying vec2 vLeafUv;`
-        frag = frag.replace('#include <common>', debugCommon)
-        // Вставка в map_fragment: сначала HSV‑покраска (только для текстуры), затем debug‑блок
-        const hsvBlock = (shape === 'texture') ? `\n  float leafEff = uLeafPaintFactor * vLeafPaintMul;\n  if (leafEff > 0.0001) {\n    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    vec3 tgt = rgb2hsv(uLeafTargetColor);\n    hsv.x = mixHue(hsv.x, tgt.x, leafEff);\n    hsv.y = mix(hsv.y, tgt.y, leafEff);\n    diffuseColor.rgb = hsv2rgb(hsv);\n  }\n` : ''
-        const debugMap = `#include <map_fragment>\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n    float wr = max(uRectWidth, fwidth(d) * 2.0);\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n    diffuseColor.a = max(diffuseColor.a, edgeR);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n  }\n`
-        frag = frag.replace('#include <map_fragment>', debugMap.replace('#include <map_fragment>', `#include <map_fragment>${hsvBlock}`))
-        shader.fragmentShader = frag
-      }
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <lights_fragment_end>', `
-          #include <lights_fragment_end>
-          float back = clamp(dot(normalize(-geometryNormal), normalize(vec3(0.2, 1.0, 0.1))), 0.0, 1.0);
-          reflectedLight.indirectDiffuse += vec3(0.06, 0.1, 0.06) * back;
-        `)
-      // Инициализация униформов для HSV‑покраски
-      shader.uniforms.uLeafPaintFactor = { value: leafPaintFactor }
-      shader.uniforms.uLeafTargetColor = { value: new THREE.Color(targetLeafColorLinear.r, targetLeafColorLinear.g, targetLeafColorLinear.b) }
-      ;(mat as any).userData.uniforms = shader.uniforms
-    }
-    mat.needsUpdate = true
-  }
+  // legacy onBeforeCompile удалён
 
   // Обновляем флаг uRectDebug при переключении тумблера в UI без пересоздания материала
   useEffect(() => {

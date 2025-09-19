@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { leafTextureRegistry } from '@/shared/lib/textures'
+import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
 import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
@@ -53,17 +53,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
   // Разрешаем материал из первого листа (ожидается «Листья»)
   const samplePrimitive = spheres[0]?.primitive as any
-  /**
-   * Текстуры листьев для режима shape = 'texture'.
-   * Загружаются по требованию и переиспользуются всеми инстансами.
-   */
-  const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
-  const [alphaMap, setAlphaMap] = useState<THREE.Texture | null>(null)
-  const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
-  const [roughnessMap, setRoughnessMap] = useState<THREE.Texture | null>(null)
-  const [texAspect, setTexAspect] = useState<number>(1)
-  const [atlas, setAtlas] = useState<{ name: string; x: number; y: number; width: number; height: number }[] | null>(null)
-  const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
+  // Ссылка на материал (для доступа к uniforms при установке uTexCenter из хука)
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   // Список биллборд‑листьев (исключаем сферические), используем ниже во всех мемо/эффектах
   const billboardLeaves = useMemo(() => {
     const arr = spheres.filter(s => s.primitive.geometry.shape !== 'sphere')
@@ -99,122 +90,15 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const paintFactorFromObject: number = (sceneObject as any)?.treeData?.params?.leafTexturePaintFactor ?? 0
   const paintJitterFromObject: number = (sceneObject as any)?.treeData?.params?.leafTexturePaintJitter ?? 0
 
-  // Загрузка карт из реестра наборов текстур при выборе режима 'texture'
-  useEffect(() => {
-    dbg('texture load effect start', { hasTextureLeaves })
-    if (!hasTextureLeaves) return
-    const loader = new THREE.TextureLoader()
-    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0]
-    const colorUrl = set?.colorMapUrl
-    const opacityUrl = set?.opacityMapUrl
-    const normalUrl = set?.normalMapUrl
-    const roughnessUrl = set?.roughnessMapUrl
-    const onTex = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
-      // flipY оставляем по умолчанию (true), чтобы расчёты offset/UV совпадали с atlas.json
-      t.anisotropy = 4
-      t.needsUpdate = true
-    }
-    // Используем ссылки из реестра (JPG Color + JPG Opacity), чтобы соответствовать atlas.json
-    if (colorUrl) loader.load(colorUrl, (t2) => {
-      onTex(t2)
-      // Цветовая карта листьев должна быть в sRGB, иначе изображение выглядит темнее из-за линейной интерпретации
-      ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
-      t2.center.set(0.0,0.0)
-      t2.rotation = 0
-      setDiffuseMap(t2)
-      const img2: any = t2.image
-      dbg('diffuse loaded', { w: img2?.width, h: img2?.height })
-      if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
-    }, undefined, (err) => {
-      dbg('ERROR loading diffuse', err)
-    })
-    else { setDiffuseMap(null) }
-    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setAlphaMap(t); dbg('alpha loaded') }, undefined, (err) => dbg('ERROR loading alpha', err))
-    else setAlphaMap(null)
-    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setNormalMap(t); dbg('normal loaded') }, undefined, (err) => dbg('ERROR loading normal', err))
-    else setNormalMap(null)
-    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); t.center.set(0.0,0.0); t.rotation = 0; setRoughnessMap(t); dbg('roughness loaded') }, undefined, (err) => dbg('ERROR loading roughness', err))
-    else setRoughnessMap(null)
-  }, [hasTextureLeaves, setIdFromObject])
+  // Унифицированная загрузка текстур/атласа и расчёт anchor/texAspect с установкой uTexCenter
+  const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
+    setIdFromObject,
+    effectiveShape === 'texture',
+    (textureSample as any)?.geometry?.texSpriteName,
+    () => (materialRef.current as any)?.userData?.uniforms,
+  )
 
-  useEffect(() => {
-    dbg('apply rot/center', { hasTextureLeaves, hasMaps: !!diffuseMap })
-    if (!hasTextureLeaves) return
-    const applyRot = (t: THREE.Texture | null) => { if (!t) return; t.center.set(0.0,0.0); t.rotation = 0; t.needsUpdate = true }
-    applyRot(diffuseMap); applyRot(alphaMap); applyRot(normalMap); applyRot(roughnessMap)
-  }, [hasTextureLeaves, diffuseMap, alphaMap, normalMap, roughnessMap])
-
-  // Без поворота UV — ничего не делаем
-  useEffect(() => { /* noop */ }, [hasTextureLeaves])
-
-  // Загружаем atlas.json с произвольными прямоугольниками из активного набора реестра
-  useEffect(() => {
-    dbg('fetch atlas', { hasTextureLeaves })
-    if (!hasTextureLeaves) return
-    const set = (setIdFromObject && leafTextureRegistry.get(setIdFromObject)) || leafTextureRegistry.list()[0]
-    const atlasUrl = set?.atlasUrl
-    if (atlasUrl) {
-      fetch(atlasUrl)
-        .then(r => r.json())
-        .then(a => { setAtlas(a); dbg('atlas loaded', a?.length) })
-        .catch((e) => { setAtlas(null); dbg('ERROR loading atlas', e) })
-    } else {
-      setAtlas(null)
-    }
-  }, [hasTextureLeaves, setIdFromObject])
-
-  // Применяем выбранный прямоугольник: repeat/offset/center и aspect
-  useEffect(() => {
-    dbg('apply rect', { hasTextureLeaves, hasDiffuse: !!diffuseMap, sprite: (textureSample as any)?.geometry?.texSpriteName })
-    if (!hasTextureLeaves) return
-    if (!diffuseMap) return
-    const img: any = diffuseMap.image
-    if (!img || !img.width || !img.height) return
-    const W = img.width, H = img.height
-    const spriteName: string | undefined = (textureSample?.geometry as any)?.texSpriteName
-    const items = atlas || []
-    const rect: any = (items.find(i => i.name === spriteName) || items[0])
-    if (!rect) return
-    dbg('rect chosen', { spriteName, rect })
-    const repX = rect.width / W
-    const repY = rect.height / H
-    const offX = rect.x / W
-    const offYFlipTrue = 1 - (rect.y + rect.height) / H
-    const offYFlipFalse = rect.y / H
-    const cx = offX + repX * 0.5
-    const cyFlipTrue = offYFlipTrue + repY * 0.5
-    const cyFlipFalse = offYFlipFalse + repY * 0.5
-    const applyRect = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.repeat.set(repX, repY)
-      t.offset.set(offX, t.flipY ? offYFlipTrue : offYFlipFalse)
-      t.center.set(0.0, 0.0)
-      t.rotation = 0
-      t.needsUpdate = true
-    }
-    applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)
-    setTexAspect(rect.width / rect.height)
-    if (materialRef.current && (materialRef.current as any).userData?.uniforms?.uTexCenter) {
-      const u = (materialRef.current as any).userData.uniforms
-      const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
-      u.uTexCenter.value.set(cx, cy)
-      dbg('uTexCenter set', { cx, cy })
-    }
-    // Anchor: читаем из atlas.json; по умолчанию — нижняя середина (0.5, 1.0)
-    const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
-    const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
-    if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
-      const uN = Math.min(1, Math.max(0, ax / rect.width))
-      const vN = Math.min(1, Math.max(0, ay / rect.height))
-      setAnchorUV([uN, vN])
-      dbg('anchor set', { u: uN, v: vN })
-    } else {
-      setAnchorUV([0.5, 1.0])
-      dbg('anchor default')
-    }
-  }, [hasTextureLeaves, atlas, diffuseMap, alphaMap, normalMap, roughnessMap, (textureSample as any)?.geometry?.texSpriteName])
+  // useLeafTextures берёт на себя загрузку карт/atlas и расчёт anchor/texAspect/uTexCenter
   const resolvedMaterial = useMemo(() => resolveMaterial({
     directMaterial: samplePrimitive?.material,
     objectMaterialUuid: samplePrimitive?.objectMaterialUuid,
@@ -352,7 +236,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   }, [effectiveShape])
 
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
-  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // materialRef объявлен выше
   // Унифицированная настройка материала через общий патчер шейдеров листвы
   const onMaterialRefPatched = (mat: THREE.MeshStandardMaterial | null) => {
     if (!mat) return
@@ -366,6 +250,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       targetLeafColorLinear: targetLeafColorLinear,
     })
   }
+  // LEGACY: блок ниже (старый onBeforeCompile и принудительная установка карт) отключён
+  if (false) {
   /**
    * Настраивает стандартный материал листьев (инстансированный) перед компиляцией.
    * Помимо существующих правок (маска формы, изгиб, рамка/подсветка) добавляет
@@ -463,7 +349,6 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     }
     mat.needsUpdate = true
   }
-
   // Если карты загрузились, принудительно назначаем их в материал и помечаем на обновление
   useEffect(() => {
     if (!materialRef.current) return
@@ -478,6 +363,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     mat.alphaTest = diffuseMap ? 0.5 : 0.0
     mat.needsUpdate = true
   }, [effectiveShape, diffuseMap, alphaMap, normalMap, roughnessMap])
+  }
 
   // Генерация инстансового атрибута aLeafPaintMul: множитель применения фактора на каждый инстанс листа
   useEffect(() => {

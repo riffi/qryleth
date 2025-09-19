@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { useEffect, useState } from 'react'
 import { leafTextureRegistry } from '@/shared/lib/textures'
 
 export interface LeafTextureSetState {
@@ -29,7 +30,6 @@ export function useLeafTextures(
   spriteName: string | undefined,
   getUniforms?: () => any,
 ): LeafTextureSetState {
-  const [state, setState] = (window as any).React?.useState<LeafTextureSetState> || require('react').useState<LeafTextureSetState>
   const [diffuseMap, setDiffuseMap] = useState<THREE.Texture | null>(null)
   const [alphaMap, setAlphaMap] = useState<THREE.Texture | null>(null)
   const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
@@ -39,7 +39,6 @@ export function useLeafTextures(
   const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
 
   // Загрузка карт
-  const { useEffect } = require('react')
   useEffect(() => {
     if (!enabled) {
       setDiffuseMap(null); setAlphaMap(null); setNormalMap(null); setRoughnessMap(null)
@@ -148,4 +147,3 @@ export function useLeafTextures(
 
   return { diffuseMap, alphaMap, normalMap, roughnessMap, atlas, texAspect, anchorUV }
 }
-
