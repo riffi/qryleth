@@ -71,6 +71,8 @@ export const TreeGeneratorPanel: React.FC = () => {
   // Параметры материалов
   const [barkColor, setBarkColor] = useState('#8B5A2B')
   const [leafColor, setLeafColor] = useState('#2E8B57')
+  // Флаг: использовать ли роль палитры для материала листвы (по умолчанию включено)
+  const [leafUsePaletteRole, setLeafUsePaletteRole] = useState<boolean>(true)
   const [clearBefore, setClearBefore] = useState(true)
   // Debug‑флаги Object Editor
   const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
@@ -212,7 +214,15 @@ export const TreeGeneratorPanel: React.FC = () => {
     // Применяем параметры генератора из объекта (не перетираем отсутствующие ключи)
     setParams(prev => ({ ...prev, ...(treeDataStore.params as any) }))
     if (barkMat?.properties?.color) setBarkColor(String(barkMat.properties.color))
-    if (leafMat?.properties?.color) setLeafColor(String(leafMat.properties.color))
+    // Инициализация для листвы: если у материала задан источник цвета из палитры — включаем флаг и скрываем локальный цвет,
+    // иначе используем локальный цвет из материала
+    const src: any = (leafMat as any)?.properties?.colorSource
+    if (src && src.type === 'role') {
+      setLeafUsePaletteRole(true)
+    } else {
+      setLeafUsePaletteRole(false)
+      if (leafMat?.properties?.color) setLeafColor(String(leafMat.properties.color))
+    }
 
     initSignatureRef.current = nextSig
   }, [objectTypeStore, treeDataStore, materials])
@@ -233,6 +243,16 @@ export const TreeGeneratorPanel: React.FC = () => {
 
     if (!barkUuid || !leafUuid) {
       const base = createDefaultTreeMaterials({ barkColor, leafColor })
+      // Применяем логику палитры для листьев в зависимости от галочки
+      const leafBase = base[1]
+      if (leafUsePaletteRole) {
+        // Включаем роль палитры foliage
+        ;(leafBase.properties as any).colorSource = { type: 'role', role: 'foliage' }
+      } else {
+        // Фиксированный цвет: выключаем роль палитры
+        if ((leafBase.properties as any).colorSource) delete (leafBase.properties as any).colorSource
+        ;(leafBase.properties as any).color = leafColor
+      }
       // Если один из материалов отсутствует — создаём оба для консистентности
       const newBarkUuid = addMaterial(base[0])
       const newLeafUuid = addMaterial(base[1])
@@ -246,12 +266,24 @@ export const TreeGeneratorPanel: React.FC = () => {
           color: barkColor,
         }
       } as any)
-      updateMaterial(leafUuid, {
-        properties: {
-          ...(existingLeaf?.properties || {}),
-          color: leafColor,
-        }
-      } as any)
+      if (leafUsePaletteRole) {
+        updateMaterial(leafUuid, {
+          properties: {
+            ...(existingLeaf?.properties || {}),
+            // Включаем роль палитры foliage; локальный цвет оставляем без изменений как бэкап
+            colorSource: { type: 'role', role: 'foliage' } as any,
+          }
+        } as any)
+      } else {
+        updateMaterial(leafUuid, {
+          properties: {
+            ...(existingLeaf?.properties || {}),
+            // Выключаем роль палитры и используем фиксированный цвет
+            color: leafColor,
+            colorSource: { type: 'fixed' } as any,
+          }
+        } as any)
+      }
     }
 
     // Сохраняем тип объекта и параметры процедурного дерева в стор
@@ -771,9 +803,21 @@ export const TreeGeneratorPanel: React.FC = () => {
         {/* Sticky footer */}
         <Box className={classes.footerSticky}>
           <Divider label="Материалы" />
-          <Group grow>
+          <Group grow align="end">
             <ColorInput label="Цвет коры" value={barkColor} onChange={setBarkColor} format="hex" withEyeDropper/>
-            <ColorInput label="Цвет листвы" value={leafColor} onChange={setLeafColor} format="hex" withEyeDropper/>
+            <Stack gap={6} style={{ flex: 1 }}>
+              <Switch
+                label="Использовать роль палитры"
+                checked={leafUsePaletteRole}
+                onChange={(e) => setLeafUsePaletteRole(e.currentTarget.checked)}
+              />
+              {!leafUsePaletteRole && (
+                <ColorInput label="Цвет листвы" value={leafColor} onChange={setLeafColor} format="hex" withEyeDropper/>
+              )}
+              {leafUsePaletteRole && (
+                <Text size="xs" c="dimmed">Роль: foliage (цвет из активной палитры)</Text>
+              )}
+            </Stack>
           </Group>
 
           <Group justify="flex-end" mt="sm">

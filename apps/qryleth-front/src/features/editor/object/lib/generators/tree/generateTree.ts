@@ -1286,7 +1286,11 @@ export function createDefaultTreeMaterials(options?: {
       type: 'dielectric',
       isGlobal: false,
       properties: {
+        // По умолчанию используем роль палитры для листвы
+        // Цвет будет вычисляться из активной палитры (роль 'foliage').
+        // Локальный цвет оставляем как запасной (на случай отсутствия палитры/резолвера).
         color: options?.leafColor ?? '#2E8B57',
+        colorSource: { type: 'role', role: 'foliage' } as any,
         roughness: 0.7,
         metalness: 0.0,
       },
