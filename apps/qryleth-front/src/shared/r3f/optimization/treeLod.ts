@@ -32,8 +32,8 @@ export interface TreeLodConfig {
  * Базовые значения LOD, подобранные для сохранения визуальной похожести дерева в дальнем LOD.
  */
 export const defaultTreeLodConfig: TreeLodConfig = {
-  nearDistance: 50,
-  farDistance: 70,
+  nearDistance: 60,
+  farDistance: 90,
   farLeafSampleRatio: 0.4,
   farLeafScaleMul: 2.55,
   nearTrunkRadialSegments: 12,
@@ -43,32 +43,58 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   fadeDurationMs: 300,
 }
 
+// Кешируем векторы для переиспользования
+const _worldPos = new THREE.Vector3()
+const _cameraPos = new THREE.Vector3()
+
 /**
  * Хук LOD для одиночного инстанса дерева. Отслеживает расстояние до камеры
  * относительно мировой позиции объекта (groupRef) и с гистерезисом переключает
  * флаг дальнего LOD. Возвращает параметризацию для рендера.
  */
 export function useSingleTreeLod(
-  groupRef: React.RefObject<THREE.Object3D>,
-  config?: Partial<TreeLodConfig>
+    groupRef: React.RefObject<THREE.Object3D>,
+    config?: Partial<TreeLodConfig>
 ) {
-  const cfg = { ...defaultTreeLodConfig, ...(config || {}) }
+  const cfg = React.useMemo(() => ({ ...defaultTreeLodConfig, ...(config || {}) }), [config])
   const [isFar, setIsFar] = React.useState(false)
   const [blend, setBlend] = React.useState(0) // 0..1
   const pendingSinceRef = React.useRef<number | null>(null)
+  const lastDistRef = React.useRef<number>(0)
+  const frameCountRef = React.useRef(0)
 
   useFrame((state, delta) => {
-    const camera = state.camera
     const g = groupRef.current
     if (!g) return
-    const wp = new THREE.Vector3()
-    g.getWorldPosition(wp)
-    const dist = wp.distanceTo(camera.position)
-    const desiredFar = isFar ? (dist > cfg.nearDistance) : (dist > cfg.farDistance)
+
+    // Проверяем расстояние каждый 3-й кадр для экономии производительности
+    frameCountRef.current++
+    if (frameCountRef.current % 3 !== 0 && Math.abs(blend - (isFar ? 1 : 0)) < 0.01) {
+      return
+    }
+
+    const camera = state.camera
+    g.getWorldPosition(_worldPos)
+    _cameraPos.copy(camera.position)
+    const dist = _worldPos.distanceToSquared(_cameraPos) // Используем квадрат расстояния для скорости
+
+    // Кеширование: пропускаем если изменение < 1%
+    const distSqrt = Math.sqrt(dist)
+    if (Math.abs(distSqrt - lastDistRef.current) < lastDistRef.current * 0.01) {
+      return
+    }
+    lastDistRef.current = distSqrt
+
+    // Используем квадраты порогов для сравнения
+    const nearThresholdSq = cfg.nearDistance * cfg.nearDistance
+    const farThresholdSq = cfg.farDistance * cfg.farDistance
+    const desiredFar = isFar ? (dist > nearThresholdSq) : (dist > farThresholdSq)
 
     if (desiredFar !== isFar) {
       const now = performance.now()
-      if (pendingSinceRef.current == null) pendingSinceRef.current = now
+      if (pendingSinceRef.current == null) {
+        pendingSinceRef.current = now
+      }
       const held = now - pendingSinceRef.current
       if ((cfg.switchDebounceMs || 0) <= 0 || held >= (cfg.switchDebounceMs || 0)) {
         setIsFar(desiredFar)
@@ -80,19 +106,21 @@ export function useSingleTreeLod(
 
     // Плавный фейд к целевому состоянию
     const target = isFar ? 1 : 0
-    const durMs = Math.max(1, cfg.fadeDurationMs || 300)
-    const step = delta * (1000 / durMs)
-    if (Math.abs(blend - target) > 1e-3) {
+    if (Math.abs(blend - target) > 0.001) {
+      const durMs = Math.max(1, cfg.fadeDurationMs || 300)
+      const step = delta * (1000 / durMs)
       setBlend(prev => {
-        let v = prev + (target > prev ? step : -step)
-        if (target > prev) v = Math.min(target, v)
-        else v = Math.max(target, v)
-        return v
+        const diff = target - prev
+        const absDiff = Math.abs(diff)
+        if (absDiff < 0.001) return target
+        // Используем easing для более плавного перехода
+        const easedStep = step * (2 - absDiff) // Замедление к концу
+        return prev + Math.sign(diff) * Math.min(absDiff, easedStep)
       })
     }
   })
 
-  return {
+  return React.useMemo(() => ({
     isFar,
     leafSampleRatio: isFar ? cfg.farLeafSampleRatio : undefined,
     leafScaleMul: isFar ? cfg.farLeafScaleMul : 1,
@@ -100,7 +128,7 @@ export function useSingleTreeLod(
     includeBranchesInFar: cfg.includeBranchesFar,
     lodBlend: blend,
     config: cfg,
-  }
+  }), [isFar, blend, cfg])
 }
 
 /**
@@ -109,63 +137,99 @@ export function useSingleTreeLod(
  * Гистерезис удерживает состояние, чтобы наборы не «дрожали» при границе.
  */
 export function usePartitionInstancesByLod(
-  instances: SceneObjectInstance[],
-  config?: Partial<TreeLodConfig>
+    instances: SceneObjectInstance[],
+    config?: Partial<TreeLodConfig>
 ) {
-  const cfg = { ...defaultTreeLodConfig, ...(config || {}) }
-  const [lodFarMap, setLodFarMap] = React.useState<Record<string, boolean>>({})
+  const cfg = React.useMemo(() => ({ ...defaultTreeLodConfig, ...(config || {}) }), [config])
+  const [lodFarMap, setLodFarMap] = React.useState<Record<string, boolean>>(() => ({}))
   const pendingSinceRef = React.useRef<Record<string, number>>({})
   const [nearInstances, setNearInstances] = React.useState<SceneObjectInstance[]>(instances)
   const [farInstances, setFarInstances] = React.useState<SceneObjectInstance[]>([])
+  const frameCountRef = React.useRef(0)
+  const lastCameraPosRef = React.useRef(new THREE.Vector3())
+
+  // Предварительные вычисления квадратов порогов
+  const nearThresholdSq = React.useMemo(() => cfg.nearDistance * cfg.nearDistance, [cfg.nearDistance])
+  const farThresholdSq = React.useMemo(() => cfg.farDistance * cfg.farDistance, [cfg.farDistance])
 
   useFrame((state) => {
     const camera = state.camera
+
+    // Проверяем изменение позиции камеры
+    const cameraMoved = camera.position.distanceToSquared(lastCameraPosRef.current) > 0.01
+
+    // Обновляем каждый 5-й кадр или при движении камеры
+    frameCountRef.current++
+    if (!cameraMoved && frameCountRef.current % 5 !== 0) {
+      return
+    }
+
+    if (cameraMoved) {
+      lastCameraPosRef.current.copy(camera.position)
+    }
+
     let changed = false
-    const nextMap: Record<string, boolean> = { ...lodFarMap }
+    const nextMap: Record<string, boolean> = {}
     const nextNear: SceneObjectInstance[] = []
     const nextFar: SceneObjectInstance[] = []
+    const now = performance.now()
+    const camX = camera.position.x
+    const camY = camera.position.y
+    const camZ = camera.position.z
 
-    for (const inst of instances) {
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i]
       const id = inst.uuid
-      const p = inst.transform?.position || [0, 0, 0]
-      const dx = camera.position.x - p[0]
-      const dy = camera.position.y - p[1]
-      const dz = camera.position.z - p[2]
-      const dist = Math.hypot(dx, dy, dz)
-      const wasFar = !!lodFarMap[id]
-      const desiredFar = wasFar ? (dist > cfg.nearDistance) : (dist > cfg.farDistance)
+      const p = inst.transform?.position
+      if (!p) {
+        nextNear.push(inst)
+        continue
+      }
+
+      // Вычисляем квадрат расстояния напрямую
+      const dx = camX - p[0]
+      const dy = camY - p[1]
+      const dz = camZ - p[2]
+      const distSq = dx * dx + dy * dy + dz * dz
+
+      const wasFar = lodFarMap[id] || false
+      const threshold = wasFar ? nearThresholdSq : farThresholdSq
+      const desiredFar = distSq > threshold
 
       if (desiredFar !== wasFar) {
-        const now = performance.now()
-        const since = pendingSinceRef.current[id] ?? now
-        pendingSinceRef.current[id] = since
+        const since = pendingSinceRef.current[id] || now
+        if (pendingSinceRef.current[id] === undefined) {
+          pendingSinceRef.current[id] = now
+        }
+
         if ((cfg.switchDebounceMs || 0) <= 0 || (now - since) >= (cfg.switchDebounceMs || 0)) {
           nextMap[id] = desiredFar
           changed = true
-          pendingSinceRef.current[id] = now
+          delete pendingSinceRef.current[id]
         } else {
           nextMap[id] = wasFar
         }
       } else {
-        pendingSinceRef.current[id] = performance.now()
+        delete pendingSinceRef.current[id]
         nextMap[id] = wasFar
       }
 
-      if (nextMap[id]) nextFar.push(inst); else nextNear.push(inst)
+      if (nextMap[id]) {
+        nextFar.push(inst)
+      } else {
+        nextNear.push(inst)
+      }
     }
 
-    if (
-      changed ||
-      nextNear.length !== nearInstances.length ||
-      nextFar.length !== farInstances.length
-    ) {
+    // Обновляем состояние только если есть изменения
+    if (changed) {
       setLodFarMap(nextMap)
       setNearInstances(nextNear)
       setFarInstances(nextFar)
     }
   })
 
-  return {
+  return React.useMemo(() => ({
     nearInstances,
     farInstances,
     leafSampleRatioFar: cfg.farLeafSampleRatio,
@@ -174,5 +238,5 @@ export function usePartitionInstancesByLod(
     trunkRadialSegmentsFar: cfg.farTrunkRadialSegments,
     includeBranchesFar: cfg.includeBranchesFar,
     config: cfg,
-  }
+  }), [nearInstances, farInstances, cfg])
 }
