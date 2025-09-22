@@ -570,6 +570,29 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         atlasCache.set(item.id, cacheRecord)
 
         // Отладка: публикуем канвасы атласов и splatmap в реестр, чтобы показать в панели
+        // Сформируем малый превью-канвас splat с принудительной альфой=1, чтобы исключить белый/чёрный фон
+        const makeSplatPreview = (bytes: Uint8Array, srcSize: number, previewSize: number = 128): HTMLCanvasElement => {
+          const cnvP = document.createElement('canvas')
+          cnvP.width = previewSize; cnvP.height = previewSize
+          const ctxP = cnvP.getContext('2d', { willReadFrequently: true } as any)!
+          const imgP = ctxP.createImageData(previewSize, previewSize)
+          const dst = imgP.data
+          let di = 0
+          for (let y = 0; y < previewSize; y++) {
+            const sy = Math.min(srcSize - 1, Math.max(0, Math.floor((y + 0.5) * srcSize / previewSize)))
+            for (let x = 0; x < previewSize; x++) {
+              const sx = Math.min(srcSize - 1, Math.max(0, Math.floor((x + 0.5) * srcSize / previewSize)))
+              const si = (sy * srcSize + sx) * 4
+              dst[di++] = bytes[si]
+              dst[di++] = bytes[si + 1]
+              dst[di++] = bytes[si + 2]
+              dst[di++] = 255 // принудительная непрозрачность
+            }
+          }
+          ctxP.putImageData(imgP, 0, 0)
+          return cnvP
+        }
+        const splatPreview = makeSplatPreview(splat.bytes, splatSize, 128)
         setTerrainDebugEntry(item.id, {
           itemId: item.id,
           name: item.name,
@@ -578,6 +601,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           roughness: built.roughness.image as HTMLCanvasElement,
           ao: built.ao.image as HTMLCanvasElement,
           splat: splat.canvas as HTMLCanvasElement,
+          splatPreview,
           splatStats: splat.stats,
           atlasSize,
           splatSize,

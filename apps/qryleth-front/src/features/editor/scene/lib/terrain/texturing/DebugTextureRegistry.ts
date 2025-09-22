@@ -35,6 +35,8 @@ export interface TerrainDebugEntry {
   ao?: HTMLCanvasElement
   /** Канвас splatmap (RGBA каналы — веса слоёв) */
   splat?: HTMLCanvasElement
+  /** Лёгкое превью splat (например, 128–256px) с принудительной альфой=1 */
+  splatPreview?: HTMLCanvasElement
   /** Статистика splatmap (минимумы/максимумы/распределение слоёв) */
   splatStats?: TerrainSplatStats
   /** Размеры (для подсказок) */
