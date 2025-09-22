@@ -39,6 +39,10 @@ export interface TerrainTexturingConfig {
    * после загрузки.
    */
   minPxPerRepeat: number
+  /** Мультипликатор грубости (roughness), 0..2 */
+  roughnessScale: number
+  /** Минимальная грубость (чтобы убрать чрезмерный блеск), 0..1 */
+  roughnessMin: number
 }
 
 /**
@@ -54,11 +58,13 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   splatMaxSize: 4096,
   splatSizeFactor: 2, // размер splat ≈ pow2(segments * factor)
   blendHeightMeters: 6.0,
-  normalInfluence: 1.0,
-  aoIntensity: 0.5,
-  exposure: 1.0,
+  normalInfluence: 0.6,
+  aoIntensity: 0.35,
+  exposure: 1.2,
   generateMipmaps: true,
   minPxPerRepeat: 1024,
+  roughnessScale: 1.2,
+  roughnessMin: 0.35,
 }
 
 /**

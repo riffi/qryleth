@@ -648,6 +648,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       shader.uniforms.uExposure = { value: (typeof exposure === 'number' ? exposure : cfg.exposure) }
       shader.uniforms.uNormalInfluence = { value: cfg.normalInfluence }
       shader.uniforms.uAOIntensity = { value: cfg.aoIntensity }
+      shader.uniforms.uRoughnessScale = { value: cfg.roughnessScale }
+      shader.uniforms.uRoughnessMin = { value: cfg.roughnessMin }
       // Размер текселя атласа для диагностики (пока не используем в шейдере)
       shader.uniforms.uAtlasTexel = { value: 1.0 / Math.max(1, atlasSize) }
       // Диагностика: флаг показа атласа напрямую по vUv
@@ -675,6 +677,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         uniform float uAOIntensity;
         uniform float uDebugSampleAtlas;
         uniform float uAtlasTexel;
+        uniform float uRoughnessScale;
+        uniform float uRoughnessMin;
         uniform float uDebugShowWeights;
         uniform float uDebugShowLayer;
         uniform vec2 uWorldCenter;
@@ -805,24 +809,24 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             `
           )
           .replace(
-            '#include <roughnessmap_fragment>',
-            `
+          '#include <roughnessmap_fragment>',
+          `
             vec4 wR = texture2D(uSplat, uvSplat);
-              wR = clamp(wR, 0.0, 1.0);
-              float sR = wR.x + wR.y + wR.z + wR.w;
-              if (sR < 1e-6) {
-                wR = vec4(1.0, 0.0, 0.0, 0.0);
-              } else {
-                wR /= sR;
-              }
+            wR = clamp(wR, 0.0, 1.0);
+            float sR = wR.x + wR.y + wR.z + wR.w;
+            if (sR < 1e-6) {
+              wR = vec4(1.0, 0.0, 0.0, 0.0);
+            } else {
+              wR /= sR;
+            }
             float r0 = texture2D(uAtlasRough, layerUV0(uvWorld)).r;
             float r1 = texture2D(uAtlasRough, layerUV1(uvWorld)).r;
             float r2 = texture2D(uAtlasRough, layerUV2(uvWorld)).r;
             float r3 = texture2D(uAtlasRough, layerUV3(uvWorld)).r;
-              float rMix = r0 * wR.x + r1 * wR.y + r2 * wR.z + r3 * wR.w;
-              float roughnessFactor = clamp(rMix, 0.0, 1.0);
-            `
-          )
+            float rMix = r0 * wR.x + r1 * wR.y + r2 * wR.z + r3 * wR.w;
+            float roughnessFactor = clamp(rMix * uRoughnessScale, uRoughnessMin, 1.0);
+          `
+        )
           .replace(
             '#include <aomap_fragment>',
             `
