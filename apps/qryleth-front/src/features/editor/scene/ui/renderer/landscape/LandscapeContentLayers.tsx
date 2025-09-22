@@ -621,7 +621,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     })()
 
     return () => { cancelled = true }
-  }, [item.material?.multiTexture, item.material?.uvRepeat, sampler, item.shape, item.terrain, geometryVersion])
+  }, [item.material?.multiTexture, item.material?.uvRepeat, sampler, item.shape, item.terrain, geometryVersion, paletteUuid])
 
   /**
    * Подключить шейдер с использованием атласов и splatmap для до 4 слоёв.
@@ -645,6 +645,31 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     layerColorMix?: number[]
   ) {
     const cfg = TERRAIN_TEXTURING_CONFIG
+    // Подготовка целевых цветов (Linear) и коэффициентов подкраски из аргументов
+    const toLinearVec3 = (hex: string) => {
+      const c = new THREE.Color(hex)
+      if ((THREE as any).SRGBColorSpace && (c as any).convertSRGBToLinear) (c as any).convertSRGBToLinear()
+      else { c.r = Math.pow(c.r, 2.2); c.g = Math.pow(c.g, 2.2); c.b = Math.pow(c.b, 2.2) }
+      return new THREE.Vector3(c.r, c.g, c.b)
+    }
+    const colHex: Array<string | null> = [0,1,2,3].map(i => (layerColors && layerColors[i]) || null)
+    const colMix: number[] = [0,1,2,3].map(i => Math.max(0, Math.min(1, Number(layerColorMix?.[i] ?? 0))))
+    // Если шейдер уже установлен ранее — обновим uniform'ы на лету и выйдем
+    const u = (mat.userData && mat.userData._mtUniforms) ? mat.userData._mtUniforms : null
+    if (mat.userData?._mtApplied && u && u.uLayerColor0) {
+      const setC = (idx: number, uni: any) => {
+        const v = colHex[idx] ? toLinearVec3(colHex[idx] as string) : new THREE.Vector3(1,1,1)
+        uni.value.copy(v)
+      }
+      setC(0, u.uLayerColor0); setC(1, u.uLayerColor1); setC(2, u.uLayerColor2); setC(3, u.uLayerColor3)
+      u.uLayerColorMix0.value = colMix[0]; u.uLayerColorMix1.value = colMix[1]; u.uLayerColorMix2.value = colMix[2]; u.uLayerColorMix3.value = colMix[3]
+      if (u.uExposure) u.uExposure.value = (typeof exposure === 'number' ? exposure : cfg.exposure)
+      if (u.uNormalInfluence) u.uNormalInfluence.value = cfg.normalInfluence
+      if (u.uAOIntensity) u.uAOIntensity.value = cfg.aoIntensity
+      if (u.uRoughnessScale) u.uRoughnessScale.value = cfg.roughnessScale
+      if (u.uRoughnessMin) u.uRoughnessMin.value = cfg.roughnessMin
+      return
+    }
     // Вспомогательные флаги отладки: только albedo без нормалей/rough/AO
     const onlyAlbedo = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainDebugOnlyAlbedo') === '1'
     mat.onBeforeCompile = (shader: any) => {
@@ -693,14 +718,6 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       // Размер текселя атласа для диагностики (пока не используем в шейдере)
       shader.uniforms.uAtlasTexel = { value: 1.0 / Math.max(1, atlasSize) }
       // Цвета слоёв для подкраски (linear)
-      const toLinearVec3 = (hex: string) => {
-        const c = new THREE.Color(hex)
-        if ((THREE as any).SRGBColorSpace && (c as any).convertSRGBToLinear) (c as any).convertSRGBToLinear()
-        else { c.r = Math.pow(c.r, 2.2); c.g = Math.pow(c.g, 2.2); c.b = Math.pow(c.b, 2.2) }
-        return new THREE.Vector3(c.r, c.g, c.b)
-      }
-      const colHex: Array<string|null> = [0,1,2,3].map(i => (layerColors && layerColors[i]) || null)
-      const colMix: number[] = [0,1,2,3].map(i => Math.max(0, Math.min(1, Number(layerColorMix?.[i] ?? 0))))
       shader.uniforms.uLayerColor0 = { value: colHex[0] ? toLinearVec3(colHex[0] as string) : new THREE.Vector3(1,1,1) }
       shader.uniforms.uLayerColor1 = { value: colHex[1] ? toLinearVec3(colHex[1] as string) : new THREE.Vector3(1,1,1) }
       shader.uniforms.uLayerColor2 = { value: colHex[2] ? toLinearVec3(colHex[2] as string) : new THREE.Vector3(1,1,1) }
@@ -912,10 +929,12 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             `
           )
       }
+      // Сохраняем ссылки на uniforms для быстрого обновления без перекомпиляции
+      mat.userData._mtUniforms = shader.uniforms
     }
     mat.userData._mtApplied = true
     // Обновим ключ кэша программы, чтобы форсировать перекомпиляцию при смене флагов
-    ;(mat as any).customProgramCacheKey = () => `multiTexture-v2|albedoOnly:${onlyAlbedo ? 1 : 0}`
+    ;(mat as any).customProgramCacheKey = () => `multiTexture-v2|albedoOnly:${onlyAlbedo ? 1 : 0}|pal:${paletteUuid}`
     mat.needsUpdate = true
   }
   return (
