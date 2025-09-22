@@ -31,6 +31,14 @@ export interface TerrainTexturingConfig {
   exposure: number
   /** Генерировать мип-карты для CanvasTexture */
   generateMipmaps: boolean
+  /**
+   * Минимальное число пикселей на один повтор узора внутри тайла атласа.
+   * Используется как нижняя планка при расчёте размера атласа, чтобы
+   * исключить «мыло» при крупных повторах. Применяется до загрузки изображений
+   * (когда их реальный размер ещё неизвестен) и как дополнительная гарантия
+   * после загрузки.
+   */
+  minPxPerRepeat: number
 }
 
 /**
@@ -38,18 +46,19 @@ export interface TerrainTexturingConfig {
  */
 export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   tilesPerAxis: 2,
-  paddingPx: 8,
+  paddingPx: 16,
   atlasMinSize: 1024,
   atlasMaxSize: 4096,
-  atlasSizeFactor: 2, // размер атласа ≈ pow2(segments * factor)
-  splatMinSize: 512,
+  atlasSizeFactor: 1, // размер атласа ≈ pow2(segments * factor)
+  splatMinSize: 1024,
   splatMaxSize: 4096,
-  splatSizeFactor: 1, // размер splat ≈ pow2(segments * factor)
+  splatSizeFactor: 2, // размер splat ≈ pow2(segments * factor)
   blendHeightMeters: 6.0,
   normalInfluence: 1.0,
   aoIntensity: 0.5,
   exposure: 1.0,
   generateMipmaps: true,
+  minPxPerRepeat: 1024,
 }
 
 /**
@@ -81,4 +90,3 @@ export function computeSplatSizeFromSegments(segments: number, cfg: TerrainTextu
   const pow = toPow2Up(raw)
   return Math.max(cfg.splatMinSize, Math.min(cfg.splatMaxSize, pow))
 }
-

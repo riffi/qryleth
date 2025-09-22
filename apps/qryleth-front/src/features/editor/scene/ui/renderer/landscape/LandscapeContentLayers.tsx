@@ -9,7 +9,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { GfxLayerType } from '@/entities/layer'
 import { landscapeTextureRegistry } from '@/shared/lib/textures'
 import { decideSegments } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
-import { TERRAIN_TEXTURING_CONFIG, computeAtlasSizeFromSegments, computeSplatSizeFromSegments } from '@/features/editor/scene/config/terrainTexturing'
+import { TERRAIN_TEXTURING_CONFIG, computeAtlasSizeFromSegments, computeSplatSizeFromSegments, toPow2Up } from '@/features/editor/scene/config/terrainTexturing'
 import { buildTextureAtlases, loadImage, type LayerImages } from '@/features/editor/scene/lib/terrain/texturing/AtlasBuilder'
 import { buildSplatmap } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
 import { setTerrainDebugEntry } from '@/features/editor/scene/lib/terrain/texturing/DebugTextureRegistry'
@@ -403,10 +403,21 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     if (sorted.length > 4) console.warn('[multiTexture] Слоёв больше 4, лишние будут отброшены:', sorted.length)
 
     const segments = decideSegments(item.terrain)
-    const atlasSize = computeAtlasSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
+    let atlasSize = computeAtlasSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
     const splatSize = computeSplatSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
     const repeats = layers.map(l => l.uvRepeat || item.material?.uvRepeat || [1, 1]) as Array<[number, number]>
     const heights = layers.map(l => l.height)
+
+    // Хитрая подстройка размера атласа под большие повторы:
+    // гарантируем не менее ~256px на один повтор тайла по каждой оси.
+    const maxRepX = Math.max(1, ...repeats.map(r => (r?.[0] ?? 1)))
+    const maxRepY = Math.max(1, ...repeats.map(r => (r?.[1] ?? 1)))
+    const minPxPerRepeat = TERRAIN_TEXTURING_CONFIG.minPxPerRepeat
+    const innerNeed = Math.max(Math.ceil(maxRepX * minPxPerRepeat), Math.ceil(maxRepY * minPxPerRepeat))
+    const padding = TERRAIN_TEXTURING_CONFIG.paddingPx
+    const tiles = TERRAIN_TEXTURING_CONFIG.tilesPerAxis
+    const atlasFromRepeats = toPow2Up(tiles * (innerNeed + 2 * padding))
+    atlasSize = Math.min(TERRAIN_TEXTURING_CONFIG.atlasMaxSize, Math.max(atlasSize, atlasFromRepeats, TERRAIN_TEXTURING_CONFIG.atlasMinSize))
 
     const cacheKey = JSON.stringify({
       atlasSize, splatSize,
@@ -457,8 +468,31 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           const ao = await loadTexImage(entry?.aoMapUrl)
           imageLayers.push({ albedo, normal, roughness: rough, ao })
         }
+        // Пересчитаем atlasSize после загрузки изображений, чтобы гарантировать нативную плотность пикселей
+        // для одной «базы» повторения (например, 1024px при rep=1)
+        try {
+          const tiles = TERRAIN_TEXTURING_CONFIG.tilesPerAxis
+          const padding = TERRAIN_TEXTURING_CONFIG.paddingPx
+          let needInner = 0
+          for (let i = 0; i < imageLayers.length && i < 4; i++) {
+            const src = imageLayers[i].albedo || imageLayers[i].normal || imageLayers[i].roughness || imageLayers[i].ao
+            const w = Math.max(1, Number((src as any)?.width ?? 0))
+            const h = Math.max(1, Number((src as any)?.height ?? 0))
+            const rep = repeats[i] || [1, 1]
+            const desiredX = Math.max(Math.ceil(w * rep[0]), Math.ceil(minPxPerRepeat * rep[0]))
+            const desiredY = Math.max(Math.ceil(h * rep[1]), Math.ceil(minPxPerRepeat * rep[1]))
+            const desired = Math.max(desiredX, desiredY)
+            if (desired > needInner) needInner = desired
+          }
+          if (needInner > 0) {
+            const target = toPow2Up(tiles * (needInner + 2 * padding))
+            atlasSize = Math.min(TERRAIN_TEXTURING_CONFIG.atlasMaxSize, Math.max(atlasSize, target, TERRAIN_TEXTURING_CONFIG.atlasMinSize))
+          }
+        } catch {}
 
-        const built = buildTextureAtlases(atlasSize, imageLayers)
+        // Повторы переносим в шейдер (world-space), чтобы не раздувать атлас.
+        const atlasRepeats = layers.map(() => [1, 1]) as Array<[number, number]>
+        const built = buildTextureAtlases(atlasSize, imageLayers, atlasRepeats)
         const splat = buildSplatmap(sampler, {
           size: splatSize,
           center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
@@ -583,7 +617,12 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       }
       const uTileOffset = padVec2(tileOffset, [0, 0])
       const uTileScale = padVec2(tileScale, [1, 1])
-      const uRepeat = padVec2(repeats, [1, 1])
+      // Лёгкая "усадка" тайла внутрь на ~1.5 текселя атласа, чтобы исключить попадание в стык
+      const atlasSize = ((tAlbedo as any).image?.width as number) || 1024
+      const eps = 1.5 / Math.max(1, atlasSize)
+      const adjOffset = uTileOffset.map(v => new THREE.Vector2(v.x + eps, v.y + eps))
+      const adjScale  = uTileScale.map(v => new THREE.Vector2(Math.max(0, v.x - 2*eps), Math.max(0, v.y - 2*eps)))
+      // Повторы делаем в шейдере (мировые UV)
       shader.uniforms.uAtlasAlbedo = { value: tAlbedo }
       shader.uniforms.uAtlasNormal = { value: tNormal }
       shader.uniforms.uAtlasRough = { value: tRough }
@@ -592,14 +631,16 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       // ВАЖНО: используем отдельные uniform'ы на каждый слой, т.к. WebGL1
       // не поддерживает динамическое индексирование uniform-массивов стабильно.
       // Записываем значения для uTileOffset0..3, uTileScale0..3, uRepeat0..3
-      shader.uniforms.uTileOffset0 = { value: uTileOffset[0] }
-      shader.uniforms.uTileOffset1 = { value: uTileOffset[1] }
-      shader.uniforms.uTileOffset2 = { value: uTileOffset[2] }
-      shader.uniforms.uTileOffset3 = { value: uTileOffset[3] }
-      shader.uniforms.uTileScale0 = { value: uTileScale[0] }
-      shader.uniforms.uTileScale1 = { value: uTileScale[1] }
-      shader.uniforms.uTileScale2 = { value: uTileScale[2] }
-      shader.uniforms.uTileScale3 = { value: uTileScale[3] }
+      shader.uniforms.uTileOffset0 = { value: adjOffset[0] }
+      shader.uniforms.uTileOffset1 = { value: adjOffset[1] }
+      shader.uniforms.uTileOffset2 = { value: adjOffset[2] }
+      shader.uniforms.uTileOffset3 = { value: adjOffset[3] }
+      shader.uniforms.uTileScale0 = { value: adjScale[0] }
+      shader.uniforms.uTileScale1 = { value: adjScale[1] }
+      shader.uniforms.uTileScale2 = { value: adjScale[2] }
+      shader.uniforms.uTileScale3 = { value: adjScale[3] }
+      // Повторы слоёв
+      const uRepeat = padVec2(repeats, [1, 1])
       shader.uniforms.uRepeat0 = { value: uRepeat[0] }
       shader.uniforms.uRepeat1 = { value: uRepeat[1] }
       shader.uniforms.uRepeat2 = { value: uRepeat[2] }
@@ -607,6 +648,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       shader.uniforms.uExposure = { value: (typeof exposure === 'number' ? exposure : cfg.exposure) }
       shader.uniforms.uNormalInfluence = { value: cfg.normalInfluence }
       shader.uniforms.uAOIntensity = { value: cfg.aoIntensity }
+      // Размер текселя атласа для диагностики (пока не используем в шейдере)
+      shader.uniforms.uAtlasTexel = { value: 1.0 / Math.max(1, atlasSize) }
       // Диагностика: флаг показа атласа напрямую по vUv
       const params = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search) : null
       const showAtlasDirect = params?.get('terrainDebugSampleAtlas') === '1'
@@ -631,6 +674,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         uniform float uNormalInfluence;
         uniform float uAOIntensity;
         uniform float uDebugSampleAtlas;
+        uniform float uAtlasTexel;
         uniform float uDebugShowWeights;
         uniform float uDebugShowLayer;
         uniform vec2 uWorldCenter;
@@ -640,10 +684,11 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         // Получить UV внутри каждого тайла (без индексирования uniform-массивов)
         // Учитываем, что CanvasTexture по умолчанию flipY = false, а атлас собран в системе координат канваса (0,0 вверху).
         // Поэтому инвертируем Y при преобразовании в UV текстуры: v' = 1 - (offset.y + innerV * scale.y)
-        vec2 layerUV0(vec2 uv) { vec2 t = fract(uv * uRepeat0) * uTileScale0; return vec2(uTileOffset0.x + t.x, 1.0 - (uTileOffset0.y + t.y)); }
-        vec2 layerUV1(vec2 uv) { vec2 t = fract(uv * uRepeat1) * uTileScale1; return vec2(uTileOffset1.x + t.x, 1.0 - (uTileOffset1.y + t.y)); }
-        vec2 layerUV2(vec2 uv) { vec2 t = fract(uv * uRepeat2) * uTileScale2; return vec2(uTileOffset2.x + t.x, 1.0 - (uTileOffset2.y + t.y)); }
-        vec2 layerUV3(vec2 uv) { vec2 t = fract(uv * uRepeat3) * uTileScale3; return vec2(uTileOffset3.x + t.x, 1.0 - (uTileOffset3.y + t.y)); }
+        // Семплируем с повторением в пределах внутренней области тайла; рассчитываем инверсию Y
+        vec2 layerUV0(vec2 uvWorld) { vec2 f = fract(uvWorld * uRepeat0); vec2 t = f * uTileScale0; return vec2(uTileOffset0.x + t.x, 1.0 - (uTileOffset0.y + t.y)); }
+        vec2 layerUV1(vec2 uvWorld) { vec2 f = fract(uvWorld * uRepeat1); vec2 t = f * uTileScale1; return vec2(uTileOffset1.x + t.x, 1.0 - (uTileOffset1.y + t.y)); }
+        vec2 layerUV2(vec2 uvWorld) { vec2 f = fract(uvWorld * uRepeat2); vec2 t = f * uTileScale2; return vec2(uTileOffset2.x + t.x, 1.0 - (uTileOffset2.y + t.y)); }
+        vec2 layerUV3(vec2 uvWorld) { vec2 f = fract(uvWorld * uRepeat3); vec2 t = f * uTileScale3; return vec2(uTileOffset3.x + t.x, 1.0 - (uTileOffset3.y + t.y)); }
 
         // Простейшая декодировка sRGB->Linear для наших кастомных сэмплеров albedo
         vec3 sRGBToLinear(vec3 srgb) {
@@ -684,9 +729,9 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         .replace(
           '#include <map_fragment>',
           `
-            // Вычисляем uv для splat в мировых координатах, чтобы исключить повтор uv по сегментам
-            vec2 uvSplat = (vWorldPos.xz - uWorldCenter + 0.5 * uWorldSize) / uWorldSize;
-            uvSplat = clamp(uvSplat, 0.0, 1.0);
+            // Мировые UV для слоёв и splat
+            vec2 uvWorld = (vWorldPos.xz - uWorldCenter + 0.5 * uWorldSize) / uWorldSize;
+            vec2 uvSplat = clamp(uvWorld, 0.0, 1.0);
             if (uDebugSampleAtlas > 0.5) {
               // Диагностика: показать атлас по vUv, без смешивания и нормалей
               vec4 c = texture2D(uAtlasAlbedo, vUv);
@@ -708,18 +753,18 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             if (uDebugShowLayer >= 0.0) {
               int li = int(floor(uDebugShowLayer + 0.5));
               vec4 cL = vec4(1.0);
-              if (li == 0) cL = texture2D(uAtlasAlbedo, layerUV0(vUv));
-              else if (li == 1) cL = texture2D(uAtlasAlbedo, layerUV1(vUv));
-              else if (li == 2) cL = texture2D(uAtlasAlbedo, layerUV2(vUv));
-              else if (li == 3) cL = texture2D(uAtlasAlbedo, layerUV3(vUv));
+              if (li == 0) cL = texture2D(uAtlasAlbedo, layerUV0(uvWorld));
+              else if (li == 1) cL = texture2D(uAtlasAlbedo, layerUV1(uvWorld));
+              else if (li == 2) cL = texture2D(uAtlasAlbedo, layerUV2(uvWorld));
+              else if (li == 3) cL = texture2D(uAtlasAlbedo, layerUV3(uvWorld));
               cL.rgb = sRGBToLinear(cL.rgb);
               diffuseColor.rgb = cL.rgb;
             } else {
 
-            vec4 c0 = texture2D(uAtlasAlbedo, layerUV0(vUv));
-            vec4 c1 = texture2D(uAtlasAlbedo, layerUV1(vUv));
-            vec4 c2 = texture2D(uAtlasAlbedo, layerUV2(vUv));
-            vec4 c3 = texture2D(uAtlasAlbedo, layerUV3(vUv));
+            vec4 c0 = texture2D(uAtlasAlbedo, layerUV0(uvWorld));
+            vec4 c1 = texture2D(uAtlasAlbedo, layerUV1(uvWorld));
+            vec4 c2 = texture2D(uAtlasAlbedo, layerUV2(uvWorld));
+            vec4 c3 = texture2D(uAtlasAlbedo, layerUV3(uvWorld));
             c0.rgb = sRGBToLinear(c0.rgb);
             c1.rgb = sRGBToLinear(c1.rgb);
             c2.rgb = sRGBToLinear(c2.rgb);
@@ -749,10 +794,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
                 wN /= sN;
               }
 
-              vec3 n0 = sampleNormal(layerUV0(vUv));
-              vec3 n1 = sampleNormal(layerUV1(vUv));
-              vec3 n2 = sampleNormal(layerUV2(vUv));
-              vec3 n3 = sampleNormal(layerUV3(vUv));
+            vec3 n0 = sampleNormal(layerUV0(uvWorld));
+            vec3 n1 = sampleNormal(layerUV1(uvWorld));
+            vec3 n2 = sampleNormal(layerUV2(uvWorld));
+            vec3 n3 = sampleNormal(layerUV3(uvWorld));
               vec3 blendedNormal = normalize(n0 * wN.x + n1 * wN.y + n2 * wN.z + n3 * wN.w);
               blendedNormal.xy *= uNormalInfluence;
               blendedNormal = normalize(blendedNormal);
@@ -770,10 +815,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
               } else {
                 wR /= sR;
               }
-              float r0 = texture2D(uAtlasRough, layerUV0(vUv)).r;
-              float r1 = texture2D(uAtlasRough, layerUV1(vUv)).r;
-              float r2 = texture2D(uAtlasRough, layerUV2(vUv)).r;
-              float r3 = texture2D(uAtlasRough, layerUV3(vUv)).r;
+            float r0 = texture2D(uAtlasRough, layerUV0(uvWorld)).r;
+            float r1 = texture2D(uAtlasRough, layerUV1(uvWorld)).r;
+            float r2 = texture2D(uAtlasRough, layerUV2(uvWorld)).r;
+            float r3 = texture2D(uAtlasRough, layerUV3(uvWorld)).r;
               float rMix = r0 * wR.x + r1 * wR.y + r2 * wR.z + r3 * wR.w;
               float roughnessFactor = clamp(rMix, 0.0, 1.0);
             `
@@ -789,10 +834,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
               } else {
                 wA /= sA;
               }
-              float a0 = texture2D(uAtlasAO, layerUV0(vUv)).r;
-              float a1 = texture2D(uAtlasAO, layerUV1(vUv)).r;
-              float a2 = texture2D(uAtlasAO, layerUV2(vUv)).r;
-              float a3 = texture2D(uAtlasAO, layerUV3(vUv)).r;
+            float a0 = texture2D(uAtlasAO, layerUV0(uvWorld)).r;
+            float a1 = texture2D(uAtlasAO, layerUV1(uvWorld)).r;
+            float a2 = texture2D(uAtlasAO, layerUV2(uvWorld)).r;
+            float a3 = texture2D(uAtlasAO, layerUV3(uvWorld)).r;
               float aoMix = a0 * wA.x + a1 * wA.y + a2 * wA.z + a3 * wA.w;
               float aoI = clamp(uAOIntensity, 0.0, 1.0);
               reflectedLight.indirectDiffuse *= ( aoI * aoMix + ( 1.0 - aoI ) );

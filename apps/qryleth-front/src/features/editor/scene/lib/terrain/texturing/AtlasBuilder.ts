@@ -108,6 +108,60 @@ function drawTileWithBleed(
 }
 
 /**
+ * Прорисовать изображение, повторяя его repX/repY раз внутри области w×h.
+ * Поддерживает дробные повторы: крайний столбец/ряд обрезается по доле.
+ * После заполнения внутренней области bleed выполняется отдельно.
+ */
+function drawRepeated(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  repX: number,
+  repY: number
+) {
+  const rx = Math.max(1e-4, repX)
+  const ry = Math.max(1e-4, repY)
+  const baseW = (img as any).width as number
+  const baseH = (img as any).height as number
+  const cellW = w / rx
+  const cellH = h / ry
+  const ix = Math.floor(rx)
+  const iy = Math.floor(ry)
+  const fracX = rx - ix
+  const fracY = ry - iy
+
+  // Внутренняя функция отрисовки одной ячейки с учётом обрезки по доле
+  const drawCell = (cx: number, cy: number, cw: number, ch: number, sxFrac: number, syFrac: number) => {
+    const sw = Math.max(1, Math.floor(baseW * sxFrac))
+    const sh = Math.max(1, Math.floor(baseH * syFrac))
+    ctx.drawImage(img as any, 0, 0, sw, sh, cx, cy, cw, ch)
+  }
+
+  // Полные ячейки по X и Y
+  for (let j = 0; j < iy; j++) {
+    for (let i = 0; i < ix; i++) {
+      drawCell(x + i * cellW, y + j * cellH, cellW, cellH, 1, 1)
+    }
+    // Дробная колонка справа, если есть
+    if (fracX > 1e-6) {
+      drawCell(x + ix * cellW, y + j * cellH, cellW * fracX, cellH, fracX, 1)
+    }
+  }
+  // Дробная строка снизу
+  if (fracY > 1e-6) {
+    for (let i = 0; i < ix; i++) {
+      drawCell(x + i * cellW, y + iy * cellH, cellW, cellH * fracY, 1, fracY)
+    }
+    if (fracX > 1e-6) {
+      drawCell(x + ix * cellW, y + iy * cellH, cellW * fracX, cellH * fracY, fracX, fracY)
+    }
+  }
+}
+
+/**
  * Сборка атласов для до 4 слоёв. Используется фиксированная раскладка 2x2.
  * Отсутствующие карты заливаются нейтральными значениями.
  *
@@ -117,7 +171,7 @@ function drawTileWithBleed(
  * @param sizePx размер атласа (квадрат, степень двойки)
  * @param layers массив до 4 слоёв с HTMLImageElement для каждого канала
  */
-export function buildTextureAtlases(sizePx: number, layers: LayerImages[]): BuiltAtlases {
+export function buildTextureAtlases(sizePx: number, layers: LayerImages[], repeats?: Array<[number, number]>): BuiltAtlases {
   const cfg = TERRAIN_TEXTURING_CONFIG
   const tiles = cfg.tilesPerAxis
   const tileSize = Math.floor(sizePx / tiles)
@@ -138,6 +192,11 @@ export function buildTextureAtlases(sizePx: number, layers: LayerImages[]): Buil
   const ctxN = cnvNormal.getContext('2d')!
   const ctxR = cnvRough.getContext('2d')!
   const ctxO = cnvAO.getContext('2d')!
+  // Отключаем сглаживание при масштабировании, чтобы края тайла оставались строго периодическими
+  ctxA.imageSmoothingEnabled = false
+  ctxN.imageSmoothingEnabled = false
+  ctxR.imageSmoothingEnabled = false
+  ctxO.imageSmoothingEnabled = false
 
   // Фиксированная раскладка 2x2: индексы слоёв 0..3 → (ix, iy)
   for (let i = 0; i < Math.min(4, layers.length); i++) {
@@ -145,15 +204,41 @@ export function buildTextureAtlases(sizePx: number, layers: LayerImages[]): Buil
     const iy = Math.floor(i / tiles)
     const x0 = ix * tileSize + padding
     const y0 = iy * tileSize + padding
-    // Сохраняем UV-преобразование для данного слота
-    tileOffset[i] = [ (ix * tileSize + padding) / sizePx, (iy * tileSize + padding) / sizePx ]
-    tileScale[i] = [ inner / sizePx, inner / sizePx ]
 
     const li = layers[i]
-    drawTileWithBleed(ctxA, li.albedo, x0, y0, inner, inner, padding)
-    drawTileWithBleed(ctxN, li.normal, x0, y0, inner, inner, padding)
-    drawTileWithBleed(ctxR, li.roughness, x0, y0, inner, inner, padding)
-    drawTileWithBleed(ctxO, li.ao, x0, y0, inner, inner, padding)
+    const rep = repeats?.[i] || [1, 1]
+    // Базовое «нативное» разрешение слоя (предпочтение albedo, иначе любой канал)
+    const wh = (() => {
+      const src = li.albedo || li.normal || li.roughness || li.ao
+      const w = Math.max(1, Number((src as any)?.width ?? 0))
+      const h = Math.max(1, Number((src as any)?.height ?? 0))
+      return [w, h] as const
+    })()
+    const desiredPx = Math.max(Math.ceil(wh[0] * rep[0]), Math.ceil(wh[1] * rep[1]))
+    const usePx = Math.min(inner, desiredPx)
+    const margin = Math.max(0, Math.floor((inner - usePx) / 2))
+    // Сохраняем UV-преобразование для данного слота так, чтобы выборка шла по центральной области usePx×usePx
+    tileOffset[i] = [ (ix * tileSize + padding + margin) / sizePx, (iy * tileSize + padding + margin) / sizePx ]
+    tileScale[i] = [ usePx / sizePx, usePx / sizePx ]
+    const drawX = x0 + margin
+    const drawY = y0 + margin
+    const padTotal = padding + margin
+    if (li.albedo) {
+      drawRepeated(ctxA, li.albedo, drawX, drawY, usePx, usePx, rep[0], rep[1])
+      drawTileWithBleed(ctxA, null, drawX, drawY, usePx, usePx, padTotal)
+    }
+    if (li.normal) {
+      drawRepeated(ctxN, li.normal, drawX, drawY, usePx, usePx, rep[0], rep[1])
+      drawTileWithBleed(ctxN, null, drawX, drawY, usePx, usePx, padTotal)
+    }
+    if (li.roughness) {
+      drawRepeated(ctxR, li.roughness, drawX, drawY, usePx, usePx, rep[0], rep[1])
+      drawTileWithBleed(ctxR, null, drawX, drawY, usePx, usePx, padTotal)
+    }
+    if (li.ao) {
+      drawRepeated(ctxO, li.ao, drawX, drawY, usePx, usePx, rep[0], rep[1])
+      drawTileWithBleed(ctxO, null, drawX, drawY, usePx, usePx, padTotal)
+    }
   }
 
   const tA = new THREE.CanvasTexture(cnvAlbedo)
@@ -166,6 +251,10 @@ export function buildTextureAtlases(sizePx: number, layers: LayerImages[]): Buil
     t.wrapS = THREE.RepeatWrapping
     t.wrapT = THREE.RepeatWrapping
     t.generateMipmaps = TERRAIN_TEXTURING_CONFIG.generateMipmaps
+    t.minFilter = TERRAIN_TEXTURING_CONFIG.generateMipmaps ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter
+    t.magFilter = THREE.LinearFilter
+    // Небольшой анизотропный фильтр для уменьшения артефактов под углом
+    ;(t as any).anisotropy = Math.max( (t as any).anisotropy || 0, 4 )
     t.needsUpdate = true
   }
   // Albedo — sRGB
