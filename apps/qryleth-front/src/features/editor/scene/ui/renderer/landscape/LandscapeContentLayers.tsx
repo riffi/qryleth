@@ -530,12 +530,15 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         // Повторы переносим в шейдер (world-space), чтобы не раздувать атлас.
         const atlasRepeats = layers.map(() => [1, 1]) as Array<[number, number]>
         const built = buildTextureAtlases(atlasSize, imageLayers, atlasRepeats)
+        // Быстрый предпросмотр: по URL ?terrainSplatPreview=1 уменьшаем качество расчёта в 2 раза
+        const qs = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainSplatPreview') === '1' ? 0.5 : 1.0
         const splat = buildSplatmap(sampler, {
           size: splatSize,
           center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
           worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
           layerHeights: heights,
           blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+          qualityScale: qs,
         })
         // Используем DataTexture, чтобы исключить влияние premultiplied alpha
         // Создаём DataTexture напрямую из байтов (без чтения из canvas, чтобы избежать премультипликации)

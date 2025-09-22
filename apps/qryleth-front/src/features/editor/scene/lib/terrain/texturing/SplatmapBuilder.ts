@@ -16,6 +16,12 @@ export interface SplatmapParams {
   layerHeights: number[]
   /** Глобальная ширина перехода между слоями (метры по Y) */
   blendHeight?: number
+  /**
+   * Масштаб качества вычисления (0.25..1.0). При < 1.0 карта считается на уменьшенном размере
+   * и затем билinear‑апскейлится до `size`. Существенно ускоряет генерацию без заметной потери качества
+   * благодаря последующему сглаживанию весов в шейдере.
+   */
+  qualityScale?: number
 }
 
 /**
@@ -61,11 +67,14 @@ function heightWeights4(h: number, heights: number[], width: number): [number, n
  */
 export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { canvas: HTMLCanvasElement; stats: TerrainSplatStats; bytes: Uint8Array } {
   const size = p.size
+  const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
+  const calcSize = Math.max(8, Math.floor(size * q))
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
   const ctx = cnv.getContext('2d', { willReadFrequently: true } as any)!
-  // Создаём явный буфер и ImageData через конструктор, чтобы исключить тонкости createImageData
+  // Буфер для расчётного размера и финальный буфер
+  const small = new Uint8ClampedArray(calcSize * calcSize * 4)
   const buffer = new Uint8ClampedArray(size * size * 4)
 
   const cx = p.center[0]
@@ -82,11 +91,11 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const chanMin: [number, number, number, number] = [1, 1, 1, 1]
   const chanMax: [number, number, number, number] = [0, 0, 0, 0]
   const layerCounts: [number, number, number, number] = [0, 0, 0, 0]
-  for (let y = 0; y < size; y++) {
-    const v = (y + 0.5) / size
+  for (let y = 0; y < calcSize; y++) {
+    const v = (y + 0.5) / calcSize
     const wz = (v - 0.5) * d + cz
-    for (let x = 0; x < size; x++) {
-      const u = (x + 0.5) / size
+    for (let x = 0; x < calcSize; x++) {
+      const u = (x + 0.5) / calcSize
       const wx = (u - 0.5) * w + cx
       let h = sampler.getHeight(wx, wz)
       if (!Number.isFinite(h)) {
@@ -114,11 +123,44 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       if (b > best) { best = b; arg = 2 }
       if (a > best) { best = a; arg = 3 }
       layerCounts[arg]++
-      buffer[idx++] = Math.max(0, Math.min(255, Math.round(r * 255)))
-      buffer[idx++] = Math.max(0, Math.min(255, Math.round(g * 255)))
-      buffer[idx++] = Math.max(0, Math.min(255, Math.round(b * 255)))
-      buffer[idx++] = Math.max(0, Math.min(255, Math.round(a * 255)))
+      small[idx++] = Math.max(0, Math.min(255, Math.round(r * 255)))
+      small[idx++] = Math.max(0, Math.min(255, Math.round(g * 255)))
+      small[idx++] = Math.max(0, Math.min(255, Math.round(b * 255)))
+      small[idx++] = Math.max(0, Math.min(255, Math.round(a * 255)))
     }
+  }
+  // Если расчётный размер меньше финального — билinear‑апскейл
+  if (calcSize !== size) {
+    let di = 0
+    const sx = calcSize / size
+    const sy = calcSize / size
+    for (let y = 0; y < size; y++) {
+      const fy = (y + 0.5) * sy - 0.5
+      const y0 = Math.max(0, Math.min(calcSize - 1, Math.floor(fy)))
+      const y1 = Math.max(0, Math.min(calcSize - 1, y0 + 1))
+      const wy = fy - y0
+      for (let x = 0; x < size; x++) {
+        const fx = (x + 0.5) * sx - 0.5
+        const x0 = Math.max(0, Math.min(calcSize - 1, Math.floor(fx)))
+        const x1 = Math.max(0, Math.min(calcSize - 1, x0 + 1))
+        const wx = fx - x0
+        const i00 = (y0 * calcSize + x0) * 4
+        const i10 = (y0 * calcSize + x1) * 4
+        const i01 = (y1 * calcSize + x0) * 4
+        const i11 = (y1 * calcSize + x1) * 4
+        for (let c = 0; c < 4; c++) {
+          const v00 = small[i00 + c]
+          const v10 = small[i10 + c]
+          const v01 = small[i01 + c]
+          const v11 = small[i11 + c]
+          const v0 = v00 + (v10 - v00) * wx
+          const v1 = v01 + (v11 - v01) * wx
+          buffer[di++] = v0 + (v1 - v0) * wy
+        }
+      }
+    }
+  } else {
+    buffer.set(small)
   }
   const img = new ImageData(buffer, size, size)
   ctx.putImageData(img, 0, 0)

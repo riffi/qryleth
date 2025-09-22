@@ -56,7 +56,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   atlasMinSize: 1024,
   atlasMaxSize: 4096,
   atlasSizeFactor: 1, // размер атласа ≈ pow2(segments * factor)
-  splatMinSize: 2048,
+  splatMinSize: 1024,
   splatMaxSize: 4096,
   splatSizeFactor: 2, // размер splat ≈ pow2(segments * factor)
   blendHeightMeters: 6.0,
