@@ -59,7 +59,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   splatMinSize: 1024,
   splatMaxSize: 4096,
   splatSizeFactor: 2, // размер splat ≈ pow2(segments * factor)
-  blendHeightMeters: 6.0,
+  blendHeightMeters: 16.0,
   normalInfluence: 0.6,
   aoIntensity: 0.35,
   exposure: 1.2,
@@ -67,7 +67,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   minPxPerRepeat: 1024,
   roughnessScale: 1.2,
   roughnessMin: 0.55,
-  splatWeightExponent: 1.3,
+  splatWeightExponent: 1,
 }
 
 /**

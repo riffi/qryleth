@@ -832,19 +832,43 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           return n;
         }
 
-        // Сглаженный сэмпл splat: 3x3 Гаусс ядро (1 2 1; 2 4 2; 1 2 1)/16
+        // Сглаженный сэмпл splat: 5x5 Гаусс (по оси: 1 4 6 4 1, нормировка 256)
         vec4 sampleSplatSmooth(vec2 uv) {
           vec2 t = uSplatTexel;
-          vec4 c00 = texture2D(uSplat, uv + vec2(-t.x, -t.y));
-          vec4 c10 = texture2D(uSplat, uv + vec2( 0.0 , -t.y));
-          vec4 c20 = texture2D(uSplat, uv + vec2( t.x , -t.y));
-          vec4 c01 = texture2D(uSplat, uv + vec2(-t.x,  0.0));
-          vec4 c11 = texture2D(uSplat, uv);
-          vec4 c21 = texture2D(uSplat, uv + vec2( t.x ,  0.0));
-          vec4 c02 = texture2D(uSplat, uv + vec2(-t.x,  t.y));
-          vec4 c12 = texture2D(uSplat, uv + vec2( 0.0 ,  t.y));
-          vec4 c22 = texture2D(uSplat, uv + vec2( t.x ,  t.y));
-          return (c11 * 4.0 + (c10 + c01 + c21 + c12) * 2.0 + (c00 + c20 + c02 + c22)) / 16.0;
+          float a0 = 1.0, a1 = 4.0, a2 = 6.0, a3 = 4.0, a4 = 1.0;
+          float norm = 256.0;
+          vec4 acc = vec4(0.0);
+          // y = -2
+          acc += texture2D(uSplat, uv + vec2(-2.0*t.x, -2.0*t.y)) * (a0*a0);
+          acc += texture2D(uSplat, uv + vec2(-1.0*t.x, -2.0*t.y)) * (a1*a0);
+          acc += texture2D(uSplat, uv + vec2( 0.0     , -2.0*t.y)) * (a2*a0);
+          acc += texture2D(uSplat, uv + vec2( 1.0*t.x, -2.0*t.y)) * (a3*a0);
+          acc += texture2D(uSplat, uv + vec2( 2.0*t.x, -2.0*t.y)) * (a4*a0);
+          // y = -1
+          acc += texture2D(uSplat, uv + vec2(-2.0*t.x, -1.0*t.y)) * (a0*a1);
+          acc += texture2D(uSplat, uv + vec2(-1.0*t.x, -1.0*t.y)) * (a1*a1);
+          acc += texture2D(uSplat, uv + vec2( 0.0     , -1.0*t.y)) * (a2*a1);
+          acc += texture2D(uSplat, uv + vec2( 1.0*t.x, -1.0*t.y)) * (a3*a1);
+          acc += texture2D(uSplat, uv + vec2( 2.0*t.x, -1.0*t.y)) * (a4*a1);
+          // y = 0
+          acc += texture2D(uSplat, uv + vec2(-2.0*t.x,  0.0     )) * (a0*a2);
+          acc += texture2D(uSplat, uv + vec2(-1.0*t.x,  0.0     )) * (a1*a2);
+          acc += texture2D(uSplat, uv + vec2( 0.0     ,  0.0     )) * (a2*a2);
+          acc += texture2D(uSplat, uv + vec2( 1.0*t.x,  0.0     )) * (a3*a2);
+          acc += texture2D(uSplat, uv + vec2( 2.0*t.x,  0.0     )) * (a4*a2);
+          // y = +1
+          acc += texture2D(uSplat, uv + vec2(-2.0*t.x,  1.0*t.y)) * (a0*a3);
+          acc += texture2D(uSplat, uv + vec2(-1.0*t.x,  1.0*t.y)) * (a1*a3);
+          acc += texture2D(uSplat, uv + vec2( 0.0     ,  1.0*t.y)) * (a2*a3);
+          acc += texture2D(uSplat, uv + vec2( 1.0*t.x,  1.0*t.y)) * (a3*a3);
+          acc += texture2D(uSplat, uv + vec2( 2.0*t.x,  1.0*t.y)) * (a4*a3);
+          // y = +2
+          acc += texture2D(uSplat, uv + vec2(-2.0*t.x,  2.0*t.y)) * (a0*a4);
+          acc += texture2D(uSplat, uv + vec2(-1.0*t.x,  2.0*t.y)) * (a1*a4);
+          acc += texture2D(uSplat, uv + vec2( 0.0     ,  2.0*t.y)) * (a2*a4);
+          acc += texture2D(uSplat, uv + vec2( 1.0*t.x,  2.0*t.y)) * (a3*a4);
+          acc += texture2D(uSplat, uv + vec2( 2.0*t.x,  2.0*t.y)) * (a4*a4);
+          return acc / norm;
         }
       `
 

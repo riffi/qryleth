@@ -31,25 +31,41 @@ export interface SplatmapParams {
  * @param width ширина перехода (метры по Y)
  */
 function heightWeights4(h: number, heights: number[], width: number): [number, number, number, number] {
-  // Гауссовы профили вокруг опорных высот дают более плавные переходы,
-  // чем треугольные. Сигма ~ width / 2.355 (FWHM), но берём чуть шире для гладкости.
-  const w = Math.max(1e-5, width)
-  const sigma = Math.max(1e-4, w / 2.0)
-  const inv2s2 = 1.0 / (2.0 * sigma * sigma)
+  /**
+   * Монотонная схема смешивания по высоте: вне диапазона — полностью первый/последний слой,
+   * между соседними опорными высотами — плавная интерполяция только между соответствующей парой
+   * с шириной перехода ~ width (smoothstep вокруг средней точки).
+   */
   const count = Math.min(4, heights.length)
-  const raw: number[] = [0, 0, 0, 0]
+  const w = Math.max(1e-5, width)
+  // Увеличим ширину перехода: используем полный w как половину окна сглаживания
+  const hw = w
+  const out: number[] = [0, 0, 0, 0]
+  if (count <= 0) { out[0] = 1; return out as [number, number, number, number] }
+  if (count === 1) { out[0] = 1; return out as [number, number, number, number] }
 
-  for (let i = 0; i < count; i++) {
-    const d = h - heights[i]
-    raw[i] = Math.exp(-(d * d) * inv2s2)
-  }
+  // Средние точки между слоями
+  const mids: number[] = []
+  for (let i = 0; i < count - 1; i++) mids.push(0.5 * (heights[i] + heights[i + 1]))
 
-  let sum = 0
-  for (let i = 0; i < count; i++) sum += raw[i]
-  if (sum <= 1e-12) {
-    if (count > 0) { raw[0] = 1; sum = 1 } else { return [1, 0, 0, 0] }
-  }
-  return [raw[0] / sum, raw[1] / sum, raw[2] / sum, raw[3] / sum] as [number, number, number, number]
+  // Вне диапазона — крайние слои
+  if (h <= mids[0] - hw) { out[0] = 1; return out as [number, number, number, number] }
+  if (h >= mids[mids.length - 1] + hw) { out[count - 1] = 1; return out as [number, number, number, number] }
+
+  // Найдём пару для смешивания: h < mids[0] → (0,1), h >= mids[last] → (last-1,last)
+  let j = 0
+  while (j < mids.length && h >= mids[j]) j++
+  const i0 = Math.max(0, Math.min(count - 2, j))
+  const i1 = i0 + 1
+  const m = mids[i0]
+  const x = h - m
+  let t = (x + hw) / (2 * hw) // линейная 0..1
+  t = Math.max(0, Math.min(1, t))
+  // smoothstep для мягкости
+  t = t * t * (3 - 2 * t)
+  out[i0] = 1 - t
+  out[i1] = t
+  return out as [number, number, number, number]
 }
 
 /**
