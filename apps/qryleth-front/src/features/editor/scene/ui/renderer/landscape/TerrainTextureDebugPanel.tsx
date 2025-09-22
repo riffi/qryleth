@@ -82,10 +82,10 @@ export const TerrainTextureDebugPanel: React.FC = () => {
                       Атлас: {e.atlasSize || '?'} | Splat: {e.splatSize || '?'} | Слоёв: {e.layers?.length || 0}
                     </Text>
                     <Group gap={8} wrap="wrap">
-                      <Preview label="Albedo" src={sAlbedo} />
-                      <Preview label="Normal" src={sNormal} />
-                      <Preview label="Rough" src={sRough} />
-                      <Preview label="AO" src={sAO} />
+                      {/*<Preview label="Albedo" src={sAlbedo} />*/}
+                      {/*<Preview label="Normal" src={sNormal} />*/}
+                      {/*<Preview label="Rough" src={sRough} />*/}
+                      {/*<Preview label="AO" src={sAO} />*/}
                       <Preview label="Splat" src={sSplat} />
                     </Group>
                     {stats && (

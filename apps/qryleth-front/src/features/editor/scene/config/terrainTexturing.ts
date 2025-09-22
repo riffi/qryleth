@@ -43,6 +43,8 @@ export interface TerrainTexturingConfig {
   roughnessScale: number
   /** Минимальная грубость (чтобы убрать чрезмерный блеск), 0..1 */
   roughnessMin: number
+  /** Экспонента для усиления доминирующего слоя в splat (>=1). 1 — без усиления. */
+  splatWeightExponent?: number
 }
 
 /**
@@ -54,7 +56,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   atlasMinSize: 1024,
   atlasMaxSize: 4096,
   atlasSizeFactor: 1, // размер атласа ≈ pow2(segments * factor)
-  splatMinSize: 1024,
+  splatMinSize: 2048,
   splatMaxSize: 4096,
   splatSizeFactor: 2, // размер splat ≈ pow2(segments * factor)
   blendHeightMeters: 6.0,
@@ -65,6 +67,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   minPxPerRepeat: 1024,
   roughnessScale: 1.2,
   roughnessMin: 0.55,
+  splatWeightExponent: 1.3,
 }
 
 /**

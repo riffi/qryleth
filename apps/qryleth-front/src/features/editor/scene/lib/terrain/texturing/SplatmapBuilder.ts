@@ -25,39 +25,24 @@ export interface SplatmapParams {
  * @param width ширина перехода (метры по Y)
  */
 function heightWeights4(h: number, heights: number[], width: number): [number, number, number, number] {
+  // Гауссовы профили вокруг опорных высот дают более плавные переходы,
+  // чем треугольные. Сигма ~ width / 2.355 (FWHM), но берём чуть шире для гладкости.
   const w = Math.max(1e-5, width)
-  const hw = w * 0.5
+  const sigma = Math.max(1e-4, w / 2.0)
+  const inv2s2 = 1.0 / (2.0 * sigma * sigma)
   const count = Math.min(4, heights.length)
   const raw: number[] = [0, 0, 0, 0]
 
-  // Треугольные профили вокруг опорных высот
   for (let i = 0; i < count; i++) {
-    const d = Math.abs(h - heights[i])
-    const t = Math.max(0, 1 - d / hw)
-    raw[i] = t
+    const d = h - heights[i]
+    raw[i] = Math.exp(-(d * d) * inv2s2)
   }
 
   let sum = 0
   for (let i = 0; i < count; i++) sum += raw[i]
-
-  // Вне зон смешивания всех слоёв — выбираем ближайший слой, чтобы не было нулевых весов
-  if (sum <= 1e-6) {
-    if (count > 0) {
-      let best = 0
-      let bestD = Math.abs(h - heights[0])
-      for (let i = 1; i < count; i++) {
-        const d = Math.abs(h - heights[i])
-        if (d < bestD) { bestD = d; best = i }
-      }
-      raw[best] = 1
-      sum = 1
-    } else {
-      // На всякий случай (не должно происходить при корректном вызове)
-      raw[0] = 1
-      sum = 1
-    }
+  if (sum <= 1e-12) {
+    if (count > 0) { raw[0] = 1; sum = 1 } else { return [1, 0, 0, 0] }
   }
-
   return [raw[0] / sum, raw[1] / sum, raw[2] / sum, raw[3] / sum] as [number, number, number, number]
 }
 
@@ -88,6 +73,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const w = p.worldSize.width
   const d = p.worldSize.depth
   const blend = p.blendHeight ?? TERRAIN_TEXTURING_CONFIG.blendHeightMeters
+  const expK = Math.max(1, TERRAIN_TEXTURING_CONFIG.splatWeightExponent ?? 1)
 
   let idx = 0
   // Диагностика: min/max высоты и каналов, счётчики argmax
@@ -109,7 +95,13 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       }
       if (h < minH) minH = h
       if (h > maxH) maxH = h
-      const [r, g, b, a] = heightWeights4(h, p.layerHeights, blend)
+      let [r, g, b, a] = heightWeights4(h, p.layerHeights, blend)
+      // Усилим доминирующий слой и ослабим паразитные «хвосты» малых весов
+      if (expK > 1.0001) {
+        r = Math.pow(r, expK); g = Math.pow(g, expK); b = Math.pow(b, expK); a = Math.pow(a, expK)
+        const s = r + g + b + a
+        if (s > 1e-12) { r/=s; g/=s; b/=s; a/=s }
+      }
       // Обновляем диагностику каналов
       if (r < chanMin[0]) chanMin[0] = r; if (r > chanMax[0]) chanMax[0] = r
       if (g < chanMin[1]) chanMin[1] = g; if (g > chanMax[1]) chanMax[1] = g

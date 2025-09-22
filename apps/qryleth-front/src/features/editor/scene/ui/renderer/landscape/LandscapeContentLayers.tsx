@@ -717,6 +717,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       shader.uniforms.uRoughnessMin = { value: cfg.roughnessMin }
       // Размер текселя атласа для диагностики (пока не используем в шейдере)
       shader.uniforms.uAtlasTexel = { value: 1.0 / Math.max(1, atlasSize) }
+      // Тексель splat для сглаживания весов (9-точечное ядро)
+      const splW = ((tSplat as any).image?.width as number) || (tSplat as any).width || 1024
+      const splH = ((tSplat as any).image?.height as number) || (tSplat as any).height || splW
+      shader.uniforms.uSplatTexel = { value: new THREE.Vector2(1 / Math.max(1, splW), 1 / Math.max(1, splH)) }
       // Цвета слоёв для подкраски (linear)
       shader.uniforms.uLayerColor0 = { value: colHex[0] ? toLinearVec3(colHex[0] as string) : new THREE.Vector3(1,1,1) }
       shader.uniforms.uLayerColor1 = { value: colHex[1] ? toLinearVec3(colHex[1] as string) : new THREE.Vector3(1,1,1) }
@@ -753,6 +757,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         uniform float uAtlasTexel;
         uniform float uRoughnessScale;
         uniform float uRoughnessMin;
+        uniform vec2 uSplatTexel;
         uniform vec3 uLayerColor0; uniform vec3 uLayerColor1; uniform vec3 uLayerColor2; uniform vec3 uLayerColor3;
         uniform float uLayerColorMix0; uniform float uLayerColorMix1; uniform float uLayerColorMix2; uniform float uLayerColorMix3;
         uniform float uDebugShowWeights;
@@ -797,6 +802,21 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           vec3 n = texture2D(uAtlasNormal, uv).xyz * 2.0 - 1.0;
           return n;
         }
+
+        // Сглаженный сэмпл splat: 3x3 Гаусс ядро (1 2 1; 2 4 2; 1 2 1)/16
+        vec4 sampleSplatSmooth(vec2 uv) {
+          vec2 t = uSplatTexel;
+          vec4 c00 = texture2D(uSplat, uv + vec2(-t.x, -t.y));
+          vec4 c10 = texture2D(uSplat, uv + vec2( 0.0 , -t.y));
+          vec4 c20 = texture2D(uSplat, uv + vec2( t.x , -t.y));
+          vec4 c01 = texture2D(uSplat, uv + vec2(-t.x,  0.0));
+          vec4 c11 = texture2D(uSplat, uv);
+          vec4 c21 = texture2D(uSplat, uv + vec2( t.x ,  0.0));
+          vec4 c02 = texture2D(uSplat, uv + vec2(-t.x,  t.y));
+          vec4 c12 = texture2D(uSplat, uv + vec2( 0.0 ,  t.y));
+          vec4 c22 = texture2D(uSplat, uv + vec2( t.x ,  t.y));
+          return (c11 * 4.0 + (c10 + c01 + c21 + c12) * 2.0 + (c00 + c20 + c02 + c22)) / 16.0;
+        }
       `
 
       // Прокинем мировую позицию из вершинного шейдера
@@ -818,7 +838,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
               c.rgb = sRGBToLinear(c.rgb);
               diffuseColor.rgb = c.rgb;
             } else {
-            vec4 w = texture2D(uSplat, uvSplat);
+            vec4 w = sampleSplatSmooth(uvSplat);
             w = clamp(w, 0.0, 1.0);
             float s = w.x + w.y + w.z + w.w;
             if (s < 1e-6) {
@@ -870,14 +890,14 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           .replace(
             '#include <normal_fragment_maps>',
             `
-            vec4 wN = texture2D(uSplat, uvSplat);
-              wN = clamp(wN, 0.0, 1.0);
-              float sN = wN.x + wN.y + wN.z + wN.w;
-              if (sN < 1e-6) {
-                wN = vec4(1.0, 0.0, 0.0, 0.0);
-              } else {
-                wN /= sN;
-              }
+            vec4 wN = sampleSplatSmooth(uvSplat);
+            wN = clamp(wN, 0.0, 1.0);
+            float sN = wN.x + wN.y + wN.z + wN.w;
+            if (sN < 1e-6) {
+              wN = vec4(1.0, 0.0, 0.0, 0.0);
+            } else {
+              wN /= sN;
+            }
 
             vec3 n0 = sampleNormal(layerUV0(uvWorld));
             vec3 n1 = sampleNormal(layerUV1(uvWorld));
@@ -892,7 +912,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           .replace(
           '#include <roughnessmap_fragment>',
           `
-            vec4 wR = texture2D(uSplat, uvSplat);
+            vec4 wR = sampleSplatSmooth(uvSplat);
             wR = clamp(wR, 0.0, 1.0);
             float sR = wR.x + wR.y + wR.z + wR.w;
             if (sR < 1e-6) {
@@ -911,14 +931,14 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           .replace(
             '#include <aomap_fragment>',
             `
-            vec4 wA = texture2D(uSplat, uvSplat);
-              wA = clamp(wA, 0.0, 1.0);
-              float sA = wA.x + wA.y + wA.z + wA.w;
-              if (sA < 1e-6) {
-                wA = vec4(1.0, 0.0, 0.0, 0.0);
-              } else {
-                wA /= sA;
-              }
+            vec4 wA = sampleSplatSmooth(uvSplat);
+            wA = clamp(wA, 0.0, 1.0);
+            float sA = wA.x + wA.y + wA.z + wA.w;
+            if (sA < 1e-6) {
+              wA = vec4(1.0, 0.0, 0.0, 0.0);
+            } else {
+              wA /= sA;
+            }
             float a0 = texture2D(uAtlasAO, layerUV0(uvWorld)).r;
             float a1 = texture2D(uAtlasAO, layerUV1(uvWorld)).r;
             float a2 = texture2D(uAtlasAO, layerUV2(uvWorld)).r;
