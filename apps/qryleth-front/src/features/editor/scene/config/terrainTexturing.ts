@@ -64,7 +64,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   generateMipmaps: true,
   minPxPerRepeat: 1024,
   roughnessScale: 1.2,
-  roughnessMin: 0.35,
+  roughnessMin: 0.55,
 }
 
 /**

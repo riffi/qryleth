@@ -10,6 +10,7 @@ import { GfxLayerType } from '@/entities/layer'
 import { landscapeTextureRegistry } from '@/shared/lib/textures'
 import { decideSegments } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
 import { TERRAIN_TEXTURING_CONFIG, computeAtlasSizeFromSegments, computeSplatSizeFromSegments, toPow2Up } from '@/features/editor/scene/config/terrainTexturing'
+import type { ColorSource, GlobalPalette } from '@/entities/palette'
 import { buildTextureAtlases, loadImage, type LayerImages } from '@/features/editor/scene/lib/terrain/texturing/AtlasBuilder'
 import { buildSplatmap } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
 import { setTerrainDebugEntry } from '@/features/editor/scene/lib/terrain/texturing/DebugTextureRegistry'
@@ -407,6 +408,41 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     const splatSize = computeSplatSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
     const repeats = layers.map(l => l.uvRepeat || item.material?.uvRepeat || [1, 1]) as Array<[number, number]>
     const heights = layers.map(l => l.height)
+    // Резолв цвета палитры для подкраски слоёв
+    const resolveColorSource = (src: ColorSource | undefined | null, pal?: GlobalPalette | null): string | null => {
+      if (!src) return null
+      if (src.type === 'fixed') return (item.material?.color ?? '#ffffff')
+      const base = pal?.colors?.[src.role] || '#ffffff'
+      // Простая коррекция HSV по опциям src
+      const hexToRgb = (hex: string) => {
+        const h = hex.replace('#', '')
+        const v = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+        return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 }
+      }
+      const rgbToHex = (r: number, g: number, b: number) => `#${[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('')}`
+      const rgbToHsv = (r: number, g: number, b: number) => {
+        r/=255; g/=255; b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b); const d=max-min; let h=0; const s=max===0?0:d/max; const v=max; if(d!==0){ switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break} h/=6 } return {h,s,v}
+      }
+      const hsvToRgb = (h:number,s:number,v:number) => { const i=Math.floor(h*6); const f=h*6-i; const p=v*(1-s); const q=v*(1-f*s); const t=v*(1-(1-f)*s); let r=0,g=0,b=0; switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;case 5:r=v;g=p;b=q;break} return {r: Math.round(r*255), g: Math.round(g*255), b: Math.round(b*255)} }
+      const { r, g, b } = hexToRgb(base)
+      let { h, s, v } = rgbToHsv(r,g,b)
+      const tint = (src as any).tint as number | undefined
+      const hueTowards = (src as any).hueTowards as {deg:number;t:number}|undefined
+      const saturationShift = (src as any).saturationShift as number | undefined
+      if (hueTowards && Number.isFinite(hueTowards.deg) && Number.isFinite(hueTowards.t)){
+        const t = Math.max(0, Math.min(1, hueTowards.t))
+        const h0=h; let h1=((hueTowards.deg%360)+360)%360/360; let d=h1-h0; if(d>0.5)d-=1; if(d<-0.5)d+=1; h=((h0+t*d)%1+1)%1
+      }
+      if (Number.isFinite(saturationShift as number) && (saturationShift as number)!==0){ s=Math.max(0,Math.min(1,s+(saturationShift as number))) }
+      if (Number.isFinite(tint as number) && (tint as number)!==0){ v=Math.max(0,Math.min(1,v+(tint as number))) }
+      const rgb2 = hsvToRgb(h,s,v)
+      return rgbToHex(rgb2.r,rgb2.g,rgb2.b)
+    }
+    const layerColorsHex = layers.map(l => resolveColorSource(l.colorSource as any, activePalette as any))
+    const layerColorMix = layers.map(l => {
+      const t = (l as any).colorize
+      return Number.isFinite(t) ? Math.max(0, Math.min(1, Number(t))) : 0
+    }) as number[]
 
     // Хитрая подстройка размера атласа под большие повторы:
     // гарантируем не менее ~256px на один повтор тайла по каждой оси.
@@ -421,7 +457,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
 
     const cacheKey = JSON.stringify({
       atlasSize, splatSize,
-      layers: layers.map(l => ({ id: l.textureId, h: l.height, r: l.uvRepeat || null })),
+      layers: layers.map(l => ({ id: l.textureId, h: l.height, r: l.uvRepeat || null, cs: l.colorSource ? true : false, cm: (l as any).colorize ?? 0 })),
       center: item.center || [0, 0],
       size: item.size,
       blend: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
@@ -437,7 +473,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         existing.albedo, existing.normal, existing.roughness, existing.ao, existing.splat,
         existing.tileOffset, existing.tileScale, existing.repeats, existing.heights,
         center2, size2,
-        mt.exposure
+        mt.exposure,
+        layerColorsHex as (string|null)[], layerColorMix as number[]
       )
       return
     }
@@ -574,7 +611,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             built.albedo, built.normal, built.roughness, built.ao, splatTex,
             built.tileOffset, built.tileScale, repeats, heights,
             center2, size2,
-            mt.exposure
+            mt.exposure,
+            layerColorsHex as (string|null)[], layerColorMix as number[]
           )
         }
       } catch (e) {
@@ -602,7 +640,9 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     _heights: number[],
     worldCenter: [number, number],
     worldSize: [number, number],
-    exposure?: number
+    exposure?: number,
+    layerColors?: (string | null)[],
+    layerColorMix?: number[]
   ) {
     const cfg = TERRAIN_TEXTURING_CONFIG
     // Вспомогательные флаги отладки: только albedo без нормалей/rough/AO
@@ -652,6 +692,23 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       shader.uniforms.uRoughnessMin = { value: cfg.roughnessMin }
       // Размер текселя атласа для диагностики (пока не используем в шейдере)
       shader.uniforms.uAtlasTexel = { value: 1.0 / Math.max(1, atlasSize) }
+      // Цвета слоёв для подкраски (linear)
+      const toLinearVec3 = (hex: string) => {
+        const c = new THREE.Color(hex)
+        if ((THREE as any).SRGBColorSpace && (c as any).convertSRGBToLinear) (c as any).convertSRGBToLinear()
+        else { c.r = Math.pow(c.r, 2.2); c.g = Math.pow(c.g, 2.2); c.b = Math.pow(c.b, 2.2) }
+        return new THREE.Vector3(c.r, c.g, c.b)
+      }
+      const colHex: Array<string|null> = [0,1,2,3].map(i => (layerColors && layerColors[i]) || null)
+      const colMix: number[] = [0,1,2,3].map(i => Math.max(0, Math.min(1, Number(layerColorMix?.[i] ?? 0))))
+      shader.uniforms.uLayerColor0 = { value: colHex[0] ? toLinearVec3(colHex[0] as string) : new THREE.Vector3(1,1,1) }
+      shader.uniforms.uLayerColor1 = { value: colHex[1] ? toLinearVec3(colHex[1] as string) : new THREE.Vector3(1,1,1) }
+      shader.uniforms.uLayerColor2 = { value: colHex[2] ? toLinearVec3(colHex[2] as string) : new THREE.Vector3(1,1,1) }
+      shader.uniforms.uLayerColor3 = { value: colHex[3] ? toLinearVec3(colHex[3] as string) : new THREE.Vector3(1,1,1) }
+      shader.uniforms.uLayerColorMix0 = { value: colMix[0] }
+      shader.uniforms.uLayerColorMix1 = { value: colMix[1] }
+      shader.uniforms.uLayerColorMix2 = { value: colMix[2] }
+      shader.uniforms.uLayerColorMix3 = { value: colMix[3] }
       // Диагностика: флаг показа атласа напрямую по vUv
       const params = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search) : null
       const showAtlasDirect = params?.get('terrainDebugSampleAtlas') === '1'
@@ -679,6 +736,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         uniform float uAtlasTexel;
         uniform float uRoughnessScale;
         uniform float uRoughnessMin;
+        uniform vec3 uLayerColor0; uniform vec3 uLayerColor1; uniform vec3 uLayerColor2; uniform vec3 uLayerColor3;
+        uniform float uLayerColorMix0; uniform float uLayerColorMix1; uniform float uLayerColorMix2; uniform float uLayerColorMix3;
         uniform float uDebugShowWeights;
         uniform float uDebugShowLayer;
         uniform vec2 uWorldCenter;
@@ -773,6 +832,11 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             c1.rgb = sRGBToLinear(c1.rgb);
             c2.rgb = sRGBToLinear(c2.rgb);
             c3.rgb = sRGBToLinear(c3.rgb);
+            // Подкраска слоя в направлении цвета из палитры
+            c0.rgb = mix(c0.rgb, uLayerColor0, clamp(uLayerColorMix0, 0.0, 1.0));
+            c1.rgb = mix(c1.rgb, uLayerColor1, clamp(uLayerColorMix1, 0.0, 1.0));
+            c2.rgb = mix(c2.rgb, uLayerColor2, clamp(uLayerColorMix2, 0.0, 1.0));
+            c3.rgb = mix(c3.rgb, uLayerColor3, clamp(uLayerColorMix3, 0.0, 1.0));
             vec4 texelColor = c0 * w.x + c1 * w.y + c2 * w.z + c3 * w.w;
 
             texelColor.a = 1.0; // террейн непрозрачный

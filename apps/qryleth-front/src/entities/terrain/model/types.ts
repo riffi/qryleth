@@ -272,6 +272,14 @@ export interface GfxLandscape {
         height: number
         /** Индивидуальный тайлинг для слоя (если не указан — берётся общий uvRepeat или [1,1]) */
         uvRepeat?: [number, number]
+        /**
+         * Необязательный источник целевого цвета из палитры для подкраски слоя.
+         * Если задан, цвет слоя будет плавно приведён к этому цвету в соответствии
+         * с коэффициентом `colorize` (0..1).
+         */
+        colorSource?: import('@/entities/palette').ColorSource
+        /** Уровень приведения к цвету из colorSource (0..1). По умолчанию 0 (без изменения). */
+        colorize?: number
       }>
       /** Множитель яркости цветов (albedo) для режима multiTexture. По умолчанию 1.0 */
       exposure?: number
