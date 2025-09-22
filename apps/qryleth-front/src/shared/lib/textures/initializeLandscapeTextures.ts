@@ -9,6 +9,21 @@ import { landscapeTextureRegistry } from './LandscapeTextureRegistry'
  * В дальнейшем сюда можно добавлять другие текстуры или подгружать конфигурацию извне.
  */
 export function initializeLandscapeTextures(): void {
+  // Дополнительная текстура: Grass003 (1K, JPG)
+  // Структура файлов соответствует каталогу `public/texture/landscape/Grass003_1K-JPG/`
+  // Используется PNG-превью и карты: Color, NormalGL, Roughness, AO, Displacement.
+  const base003 = '/texture/landscape/Grass003_1K-JPG/'
+  landscapeTextureRegistry.register({
+    id: 'grass003-1k-jpg',
+    name: 'Grass 003 (1K, JPG)',
+    previewUrl: base003 + 'Grass003.png',
+    colorMapUrl: base003 + 'Grass003_1K-JPG_Color.jpg',
+    normalMapUrl: base003 + 'Grass003_1K-JPG_NormalGL.jpg',
+    roughnessMapUrl: base003 + 'Grass003_1K-JPG_Roughness.jpg',
+    aoMapUrl: base003 + 'Grass003_1K-JPG_AmbientOcclusion.jpg',
+    displacementMapUrl: base003 + 'Grass003_1K-JPG_Displacement.jpg',
+  })
+
   const base = '/texture/landscape/Grass006_1K-JPG/'
   landscapeTextureRegistry.register({
     id: 'grass006-1k-jpg',
@@ -58,6 +73,21 @@ export function initializeLandscapeTextures(): void {
     roughnessMapUrl: baseSnow010A + 'Snow010A_1K-JPG_Roughness.jpg',
     aoMapUrl: baseSnow010A + 'Snow010A_1K-JPG_AmbientOcclusion.jpg',
     displacementMapUrl: baseSnow010A + 'Snow010A_1K-JPG_Displacement.jpg',
+  })
+
+  // Дополнительная текстура: Ground037 (1K, JPG)
+  // Структура файлов соответствует каталогу `public/texture/landscape/Ground037_1K-JPG/`
+  // Используется PNG-превью и карты: Color, NormalGL, Roughness, AO, Displacement.
+  const baseGround037 = '/texture/landscape/Ground037_1K-JPG/'
+  landscapeTextureRegistry.register({
+    id: 'ground037-1k-jpg',
+    name: 'Ground 037 (1K, JPG)',
+    previewUrl: baseGround037 + 'Ground037.png',
+    colorMapUrl: baseGround037 + 'Ground037_1K-JPG_Color.jpg',
+    normalMapUrl: baseGround037 + 'Ground037_1K-JPG_NormalGL.jpg',
+    roughnessMapUrl: baseGround037 + 'Ground037_1K-JPG_Roughness.jpg',
+    aoMapUrl: baseGround037 + 'Ground037_1K-JPG_AmbientOcclusion.jpg',
+    displacementMapUrl: baseGround037 + 'Ground037_1K-JPG_Displacement.jpg',
   })
 
   // Дополнительная текстура: Ground082S (1K, JPG)

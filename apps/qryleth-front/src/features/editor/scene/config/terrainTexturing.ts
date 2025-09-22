@@ -67,8 +67,8 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   exposure: 1.2,
   generateMipmaps: true,
   minPxPerRepeat: 1024,
-  roughnessScale: 1.2,
-  roughnessMin: 0.55,
+  roughnessScale: 2,
+  roughnessMin: 0.75,
   splatWeightExponent: 1,
   splatCpuBlurRadiusPx: 4,
 }
