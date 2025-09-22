@@ -549,7 +549,9 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         splatTex.generateMipmaps = false
         splatTex.minFilter = THREE.LinearFilter
         splatTex.magFilter = THREE.LinearFilter
-        splatTex.flipY = true
+        // ВНИМАНИЕ: splat генерируется в мировых координатах с v растущим как и Z,
+        // поэтому переворот по Y НЕ нужен. Иначе получим зеркалирование по Z.
+        splatTex.flipY = false
         splatTex.premultiplyAlpha = false
         splatTex.needsUpdate = true
 
