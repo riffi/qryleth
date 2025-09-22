@@ -45,6 +45,8 @@ export interface TerrainTexturingConfig {
   roughnessMin: number
   /** Экспонента для усиления доминирующего слоя в splat (>=1). 1 — без усиления. */
   splatWeightExponent?: number
+  /** Радиус CPU‑размытия splat в пикселях расчётной карты (0 — без размытия) */
+  splatCpuBlurRadiusPx?: number
 }
 
 /**
@@ -68,6 +70,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   roughnessScale: 1.2,
   roughnessMin: 0.55,
   splatWeightExponent: 1,
+  splatCpuBlurRadiusPx: 4,
 }
 
 /**

@@ -539,6 +539,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           layerHeights: heights,
           blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
           qualityScale: qs,
+          blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
         })
         // Используем DataTexture, чтобы исключить влияние premultiplied alpha
         // Создаём DataTexture напрямую из байтов (без чтения из canvas, чтобы избежать премультипликации)

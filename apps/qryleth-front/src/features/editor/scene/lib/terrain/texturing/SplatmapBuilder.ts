@@ -22,6 +22,8 @@ export interface SplatmapParams {
    * благодаря последующему сглаживанию весов в шейдере.
    */
   qualityScale?: number
+  /** Радиус CPU‑размытия splat (в пикселях расчётной карты). 0 — без размытия. */
+  blurRadiusPx?: number
 }
 
 /**
@@ -85,6 +87,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const size = p.size
   const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
   const calcSize = Math.max(8, Math.floor(size * q))
+  const blurR = Math.max(0, Math.floor(p.blurRadiusPx ?? 0))
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
@@ -144,6 +147,66 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       small[idx++] = Math.max(0, Math.min(255, Math.round(b * 255)))
       small[idx++] = Math.max(0, Math.min(255, Math.round(a * 255)))
     }
+  }
+  // Опциональное CPU‑размытие (separable box blur, 2 прохода)
+  if (blurR > 0) {
+    const tmp = new Uint8ClampedArray(small.length)
+    // Горизонтальный
+    for (let y = 0; y < calcSize; y++) {
+      let sumR = 0, sumG = 0, sumB = 0, sumA = 0
+      const rowStart = y * calcSize
+      // Инициализация окна [0..r]
+      for (let k = -blurR; k <= blurR; k++) {
+        const xk = Math.max(0, Math.min(calcSize - 1, k))
+        const i = (rowStart + xk) * 4
+        sumR += small[i]; sumG += small[i+1]; sumB += small[i+2]; sumA += small[i+3]
+      }
+      const win = 2 * blurR + 1
+      for (let x = 0; x < calcSize; x++) {
+        const di = (rowStart + x) * 4
+        // Пишем среднее
+        tmp[di]   = Math.round(sumR / win)
+        tmp[di+1] = Math.round(sumG / win)
+        tmp[di+2] = Math.round(sumB / win)
+        tmp[di+3] = Math.round(sumA / win)
+        // Обновляем окно: выкинуть x-blurR, добавить x+blurR+1
+        const xOut = Math.max(0, Math.min(calcSize - 1, x - blurR))
+        const xIn  = Math.max(0, Math.min(calcSize - 1, x + blurR + 1))
+        const iOut = (rowStart + xOut) * 4
+        const iIn  = (rowStart + xIn) * 4
+        sumR += small[iIn]   - small[iOut]
+        sumG += small[iIn+1] - small[iOut+1]
+        sumB += small[iIn+2] - small[iOut+2]
+        sumA += small[iIn+3] - small[iOut+3]
+      }
+    }
+    // Вертикальный
+    for (let x = 0; x < calcSize; x++) {
+      let sumR = 0, sumG = 0, sumB = 0, sumA = 0
+      // Инициализация окна по столбцу
+      for (let k = -blurR; k <= blurR; k++) {
+        const yk = Math.max(0, Math.min(calcSize - 1, k))
+        const i = (yk * calcSize + x) * 4
+        sumR += tmp[i]; sumG += tmp[i+1]; sumB += tmp[i+2]; sumA += tmp[i+3]
+      }
+      const win = 2 * blurR + 1
+      for (let y = 0; y < calcSize; y++) {
+        const di = (y * calcSize + x) * 4
+        small[di]   = Math.round(sumR / win)
+        small[di+1] = Math.round(sumG / win)
+        small[di+2] = Math.round(sumB / win)
+        small[di+3] = Math.round(sumA / win)
+        const yOut = Math.max(0, Math.min(calcSize - 1, y - blurR))
+        const yIn  = Math.max(0, Math.min(calcSize - 1, y + blurR + 1))
+        const iOut = (yOut * calcSize + x) * 4
+        const iIn  = (yIn  * calcSize + x) * 4
+        sumR += tmp[iIn]   - tmp[iOut]
+        sumG += tmp[iIn+1] - tmp[iOut+1]
+        sumB += tmp[iIn+2] - tmp[iOut+2]
+        sumA += tmp[iIn+3] - tmp[iOut+3]
+      }
+    }
+    // Примечание: box blur линейный — сумма каналов сохраняется близко к 255, renorm не обязателен
   }
   // Если расчётный размер меньше финального — билinear‑апскейл
   if (calcSize !== size) {
