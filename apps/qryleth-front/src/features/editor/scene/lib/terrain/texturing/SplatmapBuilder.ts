@@ -71,6 +71,26 @@ function heightWeights4(h: number, heights: number[], width: number): [number, n
 }
 
 /**
+ * Детерминированный псевдошум в диапазоне [-1, 1] по целочисленным координатам.
+ *
+ * Используется для внесения лёгкой вариативности в веса слоёв перед размытием,
+ * чтобы сделать переходы между слоями менее «стерильными». Функция не обращается
+ * к глобальному генератору случайных чисел, а вычисляет значение из (x, y, c),
+ * что гарантирует повторяемость результата при одинаковых входах.
+ *
+ * @param x координата пикселя по X (целое)
+ * @param y координата пикселя по Y (целое)
+ * @param c индекс канала (0..3)
+ * @returns число в диапазоне [-1, 1]
+ */
+function noiseSigned(x: number, y: number, c: number): number {
+  // Простая хеш‑функция на базе синуса для детерминированного «шума»
+  const s = Math.sin((x * 12.9898 + y * 78.233 + c * 37.719) * 43758.5453)
+  const v = s - Math.floor(s)
+  return v * 2 - 1
+}
+
+/**
  * Сгенерировать splatmap (RGBA) для до 4 слоёв на основе высот террейна.
  * Каждый канал RGBA соответствует одному слою, значения — нормализованные веса [0..1].
  *
@@ -88,6 +108,8 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
   const calcSize = Math.max(8, Math.floor(size * q))
   const blurR = Math.max(0, Math.floor(p.blurRadiusPx ?? 0))
+  // Амплитуда шума для весов слоёв, ограничиваем безопасным максимумом 0.25
+  const noiseAmp = Math.max(0, Math.min(0.25, TERRAIN_TEXTURING_CONFIG.splatNoiseStrength ?? 0))
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
@@ -129,6 +151,22 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
         r = Math.pow(r, expK); g = Math.pow(g, expK); b = Math.pow(b, expK); a = Math.pow(a, expK)
         const s = r + g + b + a
         if (s > 1e-12) { r/=s; g/=s; b/=s; a/=s }
+      }
+      // Добавим немного детерминированного шума перед размытием, чтобы сделать
+      // границы между слоями менее ровными. После добавления — жёстко нормализуем веса.
+      if (noiseAmp > 0) {
+        const r0 = r, g0 = g, b0 = b, a0 = a
+        r = Math.max(0, Math.min(1, r + noiseSigned(x, y, 0) * noiseAmp))
+        g = Math.max(0, Math.min(1, g + noiseSigned(x, y, 1) * noiseAmp))
+        b = Math.max(0, Math.min(1, b + noiseSigned(x, y, 2) * noiseAmp))
+        a = Math.max(0, Math.min(1, a + noiseSigned(x, y, 3) * noiseAmp))
+        let s = r + g + b + a
+        if (s > 1e-12) {
+          r/=s; g/=s; b/=s; a/=s
+        } else {
+          // На всякий случай, если все обнулились из-за клампа — вернём прежние нормализованные веса
+          r = r0; g = g0; b = b0; a = a0
+        }
       }
       // Обновляем диагностику каналов
       if (r < chanMin[0]) chanMin[0] = r; if (r > chanMax[0]) chanMax[0] = r

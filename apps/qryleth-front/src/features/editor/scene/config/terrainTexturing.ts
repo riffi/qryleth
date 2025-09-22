@@ -47,6 +47,12 @@ export interface TerrainTexturingConfig {
   splatWeightExponent?: number
   /** Радиус CPU‑размытия splat в пикселях расчётной карты (0 — без размытия) */
   splatCpuBlurRadiusPx?: number
+  /**
+   * Амплитуда добавляемого шума к весам слоёв перед размятием (0..0.25).
+   * Небольшой шум (например, 0.02–0.05) делает границы слоёв естественнее
+   * после последующего размытия, убирая «стерильные» ровные полосы.
+   */
+  splatNoiseStrength?: number
 }
 
 /**
@@ -71,6 +77,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   roughnessMin: 0.75,
   splatWeightExponent: 1,
   splatCpuBlurRadiusPx: 4,
+  splatNoiseStrength: 0.03,
 }
 
 /**
