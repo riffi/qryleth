@@ -8,6 +8,7 @@ import { useSceneStore, useIsTerrainApplying } from '../../model/sceneStore.ts'
 import { FpsProvider, useFpsContext } from '../../lib/contexts/FpsContext'
 import { FpsDisplay } from './controls/FpsDisplay'
 import { UiMode } from '@/shared/types/ui'
+import { TerrainTextureDebugPanel } from './landscape/TerrainTextureDebugPanel'
 
 interface Scene3DProps {
   className: string,
@@ -108,6 +109,9 @@ const Scene3DContent: React.FC<Scene3DProps> = ({
       }>
         {/* Loading overlay will be shown while components are loading */}
       </Suspense>
+
+      {/* Отладочная панель атласов/splatmap террейна */}
+      <TerrainTextureDebugPanel />
     </Box>
   )
 }

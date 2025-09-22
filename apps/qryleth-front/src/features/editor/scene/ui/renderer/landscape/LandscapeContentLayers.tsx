@@ -8,6 +8,11 @@ import { MultiColorProcessor } from '@/features/editor/scene/lib/terrain/MultiCo
 import { paletteRegistry } from '@/shared/lib/palette'
 import { GfxLayerType } from '@/entities/layer'
 import { landscapeTextureRegistry } from '@/shared/lib/textures'
+import { decideSegments } from '@/features/editor/scene/lib/terrain/GeometryBuilder'
+import { TERRAIN_TEXTURING_CONFIG, computeAtlasSizeFromSegments, computeSplatSizeFromSegments } from '@/features/editor/scene/config/terrainTexturing'
+import { buildTextureAtlases, loadImage, type LayerImages } from '@/features/editor/scene/lib/terrain/texturing/AtlasBuilder'
+import { buildSplatmap } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
+import { setTerrainDebugEntry } from '@/features/editor/scene/lib/terrain/texturing/DebugTextureRegistry'
 
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
 // Ключ: baseGeometry.uuid + параметры многоцветной палитры.
@@ -339,6 +344,15 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
 
   // Императивная синхронизация карт материала (на случай, если декларативный проп map не применился)
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
+  // Диагностический флаг: показать атлас как обычную карту материала и отключить кастомный шейдер.
+  // Включается через URL-параметр ?terrainDebugAtlasAsMap=1
+  const debugAtlasAsMap = useMemo(() => {
+    try {
+      if (typeof window === 'undefined') return false
+      const q = new URLSearchParams(window.location.search)
+      return q.get('terrainDebugAtlasAsMap') === '1'
+    } catch { return false }
+  }, [])
   useEffect(() => {
     const mat = materialRef.current
     if (!mat) return
@@ -358,126 +372,284 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
     }
   }, [useVertexColors, textureMap, normalMap, roughnessMap, aoMap, item.material?.multiTexture])
 
-  // Мульти-текстура по высоте: смешивание до 4 слоёв цветовых карт
+  // (Старый 2‑слойный путь удалён — используем атласы + splatmap ниже)
+
+  // Кэш собранных атласов и splatmap по item.id
+  const atlasCache = useRef(new Map<string, {
+    key: string
+    albedo: THREE.CanvasTexture
+    normal: THREE.CanvasTexture
+    roughness: THREE.CanvasTexture
+    ao: THREE.CanvasTexture
+    splat: THREE.CanvasTexture
+    tileOffset: Array<[number, number]>
+    tileScale: Array<[number, number]>
+    repeats: Array<[number, number]>
+    heights: number[]
+  }>()).current
+
+  // Новый путь: атлас 2x2 (до 4 слоёв) + splatmap по высоте.
+  // Ставит свой onBeforeCompile ПОСЛЕ старого эффекта, чтобы переопределить его.
   useEffect(() => {
     const mat = materialRef.current as any
     if (!mat) return
     const mt = item.material?.multiTexture
-    if (!mt || !Array.isArray(mt.layers) || mt.layers.length === 0) {
-      // Сброс onBeforeCompile если ранее был установлен
-      if (mat.userData && mat.userData._mtApplied) {
-        mat.onBeforeCompile = undefined
-        mat.userData._mtApplied = false
-        mat.needsUpdate = true
-      }
+    if (!mt || !Array.isArray(mt.layers) || mt.layers.length === 0 || !sampler || item.shape !== 'terrain' || !item.terrain) {
       return
     }
 
-    // Ограничим число слоёв до 2, чтобы не превышать лимит текстурных юнитов
-    const layers = mt.layers.slice().sort((a, b) => a.height - b.height).slice(0, 2)
-    // Подготовим текстуры и параметры
-    const maps: (THREE.Texture | null)[] = layers.map(layer => {
-      const entry = landscapeTextureRegistry.get(layer.textureId)
-      if (!entry?.colorMapUrl) return null
-      const tex = new THREE.TextureLoader().load(entry.colorMapUrl)
-      tex.wrapS = THREE.RepeatWrapping
-      tex.wrapT = THREE.RepeatWrapping
-      ;(tex as any).colorSpace = (THREE as any).SRGBColorSpace// || (THREE as any).sRGBEncoding
-      const r = layer.uvRepeat || item.material?.uvRepeat || [1, 1]
-      tex.repeat.set(r[0], r[1])
-      return tex
-    })
-    const normMaps: (THREE.Texture | null)[] = layers.map(layer => {
-      const entry = landscapeTextureRegistry.get(layer.textureId)
-      if (!entry?.normalMapUrl) return null
-      const tex = new THREE.TextureLoader().load(entry.normalMapUrl)
-      tex.wrapS = THREE.RepeatWrapping
-      tex.wrapT = THREE.RepeatWrapping
-      const r = layer.uvRepeat || item.material?.uvRepeat || [1, 1]
-      tex.repeat.set(r[0], r[1])
-      return tex
-    })
-    const roughMaps: (THREE.Texture | null)[] = layers.map(layer => {
-      const entry = landscapeTextureRegistry.get(layer.textureId)
-      if (!entry?.roughnessMapUrl) return null
-      const tex = new THREE.TextureLoader().load(entry.roughnessMapUrl)
-      tex.wrapS = THREE.RepeatWrapping
-      tex.wrapT = THREE.RepeatWrapping
-      const r = layer.uvRepeat || item.material?.uvRepeat || [1, 1]
-      tex.repeat.set(r[0], r[1])
-      return tex
-    })
-    const aoMaps: (THREE.Texture | null)[] = layers.map(layer => {
-      const entry = landscapeTextureRegistry.get(layer.textureId)
-      if (!entry?.aoMapUrl) return null
-      const tex = new THREE.TextureLoader().load(entry.aoMapUrl)
-      tex.wrapS = THREE.RepeatWrapping
-      tex.wrapT = THREE.RepeatWrapping
-      const r = layer.uvRepeat || item.material?.uvRepeat || [1, 1]
-      tex.repeat.set(r[0], r[1])
-      return tex
-    })
-    const heights = layers.map(l => l.height)
-    const repeats = layers.map(l => l.uvRepeat || item.material?.uvRepeat || [1, 1])
+    const sorted = mt.layers.slice().sort((a, b) => a.height - b.height)
+    const layers = sorted.slice(0, 4)
+    if (sorted.length > 4) console.warn('[multiTexture] Слоёв больше 4, лишние будут отброшены:', sorted.length)
 
-    // Активируем необходимые ветки стандартного шейдера через defines (без привязки встроенных sampler-ов)
+    const segments = decideSegments(item.terrain)
+    const atlasSize = computeAtlasSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
+    const splatSize = computeSplatSizeFromSegments(segments, TERRAIN_TEXTURING_CONFIG)
+    const repeats = layers.map(l => l.uvRepeat || item.material?.uvRepeat || [1, 1]) as Array<[number, number]>
+    const heights = layers.map(l => l.height)
+
+    const cacheKey = JSON.stringify({
+      atlasSize, splatSize,
+      layers: layers.map(l => ({ id: l.textureId, h: l.height, r: l.uvRepeat || null })),
+      center: item.center || [0, 0],
+      size: item.size,
+      blend: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+      geomVer: geometryVersion,
+    })
+
+    const existing = atlasCache.get(item.id)
+    if (existing && existing.key === cacheKey) {
+      const center2: [number, number] = [item.center?.[0] ?? 0, item.center?.[1] ?? 0]
+      const size2: [number, number] = [item.size?.width ?? item.terrain.worldWidth, item.size?.depth ?? (item.terrain as any).worldDepth]
+      applyMultiTextureShader(
+        mat,
+        existing.albedo, existing.normal, existing.roughness, existing.ao, existing.splat,
+        existing.tileOffset, existing.tileScale, existing.repeats, existing.heights,
+        center2, size2,
+        mt.exposure
+      )
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        // Дожидаемся готовности источника высоты (важно для heightmap)
+        await sampler.ready?.()
+        const imageLayers: LayerImages[] = []
+        const texLoader = new THREE.TextureLoader()
+        const loadTexImage = (url?: string): Promise<CanvasImageSource | null> => new Promise((resolve) => {
+          if (!url) { resolve(null); return }
+          try {
+            texLoader.load(url, (t) => {
+              const src = (t && (t as any).image) as CanvasImageSource | undefined
+              resolve(src || null)
+            }, undefined, () => resolve(null))
+          } catch {
+            resolve(null)
+          }
+        })
+        for (const l of layers) {
+          const entry = landscapeTextureRegistry.get(l.textureId)
+          const albedo = await loadTexImage(entry?.colorMapUrl)
+          const normal = await loadTexImage(entry?.normalMapUrl)
+          const rough = await loadTexImage(entry?.roughnessMapUrl)
+          const ao = await loadTexImage(entry?.aoMapUrl)
+          imageLayers.push({ albedo, normal, roughness: rough, ao })
+        }
+
+        const built = buildTextureAtlases(atlasSize, imageLayers)
+        const splat = buildSplatmap(sampler, {
+          size: splatSize,
+          center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
+          worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
+          layerHeights: heights,
+          blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+        })
+        // Используем DataTexture, чтобы исключить влияние premultiplied alpha
+        // Создаём DataTexture напрямую из байтов (без чтения из canvas, чтобы избежать премультипликации)
+        const splatTex = new THREE.DataTexture(splat.bytes, splatSize, splatSize, THREE.RGBAFormat)
+        splatTex.wrapS = THREE.ClampToEdgeWrapping
+        splatTex.wrapT = THREE.ClampToEdgeWrapping
+        // Для карт весов избегаем mipmap, чтобы не было паразитных швов от фильтрации
+        splatTex.generateMipmaps = false
+        splatTex.minFilter = THREE.LinearFilter
+        splatTex.magFilter = THREE.LinearFilter
+        splatTex.flipY = true
+        splatTex.premultiplyAlpha = false
+        splatTex.needsUpdate = true
+
+        if (cancelled) return
+
+        const cacheRecord = {
+          key: cacheKey,
+          albedo: built.albedo,
+          normal: built.normal,
+          roughness: built.roughness,
+          ao: built.ao,
+          splat: splatTex,
+          tileOffset: built.tileOffset,
+          tileScale: built.tileScale,
+          repeats,
+          heights,
+        }
+        atlasCache.set(item.id, cacheRecord)
+
+        // Отладка: публикуем канвасы атласов и splatmap в реестр, чтобы показать в панели
+        setTerrainDebugEntry(item.id, {
+          itemId: item.id,
+          name: item.name,
+          albedo: built.albedo.image as HTMLCanvasElement,
+          normal: built.normal.image as HTMLCanvasElement,
+          roughness: built.roughness.image as HTMLCanvasElement,
+          ao: built.ao.image as HTMLCanvasElement,
+          splat: splat.canvas as HTMLCanvasElement,
+          splatStats: splat.stats,
+          atlasSize,
+          splatSize,
+          layers: layers.map((l, i) => ({ textureId: l.textureId, height: l.height, repeat: repeats[i] }))
+        })
+
+        // Диагностический режим: показываем атлас как обычную карту материала, без кастомного шейдера
+        if (debugAtlasAsMap) {
+          try {
+            // ВАЖНО: three.js ожидает, что onBeforeCompile — функция (используется в customProgramCacheKey)
+            // Никогда не ставим undefined, иначе возможна ошибка `.toString` при сборке программы
+            mat.onBeforeCompile = () => {}
+            // Зафиксируем ключ кэша программы, чтобы избежать пересборок
+            ;(mat as any).customProgramCacheKey = () => 'atlas-as-map'
+            mat.userData._mtApplied = false
+            // Подвешиваем цветовую карту напрямую
+            mat.map = built.albedo
+            mat.normalMap = null
+            mat.roughnessMap = null
+            mat.aoMap = null
+            // Рекомендуемые фильтры/флаги для визуализации
+            built.albedo.flipY = true
+            built.albedo.generateMipmaps = true
+            built.albedo.minFilter = THREE.LinearMipmapLinearFilter
+            built.albedo.magFilter = THREE.LinearFilter
+            built.albedo.needsUpdate = true
+            mat.needsUpdate = true
+          } catch {}
+        } else {
+          const center2: [number, number] = [item.center?.[0] ?? 0, item.center?.[1] ?? 0]
+          const size2: [number, number] = [item.size?.width ?? item.terrain.worldWidth, item.size?.depth ?? (item.terrain as any).worldDepth]
+          applyMultiTextureShader(
+            mat,
+            built.albedo, built.normal, built.roughness, built.ao, splatTex,
+            built.tileOffset, built.tileScale, repeats, heights,
+            center2, size2,
+            mt.exposure
+          )
+        }
+      } catch (e) {
+        console.error('Ошибка при сборке атласа/splatmap:', e)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [item.material?.multiTexture, item.material?.uvRepeat, sampler, item.shape, item.terrain, geometryVersion])
+
+  /**
+   * Подключить шейдер с использованием атласов и splatmap для до 4 слоёв.
+   * Внедряет uniforms и заменяет блоки стандартного шейдера MeshStandardMaterial.
+   */
+  function applyMultiTextureShader(
+    mat: THREE.MeshStandardMaterial & { userData: any; onBeforeCompile?: (shader: any) => void },
+    tAlbedo: THREE.Texture,
+    tNormal: THREE.Texture,
+    tRough: THREE.Texture,
+    tAO: THREE.Texture,
+    tSplat: THREE.Texture,
+    tileOffset: Array<[number, number]>,
+    tileScale: Array<[number, number]>,
+    repeats: Array<[number, number]>,
+    _heights: number[],
+    worldCenter: [number, number],
+    worldSize: [number, number],
+    exposure?: number
+  ) {
+    const cfg = TERRAIN_TEXTURING_CONFIG
+    // Вспомогательные флаги отладки: только albedo без нормалей/rough/AO
+    const onlyAlbedo = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainDebugOnlyAlbedo') === '1'
     mat.onBeforeCompile = (shader: any) => {
       shader.defines = shader.defines || {}
-      // Включаем UV и нужные блоки шейдера
       shader.defines.USE_UV = ''
-      shader.defines.USE_MAP = ''
-      // Включаем кастомный блок нормалей (без стандартной карты normalMap)
-      shader.defines.USE_NORMALMAP = ''
-      shader.defines.NORMALMAP_UV = 'uv'
-      // Отключаем roughness/AO в multiTexture
-      // shader.defines.USE_ROUGHNESSMAP = ''
-      // shader.defines.USE_AOMAP = ''
-      // Явно укажем, что используем первый UV‑канал (vUv)
-      shader.defines.MAP_UV = 'uv'
-      shader.defines.ROUGHNESSMAP_UV = 'uv'
-      shader.uniforms.uCount = { value: layers.length }
-      shader.uniforms.uHeights = { value: new Float32Array([heights[0] ?? 0, heights[1] ?? 0, heights[2] ?? 0, heights[3] ?? 0]) }
-      shader.uniforms.uTex0 = { value: maps[0] || whiteTex }
-      shader.uniforms.uTex1 = { value: maps[1] || whiteTex }
-      shader.uniforms.uRepeat0 = { value: new THREE.Vector2(repeats[0]?.[0] ?? 1, repeats[0]?.[1] ?? 1) }
-      shader.uniforms.uRepeat1 = { value: new THREE.Vector2(repeats[1]?.[0] ?? 1, repeats[1]?.[1] ?? 1) }
-      shader.uniforms.uRepeat2 = { value: new THREE.Vector2(repeats[2]?.[0] ?? 1, repeats[2]?.[1] ?? 1) }
-      shader.uniforms.uRepeat3 = { value: new THREE.Vector2(repeats[3]?.[0] ?? 1, repeats[3]?.[1] ?? 1) }
-      shader.uniforms.uNorm0 = { value: normMaps[0] || neutralNormalTex }
-      shader.uniforms.uNorm1 = { value: normMaps[1] || neutralNormalTex }
-      shader.uniforms.uRough0 = { value: roughMaps[0] || whiteTex }
-      shader.uniforms.uRough1 = { value: roughMaps[1] || whiteTex }
-      shader.uniforms.uAO0 = { value: aoMaps[0] || whiteTex }
-      shader.uniforms.uAO1 = { value: aoMaps[1] || whiteTex }
-      shader.uniforms.uExposure = { value: (item.material?.multiTexture as any)?.exposure ?? 1.0 }
-      shader.uniforms.uNormalInfluence = { value: 0.9 }
-      shader.uniforms.uAOIntensity = { value: 0.4 }
+      // Не включаем USE_MAP, чтобы встроенный map-путь three не вмешивался в наш кастомный семплинг
+      // Подготовим массивы vec2 строго длиной 4
+      const padVec2 = (arr: Array<[number, number]>, def: [number, number]) => {
+        return [0,1,2,3].map(i => new THREE.Vector2((arr[i] ?? def)[0], (arr[i] ?? def)[1]))
+      }
+      const uTileOffset = padVec2(tileOffset, [0, 0])
+      const uTileScale = padVec2(tileScale, [1, 1])
+      const uRepeat = padVec2(repeats, [1, 1])
+      shader.uniforms.uAtlasAlbedo = { value: tAlbedo }
+      shader.uniforms.uAtlasNormal = { value: tNormal }
+      shader.uniforms.uAtlasRough = { value: tRough }
+      shader.uniforms.uAtlasAO = { value: tAO }
+      shader.uniforms.uSplat = { value: tSplat }
+      // ВАЖНО: используем отдельные uniform'ы на каждый слой, т.к. WebGL1
+      // не поддерживает динамическое индексирование uniform-массивов стабильно.
+      // Записываем значения для uTileOffset0..3, uTileScale0..3, uRepeat0..3
+      shader.uniforms.uTileOffset0 = { value: uTileOffset[0] }
+      shader.uniforms.uTileOffset1 = { value: uTileOffset[1] }
+      shader.uniforms.uTileOffset2 = { value: uTileOffset[2] }
+      shader.uniforms.uTileOffset3 = { value: uTileOffset[3] }
+      shader.uniforms.uTileScale0 = { value: uTileScale[0] }
+      shader.uniforms.uTileScale1 = { value: uTileScale[1] }
+      shader.uniforms.uTileScale2 = { value: uTileScale[2] }
+      shader.uniforms.uTileScale3 = { value: uTileScale[3] }
+      shader.uniforms.uRepeat0 = { value: uRepeat[0] }
+      shader.uniforms.uRepeat1 = { value: uRepeat[1] }
+      shader.uniforms.uRepeat2 = { value: uRepeat[2] }
+      shader.uniforms.uRepeat3 = { value: uRepeat[3] }
+      shader.uniforms.uExposure = { value: (typeof exposure === 'number' ? exposure : cfg.exposure) }
+      shader.uniforms.uNormalInfluence = { value: cfg.normalInfluence }
+      shader.uniforms.uAOIntensity = { value: cfg.aoIntensity }
+      // Диагностика: флаг показа атласа напрямую по vUv
+      const params = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search) : null
+      const showAtlasDirect = params?.get('terrainDebugSampleAtlas') === '1'
+      const showWeights = params?.get('terrainDebugShowWeights') === '1'
+      const showLayer = params?.get('terrainDebugShowLayer')
+      shader.uniforms.uDebugSampleAtlas = { value: showAtlasDirect ? 1.0 : 0.0 }
+      shader.uniforms.uDebugShowWeights = { value: showWeights ? 1.0 : 0.0 }
+      shader.uniforms.uDebugShowLayer = { value: showLayer != null ? parseFloat(showLayer) : -1.0 }
+      shader.uniforms.uWorldCenter = { value: new THREE.Vector2(worldCenter[0], worldCenter[1]) }
+      shader.uniforms.uWorldSize = { value: new THREE.Vector2(worldSize[0], worldSize[1]) }
 
-      // Вершинный шейдер: проброс мирового Y
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\n varying float vWorldY;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 worldPos = modelMatrix * vec4(transformed, 1.0);\n vWorldY = worldPos.y;')
-
-      // Фрагментный шейдер: смешивание карт по высоте, замена map_fragment
-      const mixCode = `
-        uniform int uCount; 
-        uniform float uHeights[2];
-        uniform sampler2D uTex0; uniform sampler2D uTex1;
-        uniform sampler2D uNorm0; uniform sampler2D uNorm1;
-        uniform sampler2D uRough0; uniform sampler2D uRough1;
-        uniform sampler2D uAO0; uniform sampler2D uAO1;
-        uniform vec2 uRepeat0; uniform vec2 uRepeat1;
+      const header = `
+        uniform sampler2D uAtlasAlbedo; 
+        uniform sampler2D uAtlasNormal; 
+        uniform sampler2D uAtlasRough; 
+        uniform sampler2D uAtlasAO; 
+        uniform sampler2D uSplat; 
+        uniform vec2 uTileOffset0; uniform vec2 uTileOffset1; uniform vec2 uTileOffset2; uniform vec2 uTileOffset3;
+        uniform vec2 uTileScale0; uniform vec2 uTileScale1; uniform vec2 uTileScale2; uniform vec2 uTileScale3;
+        uniform vec2 uRepeat0; uniform vec2 uRepeat1; uniform vec2 uRepeat2; uniform vec2 uRepeat3;
         uniform float uExposure;
         uniform float uNormalInfluence;
         uniform float uAOIntensity;
-        varying float vWorldY;
-        
-        vec4 computeWeights(float y) {
-          if (uCount <= 1) return vec4(1.0, 0.0, 0.0, 0.0);
-          float t = clamp((y - uHeights[0]) / max(0.0001, (uHeights[1] - uHeights[0])), 0.0, 1.0);
-          return vec4(1.0 - t, t, 0.0, 0.0);
+        uniform float uDebugSampleAtlas;
+        uniform float uDebugShowWeights;
+        uniform float uDebugShowLayer;
+        uniform vec2 uWorldCenter;
+        uniform vec2 uWorldSize;
+        varying vec3 vWorldPos;
+
+        // Получить UV внутри каждого тайла (без индексирования uniform-массивов)
+        // Учитываем, что CanvasTexture по умолчанию flipY = false, а атлас собран в системе координат канваса (0,0 вверху).
+        // Поэтому инвертируем Y при преобразовании в UV текстуры: v' = 1 - (offset.y + innerV * scale.y)
+        vec2 layerUV0(vec2 uv) { vec2 t = fract(uv * uRepeat0) * uTileScale0; return vec2(uTileOffset0.x + t.x, 1.0 - (uTileOffset0.y + t.y)); }
+        vec2 layerUV1(vec2 uv) { vec2 t = fract(uv * uRepeat1) * uTileScale1; return vec2(uTileOffset1.x + t.x, 1.0 - (uTileOffset1.y + t.y)); }
+        vec2 layerUV2(vec2 uv) { vec2 t = fract(uv * uRepeat2) * uTileScale2; return vec2(uTileOffset2.x + t.x, 1.0 - (uTileOffset2.y + t.y)); }
+        vec2 layerUV3(vec2 uv) { vec2 t = fract(uv * uRepeat3) * uTileScale3; return vec2(uTileOffset3.x + t.x, 1.0 - (uTileOffset3.y + t.y)); }
+
+        // Простейшая декодировка sRGB->Linear для наших кастомных сэмплеров albedo
+        vec3 sRGBToLinear(vec3 srgb) {
+          return pow(srgb, vec3(2.2));
         }
-        
+
         vec3 perturbNormal2Arb(vec3 eye_pos, vec3 surf_norm, vec3 mapN, vec2 uv) {
           vec3 q0 = dFdx(eye_pos.xyz);
           vec3 q1 = dFdy(eye_pos.xyz);
@@ -492,77 +664,147 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           float scale = (det == 0.0) ? 0.0 : inversesqrt(det);
           return normalize(T * (mapN.x * scale) + B * (mapN.y * scale) + N * mapN.z);
         }
-        
+
+        // Нормал-мапа в Tangent space → смешиваем линейно и нормализуем
+        // ВАЖНО: здесь больше не используем индексирование по uniform-массиву
+        // ожидаем уже рассчитанные UV внутри соответствующего тайла
+        vec3 sampleNormal(vec2 uv) {
+          vec3 n = texture2D(uAtlasNormal, uv).xyz * 2.0 - 1.0;
+          return n;
+        }
       `
+
+      // Прокинем мировую позицию из вершинного шейдера
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\n varying vec3 vWorldPos;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 wp = modelMatrix * vec4(position, 1.0);\n vWorldPos = wp.xyz;')
+
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\n' + mixCode)
-      // Исправленный фрагментный шейдер для смешивания текстур:
-      .replace(
+        .replace('#include <common>', '#include <common>\n' + header)
+        .replace(
           '#include <map_fragment>',
           `
-  vec4 w = computeWeights(vWorldY);
-  
-  // Получаем цвета из текстур (уже в линейном пространстве после sRGB декодирования)
-  vec4 s0 = texture2D(uTex0, vUv * uRepeat0);
-  vec4 s1 = texture2D(uTex1, vUv * uRepeat1);
-  
-  // Смешиваем текстуры
-  vec4 texelColor = s0 * w.x + s1 * w.y;
-  
-  // Применяем exposure БЕЗ clamp (пусть tone mapping сделает свою работу)
-  texelColor.rgb *= uExposure;
-  
-  // Применяем к diffuseColor (который по умолчанию vec4(1.0))
-  diffuseColor.rgb *= texelColor.rgb;
-  diffuseColor.a *= texelColor.a;
-  `
-      )
-      .replace(
-          '#include <normal_fragment_maps>',
-          `
-      vec4 wn = computeWeights(vWorldY);
-      
-      vec3 n0 = texture2D(uNorm0, vUv * uRepeat0).xyz * 2.0 - 1.0;
-      vec3 n1 = texture2D(uNorm1, vUv * uRepeat1).xyz * 2.0 - 1.0;
-      
-      vec3 blendedNormal = normalize(n0 * wn.x + n1 * wn.y);
-      blendedNormal.xy *= uNormalInfluence;
-      blendedNormal = normalize(blendedNormal);
-      
-      normal = perturbNormal2Arb(-vViewPosition, normal, blendedNormal, vUv);
-      `
-      )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          `
-            // Аккуратное возвращение карт шероховатости: мягкое влияние без бликов
-            float r0 = texture2D(uRough0, vUv * uRepeat0).g;
-            float r1 = texture2D(uRough1, vUv * uRepeat1).g;
-            float rMix = r0 * w.x + r1 * w.y;
-            // Смешиваем от 1.0 (матовая) к карте с небольшим весом, и ограничиваем минимумом
-            float roughnessFactor = mix(1.0, rMix, 0.35);
-            roughnessFactor = clamp(roughnessFactor, 0.25, 1.0);
-          `
-        )
-        .replace(
-          '#include <aomap_fragment>',
-          `
-            // Мягкий AO по мульти‑текстурам (используем vUv)
-            float ao0 = texture2D(uAO0, vUv * uRepeat0).r;
-            float ao1 = texture2D(uAO1, vUv * uRepeat1).r;
-            float aoMix = ao0 * w.x + ao1 * w.y;
-            // Управляемое влияние AO (снижаем по умолчанию)
-            float aoI = clamp(uAOIntensity, 0.0, 1.0);
-            reflectedLight.indirectDiffuse *= ( aoI * aoMix + ( 1.0 - aoI ) );
+            // Вычисляем uv для splat в мировых координатах, чтобы исключить повтор uv по сегментам
+            vec2 uvSplat = (vWorldPos.xz - uWorldCenter + 0.5 * uWorldSize) / uWorldSize;
+            uvSplat = clamp(uvSplat, 0.0, 1.0);
+            if (uDebugSampleAtlas > 0.5) {
+              // Диагностика: показать атлас по vUv, без смешивания и нормалей
+              vec4 c = texture2D(uAtlasAlbedo, vUv);
+              c.rgb = sRGBToLinear(c.rgb);
+              diffuseColor.rgb = c.rgb;
+            } else {
+            vec4 w = texture2D(uSplat, uvSplat);
+            w = clamp(w, 0.0, 1.0);
+            float s = w.x + w.y + w.z + w.w;
+            if (s < 1e-6) {
+              w = vec4(1.0, 0.0, 0.0, 0.0);
+            } else {
+              w /= s;
+            }
+            if (uDebugShowWeights > 0.5) {
+              diffuseColor.rgb = w.rgb;
+            } else {
+            // Доп. диагностика: показать конкретный слой 0..3 по layerUV
+            if (uDebugShowLayer >= 0.0) {
+              int li = int(floor(uDebugShowLayer + 0.5));
+              vec4 cL = vec4(1.0);
+              if (li == 0) cL = texture2D(uAtlasAlbedo, layerUV0(vUv));
+              else if (li == 1) cL = texture2D(uAtlasAlbedo, layerUV1(vUv));
+              else if (li == 2) cL = texture2D(uAtlasAlbedo, layerUV2(vUv));
+              else if (li == 3) cL = texture2D(uAtlasAlbedo, layerUV3(vUv));
+              cL.rgb = sRGBToLinear(cL.rgb);
+              diffuseColor.rgb = cL.rgb;
+            } else {
+
+            vec4 c0 = texture2D(uAtlasAlbedo, layerUV0(vUv));
+            vec4 c1 = texture2D(uAtlasAlbedo, layerUV1(vUv));
+            vec4 c2 = texture2D(uAtlasAlbedo, layerUV2(vUv));
+            vec4 c3 = texture2D(uAtlasAlbedo, layerUV3(vUv));
+            c0.rgb = sRGBToLinear(c0.rgb);
+            c1.rgb = sRGBToLinear(c1.rgb);
+            c2.rgb = sRGBToLinear(c2.rgb);
+            c3.rgb = sRGBToLinear(c3.rgb);
+            vec4 texelColor = c0 * w.x + c1 * w.y + c2 * w.z + c3 * w.w;
+
+            texelColor.a = 1.0; // террейн непрозрачный
+            texelColor.rgb *= uExposure;
+            // Присваиваем напрямую, чтобы исключить влияние baseColor/цвета материала
+            diffuseColor.rgb = texelColor.rgb;
+            }
+            }
+            }
           `
         )
+      if (!onlyAlbedo) {
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            '#include <normal_fragment_maps>',
+            `
+            vec4 wN = texture2D(uSplat, uvSplat);
+              wN = clamp(wN, 0.0, 1.0);
+              float sN = wN.x + wN.y + wN.z + wN.w;
+              if (sN < 1e-6) {
+                wN = vec4(1.0, 0.0, 0.0, 0.0);
+              } else {
+                wN /= sN;
+              }
+
+              vec3 n0 = sampleNormal(layerUV0(vUv));
+              vec3 n1 = sampleNormal(layerUV1(vUv));
+              vec3 n2 = sampleNormal(layerUV2(vUv));
+              vec3 n3 = sampleNormal(layerUV3(vUv));
+              vec3 blendedNormal = normalize(n0 * wN.x + n1 * wN.y + n2 * wN.z + n3 * wN.w);
+              blendedNormal.xy *= uNormalInfluence;
+              blendedNormal = normalize(blendedNormal);
+              normal = perturbNormal2Arb(-vViewPosition, normal, blendedNormal, vUv);
+            `
+          )
+          .replace(
+            '#include <roughnessmap_fragment>',
+            `
+            vec4 wR = texture2D(uSplat, uvSplat);
+              wR = clamp(wR, 0.0, 1.0);
+              float sR = wR.x + wR.y + wR.z + wR.w;
+              if (sR < 1e-6) {
+                wR = vec4(1.0, 0.0, 0.0, 0.0);
+              } else {
+                wR /= sR;
+              }
+              float r0 = texture2D(uAtlasRough, layerUV0(vUv)).r;
+              float r1 = texture2D(uAtlasRough, layerUV1(vUv)).r;
+              float r2 = texture2D(uAtlasRough, layerUV2(vUv)).r;
+              float r3 = texture2D(uAtlasRough, layerUV3(vUv)).r;
+              float rMix = r0 * wR.x + r1 * wR.y + r2 * wR.z + r3 * wR.w;
+              float roughnessFactor = clamp(rMix, 0.0, 1.0);
+            `
+          )
+          .replace(
+            '#include <aomap_fragment>',
+            `
+            vec4 wA = texture2D(uSplat, uvSplat);
+              wA = clamp(wA, 0.0, 1.0);
+              float sA = wA.x + wA.y + wA.z + wA.w;
+              if (sA < 1e-6) {
+                wA = vec4(1.0, 0.0, 0.0, 0.0);
+              } else {
+                wA /= sA;
+              }
+              float a0 = texture2D(uAtlasAO, layerUV0(vUv)).r;
+              float a1 = texture2D(uAtlasAO, layerUV1(vUv)).r;
+              float a2 = texture2D(uAtlasAO, layerUV2(vUv)).r;
+              float a3 = texture2D(uAtlasAO, layerUV3(vUv)).r;
+              float aoMix = a0 * wA.x + a1 * wA.y + a2 * wA.z + a3 * wA.w;
+              float aoI = clamp(uAOIntensity, 0.0, 1.0);
+              reflectedLight.indirectDiffuse *= ( aoI * aoMix + ( 1.0 - aoI ) );
+            `
+          )
+      }
     }
     mat.userData._mtApplied = true
+    // Обновим ключ кэша программы, чтобы форсировать перекомпиляцию при смене флагов
+    ;(mat as any).customProgramCacheKey = () => `multiTexture-v2|albedoOnly:${onlyAlbedo ? 1 : 0}`
     mat.needsUpdate = true
-
-    return () => { /* оставить material как есть; three пересоберёт при размонте */ }
-  }, [item.material?.multiTexture, item.material?.uvRepeat, whiteTex, neutralNormalTex])
-
+  }
   return (
     <mesh
       /*
