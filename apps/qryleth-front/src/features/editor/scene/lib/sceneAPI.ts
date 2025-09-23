@@ -685,6 +685,8 @@ export class SceneAPI {
         multiTexture?: {
           layers: Array<{ textureId: string; height: number; uvRepeat?: [number, number] }>
           exposure?: number
+          /** Переопределение ширины перехода между слоями (метры по Y) для этой площадки */
+          blendHeightMeters?: number
         }
       }
     }

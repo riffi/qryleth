@@ -283,6 +283,12 @@ export interface GfxLandscape {
       }>
       /** Множитель яркости цветов (albedo) для режима multiTexture. По умолчанию 1.0 */
       exposure?: number
+      /**
+       * Локальная ширина перехода между слоями по высоте (в метрах по Y),
+       * переопределяет глобальный `TERRAIN_TEXTURING_CONFIG.blendHeightMeters` для данной площадки.
+       * Позволяет делать жёсткие или мягкие границы слоёв независимо от глобального конфига.
+       */
+      blendHeightMeters?: number
     }
   }
 }

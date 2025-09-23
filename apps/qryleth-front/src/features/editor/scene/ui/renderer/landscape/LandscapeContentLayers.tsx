@@ -548,6 +548,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         const qs = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainSplatPreview') === '1' ? 0.5 : 1.0
         // Проверка отмены прямо перед тяжёлой генерацией splatmap (актуально в StrictMode)
         if (cancelled) return
+        const blendH = (item.material?.multiTexture as any)?.blendHeightMeters ?? TERRAIN_TEXTURING_CONFIG.blendHeightMeters
         // Генерация splatmap в воркере (UI неблокирующий). Фоллбэк — синхронная версия.
         let splatBytes: Uint8Array
         let splatStats: any
@@ -557,7 +558,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
             worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
             layerHeights: heights,
-            blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+            blendHeight: blendH,
             qualityScale: qs,
             blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
           })
@@ -569,7 +570,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
             center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
             worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
             layerHeights: heights,
-            blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+            blendHeight: blendH,
             qualityScale: qs,
             blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
           })
