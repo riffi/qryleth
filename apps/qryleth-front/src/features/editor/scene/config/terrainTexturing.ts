@@ -74,7 +74,7 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   roughnessScale: 2,
   roughnessMin: 0.75,
   splatCpuBlurRadiusPx: 50,
-  splatNoiseStrength: 0.02,
+  splatNoiseStrength: 0.5,
 }
 
 /**

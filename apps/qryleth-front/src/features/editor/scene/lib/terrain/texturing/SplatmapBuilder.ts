@@ -18,7 +18,7 @@ export interface SplatmapParams {
   blendHeight?: number
   /**
    * Масштаб качества вычисления (0.25..1.0). При < 1.0 карта считается на уменьшенном размере
-   * и затем билinear‑апскейлится до `size`. Существенно ускоряет генерацию без заметной потери качества
+   * и затем bilinear‑апскейлится до `size`. Существенно ускоряет генерацию без заметной потери качества
    * благодаря последующему сглаживанию весов в шейдере.
    */
   qualityScale?: number
@@ -28,11 +28,13 @@ export interface SplatmapParams {
 
 /**
  * Вычислить нормализованные веса 4 каналов по высоте с треугольным профилем вокруг опорных высот.
+ * Добавлен параметр noiseOffset для смещения точек перехода между слоями.
  * @param h текущая высота Y (мировая)
  * @param heights массив опорных высот 0..3
  * @param width ширина перехода (метры по Y)
+ * @param noiseOffset смещение точек перехода для добавления вариативности (в единицах высоты)
  */
-function heightWeights4(h: number, heights: number[], width: number): [number, number, number, number] {
+function heightWeights4(h: number, heights: number[], width: number, noiseOffset: number = 0): [number, number, number, number] {
   /**
    * Монотонная схема смешивания по высоте: вне диапазона — полностью первый/последний слой,
    * между соседними опорными высотами — плавная интерполяция только между соответствующей парой
@@ -46,9 +48,16 @@ function heightWeights4(h: number, heights: number[], width: number): [number, n
   if (count <= 0) { out[0] = 1; return out as [number, number, number, number] }
   if (count === 1) { out[0] = 1; return out as [number, number, number, number] }
 
-  // Средние точки между слоями
+  // Средние точки между слоями с добавлением шума
   const mids: number[] = []
-  for (let i = 0; i < count - 1; i++) mids.push(0.5 * (heights[i] + heights[i + 1]))
+  for (let i = 0; i < count - 1; i++) {
+    // Добавляем смещение к средней точке, но ограничиваем его,
+    // чтобы не выйти за пределы соседних высот
+    const baseMid = 0.5 * (heights[i] + heights[i + 1])
+    const maxOffset = 0.25 * Math.abs(heights[i + 1] - heights[i])
+    const clampedOffset = Math.max(-maxOffset, Math.min(maxOffset, noiseOffset * w * 0.3))
+    mids.push(baseMid + clampedOffset)
+  }
 
   // Вне диапазона — крайние слои
   if (h <= mids[0] - hw) { out[0] = 1; return out as [number, number, number, number] }
@@ -80,7 +89,7 @@ function heightWeights4(h: number, heights: number[], width: number): [number, n
  *
  * @param x координата пикселя по X (целое)
  * @param y координата пикселя по Y (целое)
- * @param c индекс канала (0..3)
+ * @param c индекс канала (0..3) или seed компонент
  * @returns число в диапазоне [-1, 1]
  */
 function noiseSigned(x: number, y: number, c: number): number {
@@ -98,6 +107,7 @@ function noiseSigned(x: number, y: number, c: number): number {
  * - проходим по пикселям карты; uv = ((x+0.5)/size, (y+0.5)/size)
  * - преобразуем uv → мировые XZ: x = (uv.x - 0.5) * width + centerX; z = (uv.y - 0.5) * depth + centerZ
  * - берём высоту у сэмплера и считаем веса вокруг опорных высот с глобальной шириной перехода
+ * - добавляем шум к точкам перехода для создания вариативности
  *
  * @param sampler сэмплер высот
  * @param p параметры генерации
@@ -108,8 +118,8 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
   const calcSize = Math.max(8, Math.floor(size * q))
   const blurR = Math.max(0, Math.floor(p.blurRadiusPx ?? 0))
-  // Амплитуда шума для весов слоёв, ограничиваем безопасным максимумом 0.25
-  const noiseAmp = Math.max(0, Math.min(0.25, TERRAIN_TEXTURING_CONFIG.splatNoiseStrength ?? 0))
+  // Амплитуда шума для смещения переходов между слоями
+  const noiseAmp = Math.max(0, Math.min(0.5, TERRAIN_TEXTURING_CONFIG.splatNoiseStrength ?? 0))
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
@@ -132,6 +142,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const chanMin: [number, number, number, number] = [1, 1, 1, 1]
   const chanMax: [number, number, number, number] = [0, 0, 0, 0]
   const layerCounts: [number, number, number, number] = [0, 0, 0, 0]
+
   for (let y = 0; y < calcSize; y++) {
     const v = (y + 0.5) / calcSize
     const wz = (v - 0.5) * d + cz
@@ -145,28 +156,17 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       }
       if (h < minH) minH = h
       if (h > maxH) maxH = h
-      let [r, g, b, a] = heightWeights4(h, p.layerHeights, blend)
-      // Добавим немного детерминированного шума перед размытием, чтобы сделать
-      // границы между слоями менее ровными. После добавления — жёстко нормализуем веса.
-      if (noiseAmp > 0) {
-        const r0 = r, g0 = g, b0 = b, a0 = a
-        r = Math.max(0, Math.min(1, r + noiseSigned(x, y, 0) * noiseAmp))
-        g = Math.max(0, Math.min(1, g + noiseSigned(x, y, 1) * noiseAmp))
-        b = Math.max(0, Math.min(1, b + noiseSigned(x, y, 2) * noiseAmp))
-        a = Math.max(0, Math.min(1, a + noiseSigned(x, y, 3) * noiseAmp))
-        const s = r + g + b + a
-        if (s > 1e-12) {
-          r/=s; g/=s; b/=s; a/=s
-        } else {
-          // На всякий случай, если все обнулились из-за клампа — вернём прежние нормализованные веса
-          r = r0; g = g0; b = b0; a = a0
-        }
-      }
+
+      // Вычисляем шум для этой точки и применяем его к переходам между слоями
+      const noiseValue = noiseAmp > 0 ? noiseSigned(x, y, 0) * noiseAmp : 0
+      let [r, g, b, a] = heightWeights4(h, p.layerHeights, blend, noiseValue)
+
       // Обновляем диагностику каналов
       if (r < chanMin[0]) chanMin[0] = r; if (r > chanMax[0]) chanMax[0] = r
       if (g < chanMin[1]) chanMin[1] = g; if (g > chanMax[1]) chanMax[1] = g
       if (b < chanMin[2]) chanMin[2] = b; if (b > chanMax[2]) chanMax[2] = b
       if (a < chanMin[3]) chanMin[3] = a; if (a > chanMax[3]) chanMax[3] = a
+
       // Argmax по слоям для распределения
       let arg = 0
       let best = r
@@ -174,12 +174,14 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       if (b > best) { best = b; arg = 2 }
       if (a > best) { best = a; arg = 3 }
       layerCounts[arg]++
+
       small[idx++] = Math.max(0, Math.min(255, Math.round(r * 255)))
       small[idx++] = Math.max(0, Math.min(255, Math.round(g * 255)))
       small[idx++] = Math.max(0, Math.min(255, Math.round(b * 255)))
       small[idx++] = Math.max(0, Math.min(255, Math.round(a * 255)))
     }
   }
+
   // Опциональное CPU‑размытие (separable box blur, 2 прохода)
   if (blurR > 0) {
     const tmp = new Uint8ClampedArray(small.length)
@@ -240,7 +242,8 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
     }
     // Примечание: box blur линейный — сумма каналов сохраняется близко к 255, renorm не обязателен
   }
-  // Если расчётный размер меньше финального — билinear‑апскейл
+
+  // Если расчётный размер меньше финального — bilinear‑апскейл
   if (calcSize !== size) {
     let di = 0
     const sx = calcSize / size
@@ -273,15 +276,18 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   } else {
     buffer.set(small)
   }
+
   const img = new ImageData(buffer, size, size)
   ctx.putImageData(img, 0, 0)
+
   // Дополнительно посчитаем веса в центре (для сравнения с пикселем центра канваса)
   const u0 = 0.5, v0 = 0.5
   const wx0 = (u0 - 0.5) * w + cx
   const wz0 = (v0 - 0.5) * d + cz
   let h0 = sampler.getHeight(wx0, wz0)
   if (!Number.isFinite(h0)) h0 = 0
-  const w0 = heightWeights4(h0, p.layerHeights, blend)
+  const w0 = heightWeights4(h0, p.layerHeights, blend, 0) // No noise for center stats
+
   // Вычислим индекс центра в буфере и прочитаем байты (как должны быть записаны)
   const cxPix = Math.floor(size / 2)
   const cyPix = Math.floor(size / 2)
@@ -292,6 +298,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
     buffer[cIdx + 2] ?? 0,
     buffer[cIdx + 3] ?? 0,
   ]
+
   const stats: TerrainSplatStats = {
     minH: isFinite(minH) ? minH : 0,
     maxH: isFinite(maxH) ? maxH : 0,
@@ -302,6 +309,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
     centerWeights: w0,
     centerBytes,
   }
+
   // Создаём копию буфера в Uint8Array для безопасной передачи в WebGL DataTexture
   const bytes = new Uint8Array(buffer)
   return { canvas: cnv, stats, bytes }
