@@ -43,8 +43,6 @@ export interface TerrainTexturingConfig {
   roughnessScale: number
   /** Минимальная грубость (чтобы убрать чрезмерный блеск), 0..1 */
   roughnessMin: number
-  /** Экспонента для усиления доминирующего слоя в splat (>=1). 1 — без усиления. */
-  splatWeightExponent?: number
   /** Радиус CPU‑размытия splat в пикселях расчётной карты (0 — без размытия) */
   splatCpuBlurRadiusPx?: number
   /**
@@ -75,9 +73,8 @@ export const TERRAIN_TEXTURING_CONFIG: TerrainTexturingConfig = {
   minPxPerRepeat: 1024,
   roughnessScale: 2,
   roughnessMin: 0.75,
-  splatWeightExponent: 1,
-  splatCpuBlurRadiusPx: 4,
-  splatNoiseStrength: 0.03,
+  splatCpuBlurRadiusPx: 50,
+  splatNoiseStrength: 0.02,
 }
 
 /**

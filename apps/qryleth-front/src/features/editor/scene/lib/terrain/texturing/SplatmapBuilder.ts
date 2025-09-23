@@ -113,7 +113,8 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
-  const ctx = cnv.getContext('2d', { willReadFrequently: true } as any)!
+  // Создаём 2D-контекст; указываем willReadFrequently для оптимизации чтения пикселей
+  const ctx = cnv.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
   // Буфер для расчётного размера и финальный буфер
   const small = new Uint8ClampedArray(calcSize * calcSize * 4)
   const buffer = new Uint8ClampedArray(size * size * 4)
@@ -123,7 +124,6 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const w = p.worldSize.width
   const d = p.worldSize.depth
   const blend = p.blendHeight ?? TERRAIN_TEXTURING_CONFIG.blendHeightMeters
-  const expK = Math.max(1, TERRAIN_TEXTURING_CONFIG.splatWeightExponent ?? 1)
 
   let idx = 0
   // Диагностика: min/max высоты и каналов, счётчики argmax
@@ -146,12 +146,6 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
       if (h < minH) minH = h
       if (h > maxH) maxH = h
       let [r, g, b, a] = heightWeights4(h, p.layerHeights, blend)
-      // Усилим доминирующий слой и ослабим паразитные «хвосты» малых весов
-      if (expK > 1.0001) {
-        r = Math.pow(r, expK); g = Math.pow(g, expK); b = Math.pow(b, expK); a = Math.pow(a, expK)
-        const s = r + g + b + a
-        if (s > 1e-12) { r/=s; g/=s; b/=s; a/=s }
-      }
       // Добавим немного детерминированного шума перед размытием, чтобы сделать
       // границы между слоями менее ровными. После добавления — жёстко нормализуем веса.
       if (noiseAmp > 0) {
@@ -160,7 +154,7 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
         g = Math.max(0, Math.min(1, g + noiseSigned(x, y, 1) * noiseAmp))
         b = Math.max(0, Math.min(1, b + noiseSigned(x, y, 2) * noiseAmp))
         a = Math.max(0, Math.min(1, a + noiseSigned(x, y, 3) * noiseAmp))
-        let s = r + g + b + a
+        const s = r + g + b + a
         if (s > 1e-12) {
           r/=s; g/=s; b/=s; a/=s
         } else {

@@ -35,6 +35,8 @@ export interface TerrainDebugEntry {
   ao?: HTMLCanvasElement
   /** Канвас splatmap (RGBA каналы — веса слоёв) */
   splat?: HTMLCanvasElement
+  /** Сырые байты RGBA splatmap (без премультипликации), размер = splatSize×splatSize×4 */
+  splatBytes?: Uint8Array
   /** Лёгкое превью splat (например, 128–256px) с принудительной альфой=1 */
   splatPreview?: HTMLCanvasElement
   /** Статистика splatmap (минимумы/максимумы/распределение слоёв) */
@@ -84,6 +86,6 @@ export function subscribeTerrainDebug(listener: Listener): () => void {
 
 function emit() {
   for (const l of Array.from(listeners)) {
-    try { l() } catch {}
+    try { l() } catch { /* ignore */ void 0 }
   }
 }

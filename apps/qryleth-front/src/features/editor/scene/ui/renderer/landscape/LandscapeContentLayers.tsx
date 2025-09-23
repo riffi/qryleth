@@ -604,6 +604,7 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           roughness: built.roughness.image as HTMLCanvasElement,
           ao: built.ao.image as HTMLCanvasElement,
           splat: splat.canvas as HTMLCanvasElement,
+          splatBytes: splat.bytes,
           splatPreview,
           splatStats: splat.stats,
           atlasSize,
