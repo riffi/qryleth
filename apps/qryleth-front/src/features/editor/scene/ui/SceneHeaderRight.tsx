@@ -1,5 +1,5 @@
 import React from 'react'
-import { ActionIcon, Badge, Button, Divider, Group, Tooltip } from '@mantine/core'
+import { ActionIcon, Badge, Button, Divider, Group, Tooltip, SegmentedControl } from '@mantine/core'
 import { IconArrowBack, IconArrowForward, IconDeviceFloppy, IconPlayerPlay } from '@tabler/icons-react'
 import { InlineEdit } from '@/shared/ui'
 import { useSceneStore } from '../model/sceneStore'
@@ -113,6 +113,22 @@ export const SceneHeaderRight: React.FC<SceneHeaderRightProps> = ({ isPlay, onTo
 
   const status = sceneMetaData?.status || 'draft'
 
+  // Текущий тип неба из окружения сцены (procedural | hdri)
+  const skyType = useSceneStore(s => s.environmentContent?.sky?.type || 'procedural')
+  const setEnvSky = useSceneStore.getState().setEnvSky
+
+  /**
+   * Смена режима неба.
+   * 
+   * Назначение:
+   * - Переключает тип неба между процедурным Sky и skybox (HDRI);
+   * - Обновляет состояние окружения сцены через стор с записью в историю.
+   */
+  const handleSkyTypeChange = (value: string) => {
+    const nextType = (value === 'hdri') ? 'hdri' : 'procedural'
+    setEnvSky({ type: nextType })
+  }
+
   return (
     <Group gap={8} wrap="nowrap" align="center">
       {/* Имя сцены и статус */}
@@ -149,6 +165,24 @@ export const SceneHeaderRight: React.FC<SceneHeaderRightProps> = ({ isPlay, onTo
 
       {/* Разделитель */}
       {!isPlay && <Divider ml="md" mr="md" orientation="vertical" />}
+
+      {/* Переключатель вида неба: Procedural | Skybox */}
+      {!isPlay && (
+        <>
+          <Tooltip label="Вид неба: процедурное или skybox (EXR)" withArrow>
+            <SegmentedControl
+              size="xs"
+              data={[
+                { label: 'Проц. небо', value: 'procedural' },
+                { label: 'Skybox', value: 'hdri' }
+              ]}
+              value={skyType}
+              onChange={handleSkyTypeChange}
+            />
+          </Tooltip>
+          <Divider ml="md" mr="md" orientation="vertical" />
+        </>
+      )}
 
       {/* Undo / Redo — как в прежней вёрстке */}
       {!isPlay && (

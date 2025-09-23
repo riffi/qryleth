@@ -355,7 +355,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
-        color={effectiveShape === 'texture' ? (!!diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
+        //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}

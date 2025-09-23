@@ -13,6 +13,9 @@ import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
 import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
 import { Sky, Environment as DreiEnvironment } from '@react-three/drei'
+import { useLoader } from '@react-three/fiber'
+import { EXRLoader } from 'three-stdlib'
+import { EquirectangularReflectionMapping } from 'three'
 import {
   EffectComposer,
   N8AO,
@@ -45,8 +48,19 @@ interface SceneContentProps {
  * Отвечает за рендер всех элементов сцены: освещение, объекты, контролы, эффекты.
  * Получает renderProfile для возможного различного поведения в режимах Edit/View.
  */
+/**
+ * Компонент SceneContent рендерит всё содержимое 3D‑сцены.
+ *
+ * Дополнено поддержкой выбора «вида неба» (procedural | skybox):
+ * - procedural: текущее процедурное небо drei Sky
+ * - skybox (hdri): отображение skybox из EXR и использование его как источника env‑карты
+ *
+ * Источник HDRI: public/texture/sky/citrus_orchard_road_puresky_2k.exr
+ * В режиме skybox env‑карта в <DreiEnvironment> берётся из EXR, а не из Sky.
+ */
 export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => {
   const lighting = useSceneStore(state => state.lighting)
+  const environmentContent = useSceneStore(state => state.environmentContent)
   const gridVisible = useGridVisible()
   const uiMode = useSceneStore(state => state.uiMode)
 
@@ -69,10 +83,29 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
 
   const isViewProfile = renderProfile === RenderProfile.View
 
+  // Тип неба из контейнера окружения: 'procedural' | 'hdri'
+  const skyType = environmentContent?.sky?.type ?? 'procedural'
+  // Путь к HDRI/EXR: если задан в настройках окружения — используем его, иначе дефолтный
+  const hdriPath = environmentContent?.sky?.hdriRef || '/texture/sky/citrus_orchard_road_puresky_2k.exr'
+
+  // Загружаем HDRI/EXR для skybox. Хук должен вызываться стабильно, поэтому загружаем всегда,
+  // но используем текстуру только если выбран режим skybox. Mapping настраиваем для equirect.
+  const skyboxTexture = useLoader(EXRLoader as any, hdriPath) as any
+  if (skyboxTexture) {
+    // Назначаем equirectangular mapping, чтобы текстура корректно проецировалась на фон и env.
+    skyboxTexture.mapping = EquirectangularReflectionMapping
+  }
+
   return (
     <>
-      {/* Set scene background */}
-      <color attach="background" args={[sceneBackground]} />
+      {/*
+        Фон сцены:
+        - при skybox (и отсутствии тумана) показываем EXR как фон (equirectangular)
+        - иначе используем цвет фона/тумана
+      */}
+      {skyType === 'hdri' && !fogEnabled
+        ? <primitive attach="background" object={skyboxTexture} />
+        : <color attach="background" args={[sceneBackground]} />}
 
       {/*
         Постпроцессинг:
@@ -130,29 +163,40 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       {/* Рендер содержимого ландшафта по новой архитектуре (единый контейнер) */}
       <LandscapeContentLayers />
       <WaterContentLayers />
-      {/* При активном тумане скрываем скайбокс, чтобы убрать чёткую линию горизонта */}
-      <Sky
-        visible={!fogEnabled}
-        distance={lighting.sky?.distance ?? 450000}
-        sunPosition={directionalPosition}
-        turbidity={lighting.sky?.turbidity ?? 0.1}
-        rayleigh={lighting.sky?.rayleigh ?? 1.0}
-        mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
-        mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
-        inclination={lighting.sky?.elevation ?? 0}
-        azimuth={lighting.sky?.azimuth ?? 0.25}
-      />
-
-      <DreiEnvironment background={false} frames={1} resolution={256}>
-        {/* Этот Sky не обязателен к показу — он только источник env-карты */}
+      {/* Небо: процедурное показываем при выбранном режиме (и без тумана). */}
+      {skyType === 'procedural' && (
         <Sky
-            sunPosition={directionalPosition}
-            turbidity={lighting.sky?.turbidity ?? 0.1}
-            rayleigh={lighting.sky?.rayleigh ?? 1.0}
-            mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
-            mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
+          visible={!fogEnabled}
+          distance={lighting.sky?.distance ?? 450000}
+          sunPosition={directionalPosition}
+          turbidity={lighting.sky?.turbidity ?? 0.1}
+          rayleigh={lighting.sky?.rayleigh ?? 1.0}
+          mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
+          mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
+          inclination={lighting.sky?.elevation ?? 0}
+          azimuth={lighting.sky?.azimuth ?? 0.25}
         />
-      </DreiEnvironment>
+      )}
+
+      {/*
+        Источник env‑карты:
+        - procedural: берём пробу с procedural Sky (как было ранее)
+        - hdri/skybox: даём готовую карту из EXR, без детей <Sky>
+      */}
+      {skyType === 'procedural' ? (
+        <DreiEnvironment background={false} frames={1} resolution={256}>
+          {/* Этот Sky не обязателен к показу — он только источник env-карты */}
+          <Sky
+              sunPosition={directionalPosition}
+              turbidity={lighting.sky?.turbidity ?? 0.1}
+              rayleigh={lighting.sky?.rayleigh ?? 1.0}
+              mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
+              mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
+          />
+        </DreiEnvironment>
+      ) : (
+        <DreiEnvironment background={false} map={skyboxTexture} />
+      )}
 
       {/* Слои облаков (процедурные): при отсутствии слоёв облаков рендер не выполняется */}
       <CloudLayers />
