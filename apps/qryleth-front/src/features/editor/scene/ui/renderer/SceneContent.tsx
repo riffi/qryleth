@@ -12,7 +12,7 @@ import { useSceneStore, useGridVisible } from '../../model/sceneStore.ts'
 import { UiMode, RenderProfile } from '@/shared/types/ui'
 // Глобальные хоткеи сцены: импортируем из scene/lib через алиас
 import { useKeyboardShortcuts } from '@/features/editor/scene/lib/hooks/useKeyboardShortcuts'
-import { Sky } from '@react-three/drei'
+import { Sky, Environment as DreiEnvironment } from '@react-three/drei'
 import {
   EffectComposer,
   N8AO,
@@ -142,6 +142,17 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         inclination={lighting.sky?.elevation ?? 0}
         azimuth={lighting.sky?.azimuth ?? 0.25}
       />
+
+      <DreiEnvironment background={false} frames={1} resolution={256}>
+        {/* Этот Sky не обязателен к показу — он только источник env-карты */}
+        <Sky
+            sunPosition={directionalPosition}
+            turbidity={lighting.sky?.turbidity ?? 0.1}
+            rayleigh={lighting.sky?.rayleigh ?? 1.0}
+            mieCoefficient={lighting.sky?.mieCoefficient ?? 0.005}
+            mieDirectionalG={lighting.sky?.mieDirectionalG ?? 0.8}
+        />
+      </DreiEnvironment>
 
       {/* Слои облаков (процедурные): при отсутствии слоёв облаков рендер не выполняется */}
       <CloudLayers />
