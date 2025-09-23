@@ -54,4 +54,28 @@ export function initializeWoodTextures(): void {
     colorMapUrl: birchBase + 'BirchTree_Bark.png',
     normalMapUrl: birchBase + 'BirchTree_Bark_Normal.png',
   })
+
+  /**
+   * Набор «Wood 0062 (1K)» — стилизованная древесная поверхность.
+   * 
+   * Источник файлов: `public/texture/wood/stylized/wood_0062_1k_j33v6p/`.
+   * Доступные карты (разрешение 1K):
+   * - Превью: wood_0062_preview.jpg
+   * - Цвет: wood_0062_color_1k.jpg
+   * - Нормали (OpenGL): wood_0062_normal_opengl_1k.png
+   * - Шероховатость: wood_0062_roughness_1k.jpg
+   * - AO: wood_0062_ao_1k.jpg
+   * - Высота: wood_0062_height_1k.png
+   */
+  const wood0062Base = '/texture/wood/stylized/wood_0062_1k_j33v6p/'
+  woodTextureRegistry.register({
+    id: 'wood0062-1k-jpg',
+    name: 'Wood 0062 (1K)',
+    previewUrl: wood0062Base + 'wood_0062_preview.jpg',
+    colorMapUrl: wood0062Base + 'wood_0062_color_1k.jpg',
+    normalMapUrl: wood0062Base + 'wood_0062_normal_opengl_1k.png',
+    roughnessMapUrl: wood0062Base + 'wood_0062_roughness_1k.jpg',
+    aoMapUrl: wood0062Base + 'wood_0062_ao_1k.jpg',
+    displacementMapUrl: wood0062Base + 'wood_0062_height_1k.png',
+  })
 }
