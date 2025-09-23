@@ -114,6 +114,14 @@ function noiseSigned(x: number, y: number, c: number): number {
  * @returns Canvas (можно завернуть в CanvasTexture на стороне вызова)
  */
 export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { canvas: HTMLCanvasElement; stats: TerrainSplatStats; bytes: Uint8Array } {
+  /**
+   * Локальный замер времени генерации splatmap.
+   * Используем `performance.now()` при наличии (более точный high‑res таймер),
+   * в противном случае — `Date.now()`.
+   */
+  const tStart = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now()
   const size = p.size
   const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
   const calcSize = Math.max(8, Math.floor(size * q))
@@ -312,6 +320,20 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
 
   // Создаём копию буфера в Uint8Array для безопасной передачи в WebGL DataTexture
   const bytes = new Uint8Array(buffer)
+  // Финальный замер и вывод в консоль длительности генерации splatmap
+  const tEnd = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now()
+  const elapsedMs = tEnd - tStart
+  // Выводим лаконичное сообщение с ключевыми параметрами
+  // Пример: [Ландшафт] Splatmap создан за 12.3 мс (size: 512, q: 1, blur: 0)
+  try {
+    // Защита от возможных ошибок в окружении, где `console` переопределён
+    console.log(`[Ландшафт] Splatmap создан за ${elapsedMs.toFixed(1)} мс (size: ${size}, q: ${(p.qualityScale ?? 1).toFixed(2)}, blur: ${blurR})`)
+  } catch {
+    /* ignore logging issues */
+  }
+
   return { canvas: cnv, stats, bytes }
 }
 

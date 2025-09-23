@@ -15,6 +15,31 @@ import { buildTextureAtlases, loadImage, type LayerImages } from '@/features/edi
 import { buildSplatmap } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
 import { setTerrainDebugEntry } from '@/features/editor/scene/lib/terrain/texturing/DebugTextureRegistry'
 
+/**
+ * Глобальный кэш собранных атласов и splatmap по item.id.
+ *
+ * Зачем:
+ * - В девелоперском режиме React 18 StrictMode выполняет эффекты дважды при монтировании,
+ *   из-за чего тяжёлые операции (построение splatmap) могут выполняться повторно.
+ * - Глобальный кэш переживает размонтирование/повторный монтаж компонента и предотвращает
+ *   повторную дорогостоящую генерацию, если входные данные не изменились.
+ *
+ * Важно: записи кэша удаляются при перегенерации по тому же ключу (перезаписью). Явительную
+ * очистку под удалённые элементы можно добавить позже на общий диспетчер слоёв при необходимости.
+ */
+const atlasCacheGlobal = new Map<string, {
+  key: string
+  albedo: THREE.CanvasTexture
+  normal: THREE.CanvasTexture
+  roughness: THREE.CanvasTexture
+  ao: THREE.CanvasTexture
+  splat: THREE.CanvasTexture
+  tileOffset: Array<[number, number]>
+  tileScale: Array<[number, number]>
+  repeats: Array<[number, number]>
+  heights: number[]
+}>()
+
 // Глобальный кэш финальных геометрий для режима 'triangle' с подсчётом ссылок.
 // Ключ: baseGeometry.uuid + параметры многоцветной палитры.
 // Это позволяет переиспользовать дорогостоящий результат генерации геометрии
@@ -375,19 +400,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
 
   // (Старый 2‑слойный путь удалён — используем атласы + splatmap ниже)
 
-  // Кэш собранных атласов и splatmap по item.id
-  const atlasCache = useRef(new Map<string, {
-    key: string
-    albedo: THREE.CanvasTexture
-    normal: THREE.CanvasTexture
-    roughness: THREE.CanvasTexture
-    ao: THREE.CanvasTexture
-    splat: THREE.CanvasTexture
-    tileOffset: Array<[number, number]>
-    tileScale: Array<[number, number]>
-    repeats: Array<[number, number]>
-    heights: number[]
-  }>()).current
+  // Используем глобальный кэш, чтобы пережить повторные монтирования (StrictMode) и не пересчитывать заново
+  const atlasCache = atlasCacheGlobal
 
   // Новый путь: атлас 2x2 (до 4 слоёв) + splatmap по высоте.
   // Ставит свой onBeforeCompile ПОСЛЕ старого эффекта, чтобы переопределить его.
@@ -532,6 +546,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         const built = buildTextureAtlases(atlasSize, imageLayers, atlasRepeats)
         // Быстрый предпросмотр: по URL ?terrainSplatPreview=1 уменьшаем качество расчёта в 2 раза
         const qs = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainSplatPreview') === '1' ? 0.5 : 1.0
+        // Проверка отмены прямо перед тяжёлой генерацией splatmap (актуально в StrictMode)
+        if (cancelled) return
         const splat = buildSplatmap(sampler, {
           size: splatSize,
           center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
