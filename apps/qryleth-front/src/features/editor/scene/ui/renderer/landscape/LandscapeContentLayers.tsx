@@ -12,7 +12,7 @@ import { decideSegments } from '@/features/editor/scene/lib/terrain/GeometryBuil
 import { TERRAIN_TEXTURING_CONFIG, computeAtlasSizeFromSegments, computeSplatSizeFromSegments, toPow2Up } from '@/features/editor/scene/config/terrainTexturing'
 import type { ColorSource, GlobalPalette } from '@/entities/palette'
 import { buildTextureAtlases, loadImage, type LayerImages } from '@/features/editor/scene/lib/terrain/texturing/AtlasBuilder'
-import { buildSplatmap } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
+import { buildSplatmap, buildSplatmapInWorker } from '@/features/editor/scene/lib/terrain/texturing/SplatmapBuilder'
 import { setTerrainDebugEntry } from '@/features/editor/scene/lib/terrain/texturing/DebugTextureRegistry'
 
 /**
@@ -548,18 +548,37 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         const qs = (typeof window !== 'undefined') && new URLSearchParams(window.location.search).get('terrainSplatPreview') === '1' ? 0.5 : 1.0
         // Проверка отмены прямо перед тяжёлой генерацией splatmap (актуально в StrictMode)
         if (cancelled) return
-        const splat = buildSplatmap(sampler, {
-          size: splatSize,
-          center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
-          worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
-          layerHeights: heights,
-          blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
-          qualityScale: qs,
-          blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
-        })
+        // Генерация splatmap в воркере (UI неблокирующий). Фоллбэк — синхронная версия.
+        let splatBytes: Uint8Array
+        let splatStats: any
+        try {
+          const res = await buildSplatmapInWorker(item.terrain, {
+            size: splatSize,
+            center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
+            worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
+            layerHeights: heights,
+            blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+            qualityScale: qs,
+            blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
+          })
+          splatBytes = res.bytes
+          splatStats = res.stats
+        } catch {
+          const splatSync = buildSplatmap(sampler, {
+            size: splatSize,
+            center: [item.center?.[0] ?? 0, item.center?.[1] ?? 0],
+            worldSize: { width: item.size?.width ?? item.terrain.worldWidth, depth: item.size?.depth ?? (item.terrain as any).worldDepth },
+            layerHeights: heights,
+            blendHeight: TERRAIN_TEXTURING_CONFIG.blendHeightMeters,
+            qualityScale: qs,
+            blurRadiusPx: TERRAIN_TEXTURING_CONFIG.splatCpuBlurRadiusPx ?? 0,
+          })
+          splatBytes = splatSync.bytes
+          splatStats = splatSync.stats
+        }
         // Используем DataTexture, чтобы исключить влияние premultiplied alpha
         // Создаём DataTexture напрямую из байтов (без чтения из canvas, чтобы избежать премультипликации)
-        const splatTex = new THREE.DataTexture(splat.bytes, splatSize, splatSize, THREE.RGBAFormat)
+        const splatTex = new THREE.DataTexture(splatBytes, splatSize, splatSize, THREE.RGBAFormat)
         splatTex.wrapS = THREE.ClampToEdgeWrapping
         splatTex.wrapT = THREE.ClampToEdgeWrapping
         // Для карт весов избегаем mipmap, чтобы не было паразитных швов от фильтрации
@@ -611,7 +630,17 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           ctxP.putImageData(imgP, 0, 0)
           return cnvP
         }
-        const splatPreview = makeSplatPreview(splat.bytes, splatSize, 128)
+        const splatPreview = makeSplatPreview(splatBytes, splatSize, 128)
+        const makeFullCanvas = (bytes: Uint8Array, size: number): HTMLCanvasElement => {
+          const c = document.createElement('canvas')
+          c.width = size; c.height = size
+          const ctx = c.getContext('2d', { willReadFrequently: true } as any)!
+          const img = ctx.createImageData(size, size)
+          img.data.set(bytes)
+          ctx.putImageData(img, 0, 0)
+          return c
+        }
+        const splatCanvas = makeFullCanvas(splatBytes, splatSize)
         setTerrainDebugEntry(item.id, {
           itemId: item.id,
           name: item.name,
@@ -619,10 +648,10 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
           normal: built.normal.image as HTMLCanvasElement,
           roughness: built.roughness.image as HTMLCanvasElement,
           ao: built.ao.image as HTMLCanvasElement,
-          splat: splat.canvas as HTMLCanvasElement,
-          splatBytes: splat.bytes,
+          splat: splatCanvas as HTMLCanvasElement,
+          splatBytes: splatBytes,
           splatPreview,
-          splatStats: splat.stats,
+          splatStats: splatStats,
           atlasSize,
           splatSize,
           layers: layers.map((l, i) => ({ textureId: l.textureId, height: l.height, repeat: repeats[i] }))

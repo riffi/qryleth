@@ -1,6 +1,7 @@
-import type { GfxHeightSampler } from '@/entities/terrain'
+import type { GfxHeightSampler, GfxTerrainConfig } from '@/entities/terrain'
 import { TERRAIN_TEXTURING_CONFIG } from '@/features/editor/scene/config/terrainTexturing'
 import type { TerrainSplatStats } from './DebugTextureRegistry'
+import { computeSplatBytes } from './SplatmapCore'
 
 /**
  * Параметры генерации splatmap для до 4 слоёв текстур.
@@ -126,200 +127,17 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
   const calcSize = Math.max(8, Math.floor(size * q))
   const blurR = Math.max(0, Math.floor(p.blurRadiusPx ?? 0))
-  // Амплитуда шума для смещения переходов между слоями
-  const noiseAmp = Math.max(0, Math.min(0.5, TERRAIN_TEXTURING_CONFIG.splatNoiseStrength ?? 0))
+  // Амплитуда шума для смещения переходов между слоями берётся в ядре
   const cnv = document.createElement('canvas')
   cnv.width = size
   cnv.height = size
   // Создаём 2D-контекст; указываем willReadFrequently для оптимизации чтения пикселей
   const ctx = cnv.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
-  // Буфер для расчётного размера и финальный буфер
-  const small = new Uint8ClampedArray(calcSize * calcSize * 4)
-  const buffer = new Uint8ClampedArray(size * size * 4)
-
-  const cx = p.center[0]
-  const cz = p.center[1]
-  const w = p.worldSize.width
-  const d = p.worldSize.depth
-  const blend = p.blendHeight ?? TERRAIN_TEXTURING_CONFIG.blendHeightMeters
-
-  let idx = 0
-  // Диагностика: min/max высоты и каналов, счётчики argmax
-  let minH = Number.POSITIVE_INFINITY
-  let maxH = Number.NEGATIVE_INFINITY
-  const chanMin: [number, number, number, number] = [1, 1, 1, 1]
-  const chanMax: [number, number, number, number] = [0, 0, 0, 0]
-  const layerCounts: [number, number, number, number] = [0, 0, 0, 0]
-
-  for (let y = 0; y < calcSize; y++) {
-    const v = (y + 0.5) / calcSize
-    const wz = (v - 0.5) * d + cz
-    for (let x = 0; x < calcSize; x++) {
-      const u = (x + 0.5) / calcSize
-      const wx = (u - 0.5) * w + cx
-      let h = sampler.getHeight(wx, wz)
-      if (!Number.isFinite(h)) {
-        // Страховка от NaN/Infinity: считаем, что попали в слой 0
-        h = 0
-      }
-      if (h < minH) minH = h
-      if (h > maxH) maxH = h
-
-      // Вычисляем шум для этой точки и применяем его к переходам между слоями
-      const noiseValue = noiseAmp > 0 ? noiseSigned(x, y, 0) * noiseAmp : 0
-      let [r, g, b, a] = heightWeights4(h, p.layerHeights, blend, noiseValue)
-
-      // Обновляем диагностику каналов
-      if (r < chanMin[0]) chanMin[0] = r; if (r > chanMax[0]) chanMax[0] = r
-      if (g < chanMin[1]) chanMin[1] = g; if (g > chanMax[1]) chanMax[1] = g
-      if (b < chanMin[2]) chanMin[2] = b; if (b > chanMax[2]) chanMax[2] = b
-      if (a < chanMin[3]) chanMin[3] = a; if (a > chanMax[3]) chanMax[3] = a
-
-      // Argmax по слоям для распределения
-      let arg = 0
-      let best = r
-      if (g > best) { best = g; arg = 1 }
-      if (b > best) { best = b; arg = 2 }
-      if (a > best) { best = a; arg = 3 }
-      layerCounts[arg]++
-
-      small[idx++] = Math.max(0, Math.min(255, Math.round(r * 255)))
-      small[idx++] = Math.max(0, Math.min(255, Math.round(g * 255)))
-      small[idx++] = Math.max(0, Math.min(255, Math.round(b * 255)))
-      small[idx++] = Math.max(0, Math.min(255, Math.round(a * 255)))
-    }
-  }
-
-  // Опциональное CPU‑размытие (separable box blur, 2 прохода)
-  if (blurR > 0) {
-    const tmp = new Uint8ClampedArray(small.length)
-    // Горизонтальный
-    for (let y = 0; y < calcSize; y++) {
-      let sumR = 0, sumG = 0, sumB = 0, sumA = 0
-      const rowStart = y * calcSize
-      // Инициализация окна [0..r]
-      for (let k = -blurR; k <= blurR; k++) {
-        const xk = Math.max(0, Math.min(calcSize - 1, k))
-        const i = (rowStart + xk) * 4
-        sumR += small[i]; sumG += small[i+1]; sumB += small[i+2]; sumA += small[i+3]
-      }
-      const win = 2 * blurR + 1
-      for (let x = 0; x < calcSize; x++) {
-        const di = (rowStart + x) * 4
-        // Пишем среднее
-        tmp[di]   = Math.round(sumR / win)
-        tmp[di+1] = Math.round(sumG / win)
-        tmp[di+2] = Math.round(sumB / win)
-        tmp[di+3] = Math.round(sumA / win)
-        // Обновляем окно: выкинуть x-blurR, добавить x+blurR+1
-        const xOut = Math.max(0, Math.min(calcSize - 1, x - blurR))
-        const xIn  = Math.max(0, Math.min(calcSize - 1, x + blurR + 1))
-        const iOut = (rowStart + xOut) * 4
-        const iIn  = (rowStart + xIn) * 4
-        sumR += small[iIn]   - small[iOut]
-        sumG += small[iIn+1] - small[iOut+1]
-        sumB += small[iIn+2] - small[iOut+2]
-        sumA += small[iIn+3] - small[iOut+3]
-      }
-    }
-    // Вертикальный
-    for (let x = 0; x < calcSize; x++) {
-      let sumR = 0, sumG = 0, sumB = 0, sumA = 0
-      // Инициализация окна по столбцу
-      for (let k = -blurR; k <= blurR; k++) {
-        const yk = Math.max(0, Math.min(calcSize - 1, k))
-        const i = (yk * calcSize + x) * 4
-        sumR += tmp[i]; sumG += tmp[i+1]; sumB += tmp[i+2]; sumA += tmp[i+3]
-      }
-      const win = 2 * blurR + 1
-      for (let y = 0; y < calcSize; y++) {
-        const di = (y * calcSize + x) * 4
-        small[di]   = Math.round(sumR / win)
-        small[di+1] = Math.round(sumG / win)
-        small[di+2] = Math.round(sumB / win)
-        small[di+3] = Math.round(sumA / win)
-        const yOut = Math.max(0, Math.min(calcSize - 1, y - blurR))
-        const yIn  = Math.max(0, Math.min(calcSize - 1, y + blurR + 1))
-        const iOut = (yOut * calcSize + x) * 4
-        const iIn  = (yIn  * calcSize + x) * 4
-        sumR += tmp[iIn]   - tmp[iOut]
-        sumG += tmp[iIn+1] - tmp[iOut+1]
-        sumB += tmp[iIn+2] - tmp[iOut+2]
-        sumA += tmp[iIn+3] - tmp[iOut+3]
-      }
-    }
-    // Примечание: box blur линейный — сумма каналов сохраняется близко к 255, renorm не обязателен
-  }
-
-  // Если расчётный размер меньше финального — bilinear‑апскейл
-  if (calcSize !== size) {
-    let di = 0
-    const sx = calcSize / size
-    const sy = calcSize / size
-    for (let y = 0; y < size; y++) {
-      const fy = (y + 0.5) * sy - 0.5
-      const y0 = Math.max(0, Math.min(calcSize - 1, Math.floor(fy)))
-      const y1 = Math.max(0, Math.min(calcSize - 1, y0 + 1))
-      const wy = fy - y0
-      for (let x = 0; x < size; x++) {
-        const fx = (x + 0.5) * sx - 0.5
-        const x0 = Math.max(0, Math.min(calcSize - 1, Math.floor(fx)))
-        const x1 = Math.max(0, Math.min(calcSize - 1, x0 + 1))
-        const wx = fx - x0
-        const i00 = (y0 * calcSize + x0) * 4
-        const i10 = (y0 * calcSize + x1) * 4
-        const i01 = (y1 * calcSize + x0) * 4
-        const i11 = (y1 * calcSize + x1) * 4
-        for (let c = 0; c < 4; c++) {
-          const v00 = small[i00 + c]
-          const v10 = small[i10 + c]
-          const v01 = small[i01 + c]
-          const v11 = small[i11 + c]
-          const v0 = v00 + (v10 - v00) * wx
-          const v1 = v01 + (v11 - v01) * wx
-          buffer[di++] = v0 + (v1 - v0) * wy
-        }
-      }
-    }
-  } else {
-    buffer.set(small)
-  }
-
+  const { bytes, stats } = computeSplatBytes(sampler, p)
+  const buffer = new Uint8ClampedArray(bytes)
   const img = new ImageData(buffer, size, size)
   ctx.putImageData(img, 0, 0)
-
-  // Дополнительно посчитаем веса в центре (для сравнения с пикселем центра канваса)
-  const u0 = 0.5, v0 = 0.5
-  const wx0 = (u0 - 0.5) * w + cx
-  const wz0 = (v0 - 0.5) * d + cz
-  let h0 = sampler.getHeight(wx0, wz0)
-  if (!Number.isFinite(h0)) h0 = 0
-  const w0 = heightWeights4(h0, p.layerHeights, blend, 0) // No noise for center stats
-
-  // Вычислим индекс центра в буфере и прочитаем байты (как должны быть записаны)
-  const cxPix = Math.floor(size / 2)
-  const cyPix = Math.floor(size / 2)
-  const cIdx = (cyPix * size + cxPix) * 4
-  const centerBytes: [number, number, number, number] = [
-    buffer[cIdx] ?? 0,
-    buffer[cIdx + 1] ?? 0,
-    buffer[cIdx + 2] ?? 0,
-    buffer[cIdx + 3] ?? 0,
-  ]
-
-  const stats: TerrainSplatStats = {
-    minH: isFinite(minH) ? minH : 0,
-    maxH: isFinite(maxH) ? maxH : 0,
-    layerCounts,
-    chanMin,
-    chanMax,
-    centerH: h0,
-    centerWeights: w0,
-    centerBytes,
-  }
-
   // Создаём копию буфера в Uint8Array для безопасной передачи в WebGL DataTexture
-  const bytes = new Uint8Array(buffer)
   // Финальный замер и вывод в консоль длительности генерации splatmap
   const tEnd = (typeof performance !== 'undefined' && typeof performance.now === 'function')
     ? performance.now()
@@ -335,6 +153,50 @@ export function buildSplatmap(sampler: GfxHeightSampler, p: SplatmapParams): { c
   }
 
   return { canvas: cnv, stats, bytes }
+}
+
+/**
+ * Асинхронная генерация splatmap в Web Worker, чтобы не блокировать UI.
+ * Принимает конфигурацию террейна (а не готовый сэмплер), т.к. сэмплер
+ * не переносим между потоками. Воркёр создаёт свой сэмплер и выполняет
+ * ту же логику, что и синхронная версия, но отдаёт только байты и статистику.
+ */
+export async function buildSplatmapInWorker(cfg: GfxTerrainConfig, p: SplatmapParams): Promise<{ bytes: Uint8Array; stats: TerrainSplatStats }> {
+  /**
+   * Измеряем длительность асинхронной генерации в воркере и логируем по завершении.
+   */
+  const tStart = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now()
+  const blurR = Math.max(0, Math.floor(p.blurRadiusPx ?? 0))
+  const q = Math.max(0.25, Math.min(1.0, p.qualityScale ?? 1.0))
+  return new Promise((resolve, reject) => {
+    try {
+      // Динамически создаём воркера модульного типа (совместимо с Vite)
+      const worker = new Worker(new URL('./workers/SplatmapWorker.ts', import.meta.url), { type: 'module' })
+      const onMessage = (ev: MessageEvent) => {
+        const data = ev.data as { ok: true; bytes: ArrayBuffer; stats: TerrainSplatStats } | { ok: false; error: string }
+        worker.removeEventListener('message', onMessage)
+        worker.terminate()
+        if ((data as any).ok) {
+          const tEnd = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+            ? performance.now()
+            : Date.now()
+          const elapsedMs = tEnd - tStart
+          try {
+            console.log(`[Ландшафт] Splatmap создан за ${elapsedMs.toFixed(1)} мс (size: ${p.size}, q: ${q.toFixed(2)}, blur: ${blurR}) [worker]`)
+          } catch {}
+          resolve({ bytes: new Uint8Array((data as any).bytes), stats: (data as any).stats })
+        } else {
+          reject(new Error((data as any).error || 'Splatmap worker failed'))
+        }
+      }
+      worker.addEventListener('message', onMessage)
+      worker.postMessage({ cfg, params: p })
+    } catch (e: any) {
+      reject(e)
+    }
+  })
 }
 
 // Обратная совместимость: в старых местах можно вызывать старое имя
