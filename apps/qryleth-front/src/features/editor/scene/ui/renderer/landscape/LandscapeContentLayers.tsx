@@ -1068,7 +1068,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
       geometry={finalGeometry}
       rotation={rotation}
       position={position}
-      receiveShadow
+      receiveShadow={true}
+      castShadow={true}
     >
       <meshStandardMaterial
         ref={materialRef}
@@ -1085,7 +1086,8 @@ const LandscapeItemMesh: React.FC<LandscapeItemMeshProps> = ({ item, wireframe }
         transparent={false}
         opacity={1.0}
         vertexColors={useVertexColors}
-        aoMapIntensity={1.0}
+         aoMapIntensity={1.0}
+         envMapIntensity={1.0}
       />
     </mesh>
   )
