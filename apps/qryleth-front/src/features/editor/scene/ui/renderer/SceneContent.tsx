@@ -107,41 +107,6 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         ? <primitive attach="background" object={skyboxTexture} />
         : <color attach="background" args={[sceneBackground]} />}
 
-      {/*
-        Постпроцессинг:
-        - N8AO: экранное затенение на основе нормалей (Ambient Occlusion)
-        - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
-        ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
-      */}
-      <EffectComposer multisampling={isViewProfile ? 8 : 0}>
-        {/*
-          В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
-          оставляя только экспозицию и тонемаппинг для корректной картинки.
-          Это снижает draw calls в режиме редактирования.
-        */}
-        {isViewProfile && (
-          <N8AO
-            quality={'ultra'}
-            aoRadius={2}
-            aoSamples={20}
-            intensity={2}
-            distanceFalloff={3}
-            denoiseRadius={10}
-            denoiseSamples={10}
-            renderMode={0}
-          />
-        )}
-        {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
-        <Exposure exposure={lighting.exposure ?? 1.0} />
-        {isViewProfile && (
-          <AtmosphericTint
-            sky={sceneBackground}
-            strength={0.5}
-            power={1}
-          />
-        )}
-        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-      </EffectComposer>
 
       {/* Core scene components */}
       <SceneLighting />
@@ -202,6 +167,41 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <CloudLayers />
 
 
+      {/*
+        Постпроцессинг:
+        - N8AO: экранное затенение на основе нормалей (Ambient Occlusion)
+        - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
+        ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
+      */}
+      <EffectComposer multisampling={isViewProfile ? 8 : 0}>
+        {/*
+          В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
+          оставляя только экспозицию и тонемаппинг для корректной картинки.
+          Это снижает draw calls в режиме редактирования.
+        */}
+        {isViewProfile && (
+            <N8AO
+                quality={'ultra'}
+                aoRadius={2}
+                aoSamples={20}
+                intensity={2}
+                distanceFalloff={3}
+                denoiseRadius={10}
+                denoiseSamples={10}
+                renderMode={0}
+            />
+        )}
+        {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
+        <Exposure exposure={lighting.exposure ?? 1.0} />
+        {isViewProfile && (
+            <AtmosphericTint
+                sky={sceneBackground}
+                strength={0.5}
+                power={1}
+            />
+        )}
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
     </>
   )
 }

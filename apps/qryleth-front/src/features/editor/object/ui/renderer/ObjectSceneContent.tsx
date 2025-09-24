@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { OrbitControls } from '@react-three/drei'
+import {OrbitControls, Sky} from '@react-three/drei'
 import { EffectComposer, SSAO } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 import { ObjectSceneLighting } from '@/features/editor/object/ui/renderer/lighting/ObjectSceneLighting.tsx'
@@ -9,6 +9,7 @@ import { PrimitiveTransformGizmo } from '@/features/editor/object/ui/renderer/co
 import { useObjectLighting, useObjectGridVisible } from '../../model/objectStore.ts'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import {Environment as DreiEnvironment} from "@react-three/drei/core/Environment";
 
 /**
  * Содержимое сцены редактора объектов: освещение, окружение и примитивы.
@@ -61,7 +62,16 @@ export const ObjectSceneContent: React.FC = () => {
       <Environment gridVisible={gridVisible} />
       <ObjectScenePrimitives />
       <PrimitiveTransformGizmo orbitControlsRef={orbitControlsRef} />
-
+      <DreiEnvironment background={false} frames={1} resolution={256}>
+        {/* Этот Sky не обязателен к показу — он только источник env-карты */}
+        <Sky
+            sunPosition={[10,10,10]}
+            turbidity={0.1}
+            rayleigh={1.0}
+            mieCoefficient={0.005}
+            mieDirectionalG={ 0.8}
+        />
+      </DreiEnvironment>
       {lighting.ambientOcclusion?.enabled && (
         <EffectComposer
             enableNormalPass

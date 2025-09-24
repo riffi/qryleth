@@ -69,6 +69,12 @@ export function useLeafTextures(
       t2.center.set(0.0, 0.0)
       t2.rotation = 0
       t2.anisotropy = 4
+      // При использовании atlas через repeat/offset на mip‑уровнях возможен «bleeding» цвета
+      // из соседних спрайтов (фиолетовые ореолы). Для минимизации: отключаем mipmaps
+      // и используем линейную фильтрацию минификации. Качество вдали немного ниже, но
+      // артефакты исчезают. При появлении экструзии/паддинга в атласе можно вернуть mipmaps.
+      t2.generateMipmaps = false
+      t2.minFilter = THREE.LinearFilter
       t2.needsUpdate = true
       setDiffuseMap(t2)
       const img2: any = t2.image
@@ -123,6 +129,11 @@ export function useLeafTextures(
       t.offset.set(offX, t.flipY ? offYFlipTrue : offYFlipFalse)
       t.center.set(0.0, 0.0)
       t.rotation = 0
+      // Синхронизируем анти‑bleeding настройки для всех карт
+      if (t === diffuseMap) {
+        t.generateMipmaps = false
+        t.minFilter = THREE.LinearFilter
+      }
       t.needsUpdate = true
     }
     applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)

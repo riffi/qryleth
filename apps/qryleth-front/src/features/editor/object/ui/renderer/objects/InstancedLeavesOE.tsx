@@ -34,6 +34,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   // Разброс применения фактора по листьям (0..1)
   const leafPaintJitter: number = useObjectStore(s => s.treeData?.params?.leafTexturePaintJitter ?? 0)
   const leafRectDebug = useObjectDebugFlags(s => s.leafRectDebug)
+  // Интенсивность ambient‑света ObjectEditor для масштабирования подсветки на просвет
+  const ambientIntensity = useObjectStore(s => s.lighting?.ambient?.intensity ?? 1.0)
   // Текущее имя спрайта для материал‑ключа (форсируем ремонт при смене)
   const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
   const shape = (sample as any)?.geometry?.shape || 'billboard'
@@ -177,6 +179,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       edgeDebug: false,
       leafPaintFactor,
       targetLeafColorLinear: targetLeafColorLinear,
+      // Делаем «просвет» мягким и зависящим от ambient‑интенсивности превью‑сцены
+      backlightStrength: 0//Math.max(0, Math.min(1, ambientIntensity)) * 0.2,
     })
   }
   // legacy onBeforeCompile удалён
@@ -221,15 +225,20 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         key={`leafMat-${spriteNameKey}`}
         ref={onMaterialRefPatched}
         {...materialProps}
+        // Полностью отключаем вклад IBL для листвы, чтобы исключить паразитный
+        // фиолетовый оттенок от HDRI. При необходимости можно сделать настраиваемым.
+        envMapIntensity={0}
         // Для режимов с цветовой картой листа избегаем двойного умножения цвета (tint),
         // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.
-        color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
+       // color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
         map={(sample as any)?.geometry?.shape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={(sample as any)?.geometry?.shape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={(sample as any)?.geometry?.shape === 'texture' ? normalMap || undefined : undefined}
         roughnessMap={(sample as any)?.geometry?.shape === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
-        alphaTest={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
+        // Избегаем общего блендинга с HDRI: используем отсечение по альфе вместо полупрозрачности.
+        transparent={(sample as any)?.geometry?.shape === 'texture' ? false : materialProps.transparent}
+        //alphaTest={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
+        alphaToCoverage={(sample as any)?.geometry?.shape === 'texture' ? true : undefined}
       />
     </instancedMesh>
   )

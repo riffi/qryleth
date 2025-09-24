@@ -65,6 +65,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   // Палитра сцены
   const paletteUuid = useSceneStore(s => s.environmentContent?.paletteUuid || 'default')
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
+  // Интенсивность окружающего света сцены для масштабирования «подсветки на просвет»
+  const ambientIntensity = useSceneStore(s => s.lighting?.ambient?.intensity ?? 0.6)
 
   // Разрешаем материал из первого листа (ожидается «Листья»)
   const samplePrimitive = spheres[0]?.primitive as any
@@ -270,6 +272,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
   // materialRef объявлен выше
   // Унифицированная настройка материала через общий патчер шейдеров листвы
+// InstancedLeaves.tsx — внутри onMaterialRefPatched
   const onMaterialRefPatched = (mat: THREE.MeshStandardMaterial | null) => {
     if (!mat) return
     materialRef.current = mat
@@ -351,19 +354,29 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRefPatched}
         {...materialProps}
+        envMapIntensity={0}
+        // Листва — диэлектрик без выраженного зеркального отклика. Чтобы исключить
+        // паразитный оттенок от HDRI (фиолетовые/розовые зоны неба), полностью
+        // отключаем вклад IBL для листьев. При необходимости можно вернуть как
+        // настройку материала (envMapIntensity>0), но по умолчанию — 0.
         opacity={opacity != null ? opacity : (materialProps as any).opacity}
         depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
+
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
-        //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
+        //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#FFFFFF' : (materialProps as any).color) : (materialProps as any).color}
+       // color={'#FFFFFF'}
+        //color={diffuseMap}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
         roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
-        transparent={effectiveShape === 'texture'
-          ? (!!diffuseMap ? true : (opacity != null ? (opacity < 1) : false))
-          : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
-        alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
+        // transparent={effectiveShape === 'texture'
+        //   ? (opacity != null ? (opacity < 1) : false)
+        //   : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
+        transparent={true}
+        alphaToCoverage={effectiveShape=== 'texture' ? true : undefined}
+        //alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />
     </instancedMesh>
   )
