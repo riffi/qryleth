@@ -93,7 +93,9 @@ const BillboardChunkMesh: React.FC<{
 }> = ({ bucket, paletteUuid, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const [billboard, setBillboard] = React.useState<Awaited<ReturnType<typeof getOrCreateTreeBillboard>> | null>(null)
-  const lastYawRef = useRef<number | null>(null)
+  // Отказываемся от глобального кеша yaw по чанку — считаем поворот для каждого
+  // инстанса относительно его собственной позиции, чтобы не было скачков при
+  // движении камеры (особенно на границах чанков).
   const { camera } = useThree()
 
   useEffect(() => {
@@ -150,22 +152,22 @@ const BillboardChunkMesh: React.FC<{
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
   }, [bucket.items, geometry, billboard])
 
-  // Поворот к камере: обновляем кватернион инстансов при изменении yaw (позиции XZ и высоты не меняем)
+  // Поворот к камере для каждого инстанса с учётом его положения (без изменения T/S)
   useFrame(() => {
     if (!meshRef.current || !billboard) return
-    const dx = camera.position.x - bucket.key.cx
-    const dz = camera.position.z - bucket.key.cz
-    const yaw = Math.atan2(dx, dz)
-    if (lastYawRef.current != null && Math.abs(yaw - lastYawRef.current) < 1e-3) return
-    lastYawRef.current = yaw
-    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0, 'XYZ'))
     const dummy = new THREE.Object3D()
     const m = new THREE.Matrix4()
     for (let k = 0; k < bucket.items.length; k++) {
-      // Читаем текущую матрицу (T * I * S), заменяем вращение на yaw
       meshRef.current.getMatrixAt(k, m)
       m.decompose(dummy.position, dummy.quaternion, dummy.scale)
-      dummy.quaternion.copy(q)
+      // Мировые координаты инстанса = позиция группы чанка + локальная позиция
+      const wx = bucket.key.cx + dummy.position.x
+      const wz = bucket.key.cz + dummy.position.z
+      const dx = camera.position.x - wx
+      const dz = camera.position.z - wz
+      // Вращаем плоскость так, чтобы её +Z смотрел на камеру (yaw вокруг Y)
+      const yaw = Math.atan2(dx, dz)
+      dummy.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0, 'XYZ'))
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(k, dummy.matrix)
     }

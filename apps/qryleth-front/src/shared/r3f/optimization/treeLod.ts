@@ -36,9 +36,9 @@ export interface TreeLodConfig {
 export const defaultTreeLodConfig: TreeLodConfig = {
   nearDistance: 20,
   farDistance: 40,
-  billboardDistance: 100,
+  billboardDistance: 80,
   farLeafSampleRatio: 0.4,
-  farLeafScaleMul: 2.55,
+  farLeafScaleMul: 2,
   nearTrunkRadialSegments: 12,
   farTrunkRadialSegments: 8,
   includeBranchesFar: false,

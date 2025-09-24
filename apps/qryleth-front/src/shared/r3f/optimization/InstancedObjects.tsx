@@ -333,6 +333,18 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
           onHover={onHover}
         />
       )}
+      {/* Всегда рендерим стволы для LOD0, даже если ветвевой LOD выключен */}
+      {!ENABLE_CYLINDER_BRANCH_LOD && nearInstances.length > 0 && cylinders.some(c => c.primitive.type === 'trunk') && (
+        <InstancedBranches
+          sceneObject={sceneObject}
+          cylinders={cylinders.filter(c => c.primitive.type === 'trunk')}
+          instances={nearInstances}
+          materials={sceneObject.materials}
+          radialSegments={trunkRadialSegmentsNear}
+          onClick={onClick}
+          onHover={onHover}
+        />
+      )}
 
       {spheres.length > 0 && nearInstances.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
         <>
