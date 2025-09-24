@@ -393,16 +393,31 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
         </>
       )}
 
-      {/* Прочие примитивы (не ствол/ветви/листья) — рендерим только для ближнего LOD,
-          чтобы LOD3 (билборд) полностью заменял дерево без наложения доп. геометрии. */}
-      {rest.map(({ primitive, index }) => (
+      {/* Прочие примитивы (включая единый меш ствола):
+          - для LOD0 — nearInstances;
+          - для LOD2 — farInstances;
+          - для LOD3 (билборд) — не рендерим. */}
+      {nearInstances.length > 0 && rest.map(({ primitive, index }) => (
         <PrimitiveInstancedGroup
-          key={`${objectUuid}-primitive-${index}`}
+          key={`${objectUuid}-primitive-near-${index}`}
           objectUuid={objectUuid}
           sceneObject={sceneObject}
           primitive={primitive}
           primitiveIndex={index}
           instances={nearInstances}
+          onClick={onClick}
+          onHover={onHover}
+          materials={sceneObject.materials}
+        />
+      ))}
+      {farInstances.length > 0 && rest.map(({ primitive, index }) => (
+        <PrimitiveInstancedGroup
+          key={`${objectUuid}-primitive-far-${index}`}
+          objectUuid={objectUuid}
+          sceneObject={sceneObject}
+          primitive={primitive}
+          primitiveIndex={index}
+          instances={farInstances}
           onClick={onClick}
           onHover={onHover}
           materials={sceneObject.materials}

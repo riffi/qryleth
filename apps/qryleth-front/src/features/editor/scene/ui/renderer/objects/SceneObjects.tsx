@@ -60,7 +60,7 @@ export const SceneObjects: React.FC = () => {
           objects={objects}
           instances={objectInstances}
           layers={layers}
-          chunkSize={32}
+          chunkSize={200}
           onClick={sceneEvents.handleClick}
           onHover={sceneEvents.handlePointerOver}
         />
