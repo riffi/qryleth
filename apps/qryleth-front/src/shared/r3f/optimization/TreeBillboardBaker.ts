@@ -4,6 +4,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { leafTextureRegistry } from '@/shared/lib/textures'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
+import { defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 
 export interface TreeBillboardData {
   /** Итоговая текстура RGBA (цвет + альфа) запечённого дерева */
@@ -94,7 +95,17 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   }
 
   // Листья (отдаём приоритет 'texture')
-  const leaves = (object.primitives || []).filter(pr => pr.type === 'leaf') as any[]
+  const leavesAll = (object.primitives || []).filter(pr => pr.type === 'leaf') as any[]
+  // Упрощаем дерево для билборда так же, как в дальнем LOD: реже, но крупнее
+  const ratio = Math.max(0, Math.min(1, defaultTreeLodConfig.farLeafSampleRatio))
+  const scaleMulLOD = defaultTreeLodConfig.farLeafScaleMul || 1
+  const hashToUnit = (s: string): number => { let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h=Math.imul(h,16777619) } return (h>>>0)/4294967295 }
+  const leaves = (ratio >= 0.999)
+    ? leavesAll
+    : leavesAll.filter(l => {
+        const id = (l as any)?.uuid || (l as any)?.name || 'leaf'
+        return hashToUnit(String(id)) <= ratio
+      })
   if (leaves.length === 0) return null
   const hasTextureLeaf = leaves.some(l => (l.geometry?.shape === 'texture') || (l.geometry?.texSpriteName))
   const effectiveShape: 'texture' | 'billboard' | 'coniferCross' = hasTextureLeaf ? 'texture' : (leaves.some(l => l.geometry?.shape === 'coniferCross') ? 'coniferCross' : 'billboard')
@@ -173,7 +184,7 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
     const [psx, psy, psz] = t.scale || [1,1,1]
     const r = prim.geometry?.radius || 0.5
     const shapeScaleMul = effectiveShape === 'coniferCross' ? 2.0 : 1.0
-    const uniformScale = r * Math.cbrt(Math.abs(psx*psy*psz)) * shapeScaleMul
+    const uniformScale = r * Math.cbrt(Math.abs(psx*psy*psz)) * shapeScaleMul * scaleMulLOD
     const sx = effectiveShape === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
     const sy = uniformScale
     const sz = uniformScale
