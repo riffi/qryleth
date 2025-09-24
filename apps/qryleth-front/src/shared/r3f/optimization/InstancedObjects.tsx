@@ -13,6 +13,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
+import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 
 // Флаг-рубильник: отключаем рендер цилиндров ствола/ветвей (InstancedBranches)
 // Единый меш коры уже используется по умолчанию; оставляем возможность включить в будущем.
@@ -333,7 +334,7 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
         />
       )}
 
-      {spheres.length > 0 && nearInstances.length > 0 && (
+      {spheres.length > 0 && nearInstances.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
         <>
           <InstancedLeaves
             sceneObject={sceneObject}
@@ -367,7 +368,7 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
         />
       )}
 
-      {spheres.length > 0 && farInstances.length > 0 && (
+      {spheres.length > 0 && farInstances.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
         <>
           <InstancedLeaves
             sceneObject={sceneObject}

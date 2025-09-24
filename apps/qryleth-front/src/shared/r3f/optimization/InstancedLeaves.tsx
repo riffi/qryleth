@@ -344,7 +344,6 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       ref={meshRef}
       args={[geometry, undefined as any, count]}
       castShadow
-      receiveShadow
       onClick={handleClick}
       onPointerOver={handleHover}
       renderOrder={1}
@@ -374,7 +373,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // transparent={effectiveShape === 'texture'
         //   ? (opacity != null ? (opacity < 1) : false)
         //   : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
-        transparent={true}
+        transparent={false}
         //alphaToCoverage={effectiveShape=== 'texture' ? true : undefined}
         alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />

@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react'
 import { MemoizedSceneObject } from '../optimization/OptimizedComponents'
 import { InstancedObjects, useInstanceOptimization } from '@/shared/r3f/optimization/InstancedObjects.tsx'
+import { ChunkedInstancedLeaves } from '@/shared/r3f/optimization/ChunkedInstancedLeaves'
+import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 import {
   useSceneObjects,
   useSceneObjectInstances,
@@ -51,7 +53,19 @@ export const SceneObjects: React.FC = () => {
         clearHover()
       }}
     >
-      {/* Instanced objects for performance optimization */}
+      {/* Сценовая сегментация листвы: один агрегатор для всех деревьев */}
+      {SCENE_CHUNKED_LEAVES_ENABLED && (
+        <ChunkedInstancedLeaves
+          objects={objects}
+          instances={objectInstances}
+          layers={layers}
+          chunkSize={32}
+          onClick={sceneEvents.handleClick}
+          onHover={sceneEvents.handlePointerOver}
+        />
+      )}
+
+      {/* Instanced objects for performance optimization (прочие примитивы) */}
       <InstancedObjects
         objects={objects}
         instances={objectInstances}

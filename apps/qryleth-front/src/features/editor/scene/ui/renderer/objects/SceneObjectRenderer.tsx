@@ -10,6 +10,7 @@ import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import { useSingleTreeLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
+import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 import type {
   ObjectTransformEvent,
   RenderMode,
@@ -28,6 +29,10 @@ export interface SceneObjectRendererProps {
   onClick?: (event: SceneClickEvent) => void
   onHover?: (event: SceneHoverEvent) => void
 }
+
+// ВАЖНО: глобально отключаем рендер листвы внутри объекта, т.к. вводится
+// сценовый агрегатор ChunkedInstancedLeaves с сегментацией по чанкам (фрустум‑куллинг по чанку).
+// Флаг берётся из общего файла optimization/flags.
 
 export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   sceneObject,
@@ -164,8 +169,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                   return (
                     <>
                       {/* Near LOD — полная модель, с кросс‑фейдом */}
-                      
-                      {treeBuckets.leaves.length > 0 && (
+
+                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
                         <InstancedLeaves
                           sceneObject={sceneObject}
                           spheres={treeBuckets.leaves as any}
@@ -177,7 +182,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
-                      {treeBuckets.leaves.length > 0 && (
+                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
                         <InstancedLeafSpheres
                           sceneObject={sceneObject}
                           leaves={treeBuckets.leaves as any}
@@ -191,8 +196,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                       )}
 
                       {/* Far LOD — только ствол + редуцированные и крупнее листья, с кросс‑фейдом */}
-                      
-                      {treeBuckets.leaves.length > 0 && (
+
+                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
                         <InstancedLeaves
                           sceneObject={sceneObject}
                           spheres={treeBuckets.leaves as any}
@@ -206,7 +211,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
-                      {treeBuckets.leaves.length > 0 && (
+                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
                         <InstancedLeafSpheres
                           sceneObject={sceneObject}
                           leaves={treeBuckets.leaves as any}
