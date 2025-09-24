@@ -5,4 +5,5 @@
  * false — рендер по-старому: InstancedLeaves/InstancedLeafSpheres на уровне объекта.
  */
 export const SCENE_CHUNKED_LEAVES_ENABLED = true
-
+// Показывать ли отладочную обводку у билбордов деревьев (LOD3) в SceneEditor
+export const SCENE_BILLBOARD_BORDER_DEBUG = false

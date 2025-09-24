@@ -17,6 +17,8 @@ import type { SceneObjectInstance } from '@/entities/scene/types'
 export interface TreeLodConfig {
   nearDistance: number
   farDistance: number
+  // Порог дистанции для LOD3 (билборд дерева)
+  billboardDistance: number
   farLeafSampleRatio: number
   farLeafScaleMul: number
   nearTrunkRadialSegments: number
@@ -32,8 +34,9 @@ export interface TreeLodConfig {
  * Базовые значения LOD, подобранные для сохранения визуальной похожести дерева в дальнем LOD.
  */
 export const defaultTreeLodConfig: TreeLodConfig = {
-  nearDistance: 60,
-  farDistance: 90,
+  nearDistance: 4,
+  farDistance: 10,
+  billboardDistance: 20,
   farLeafSampleRatio: 0.4,
   farLeafScaleMul: 2.55,
   nearTrunkRadialSegments: 12,
@@ -57,7 +60,7 @@ export function useSingleTreeLod(
     config?: Partial<TreeLodConfig>
 ) {
   const cfg = React.useMemo(() => ({ ...defaultTreeLodConfig, ...(config || {}) }), [config])
-  const [isFar, setIsFar] = React.useState(false)
+  const [lodLevel, setLodLevel] = React.useState<0 | 2 | 3>(0)
   const [blend, setBlend] = React.useState(0) // 0..1
   const pendingSinceRef = React.useRef<number | null>(null)
   const lastDistRef = React.useRef<number>(0)
@@ -88,16 +91,18 @@ export function useSingleTreeLod(
     // Используем квадраты порогов для сравнения
     const nearThresholdSq = cfg.nearDistance * cfg.nearDistance
     const farThresholdSq = cfg.farDistance * cfg.farDistance
-    const desiredFar = isFar ? (dist > nearThresholdSq) : (dist > farThresholdSq)
+    const billboardThresholdSq = cfg.billboardDistance * cfg.billboardDistance
+    const desiredLevel: 0 | 2 | 3 = (dist > billboardThresholdSq) ? 3 : (dist > farThresholdSq ? 2 : 0)
+    const wasLevel = lodLevel
 
-    if (desiredFar !== isFar) {
+    if (desiredLevel !== wasLevel) {
       const now = performance.now()
       if (pendingSinceRef.current == null) {
         pendingSinceRef.current = now
       }
       const held = now - pendingSinceRef.current
       if ((cfg.switchDebounceMs || 0) <= 0 || held >= (cfg.switchDebounceMs || 0)) {
-        setIsFar(desiredFar)
+        setLodLevel(desiredLevel)
         pendingSinceRef.current = null
       }
     } else {
@@ -105,7 +110,8 @@ export function useSingleTreeLod(
     }
 
     // Плавный фейд к целевому состоянию
-    const target = isFar ? 1 : 0
+    // Для совместимости оставляем blend как индикатор перехода 0↔2.
+    const target = lodLevel === 2 ? 1 : 0
     if (Math.abs(blend - target) > 0.001) {
       const durMs = Math.max(1, cfg.fadeDurationMs || 300)
       const step = delta * (1000 / durMs)
@@ -121,14 +127,16 @@ export function useSingleTreeLod(
   })
 
   return React.useMemo(() => ({
-    isFar,
-    leafSampleRatio: isFar ? cfg.farLeafSampleRatio : undefined,
-    leafScaleMul: isFar ? cfg.farLeafScaleMul : 1,
-    trunkRadialSegments: isFar ? cfg.farTrunkRadialSegments : cfg.nearTrunkRadialSegments,
+    lodLevel,
+    isFar: lodLevel === 2,
+    isBillboard: lodLevel === 3,
+    leafSampleRatio: lodLevel === 2 ? cfg.farLeafSampleRatio : undefined,
+    leafScaleMul: lodLevel === 2 ? cfg.farLeafScaleMul : 1,
+    trunkRadialSegments: lodLevel === 2 ? cfg.farTrunkRadialSegments : cfg.nearTrunkRadialSegments,
     includeBranchesInFar: cfg.includeBranchesFar,
     lodBlend: blend,
     config: cfg,
-  }), [isFar, blend, cfg])
+  }), [lodLevel, blend, cfg])
 }
 
 /**
@@ -141,16 +149,18 @@ export function usePartitionInstancesByLod(
     config?: Partial<TreeLodConfig>
 ) {
   const cfg = React.useMemo(() => ({ ...defaultTreeLodConfig, ...(config || {}) }), [config])
-  const [lodFarMap, setLodFarMap] = React.useState<Record<string, boolean>>(() => ({}))
+  const [lodLevelMap, setLodLevelMap] = React.useState<Record<string, 0 | 2 | 3>>(() => ({}))
   const pendingSinceRef = React.useRef<Record<string, number>>({})
   const [nearInstances, setNearInstances] = React.useState<SceneObjectInstance[]>(instances)
   const [farInstances, setFarInstances] = React.useState<SceneObjectInstance[]>([])
+  const [billboardInstances, setBillboardInstances] = React.useState<SceneObjectInstance[]>([])
   const frameCountRef = React.useRef(0)
   const lastCameraPosRef = React.useRef(new THREE.Vector3())
 
   // Предварительные вычисления квадратов порогов
   const nearThresholdSq = React.useMemo(() => cfg.nearDistance * cfg.nearDistance, [cfg.nearDistance])
   const farThresholdSq = React.useMemo(() => cfg.farDistance * cfg.farDistance, [cfg.farDistance])
+  const billboardThresholdSq = React.useMemo(() => cfg.billboardDistance * cfg.billboardDistance, [cfg.billboardDistance])
 
   useFrame((state) => {
     const camera = state.camera
@@ -169,9 +179,10 @@ export function usePartitionInstancesByLod(
     }
 
     let changed = false
-    const nextMap: Record<string, boolean> = {}
+    const nextMap: Record<string, 0 | 2 | 3> = {}
     const nextNear: SceneObjectInstance[] = []
     const nextFar: SceneObjectInstance[] = []
+    const nextBillboard: SceneObjectInstance[] = []
     const now = performance.now()
     const camX = camera.position.x
     const camY = camera.position.y
@@ -192,51 +203,52 @@ export function usePartitionInstancesByLod(
       const dz = camZ - p[2]
       const distSq = dx * dx + dy * dy + dz * dz
 
-      const wasFar = lodFarMap[id] || false
-      const threshold = wasFar ? nearThresholdSq : farThresholdSq
-      const desiredFar = distSq > threshold
+      const wasLevel = lodLevelMap[id] ?? 0
+      const thresholdSq = wasLevel === 3 ? billboardThresholdSq : wasLevel === 2 ? nearThresholdSq : farThresholdSq
+      const desiredLevel: 0 | 2 | 3 = (distSq > billboardThresholdSq) ? 3 : (distSq > farThresholdSq ? 2 : 0)
 
-      if (desiredFar !== wasFar) {
+      if (desiredLevel !== wasLevel) {
         const since = pendingSinceRef.current[id] || now
         if (pendingSinceRef.current[id] === undefined) {
           pendingSinceRef.current[id] = now
         }
 
         if ((cfg.switchDebounceMs || 0) <= 0 || (now - since) >= (cfg.switchDebounceMs || 0)) {
-          nextMap[id] = desiredFar
+          nextMap[id] = desiredLevel
           changed = true
           delete pendingSinceRef.current[id]
         } else {
-          nextMap[id] = wasFar
+          nextMap[id] = wasLevel
         }
       } else {
         delete pendingSinceRef.current[id]
-        nextMap[id] = wasFar
+        nextMap[id] = wasLevel
       }
 
-      if (nextMap[id]) {
-        nextFar.push(inst)
-      } else {
-        nextNear.push(inst)
-      }
+      const level = nextMap[id]
+      if (level === 3) nextBillboard.push(inst)
+      else if (level === 2) nextFar.push(inst)
+      else nextNear.push(inst)
     }
 
     // Обновляем состояние только если есть изменения
     if (changed) {
-      setLodFarMap(nextMap)
+      setLodLevelMap(nextMap)
       setNearInstances(nextNear)
       setFarInstances(nextFar)
+      setBillboardInstances(nextBillboard)
     }
   })
 
   return React.useMemo(() => ({
     nearInstances,
     farInstances,
+    billboardInstances,
     leafSampleRatioFar: cfg.farLeafSampleRatio,
     leafScaleMulFar: cfg.farLeafScaleMul,
     trunkRadialSegmentsNear: cfg.nearTrunkRadialSegments,
     trunkRadialSegmentsFar: cfg.farTrunkRadialSegments,
     includeBranchesFar: cfg.includeBranchesFar,
     config: cfg,
-  }), [nearInstances, farInstances, cfg])
+  }), [nearInstances, farInstances, billboardInstances, cfg])
 }

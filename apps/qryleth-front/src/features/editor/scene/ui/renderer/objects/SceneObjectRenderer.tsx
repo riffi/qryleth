@@ -156,7 +156,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
         }
         // Единые параметры LOD + кросс‑фейд
-        const { isFar: lodFar, lodBlend, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+        const { isFar: lodFar, isBillboard, lodBlend, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
         const nearAlpha = 1 - lodBlend
         const farAlpha = lodBlend
         const blending = lodBlend > 0.001 && lodBlend < 0.999
@@ -165,7 +165,9 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
             {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
             {isTreeObject && treeBuckets ? (
               <>
-                {(() => {
+                {/* LOD3 — билборд занимает место дерева. Геометрия дерева в одиночном рендере скрыта; рендер билборда выполняется на уровне сцены. */}
+                {isBillboard ? null : (
+                (() => {
                   return (
                     <>
                       {/* Near LOD — полная модель, с кросс‑фейдом */}
@@ -227,7 +229,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                       )}
                     </>
                   )
-                })()}
+                })()
+                )}
 
                 {treeBuckets.rest.map(({ primitive, index }) => (
                   <PrimitiveRenderer

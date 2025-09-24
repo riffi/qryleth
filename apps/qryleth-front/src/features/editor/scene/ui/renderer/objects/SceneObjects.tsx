@@ -3,6 +3,7 @@ import { MemoizedSceneObject } from '../optimization/OptimizedComponents'
 import { InstancedObjects, useInstanceOptimization } from '@/shared/r3f/optimization/InstancedObjects.tsx'
 import { ChunkedInstancedLeaves } from '@/shared/r3f/optimization/ChunkedInstancedLeaves'
 import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
+import { ChunkedTreeBillboards } from '@/shared/r3f/optimization/ChunkedTreeBillboards'
 import {
   useSceneObjects,
   useSceneObjectInstances,
@@ -64,6 +65,16 @@ export const SceneObjects: React.FC = () => {
           onHover={sceneEvents.handlePointerOver}
         />
       )}
+
+      {/* LOD3 билборды деревьев по чанкам */}
+      <ChunkedTreeBillboards
+        objects={objects}
+        instances={objectInstances}
+        layers={layers}
+        chunkSize={200}
+        onClick={sceneEvents.handleClick}
+        onHover={sceneEvents.handlePointerOver}
+      />
 
       {/* Instanced objects for performance optimization (прочие примитивы) */}
       <InstancedObjects
