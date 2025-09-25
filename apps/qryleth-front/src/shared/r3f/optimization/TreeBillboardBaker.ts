@@ -17,13 +17,25 @@ export interface TreeBillboardData {
   baseOffsetY: number
 }
 
-/** Простой in‑memory кэш по ключу objectUuid|paletteUuid */
+/**
+ * Простой in‑memory кэш по ключу objectUuid|paletteUuid.
+ * Важно: при изменении логики бэйка (например, покраска/текстуры) нужно повышать
+ * версию, чтобы сбрасывать устаревшие текстуры.
+ */
 const billboardCache = new Map<string, TreeBillboardData>()
-const CACHE_VERSION = 'v3'
+const CACHE_VERSION = 'v4'
 function cacheKey(object: SceneObject, paletteUuid: string): string { return `${object.uuid}|${paletteUuid}|${CACHE_VERSION}` }
 
 // Реиспользуем единый offscreen WebGLRenderer, чтобы не плодить контексты.
 let _bakeRenderer: THREE.WebGLRenderer | null = null
+/**
+ * Возвращает (лениво создаёт) offscreen WebGLRenderer для бэйка билбордов.
+ *
+ * Примечания:
+ * - Используется один общий инстанс, чтобы не плодить контексты и экономить память;
+ * - Включён SRGB цветовое пространство и ACES тономаппинг (синхронизировано с рендером сцены);
+ * - Антиалиас отключён — итоговая текстура всё равно проходит ресемплинг.
+ */
 function getBakeRenderer(): THREE.WebGLRenderer {
   if (_bakeRenderer) return _bakeRenderer
   const r = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: 'low-power', preserveDrawingBuffer: false })
@@ -36,6 +48,18 @@ function getBakeRenderer(): THREE.WebGLRenderer {
  * Запекает текстуру дерева в offscreen WebGL (ортокамера, ambient + directional),
  * с учётом текстурной листвы (map/alphaMap/atlas) и палитры. Подбирает ширину по
  * tight bbox альфа‑маски по 8 углам yaw; хранит один фронтальный снимок.
+ */
+/**
+ * Создаёт (или берёт из кэша) билборд дерева для заданного объекта и палитры.
+ *
+ * Детали:
+ * - Учитывает палитру материалов: цвет «Листья» берётся из materialToThreePropsWithPalette
+ *   и конвертируется в линейное пространство, как и при рендере дерева;
+ * - Применяется HSV‑покраска листьев через patchLeafMaterial с фактором из
+ *   object.treeData.params.leafTexturePaintFactor и случайным «jitter» на лист;
+ * - Для текстурных листьев корректно настраивается вырезка из атласа и uTexCenter,
+ *   чтобы совпадали якорь и масштаб как в рендере дерева;
+ * - Делает упрощение листвы под дальний LOD (ratio + scaleMul) аналогично сцене.
  */
 export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid: string): Promise<TreeBillboardData | null> {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null
@@ -159,6 +183,13 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
     objectMaterials: object.materials,
   })
   const leafProps = materialToThreePropsWithPalette(matLeafDef, activePalette as any)
+  // Целевой цвет листвы (линейное пространство), как в InstancedLeaves
+  const targetLeafColorLinear = (() => {
+    const hex: any = (leafProps as any)?.color || (matLeafDef as any)?.properties?.color || '#2E8B57'
+    const c = new THREE.Color(hex as any)
+    ;(c as any).convertSRGBToLinear?.()
+    return c
+  })()
   const leafMat = new THREE.MeshStandardMaterial({
     color: '#FFFFFF',//(leafProps as any).color,
     roughness: 0.8,
@@ -204,14 +235,52 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
     }
     leafMat.map = colorMap
     leafMat.alphaMap = alphaMap || undefined
-    patchLeafMaterial(leafMat, { shape: 'texture', texAspect, rectDebug: false, edgeDebug: false, leafPaintFactor: (object as any)?.treeData?.params?.leafTexturePaintFactor ?? 0, targetLeafColorLinear: new THREE.Color((leafProps as any).color || '#2E8B57'), backlightStrength: 0, preMultiplyAlpha: false })
+    // Выровнять поведение покраски с InstancedLeaves: цвет — из палитры и в линейном пространстве
+    // Параметры покраски берём из object.treeData.params
+    const paintFactorFromObject: number = (object as any)?.treeData?.params?.leafTexturePaintFactor ?? 0
+    patchLeafMaterial(leafMat, {
+      shape: 'texture',
+      texAspect,
+      rectDebug: false,
+      edgeDebug: false,
+      leafPaintFactor: paintFactorFromObject,
+      targetLeafColorLinear: targetLeafColorLinear,
+      backlightStrength: 0,
+      // В бэйке отключаем предварительное умножение на альфу, чтобы не затемнять карту
+      preMultiplyAlpha: false,
+    })
+    // Установка центра спрайта для корректного изгиба/вращения в шейдере
+    try {
+      const uniforms = (leafMat as any)?.userData?.uniforms
+      if (uniforms && uniforms.uTexCenter) {
+        const repX = colorMap.repeat.x
+        const repY = colorMap.repeat.y
+        const offX = colorMap.offset.x
+        // Для Y учитываем flipY текстуры
+        const offY = colorMap.offset.y
+        const cx = offX + repX * 0.5
+        // Если flipY=true, offset считается от нижнего края, но мы уже проставили offset с учётом flipY выше
+        const cy = offY + repY * 0.5
+        uniforms.uTexCenter.value.set(cx, cy)
+      }
+    } catch {}
   } else {
     patchLeafMaterial(leafMat, { shape: effectiveShape as any, texAspect: 1, rectDebug: false, edgeDebug: false, backlightStrength: 0 })
   }
 
   const count = leaves.length
   const instanced = new THREE.InstancedMesh(geometry, leafMat, count)
-  const aMul = new Float32Array(count); aMul.fill(1)
+  // Генерируем пер-листовой множитель покраски (как в сцене, но без учёта конкретного инстанса объекта)
+  // Формула: mul = 1 - jitter * rnd, где rnd ∈ [0..1] стабилен по uuid листа
+  const paintJitterFromObject: number = (object as any)?.treeData?.params?.leafTexturePaintJitter ?? 0
+  const aMul = new Float32Array(count)
+  for (let i = 0; i < count; i++) {
+    const prim = leaves[i]
+    const id = (prim as any)?.uuid || (prim as any)?.name || String(i)
+    const rnd = hashToUnit(String(id))
+    const mul = 1 - Math.max(0, Math.min(1, paintJitterFromObject)) * rnd
+    aMul[i] = mul
+  }
   ;(instanced.geometry as any).setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(aMul, 1))
   const dummy = new THREE.Object3D()
   for (let k=0;k<leaves.length;k++) {
@@ -344,6 +413,12 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   return data
 }
 
+/**
+ * Сбрасывает кэш запечённых билбордов и освобождает связанные CanvasTexture.
+ *
+ * Вызывать при изменении палитры/материалов/параметров дерева, влияющих на вид листьев,
+ * чтобы принудить пересборку текстур.
+ */
 export function invalidateTreeBillboards(): void {
   billboardCache.forEach(v => v.texture.dispose())
   billboardCache.clear()
