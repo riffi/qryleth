@@ -4,6 +4,8 @@ import { InstancedObjects, useInstanceOptimization } from '@/shared/r3f/optimiza
 import { ChunkedInstancedLeaves } from '@/shared/r3f/optimization/ChunkedInstancedLeaves'
 import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 import { ChunkedTreeBillboards } from '@/shared/r3f/optimization/ChunkedTreeBillboards'
+import { ChunkedInstancedTrunks } from '@/shared/r3f/optimization/ChunkedInstancedTrunks'
+import { SCENE_CHUNKED_TRUNKS_ENABLED } from '@/shared/r3f/optimization/flags'
 import {
   useSceneObjects,
   useSceneObjectInstances,
@@ -75,6 +77,18 @@ export const SceneObjects: React.FC = () => {
         onClick={sceneEvents.handleClick}
         onHover={sceneEvents.handlePointerOver}
       />
+
+      {/* Сегментация единых стволов по чанкам — устраняет пропадания при фрустум‑куллинге */}
+      {SCENE_CHUNKED_TRUNKS_ENABLED && (
+        <ChunkedInstancedTrunks
+          objects={objects}
+          instances={objectInstances}
+          layers={layers}
+          chunkSize={32}
+          onClick={sceneEvents.handleClick}
+          onHover={sceneEvents.handlePointerOver}
+        />
+      )}
 
       {/* Instanced objects for performance optimization (прочие примитивы) */}
       <InstancedObjects

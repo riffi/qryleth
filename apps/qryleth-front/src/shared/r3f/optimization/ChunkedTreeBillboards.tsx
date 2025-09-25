@@ -215,13 +215,13 @@ const BillboardChunkMesh: React.FC<{
       >
         <meshStandardMaterial
           ref={(m) => { if (m) { patchBillboardMaterial(m, { rectDebug: SCENE_BILLBOARD_BORDER_DEBUG, rectColor: 0xff00ff, rectWidth: 0.02, alphaThreshold: 0.5 }) } }}
-          color={'#FFFFFF'}
+          color={'#ffffff'}
           map={billboard.texture}
-          transparent={false}
-          alphaTest={0.5}
+          transparent={true}
+          alphaTest={0.1}
           roughness={0.8}
           metalness={0.0}
-          envMapIntensity={1}
+          envMapIntensity={0.3}
           side={THREE.DoubleSide}
           depthWrite={true}
         />
