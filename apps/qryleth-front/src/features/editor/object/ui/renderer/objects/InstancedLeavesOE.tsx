@@ -56,6 +56,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     objectMaterials
   }), [sample, objectMaterials])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolvedMaterial, activePalette as any), [resolvedMaterial, activePalette])
+  console.log('materialProps',materialProps)
   /**
    * Вычисляет целевой цвет листвы в линейном пространстве для HSV‑покраски текстуры.
    *
@@ -227,10 +228,11 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         {...materialProps}
         // Полностью отключаем вклад IBL для листвы, чтобы исключить паразитный
         // фиолетовый оттенок от HDRI. При необходимости можно сделать настраиваемым.
-        envMapIntensity={0}
+        envMapIntensity={1}
         // Для режимов с цветовой картой листа избегаем двойного умножения цвета (tint),
         // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.
-       // color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
+        //color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
+        color={'#FFFFFF'}
         map={(sample as any)?.geometry?.shape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={(sample as any)?.geometry?.shape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={(sample as any)?.geometry?.shape === 'texture' ? normalMap || undefined : undefined}

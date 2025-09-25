@@ -34,11 +34,11 @@ export interface TreeLodConfig {
  * Базовые значения LOD, подобранные для сохранения визуальной похожести дерева в дальнем LOD.
  */
 export const defaultTreeLodConfig: TreeLodConfig = {
-  nearDistance: 20,
-  farDistance: 40,
-  billboardDistance: 80,
+  nearDistance: 10,
+  farDistance: 20,
+  billboardDistance: 50,
   farLeafSampleRatio: 0.4,
-  farLeafScaleMul: 1.3,
+  farLeafScaleMul: 2,
   nearTrunkRadialSegments: 12,
   farTrunkRadialSegments: 8,
   includeBranchesFar: false,

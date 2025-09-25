@@ -64,7 +64,7 @@ export function useLeafTextures(
     }
     if (colorUrl) loader.load(colorUrl, (t2) => {
       // для цветовой карты — явный sRGB
-      ;(t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
+      (t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
       t2.wrapS = t2.wrapT = THREE.ClampToEdgeWrapping
       t2.center.set(0.0, 0.0)
       t2.rotation = 0

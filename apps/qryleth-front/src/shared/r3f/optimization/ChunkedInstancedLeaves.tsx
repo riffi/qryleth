@@ -468,7 +468,8 @@ const LeafBillboardChunkMesh: React.FC<{
         key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRef}
         {...materialProps}
-        envMapIntensity={0}
+        envMapIntensity={1}
+        color={'#FFFFFF'}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
         normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}

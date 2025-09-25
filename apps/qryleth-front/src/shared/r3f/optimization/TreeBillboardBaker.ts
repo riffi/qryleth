@@ -50,13 +50,13 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   // Сцена для бэйка
   const scene = new THREE.Scene()
   scene.background = null
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8))
-  const dir = new THREE.DirectionalLight(0xffffff, 1.2)
+  scene.add(new THREE.AmbientLight(0xffffff, 5))
+  const dir = new THREE.DirectionalLight(0xffffff, 0.5)
   dir.position.set(-10, 12, 10)
   dir.target.position.set(0, 0, 0)
   scene.add(dir); scene.add(dir.target)
   // Небольшой заполняющий hemisphere‑свет для подъёма теней
-  scene.add(new THREE.HemisphereLight(0xe0f0ff, 0x404020, 0.35))
+  //scene.add(new THREE.HemisphereLight(0xe0f0ff, 0x404020, 0.35))
   const group = new THREE.Group(); scene.add(group)
 
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
@@ -81,10 +81,10 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
       })
       const props = materialToThreePropsWithPalette(matDef, activePalette as any)
       const mat = new THREE.MeshStandardMaterial({
-        color: (props as any).color,
+        color: '#FFFFFF',//(props as any).color,
         roughness: (props as any).roughness ?? 0.8,
         metalness: (props as any).metalness ?? 0.0,
-        envMapIntensity: 0,
+        envMapIntensity: 1,
         side: THREE.FrontSide,
       })
       // Применяем карты коры из реестра woodTextureRegistry, если задан barkTextureSetId в params дерева
@@ -116,7 +116,9 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
             await new Promise<void>((res) => loader.load(set.roughnessMapUrl!, (t) => { onTex(t); (mat as any).roughnessMap = t; res() }))
           }
           if (set.aoMapUrl) {
-            await new Promise<void>((res) => loader.load(set.aoMapUrl!, (t) => { onTex(t); (mat as any).aoMap = t; res() }))
+            await new Promise<void>((res) => loader.load(set.aoMapUrl!, (t) => { onTex(t); (mat as any).aoMap = t; (mat as any).aoMapIntensity = 0.5; res() }))
+          } else {
+            (mat as any).aoMapIntensity = 0
           }
           mat.needsUpdate = true
         }

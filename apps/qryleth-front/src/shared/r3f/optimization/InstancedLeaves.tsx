@@ -364,7 +364,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
         // чтобы не затемнять текстуру. Базовый цвет — белый.
         //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#FFFFFF' : (materialProps as any).color) : (materialProps as any).color}
-       // color={'#FFFFFF'}
+        color={'#000000'}
         //color={diffuseMap}
         map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
         alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
