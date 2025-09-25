@@ -63,18 +63,15 @@ export function useLeafTextures(
       t.needsUpdate = true
     }
     if (colorUrl) loader.load(colorUrl, (t2) => {
-      // для цветовой карты — явный sRGB
+      // Цветовая карта — sRGB + полноценные мип‑уровни (для устранения мерцания на дистанции)
       (t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
       t2.wrapS = t2.wrapT = THREE.ClampToEdgeWrapping
       t2.center.set(0.0, 0.0)
       t2.rotation = 0
-      t2.anisotropy = 4
-      // При использовании atlas через repeat/offset на mip‑уровнях возможен «bleeding» цвета
-      // из соседних спрайтов (фиолетовые ореолы). Для минимизации: отключаем mipmaps
-      // и используем линейную фильтрацию минификации. Качество вдали немного ниже, но
-      // артефакты исчезают. При появлении экструзии/паддинга в атласе можно вернуть mipmaps.
-      t2.generateMipmaps = false
-      t2.minFilter = THREE.LinearFilter
+      t2.anisotropy = Math.max(4, Math.min(16, (t2.anisotropy || 1)))
+      t2.generateMipmaps = true
+      t2.minFilter = THREE.LinearMipmapLinearFilter
+      t2.magFilter = THREE.LinearFilter
       t2.needsUpdate = true
       setDiffuseMap(t2)
       const img2: any = t2.image
@@ -115,11 +112,15 @@ export function useLeafTextures(
     const items = atlas || []
     const rect: any = (items.find(i => i.name === spriteName) || items[0])
     if (!rect) return
-    const repX = rect.width / W
-    const repY = rect.height / H
-    const offX = rect.x / W
+    // Добавляем небольшой внутренний паддинг (в UV) для снижения bleeding в мипах
+    const PAD = 2 // пикселя
+    const padX = Math.min(rect.width * 0.25, PAD)
+    const padY = Math.min(rect.height * 0.25, PAD)
+    const repX = Math.max(0, (rect.width - 2 * padX)) / W
+    const repY = Math.max(0, (rect.height - 2 * padY)) / H
+    const offX = (rect.x + padX) / W
     const offYFlipTrue = 1 - (rect.y + rect.height) / H
-    const offYFlipFalse = rect.y / H
+    const offYFlipFalse = (rect.y + padY) / H
     const cx = offX + repX * 0.5
     const cyFlipTrue = offYFlipTrue + repY * 0.5
     const cyFlipFalse = offYFlipFalse + repY * 0.5
@@ -130,10 +131,7 @@ export function useLeafTextures(
       t.center.set(0.0, 0.0)
       t.rotation = 0
       // Синхронизируем анти‑bleeding настройки для всех карт
-      if (t === diffuseMap) {
-        t.generateMipmaps = false
-        t.minFilter = THREE.LinearFilter
-      }
+      // Для цветовой карты мипы включены выше; здесь только синхронизируем offset/repeat
       t.needsUpdate = true
     }
     applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)

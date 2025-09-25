@@ -373,7 +373,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // transparent={effectiveShape === 'texture'
         //   ? (opacity != null ? (opacity < 1) : false)
         //   : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
-        transparent={false}
+        transparent={opacity != null ? (opacity < 0.999) : (materialProps as any).transparent}
         //alphaToCoverage={effectiveShape=== 'texture' ? true : undefined}
         alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
       />

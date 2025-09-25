@@ -28,6 +28,10 @@ export interface PatchLeafMaterialOptions {
    * (например, по интенсивности окружающего света сцены) или отключить (0).
    */
   backlightStrength?: number
+  /** Глобальный коэффициент фейда (0..1) для дизеринга. По умолчанию 1. */
+  fade?: number
+  /** Использовать ли пер‑инстансовый атрибут aFade вместо uFade. */
+  useInstanceFade?: boolean
 }
 
 /**
@@ -60,11 +64,11 @@ export function patchLeafMaterial(
   mat.onBeforeCompile = (shader) => {
     // Базовые uniform и varying
     const vCommon = (shape === 'texture')
-      ? `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aLeafPaintMul;\nvarying float vLeafPaintMul;\nvarying vec2 vLeafUv;`
-      : `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nvarying vec2 vLeafUv;`
+      ? `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aLeafPaintMul;\nattribute float aFade;\nvarying float vLeafPaintMul;\nvarying float vFade;\nvarying vec2 vLeafUv;`
+      : `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aFade;\nvarying float vFade;\nvarying vec2 vLeafUv;`
     const vBegin = (shape === 'texture')
-      ? `\nvec3 pos = position;\n  vLeafUv = uv;\n  vLeafPaintMul = aLeafPaintMul;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
-      : `\nvec3 pos = position;\n  vLeafUv = uv;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
+      ? `\nvec3 pos = position;\n  vLeafUv = uv;\n  vLeafPaintMul = aLeafPaintMul;\n  vFade = aFade;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
+      : `\nvec3 pos = position;\n  vLeafUv = uv;\n  vFade = aFade;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', vCommon)
@@ -74,13 +78,20 @@ export function patchLeafMaterial(
     // Фрагмент: маска/отладка/HSV-покраска
     if (shape !== 'texture') {
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;`)
+        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uFade;\nuniform float uUseInstanceFade;\nvarying float vFade;`)
         .replace('#include <alphatest_fragment>', `
           float dx = (vLeafUv.x - 0.5) / 0.5;
           float dy = (vLeafUv.y - 0.5) / 0.5 / uAspect;
           float r2 = dx*dx + dy*dy;
           float alphaMask = smoothstep(1.0 - uEdgeSoftness, 1.0, 1.0 - r2);
           diffuseColor.a *= alphaMask;
+          // Дизер‑фейд, привязанный к UV
+          float f = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));
+          ivec2 b = ivec2(mod(floor(vLeafUv * 4.0), 4.0));
+          int bayer[16];
+          bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;
+          float threshold = (float(bayer[b.y*4+b.x]) + 0.5) / 16.0;
+          if (f < threshold) discard;
           #include <alphatest_fragment>
         `)
     }
@@ -89,6 +100,17 @@ export function patchLeafMaterial(
     if (shape === 'texture') {
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <alphatest_fragment>', `
+          // Дизер‑фейд, привязанный к UV (uniform'ы объявлены в заголовке)
+          float f = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));
+          ivec2 b = ivec2(mod(floor(vLeafUv * 4.0), 4.0));
+          int bayer[16];
+          bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;
+          float threshold = (float(bayer[b.y*4+b.x]) + 0.5) / 16.0;
+          if (f < threshold) discard;
+          // Сглаживание альфа‑порога маски по fwidth: меньше искрения на границах
+          float a0 = diffuseColor.a;
+          float wa = max(0.0001, fwidth(a0) * 1.25);
+          diffuseColor.a = smoothstep(uAlphaThreshold - wa, uAlphaThreshold + wa, a0);
           if (uRectDebug > 0.5) {
             float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));
             float wr = max(uRectWidth, fwidth(d) * 2.0);
@@ -105,7 +127,7 @@ export function patchLeafMaterial(
     // Общие uniforms для debug и HSV-покраски
     {
       let frag = shader.fragmentShader
-      const debugCommon = `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nuniform float uBacklightStrength;\n${shape === 'texture' ? 'uniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nuniform float uPremultiplyAlpha;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }' : ''}\n${shape === 'texture' ? 'varying float vLeafPaintMul;\n' : ''}varying vec2 vLeafUv;`
+      const debugCommon = `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nuniform float uBacklightStrength;\nuniform float uFade;\nuniform float uUseInstanceFade;\n${shape === 'texture' ? 'uniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nuniform float uPremultiplyAlpha;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }' : ''}\n${shape === 'texture' ? 'varying float vLeafPaintMul;\n' : ''}varying vec2 vLeafUv;\nvarying float vFade;`
       frag = frag.replace('#include <common>', debugCommon)
       const hsvBlock = (shape === 'texture') ? `\n  
         // Предварительное умножение цвета на альфу (контролируемое флагом)\n  
@@ -146,6 +168,8 @@ export function patchLeafMaterial(
     shader.uniforms.uAlphaThreshold = { value: (mat.alphaTest ?? 0.5) as number }
     // Управление силой подсветки на просвет: по умолчанию выключено (0.0)
     shader.uniforms.uBacklightStrength = { value: Math.max(0, Math.min(1, opts.backlightStrength ?? 0.0)) }
+    shader.uniforms.uFade = { value: Math.max(0, Math.min(1, opts.fade ?? 1.0)) }
+    shader.uniforms.uUseInstanceFade = { value: opts.useInstanceFade ? 1.0 : 0.0 }
     if (shape === 'texture') {
       const c = opts.targetLeafColorLinear || new THREE.Color('#2E8B57')
       shader.uniforms.uLeafPaintFactor = { value: opts.leafPaintFactor ?? 0 }

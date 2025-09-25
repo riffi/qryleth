@@ -44,8 +44,21 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
     return !!obj && isInstanceVisible(inst, obj, layers)
   }), [instances, objectsById, layers])
 
-  // Разделяем по LOD и берём только billboardInstances
-  const { billboardInstances } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig)
+  // Разделяем по LOD и забираем billboard‑инстансы (solid) и зону Far↔Billboard (с t)
+  const { billboardSolid, farBillboardBlend } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig) as any
+  // Сводим в единый список для рендера билбордов + карта фейдов по uuid
+  const fadeByUuid = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of billboardSolid || []) m.set(it.uuid, 1)
+    for (const it of (farBillboardBlend || [])) m.set(it.inst.uuid, Math.max(0, Math.min(1, it.t)))
+    return m
+  }, [billboardSolid, farBillboardBlend])
+  const billboardInstances = useMemo(() => {
+    const list: SceneObjectInstance[] = []
+    if (billboardSolid) list.push(...billboardSolid)
+    if (farBillboardBlend) list.push(...farBillboardBlend.map((x: any) => x.inst))
+    return list
+  }, [billboardSolid, farBillboardBlend])
 
   // Бакетизация по чанкам
   const buckets = useMemo(() => {
@@ -77,6 +90,7 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
           key={keyOf(b.key)}
           bucket={b}
           paletteUuid={paletteUuid}
+          fadeByUuid={fadeByUuid}
           onClick={onClick}
           onHover={onHover}
         />
@@ -88,9 +102,10 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
 const BillboardChunkMesh: React.FC<{
   bucket: ChunkBucket
   paletteUuid: string
+  fadeByUuid: Map<string, number>
   onClick?: (e: any) => void
   onHover?: (e: any) => void
-}> = ({ bucket, paletteUuid, onClick, onHover }) => {
+}> = ({ bucket, paletteUuid, fadeByUuid, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const [billboard, setBillboard] = React.useState<Awaited<ReturnType<typeof getOrCreateTreeBillboard>> | null>(null)
   // Отказываемся от глобального кеша yaw по чанку — считаем поворот для каждого
@@ -123,6 +138,7 @@ const BillboardChunkMesh: React.FC<{
     let minY = Number.POSITIVE_INFINITY
     let maxY = Number.NEGATIVE_INFINITY
     let maxR = 0
+    const fades: number[] = new Array(bucket.items.length).fill(1)
     for (let k = 0; k < bucket.items.length; k++) {
       const inst = bucket.items[k]
       const t = inst.transform || {}
@@ -140,6 +156,10 @@ const BillboardChunkMesh: React.FC<{
       dummy.scale.set(width, height, 1)
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(k, dummy.matrix)
+      // Фейд по uuid, если задан (в Far↔BB окне). При отсутствии — 1.
+      const uuid = inst.uuid
+      const f = fadeByUuid.get(uuid)
+      fades[k] = (f == null ? 1 : f)
       minY = Math.min(minY, ly)
       maxY = Math.max(maxY, ly + height)
       const halfDiag = Math.max(width, height) * 0.5
@@ -150,6 +170,9 @@ const BillboardChunkMesh: React.FC<{
     const vertRad = (maxY - minY) * 0.5
     const boundRad = Math.max(maxR, vertRad)
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
+    // Атрибут aFade
+    const arr = new Float32Array(fades)
+    geometry.setAttribute('aFade', new THREE.InstancedBufferAttribute(arr, 1))
   }, [bucket.items, geometry, billboard])
 
   // Поворот к камере для каждого инстанса с учётом его положения (без изменения T/S)
@@ -214,7 +237,7 @@ const BillboardChunkMesh: React.FC<{
         onPointerOver={handleHover}
       >
         <meshStandardMaterial
-          ref={(m) => { if (m) { patchBillboardMaterial(m, { rectDebug: SCENE_BILLBOARD_BORDER_DEBUG, rectColor: 0xff00ff, rectWidth: 0.02, alphaThreshold: 0.5 }) } }}
+          ref={(m) => { if (m) { patchBillboardMaterial(m, { rectDebug: SCENE_BILLBOARD_BORDER_DEBUG, rectColor: 0xff00ff, rectWidth: 0.02, alphaThreshold: 0.5, fade: 1, useInstanceFade: true }) } }}
           color={'#ffffff'}
           map={billboard.texture}
           transparent={true}

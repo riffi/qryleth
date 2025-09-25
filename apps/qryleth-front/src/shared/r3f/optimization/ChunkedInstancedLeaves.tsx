@@ -239,7 +239,8 @@ const LeafSphereChunkMesh: React.FC<{
     // Центр сферы по Y — середина диапазона высот; радиус — макс(горизонтальный, вертикальный половинный)
     const centerY = (minY + maxY) * 0.5
     const vertRad = (maxY - minY) * 0.5
-    const boundRad = Math.max(maxR, vertRad)
+    let boundRad = Math.max(maxR, vertRad)
+    boundRad *= 1.06
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
   }, [bucket.items, bucket.key.cx, bucket.key.cz])
 
@@ -284,9 +285,10 @@ const LeafBillboardChunkMesh: React.FC<{
   bucket: ChunkBucket & { key: BillboardKey }
   paletteUuid: string
   scaleMul?: number
+  fadeByUuid?: Map<string, number>
   onClick?: (e: any) => void
   onHover?: (e: any) => void
-}> = ({ bucket, paletteUuid, scaleMul = 1, onClick, onHover }) => {
+}> = ({ bucket, paletteUuid, scaleMul = 1, fadeByUuid, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   const sample = bucket.items[0]
@@ -336,6 +338,8 @@ const LeafBillboardChunkMesh: React.FC<{
       leafPaintFactor: paintFactor,
       targetLeafColorLinear: targetLeafColorLinear,
       backlightStrength: 0,
+      fade: 1,
+      useInstanceFade: true,
     })
   }
 
@@ -348,6 +352,7 @@ const LeafBillboardChunkMesh: React.FC<{
     let maxR = 0
     const cx = bucket.key.cx, cz = bucket.key.cz
 
+    const fades: number[] = new Array(bucket.items.length).fill(1)
     for (let k = 0; k < bucket.items.length; k++) {
       const { instance, primitive } = bucket.items[k]
       const it = instance.transform || {}
@@ -396,16 +401,26 @@ const LeafBillboardChunkMesh: React.FC<{
       dummy.scale.set(sx, sy, sz)
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(k, dummy.matrix)
+      // Фейд: если передан fadeByUuid, берём по uuid инстанса
+      const uuid = instance.uuid
+      const f = fadeByUuid?.get(uuid)
+      fades[k] = (f == null ? 1 : Math.max(0, Math.min(1, f)))
 
-      minY = Math.min(minY, ly - sy)
-      maxY = Math.max(maxY, ly + sy)
+      // После возможного anchor‑смещения используем фактическую Y‑позицию dummy
+      const y = dummy.position.y
+      minY = Math.min(minY, y - sy)
+      maxY = Math.max(maxY, y + sy)
       const dHoriz = Math.hypot(dummy.position.x, dummy.position.z) + Math.max(sx, sz)
       maxR = Math.max(maxR, dHoriz)
     }
     meshRef.current.instanceMatrix.needsUpdate = true
+    // Пер‑инстансовый атрибут aFade
+    const arr = new Float32Array(fades)
+    geometry.setAttribute('aFade', new THREE.InstancedBufferAttribute(arr, 1))
     const centerY = (minY + maxY) * 0.5
     const vertRad = (maxY - minY) * 0.5
-    const boundRad = Math.max(maxR, vertRad)
+    let boundRad = Math.max(maxR, vertRad)
+    boundRad *= 1.06 // небольшой запас против «пограничного» отсекающего мерцания
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
   }, [bucket.items, bucket.key.cx, bucket.key.cz, effectiveShape, texAspect, anchorUV, scaleMul])
 
@@ -460,6 +475,7 @@ const LeafBillboardChunkMesh: React.FC<{
       ref={meshRef}
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
+      frustumCulled={false}
       castShadow
       onClick={handleClick}
       onPointerOver={handleHover}
@@ -476,6 +492,7 @@ const LeafBillboardChunkMesh: React.FC<{
         roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
         transparent={false}
         alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : (materialProps as any).alphaTest}
+        alphaToCoverage={effectiveShape === 'texture' ? true : undefined}
       />
     </instancedMesh>
   )
@@ -521,36 +538,88 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
   }, [instances, objectsById, layers, hasLeavesObjectIds])
 
   // Разделяем инстансы на near/far по дистанции (общий LOD для всех деревьев)
-  const { nearInstances, farInstances, leafSampleRatioFar, leafScaleMulFar } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig)
+  const { nearSolid, farSolid, nearFarBlend, farBillboardBlend, leafSampleRatioFar, leafScaleMulFar } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig) as any
 
   // Собираем листовые элементы
-  const nearItems = useMemo(() => collectLeafItems(objectsById, nearInstances), [objectsById, nearInstances])
-  const farItems = useMemo(() => collectLeafItems(objectsById, farInstances, leafSampleRatioFar), [objectsById, farInstances, leafSampleRatioFar])
+  const nearItems = useMemo(() => collectLeafItems(objectsById, nearSolid), [objectsById, nearSolid])
+  const farItems = useMemo(() => collectLeafItems(objectsById, farSolid, leafSampleRatioFar), [objectsById, farSolid, leafSampleRatioFar])
+  // Переходные наборы
+  const nearBlendInstances = useMemo(() => (nearFarBlend || []).map((x: any) => x.inst), [nearFarBlend])
+  const farBlendInstances = useMemo(() => (nearFarBlend || []).map((x: any) => x.inst), [nearFarBlend])
+  const farOutInstances = useMemo(() => (farBillboardBlend || []).map((x: any) => x.inst), [farBillboardBlend])
+  const nearBlendItems = useMemo(() => collectLeafItems(objectsById, nearBlendInstances), [objectsById, nearBlendInstances])
+  const farBlendItems = useMemo(() => collectLeafItems(objectsById, farBlendInstances, leafSampleRatioFar), [objectsById, farBlendInstances, leafSampleRatioFar])
+  const farOutItems = useMemo(() => collectLeafItems(objectsById, farOutInstances, leafSampleRatioFar), [objectsById, farOutInstances, leafSampleRatioFar])
+  // Карты фейда по uuid
+  const nearBlendFade = useMemo(() => { const m = new Map<string, number>(); for (const x of (nearFarBlend||[])) m.set(x.inst.uuid, Math.max(0, Math.min(1, 1 - x.t))); return m }, [nearFarBlend])
+  const farBlendFade = useMemo(() => { const m = new Map<string, number>(); for (const x of (nearFarBlend||[])) m.set(x.inst.uuid, Math.max(0, Math.min(1, x.t))); return m }, [nearFarBlend])
+  const farOutFade = useMemo(() => { const m = new Map<string, number>(); for (const x of (farBillboardBlend||[])) m.set(x.inst.uuid, Math.max(0, Math.min(1, 1 - x.t))); return m }, [farBillboardBlend])
 
   // Бакетизация по чанкам
   const nearBuckets = useMemo(() => bucketizeByChunks(nearItems, chunkSize), [nearItems, chunkSize])
   const farBuckets = useMemo(() => bucketizeByChunks(farItems, chunkSize), [farItems, chunkSize])
+  const nearBlendBuckets = useMemo(() => bucketizeByChunks(nearBlendItems, chunkSize), [nearBlendItems, chunkSize])
+  const farBlendBuckets = useMemo(() => bucketizeByChunks(farBlendItems, chunkSize), [farBlendItems, chunkSize])
+  const farOutBuckets = useMemo(() => bucketizeByChunks(farOutItems, chunkSize), [farOutItems, chunkSize])
+
+  // Отладка стабильности чанков: логируем изменения состава ключей
+  const prevKeysRef = React.useRef<Set<string>>(new Set())
+  React.useEffect(() => {
+    const LDBG: any = (typeof window !== 'undefined') ? (window as any).__LOD_DEBUG_LEAF_BUCKETS__ : false
+    if (!LDBG) return
+    const keys = new Set<string>()
+    const collect = (m: Map<string, any>) => { for (const k of m.keys()) keys.add(k) }
+    collect(nearBuckets); collect(farBuckets); collect(nearBlendBuckets); collect(farBlendBuckets); collect(farOutBuckets)
+    const prev = prevKeysRef.current
+    let created = 0, removed = 0
+    for (const k of keys) if (!prev.has(k)) created++
+    for (const k of prev) if (!keys.has(k)) removed++
+    if (created || removed) {
+      console.log('[LEAF][buckets] total=%d created=%d removed=%d near=%d far=%d nf=%d fb=%d fout=%d',
+        keys.size, created, removed, nearBuckets.size, farBuckets.size, nearBlendBuckets.size, farBlendBuckets.size, farOutBuckets.size)
+    }
+    prevKeysRef.current = keys
+  }, [nearBuckets, farBuckets, nearBlendBuckets, farBlendBuckets, farOutBuckets])
 
   if (visibleInstances.length === 0) return null
 
   return (
     <group>
       {/* Near LOD — полная листва */}
-      {[...nearBuckets.values()].map((b, i) => (
+      {[...nearBuckets.values()].map((b) => (
         b.key.t === 'sp' ? (
-          <LeafSphereChunkMesh key={`near-sp-${i}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
+          <LeafSphereChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
         ) : (
-          <LeafBillboardChunkMesh key={`near-bb-${i}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
+          <LeafBillboardChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
         )
       ))}
 
+      {/* Near↔Far переход: двойная отрисовка с фейдом — Near с (1-t), Far с t */}
+      {[...nearBlendBuckets.values()].map((b) => (
+        b.key.t === 'bb' ? (
+          <LeafBillboardChunkMesh key={`nf-near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} fadeByUuid={nearBlendFade} onClick={onClick} onHover={onHover} />
+        ) : null
+      ))}
+      {[...farBlendBuckets.values()].map((b) => (
+        b.key.t === 'bb' ? (
+          <LeafBillboardChunkMesh key={`nf-far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} fadeByUuid={farBlendFade} onClick={onClick} onHover={onHover} />
+        ) : null
+      ))}
+
       {/* Far LOD — редуцированные, увеличенные листья */}
-      {[...farBuckets.values()].map((b, i) => (
+      {[...farBuckets.values()].map((b) => (
         b.key.t === 'sp' ? (
-          <LeafSphereChunkMesh key={`far-sp-${i}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
+          <LeafSphereChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
         ) : (
-          <LeafBillboardChunkMesh key={`far-bb-${i}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
+          <LeafBillboardChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
         )
+      ))}
+
+      {/* Far↔Billboard переход: гасим Far листья (1-t). Билборды включаются отдельно. */}
+      {[...farOutBuckets.values()].map((b) => (
+        b.key.t === 'bb' ? (
+          <LeafBillboardChunkMesh key={`fb|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} fadeByUuid={farOutFade} onClick={onClick} onHover={onHover} />
+        ) : null
       ))}
     </group>
   )

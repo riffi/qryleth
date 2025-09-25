@@ -155,18 +155,19 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           ...instance,
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
         }
-        // Единые параметры LOD + кросс‑фейд
-        const { isFar: lodFar, isBillboard, lodBlend, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
-        const nearAlpha = 1 - lodBlend
-        const farAlpha = lodBlend
-        const blending = lodBlend > 0.001 && lodBlend < 0.999
+        // Единые параметры LOD с двойной отрисовкой и screen‑space гистерезисами
+        const { nearWeight, farWeight, billboardWeight, leafSampleRatio, leafScaleMul } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+        // Геометрия гасится в пользу билборда в зоне Far↔BB
+        const nearAlpha = (1 - billboardWeight) * (1 - farWeight)
+        const farAlpha = (1 - billboardWeight) * farWeight
+        const blending = (nearAlpha > 0 && farAlpha > 0) || (billboardWeight > 0 && (nearAlpha > 0 || farAlpha > 0))
         return (
           <>
             {/* Ветвление: дерево — через инстансированные меши; прочее — стандартный путь */}
             {isTreeObject && treeBuckets ? (
               <>
-                {/* LOD3 — билборд занимает место дерева. Геометрия дерева в одиночном рендере скрыта; рендер билборда выполняется на уровне сцены. */}
-                {isBillboard ? null : (
+                {/* Геометрия дерева скрывается пропорционально billboardWeight (кросс‑фейд с билбордом на уровне сцены) */}
+                {(billboardWeight >= 0.999) ? null : (
                 (() => {
                   return (
                     <>
