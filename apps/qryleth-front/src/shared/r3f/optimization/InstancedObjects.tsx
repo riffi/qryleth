@@ -558,7 +558,7 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
 
   return (
     <Instances
-      limit={1000} // Maximum instances
+      limit={2000} // Maximum instances
       range={instances.length}
       ref={ref}
       // ВАЖНО: по умолчанию Three.js отключает тени для мешей (castShadow=false).

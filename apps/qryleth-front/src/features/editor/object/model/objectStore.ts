@@ -53,6 +53,8 @@ interface ObjectStoreState {
   gridVisible: boolean
   selectedPrimitiveIds: number[]
   hoveredPrimitiveId: number | null
+  /** Включен ли предпросмотр LOD (импостор) */
+  lodPreviewEnabled: boolean
 }
 
 interface ObjectStoreActions {
@@ -78,6 +80,8 @@ interface ObjectStoreActions {
   setHoveredPrimitive: (index: number | null) => void
   clearSelection: () => void
   clearScene: () => void
+  /** Включает/выключает предпросмотр LOD (импостор) */
+  setLodPreviewEnabled: (v: boolean) => void
 
   // Material management actions
   /** Устанавливает список материалов объекта */
@@ -92,6 +96,8 @@ interface ObjectStoreActions {
   selectMaterial: (materialUuid: string | null) => void
   /** Проверяет уникальность имени материала в рамках объекта */
   isMaterialNameUnique: (name: string, excludeUuid?: string) => boolean
+  /** Включает/выключает предпросмотр LOD (импостор) */
+  setLodPreviewEnabled: (v: boolean) => void
 
   // Group management actions
   /** Устанавливает группы примитивов */
@@ -180,6 +186,7 @@ export const useObjectStore = create<ObjectStore>()(
     gridVisible: true,
     selectedPrimitiveIds: [],
     hoveredPrimitiveId: null,
+    lodPreviewEnabled: false,
 
     // Устанавливает тип объекта
     setObjectType: (type: 'regular' | 'tree' | undefined) => set({ objectType: type }),
@@ -374,6 +381,8 @@ export const useObjectStore = create<ObjectStore>()(
       })
       return materialUuid
     },
+
+    setLodPreviewEnabled: (v: boolean) => set({ lodPreviewEnabled: !!v }),
 
     updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) =>
       set(state => ({

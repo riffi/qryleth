@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { SceneObject } from '@/entities/scene/types'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
-import { leafTextureRegistry } from '@/shared/lib/textures'
+import { leafTextureRegistry, woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 
@@ -50,11 +50,13 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   // Сцена для бэйка
   const scene = new THREE.Scene()
   scene.background = null
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-  const dir = new THREE.DirectionalLight(0xffffff, 1)
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8))
+  const dir = new THREE.DirectionalLight(0xffffff, 1.2)
   dir.position.set(-10, 12, 10)
   dir.target.position.set(0, 0, 0)
   scene.add(dir); scene.add(dir.target)
+  // Небольшой заполняющий hemisphere‑свет для подъёма теней
+  scene.add(new THREE.HemisphereLight(0xe0f0ff, 0x404020, 0.35))
   const group = new THREE.Group(); scene.add(group)
 
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
@@ -85,6 +87,40 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
         envMapIntensity: 0,
         side: THREE.FrontSide,
       })
+      // Применяем карты коры из реестра woodTextureRegistry, если задан barkTextureSetId в params дерева
+      try {
+        if (woodTextureRegistry.size === 0) {
+          try { initializeWoodTextures() } catch {}
+        }
+        const params: any = (object as any)?.treeData?.params || {}
+        const barkId: string | undefined = params.barkTextureSetId
+        const set = (barkId && woodTextureRegistry.get(barkId)) || woodTextureRegistry.list()[0]
+        if (set) {
+          const ru: number = (params.barkUvRepeatU ?? 1)
+          const rv: number = (params.barkUvRepeatV ?? 1)
+          const loader = new THREE.TextureLoader()
+          const onTex = (t: THREE.Texture | null) => {
+            if (!t) return
+            t.wrapS = t.wrapT = THREE.RepeatWrapping
+            t.repeat.set(Math.max(0.05, ru || 1), Math.max(0.05, rv || 1))
+            t.anisotropy = 4
+            t.needsUpdate = true
+          }
+          if (set.colorMapUrl) {
+            await new Promise<void>((res) => loader.load(set.colorMapUrl, (t) => { (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; onTex(t); (mat as any).map = t; res() }))
+          }
+          if (set.normalMapUrl) {
+            await new Promise<void>((res) => loader.load(set.normalMapUrl!, (t) => { onTex(t); (mat as any).normalMap = t; res() }))
+          }
+          if (set.roughnessMapUrl) {
+            await new Promise<void>((res) => loader.load(set.roughnessMapUrl!, (t) => { onTex(t); (mat as any).roughnessMap = t; res() }))
+          }
+          if (set.aoMapUrl) {
+            await new Promise<void>((res) => loader.load(set.aoMapUrl!, (t) => { onTex(t); (mat as any).aoMap = t; res() }))
+          }
+          mat.needsUpdate = true
+        }
+      } catch {}
       const mesh = new THREE.Mesh(g, mat)
       const t = p.transform || {}
       mesh.position.set(...(t.position || [0,0,0]))
@@ -230,7 +266,8 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   const padPx = 0
   const renderer = getBakeRenderer()
   ;(renderer as any).outputColorSpace = (THREE as any).SRGBColorSpace || (renderer as any).outputEncoding
-  renderer.toneMapping = THREE.NoToneMapping
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  ;(renderer as any).toneMappingExposure = 1.0
   renderer.setSize(heightPx + padPx*2, heightPx + padPx*2)
   renderer.setClearColor(0x000000, 0.0)
   const rt = new THREE.WebGLRenderTarget(heightPx + padPx*2, heightPx + padPx*2, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })

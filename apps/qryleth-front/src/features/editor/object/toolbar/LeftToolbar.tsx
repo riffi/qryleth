@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconMessages, IconAdjustments, IconCrop } from '@tabler/icons-react'
+import { IconMessages, IconAdjustments, IconCrop, IconPhoto } from '@tabler/icons-react'
 
 interface LeftToolbarProps {
   /**
@@ -28,6 +28,10 @@ interface LeftToolbarProps {
   spriteDebugCollapsed?: boolean
   /** Переключить панель отладки спрайтов */
   onToggleSpriteDebug?: () => void
+  /** Включен ли предпросмотр LOD */
+  lodPreviewEnabled?: boolean
+  /** Переключить предпросмотр LOD */
+  onToggleLodPreview?: () => void
 }
 
 /**
@@ -42,6 +46,8 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   showPropertiesAction = true,
   spriteDebugCollapsed = true,
   onToggleSpriteDebug,
+  lodPreviewEnabled = false,
+  onToggleLodPreview,
 }) => {
   return (
     <EdgeToolbar side={'left'}>
@@ -85,6 +91,21 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               style={{ borderRadius: 4, transition: 'all 200ms ease' }}
             >
               <IconCrop size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+
+        {onToggleLodPreview && (
+          <Tooltip label={lodPreviewEnabled ? 'Скрыть превью LOD' : 'Показать превью LOD'} position="right" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={lodPreviewEnabled ? 'filled' : 'subtle'}
+              color={lodPreviewEnabled ? 'blue' : 'gray'}
+              onClick={onToggleLodPreview}
+              aria-label={lodPreviewEnabled ? 'Скрыть превью LOD' : 'Показать превью LOD'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconPhoto size={20} />
             </ActionIcon>
           </Tooltip>
         )}

@@ -73,6 +73,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   // Тип объекта: используем для условного показа генератора/спрайт‑дебага
   const objectType = useObjectStore(s => s.objectType)
   const isTree = objectType === 'tree'
+  const lodPreviewEnabled = useObjectStore(s => s.lodPreviewEnabled)
 
   /**
    * Формирует компонент ObjectChatInterface с привязкой к состоянию панелей и экшенам стора.
@@ -168,6 +169,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         showPropertiesAction={showPropertiesAction}
         spriteDebugCollapsed={panelStateBridge.panelState?.leftPanel !== 'spriteDebug'}
         onToggleSpriteDebug={isTree ? () => panelStateBridge.togglePanel?.('spriteDebug') : undefined}
+        lodPreviewEnabled={lodPreviewEnabled}
+        onToggleLodPreview={() => useObjectStore.getState().setLodPreviewEnabled(!lodPreviewEnabled)}
       />
       <ObjectRightToolbar
         managerCollapsed={panelStateBridge.panelState?.rightPanel !== 'manager'}

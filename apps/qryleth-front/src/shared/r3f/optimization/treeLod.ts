@@ -38,7 +38,7 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   farDistance: 40,
   billboardDistance: 80,
   farLeafSampleRatio: 0.4,
-  farLeafScaleMul: 2,
+  farLeafScaleMul: 1.3,
   nearTrunkRadialSegments: 12,
   farTrunkRadialSegments: 8,
   includeBranchesFar: false,

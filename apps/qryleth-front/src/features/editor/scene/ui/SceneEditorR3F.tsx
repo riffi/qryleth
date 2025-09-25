@@ -225,7 +225,9 @@ export const SceneEditorR3F: React.FC<SceneEditorR3FProps> = ({
     }
 
     loadScene()
-  }, [uuid, isNew, loadSceneData, clearScene, setSceneMetadata])
+  // ВАЖНО: зависимости — только uuid/isNew. Ссылки на методы стора, полученные через getState(),
+  // могут меняться по ссылке при обновлениях стора и вызывать бесконечные циклы перезагрузки.
+  }, [uuid, isNew])
 
   useEffect(() => {
     // Синхронизация черновика названия при загрузке/смене сцены
