@@ -63,6 +63,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
   const environmentContent = useSceneStore(state => state.environmentContent)
   const gridVisible = useGridVisible()
   const uiMode = useSceneStore(state => state.uiMode)
+  // Ссылка на EffectComposer для безопасного освобождения ресурсов при смене профиля рендера
+  const composerRef = React.useRef<any>(null)
 
   // Получаем позицию directional light для синхронизации с положением солнца
   const directionalPosition = lighting.directional?.position ?? [10, 10, 10]
@@ -95,6 +97,23 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
     // Назначаем equirectangular mapping, чтобы текстура корректно проецировалась на фон и env.
     skyboxTexture.mapping = EquirectangularReflectionMapping
   }
+
+  /**
+   * Безопасная очистка (dispose) EffectComposer на смену профиля рендера.
+   *
+   * Учитываем StrictMode: React может вызывать cleanup сразу после mount (для dev),
+   * поэтому не используем немедленный cleanup. Вместо этого отслеживаем предыдущий
+   * инстанс и вызываем dispose только когда появился новый (key изменился).
+   */
+  const prevComposerRef = React.useRef<any>(null)
+  React.useEffect(() => {
+    const prev = prevComposerRef.current
+    const curr = composerRef.current
+    if (prev && prev !== curr) {
+      try { prev.dispose?.() } catch {}
+    }
+    prevComposerRef.current = curr
+  }, [renderProfile])
 
   return (
     <>
@@ -173,7 +192,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
         ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
       */}
-      <EffectComposer multisampling={isViewProfile ? 0 : 0}>
+      <EffectComposer ref={composerRef} key={renderProfile} multisampling={isViewProfile ? 0 : 0}>
         {/*
           В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
           оставляя только экспозицию и тонемаппинг для корректной картинки.
