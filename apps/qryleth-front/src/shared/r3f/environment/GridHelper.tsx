@@ -65,23 +65,21 @@ export const GridHelper: React.FC<GridHelperProps> = ({
     }
   }, [])
 
-  if (!visible) return null
-
   return (
-      <group /* небольшой подъём сетки во избежание z-fighting */ position={[0, 0.001, 0]}>
+    <group /* небольшой подъём сетки во избежание z-fighting */ position={[0, 0.001, 0]} visible={visible}>
       <Grid
-          ref={gridRef}
-          cellColor={color1}
-          sectionColor={color2}
-          args={[size, size]}
-          cellSize={cellSize}
-          cellThickness={0.5}
-          sectionSize={10}
-          sectionThickness={1}
-          fadeDistance={size * 5}
-          fadeStrength={5}
-          infiniteGrid={true}
+        ref={gridRef}
+        cellColor={color1}
+        sectionColor={color2}
+        args={[size, size]}
+        cellSize={cellSize}
+        cellThickness={0.5}
+        sectionSize={10}
+        sectionThickness={1}
+        fadeDistance={size * 5}
+        fadeStrength={5}
+        infiniteGrid={true}
       />
-      </group>
+    </group>
   )
 }

@@ -132,8 +132,9 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <CameraControls />
       {/* Сетка никогда не показывается в Play-режиме, даже если включена в настройках */}
       <Environment gridVisible={uiMode !== UiMode.Play && gridVisible} />
-      {/* Фиксированный экранный индикатор осей X/Y/Z */}
-      {uiMode === UiMode.Edit && <ViewportAxesHelper />}
+      {/* Фиксированный экранный индикатор осей X/Y/Z — держим смонтированным всегда,
+          скрываем в Play чтобы не плодить текстуры при ремоунте */}
+      <ViewportAxesHelper visible={uiMode === UiMode.Edit} />
       {/* Счётчик FPS в углу viewport'а */}
       <FpsCounter />
 
@@ -192,7 +193,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
         ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
       */}
-      <EffectComposer ref={composerRef} key={renderProfile} multisampling={isViewProfile ? 0 : 0}>
+      <EffectComposer ref={composerRef} multisampling={isViewProfile ? 0 : 0}>
         {/*
           В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
           оставляя только экспозицию и тонемаппинг для корректной картинки.
@@ -212,13 +213,13 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         {/*)}*/}
         {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
         <Exposure exposure={lighting.exposure ?? 1.0} />
-        {isViewProfile && (
-            <AtmosphericTint
-                sky={sceneBackground}
-                strength={0.5}
-                power={1}
-            />
-        )}
+        {/*{isViewProfile && (*/}
+        {/*    <AtmosphericTint*/}
+        {/*        sky={sceneBackground}*/}
+        {/*        strength={0.5}*/}
+        {/*        power={1}*/}
+        {/*    />*/}
+        {/*)}*/}
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
     </>
