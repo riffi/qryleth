@@ -120,6 +120,18 @@ const initialState: SceneStoreState = {
   // Видимость хелпера камеры теней направленного света (DirectionalLight)
   shadowCameraHelperVisible: false,
 
+  // LOD деревьев / размеры чанков
+  lodConfig: {
+    enabled: true,
+    // Пороги по умолчанию синхронизированы с defaultTreeLodConfig
+    nearOutPx: 200,
+    nearInPx: 250,
+    farOutPx: 70,
+    farInPx: 90,
+    leafChunkSize: 200,
+    trunkChunkSize: 32,
+  },
+
   // Scene metadata
   sceneMetaData: initialSceneMetaData,
 
@@ -701,6 +713,45 @@ export const useSceneStore = create<SceneStore>()(
      */
     toggleShadowCameraHelperVisible: () => {
       set(state => ({ shadowCameraHelperVisible: !state.shadowCameraHelperVisible }))
+    },
+
+    // =====================
+    // LOD / Chunk size
+    // =====================
+    /**
+     * Устанавливает флаг включения LOD деревьев.
+     * @param enabled true — LOD активен; false — всегда near без переходов/билбордов.
+     */
+    setLodEnabled: (enabled: boolean) => {
+      set(state => ({ lodConfig: { ...state.lodConfig, enabled: !!enabled } }))
+    },
+    /**
+     * Обновляет размеры чанков для агрегаторов листвы/стволов.
+     * Частичный апдейт: можно передать один из параметров.
+     */
+    setLodChunkSizes: (opts: Partial<{ leafChunkSize: number; trunkChunkSize: number }>) => {
+      set(state => ({
+        lodConfig: {
+          ...state.lodConfig,
+          leafChunkSize: Number.isFinite(opts.leafChunkSize as number) ? Math.max(4, opts.leafChunkSize as number) : state.lodConfig.leafChunkSize,
+          trunkChunkSize: Number.isFinite(opts.trunkChunkSize as number) ? Math.max(4, opts.trunkChunkSize as number) : state.lodConfig.trunkChunkSize,
+        }
+      }))
+    },
+    /**
+     * Устанавливает экранно‑пространственные пороги LOD для деревьев.
+     * Значения приводятся к положительным и некоррелирующимся NaN — не меняются.
+     */
+    setTreeLodThresholds: (thresholds: Partial<{ nearInPx: number; nearOutPx: number; farInPx: number; farOutPx: number }>) => {
+      set(state => ({
+        lodConfig: {
+          ...state.lodConfig,
+          nearInPx: Number.isFinite(thresholds.nearInPx as number) ? Math.max(1, thresholds.nearInPx as number) : state.lodConfig.nearInPx,
+          nearOutPx: Number.isFinite(thresholds.nearOutPx as number) ? Math.max(1, thresholds.nearOutPx as number) : state.lodConfig.nearOutPx,
+          farInPx: Number.isFinite(thresholds.farInPx as number) ? Math.max(1, thresholds.farInPx as number) : state.lodConfig.farInPx,
+          farOutPx: Number.isFinite(thresholds.farOutPx as number) ? Math.max(1, thresholds.farOutPx as number) : state.lodConfig.farOutPx,
+        }
+      }))
     },
 
     // =====================

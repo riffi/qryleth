@@ -45,7 +45,23 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
   }), [instances, objectsById, layers])
 
   // Разделяем по LOD и забираем billboard‑инстансы (solid) и зону Far↔Billboard (с t)
-  const { billboardSolid, farBillboardBlend } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig) as any
+  const lodCfg = useSceneStore(s => s.lodConfig)
+  const { billboardSolid, farBillboardBlend } = usePartitionInstancesByLod(visibleInstances, {
+    enabled: lodCfg.enabled,
+    nearInPx: lodCfg.nearInPx,
+    nearOutPx: lodCfg.nearOutPx,
+    farInPx: lodCfg.farInPx,
+    farOutPx: lodCfg.farOutPx,
+    approximateTreeHeightWorld: 10,
+    nearDistance: 30,
+    farDistance: 50,
+    billboardDistance: 70,
+    farLeafSampleRatio: defaultTreeLodConfig.farLeafSampleRatio,
+    farLeafScaleMul: defaultTreeLodConfig.farLeafScaleMul,
+    nearTrunkRadialSegments: defaultTreeLodConfig.nearTrunkRadialSegments,
+    farTrunkRadialSegments: defaultTreeLodConfig.farTrunkRadialSegments,
+    includeBranchesFar: defaultTreeLodConfig.includeBranchesFar,
+  }) as any
   // Сводим в единый список для рендера билбордов + карта фейдов по uuid
   const fadeByUuid = useMemo(() => {
     const m = new Map<string, number>()

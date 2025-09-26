@@ -173,24 +173,24 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
         - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
         ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
       */}
-      <EffectComposer multisampling={isViewProfile ? 8 : 0}>
+      <EffectComposer multisampling={isViewProfile ? 0 : 0}>
         {/*
           В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
           оставляя только экспозицию и тонемаппинг для корректной картинки.
           Это снижает draw calls в режиме редактирования.
         */}
-        {isViewProfile && (
-            <N8AO
-                quality={'ultra'}
-                aoRadius={2}
-                aoSamples={20}
-                intensity={2}
-                distanceFalloff={3}
-                denoiseRadius={10}
-                denoiseSamples={10}
-                renderMode={0}
-            />
-        )}
+        {/*{isViewProfile && (*/}
+        {/*    <N8AO*/}
+        {/*        quality={'ultra'}*/}
+        {/*        aoRadius={2}*/}
+        {/*        aoSamples={20}*/}
+        {/*        intensity={2}*/}
+        {/*        distanceFalloff={3}*/}
+        {/*        denoiseRadius={10}*/}
+        {/*        denoiseSamples={10}*/}
+        {/*        renderMode={0}*/}
+        {/*    />*/}
+        {/*)}*/}
         {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
         <Exposure exposure={lighting.exposure ?? 1.0} />
         {isViewProfile && (

@@ -25,6 +25,7 @@ export const SceneObjects: React.FC = () => {
   const hoveredObject = useHoveredObject()
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
+  const lodConfig = useSceneStore(s => s.lodConfig)
 
   const sceneEvents = useSceneEvents()
 
@@ -62,7 +63,7 @@ export const SceneObjects: React.FC = () => {
           objects={objects}
           instances={objectInstances}
           layers={layers}
-          chunkSize={200}
+          chunkSize={lodConfig.leafChunkSize}
           onClick={sceneEvents.handleClick}
           onHover={sceneEvents.handlePointerOver}
         />
@@ -73,7 +74,7 @@ export const SceneObjects: React.FC = () => {
         objects={objects}
         instances={objectInstances}
         layers={layers}
-        chunkSize={200}
+        chunkSize={lodConfig.leafChunkSize}
         onClick={sceneEvents.handleClick}
         onHover={sceneEvents.handlePointerOver}
       />
@@ -84,7 +85,7 @@ export const SceneObjects: React.FC = () => {
           objects={objects}
           instances={objectInstances}
           layers={layers}
-          chunkSize={32}
+          chunkSize={lodConfig.trunkChunkSize}
           onClick={sceneEvents.handleClick}
           onHover={sceneEvents.handlePointerOver}
         />

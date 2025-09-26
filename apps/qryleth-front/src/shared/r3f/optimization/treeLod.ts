@@ -16,6 +16,13 @@ import type { SceneObjectInstance } from '@/entities/scene/types'
  */
 export interface TreeLodConfig {
   /**
+   * Флаг включения системы LOD.
+   *
+   * false — всегда используется ближний LOD (near), без переходов и билбордов;
+   * true  — работает стандартная логика экранно‑пространственных порогов.
+   */
+  enabled?: boolean
+  /**
    * НИЖЕ — устаревшие пороги по «мировой дистанции».
    * Оставлены для обратной совместимости и будут проигнорированы,
    * если заданы screen‑space пороги (nearInPx/nearOutPx/farInPx/farOutPx).
@@ -61,6 +68,7 @@ export interface TreeLodConfig {
  * Базовые значения LOD, подобранные для сохранения визуальной похожести дерева в дальнем LOD.
  */
 export const defaultTreeLodConfig: TreeLodConfig = {
+  enabled: true,
   // Устаревшие «метровые» пороги — используются только если не заданы Px‑пороги
   nearDistance: 30,
   farDistance: 50,
@@ -72,7 +80,7 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   nearInPx: 250,
   farOutPx: 70,
   farInPx: 90,
-  epsilonPx: 3,
+  epsilonPx: 1,
   approximateTreeHeightWorld: 10,
 
   // Упрощение листвы вдали
@@ -113,6 +121,12 @@ export function useSingleTreeLod(
   const [weights, setWeights] = React.useState({ near: 1, far: 0, bb: 0 })
 
   useFrame((state) => {
+    // Если LOD отключён глобально — всегда отдаём near и выходим
+    if (cfg.enabled === false) {
+      const next = { near: 1, far: 0, bb: 0 }
+      setWeights(prev => (prev.near !== next.near || prev.far !== next.far || prev.bb !== next.bb) ? next : prev)
+      return
+    }
     const g = groupRef.current
     if (!g) return
 
@@ -262,6 +276,22 @@ export function usePartitionInstancesByLod(
   const LOD_DEBUG = (typeof window !== 'undefined') && !!(window as any).__LOD_DEBUG_TREE__
 
   useFrame((state) => {
+      // При выключенном LOD — все инстансы относятся к near; остальные наборы пустые
+      if (cfg.enabled === false) {
+        const all = instances
+        const sig = (arr: SceneObjectInstance[]) => arr.map(x => x.uuid).join('|')
+        const sNear = sig(all)
+        if (sNear !== prevSignaturesRef.current.near) {
+          prevSignaturesRef.current.near = sNear
+          setNearSolid(all)
+        }
+        // Остальные наборы очищаем один раз
+        if (prevSignaturesRef.current.far !== '') { prevSignaturesRef.current.far = '' ; setFarSolid([]) }
+        if (prevSignaturesRef.current.bb  !== '') { prevSignaturesRef.current.bb  = '' ; setBbSolid([]) }
+        if (prevSignaturesRef.current.nf  !== '') { prevSignaturesRef.current.nf  = '' ; setNearFarBlend([]) }
+        if (prevSignaturesRef.current.fb  !== '') { prevSignaturesRef.current.fb  = '' ; setFarBbBlend([]) }
+        return
+      }
     const camera = state.camera as THREE.PerspectiveCamera
 
     // ИСПРАВЛЕНИЕ: Увеличиваем порог для определения движения камеры

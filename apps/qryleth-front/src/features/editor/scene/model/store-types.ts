@@ -81,6 +81,23 @@ export interface SceneStoreState {
   shadowCameraHelperVisible: boolean
 
   /**
+   * Глобальные настройки LOD деревьев и сегментации инстансов по чанкам.
+   *
+   * enabled — включает/выключает логику LOD (near/far/billboard);
+   * nearInPx/nearOutPx/farInPx/farOutPx — экранно‑пространственные пороги в пикселях;
+   * leafChunkSize/trunkChunkSize — размеры чанков для агрегаторов листвы/стволов.
+   */
+  lodConfig: {
+    enabled: boolean
+    nearInPx: number
+    nearOutPx: number
+    farInPx: number
+    farOutPx: number
+    leafChunkSize: number
+    trunkChunkSize: number
+  }
+
+  /**
    * Параметры окружения сцены.
    * На текущем этапе содержит глобальный ветер для анимации дрейфа облаков и других эффектов.
    */
@@ -238,6 +255,23 @@ export interface SceneStoreActions {
   saveToHistory: () => void
   undo: () => void
   redo: () => void
+
+  // LOD management
+  /**
+   * Включить/выключить систему LOD деревьев на сцене.
+   * @param enabled true — LOD активен; false — всё рендерится в near.
+   */
+  setLodEnabled: (enabled: boolean) => void
+  /**
+   * Обновить размеры чанков для инстанс‑агрегаторов.
+   * @param opts.partial partial с полями leafChunkSize/trunkChunkSize
+   */
+  setLodChunkSizes: (opts: Partial<{ leafChunkSize: number; trunkChunkSize: number }>) => void
+  /**
+   * Установить экранные пороги LOD в пикселях.
+   * Пороговые окна должны удовлетворять nearInPx > nearOutPx >= farInPx > farOutPx.
+   */
+  setTreeLodThresholds: (thresholds: Partial<{ nearInPx: number; nearOutPx: number; farInPx: number; farOutPx: number }>) => void
   canUndo: () => boolean
   canRedo: () => boolean
 

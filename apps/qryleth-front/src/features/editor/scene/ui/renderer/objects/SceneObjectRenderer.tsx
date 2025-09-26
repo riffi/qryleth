@@ -49,6 +49,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
   const environmentContent = useSceneStore(s => s.environmentContent)
   const paletteUuid = environmentContent?.paletteUuid || 'default'
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
+  const lodCfgScene = useSceneStore(s => s.lodConfig)
 
   const handleClick = (event: any) => {
     event.stopPropagation()
@@ -115,8 +116,23 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
     return { cylinders, leaves, rest }
   }, [isTreeObject, sceneObject.primitives])
 
-  // Единая логика LOD и константы: общий хук
-  const { isFar: lodFar, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+  // Единая логика LOD и константы: берём пороги/флаг из zustand-стора сцены
+  const { isFar: lodFar, leafSampleRatio, leafScaleMul} = useSingleTreeLod(groupRef, {
+    enabled: lodCfgScene.enabled,
+    nearInPx: lodCfgScene.nearInPx,
+    nearOutPx: lodCfgScene.nearOutPx,
+    farInPx: lodCfgScene.farInPx,
+    farOutPx: lodCfgScene.farOutPx,
+    approximateTreeHeightWorld: 10,
+    nearDistance: 30,
+    farDistance: 50,
+    billboardDistance: 70,
+    farLeafSampleRatio: defaultTreeLodConfig.farLeafSampleRatio,
+    farLeafScaleMul: defaultTreeLodConfig.farLeafScaleMul,
+    nearTrunkRadialSegments: defaultTreeLodConfig.nearTrunkRadialSegments,
+    farTrunkRadialSegments: defaultTreeLodConfig.farTrunkRadialSegments,
+    includeBranchesFar: defaultTreeLodConfig.includeBranchesFar,
+  })
 
   return (
     <group
@@ -156,7 +172,22 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },
         }
         // Единые параметры LOD с двойной отрисовкой и screen‑space гистерезисами
-        const { nearWeight, farWeight, billboardWeight, leafSampleRatio, leafScaleMul } = useSingleTreeLod(groupRef, defaultTreeLodConfig)
+        const { nearWeight, farWeight, billboardWeight, leafSampleRatio, leafScaleMul } = useSingleTreeLod(groupRef, {
+          enabled: lodCfgScene.enabled,
+          nearInPx: lodCfgScene.nearInPx,
+          nearOutPx: lodCfgScene.nearOutPx,
+          farInPx: lodCfgScene.farInPx,
+          farOutPx: lodCfgScene.farOutPx,
+          approximateTreeHeightWorld: 10,
+          nearDistance: 30,
+          farDistance: 50,
+          billboardDistance: 70,
+          farLeafSampleRatio: defaultTreeLodConfig.farLeafSampleRatio,
+          farLeafScaleMul: defaultTreeLodConfig.farLeafScaleMul,
+          nearTrunkRadialSegments: defaultTreeLodConfig.nearTrunkRadialSegments,
+          farTrunkRadialSegments: defaultTreeLodConfig.farTrunkRadialSegments,
+          includeBranchesFar: defaultTreeLodConfig.includeBranchesFar,
+        })
         // Геометрия гасится в пользу билборда в зоне Far↔BB
         const nearAlpha = (1 - billboardWeight) * (1 - farWeight)
         const farAlpha = (1 - billboardWeight) * farWeight

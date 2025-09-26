@@ -475,7 +475,7 @@ const LeafBillboardChunkMesh: React.FC<{
       ref={meshRef}
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
-      frustumCulled={false}
+      frustumCulled={true}
       castShadow
       onClick={handleClick}
       onPointerOver={handleHover}
@@ -538,7 +538,24 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
   }, [instances, objectsById, layers, hasLeavesObjectIds])
 
   // Разделяем инстансы на near/far по дистанции (общий LOD для всех деревьев)
-  const { nearSolid, farSolid, nearFarBlend, farBillboardBlend, leafSampleRatioFar, leafScaleMulFar } = usePartitionInstancesByLod(visibleInstances, defaultTreeLodConfig) as any
+  // Конфигурация LOD c экрана — берём из zustand-стора сцены
+  const lodCfg = useSceneStore(s => s.lodConfig)
+  const { nearSolid, farSolid, nearFarBlend, farBillboardBlend, leafSampleRatioFar, leafScaleMulFar } = usePartitionInstancesByLod(visibleInstances, {
+    enabled: lodCfg.enabled,
+    nearInPx: lodCfg.nearInPx,
+    nearOutPx: lodCfg.nearOutPx,
+    farInPx: lodCfg.farInPx,
+    farOutPx: lodCfg.farOutPx,
+    approximateTreeHeightWorld: 10,
+    nearDistance: 30,
+    farDistance: 50,
+    billboardDistance: 70,
+    farLeafSampleRatio: defaultTreeLodConfig.farLeafSampleRatio,
+    farLeafScaleMul: defaultTreeLodConfig.farLeafScaleMul,
+    nearTrunkRadialSegments: defaultTreeLodConfig.nearTrunkRadialSegments,
+    farTrunkRadialSegments: defaultTreeLodConfig.farTrunkRadialSegments,
+    includeBranchesFar: defaultTreeLodConfig.includeBranchesFar,
+  }) as any
 
   // Собираем листовые элементы
   const nearItems = useMemo(() => collectLeafItems(objectsById, nearSolid), [objectsById, nearSolid])

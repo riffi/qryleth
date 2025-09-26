@@ -17,6 +17,7 @@ import { db } from '@/shared/lib/database.ts'
 // По новым правилам архитектуры мета-управление должно быть вверху,
 // поэтому SceneHeader здесь более не используется.
 import { LightingControls } from './LightingControls.tsx'
+import { TreeLodControls } from './TreeLodControls'
 // Legacy модалки слоёв удалены; используем новые окна для тонких слоёв и содержимого
 import { LayerBasicModal } from './LayerBasicModal'
 import { LandscapeItemModal } from './LandscapeItemModal'
@@ -506,6 +507,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                         lighting={lighting}
                         onLightingChange={handleLightingChange}
                     />
+                    <TreeLodControls />
 
 
                     <SectionHeader
