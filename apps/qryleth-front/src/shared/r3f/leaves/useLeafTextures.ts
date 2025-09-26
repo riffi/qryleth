@@ -1,6 +1,27 @@
 import * as THREE from 'three'
 import { useEffect, useState } from 'react'
 import { leafTextureRegistry } from '@/shared/lib/textures'
+import { loadLeafBaseMaps } from '@/shared/lib/textures/LeafTextureRegistry'
+
+// Локальный кэш atlas.json по URL, чтобы не дергать сеть при каждом
+// ремоунте чанковых компонент листвы/LOD.
+const atlasCache = new Map<string, LeafTextureSetState['atlas']>()
+const atlasInflight = new Map<string, Promise<LeafTextureSetState['atlas']>>()
+
+async function getAtlasJson(url: string): Promise<LeafTextureSetState['atlas']> {
+  if (atlasCache.has(url)) return atlasCache.get(url) as any
+  if (atlasInflight.has(url)) return atlasInflight.get(url) as any
+  const p = fetch(url, { cache: 'force-cache' })
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    })
+    .then((a) => { atlasCache.set(url, a); return a })
+    .catch(() => { return null })
+    .finally(() => { atlasInflight.delete(url) })
+  atlasInflight.set(url, p)
+  return p
+}
 
 export interface LeafTextureSetState {
   diffuseMap: THREE.Texture | null
@@ -38,71 +59,57 @@ export function useLeafTextures(
   const [atlas, setAtlas] = useState<LeafTextureSetState['atlas']>(null)
   const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
 
-  // Загрузка карт
+  // Вариантный кэш по (setId|sprite) для уже сконфигурированных (offset/repeat) текстур,
+  // чтобы не клонировать/перенастраивать на каждый ремоунт чанков/LOD.
+  const variantKey = `${setId || leafTextureRegistry.list()[0]?.id || 'default'}|${spriteName || 'default'}`
+  const variantCache: any = (useLeafTextures as any)._variantCache || ((useLeafTextures as any)._variantCache = new Map<string, any>())
+
+  // Загрузка карт с кэшированием (на уровне реестра)
   useEffect(() => {
+    let alive = true
     if (!enabled) {
       setDiffuseMap(null); setAlphaMap(null); setNormalMap(null); setRoughnessMap(null)
       return
     }
-    const loader = new THREE.TextureLoader()
     const set = (setId && leafTextureRegistry.get(setId)) || leafTextureRegistry.list()[0]
-    const colorUrl = set?.colorMapUrl
-    const opacityUrl = set?.opacityMapUrl
-    const normalUrl = set?.normalMapUrl
-    const roughnessUrl = set?.roughnessMapUrl
-    const onTex = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
-      // Цветовую карту переводим в sRGB, чтобы избежать темного вида
-      if (colorUrl && t === (diffuseMap as any)) {
-        ;(t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace
-      }
-      t.anisotropy = 4
-      t.center.set(0.0, 0.0)
-      t.rotation = 0
-      t.needsUpdate = true
-    }
-    if (colorUrl) loader.load(colorUrl, (t2) => {
-      // Цветовая карта — sRGB + полноценные мип‑уровни (для устранения мерцания на дистанции)
-      (t2 as any).colorSpace = (THREE as any).SRGBColorSpace || (t2 as any).colorSpace
-      t2.wrapS = t2.wrapT = THREE.ClampToEdgeWrapping
-      t2.center.set(0.0, 0.0)
-      t2.rotation = 0
-      t2.anisotropy = Math.max(4, Math.min(16, (t2.anisotropy || 1)))
-      t2.generateMipmaps = true
-      t2.minFilter = THREE.LinearMipmapLinearFilter
-      t2.magFilter = THREE.LinearFilter
-      t2.needsUpdate = true
-      setDiffuseMap(t2)
-      const img2: any = t2.image
+    if (!set) { setDiffuseMap(null); setAlphaMap(null); setNormalMap(null); setRoughnessMap(null); return }
+    ;(async () => {
+      const { colorMap, opacityMap, normalMap, roughnessMap } = await loadLeafBaseMaps(set)
+      if (!alive) return
+      setDiffuseMap(colorMap)
+      setAlphaMap(opacityMap)
+      setNormalMap(normalMap)
+      setRoughnessMap(roughnessMap)
+      const img2: any = colorMap?.image
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
-    }, undefined, () => setDiffuseMap(null))
-    else setDiffuseMap(null)
-
-    if (opacityUrl) loader.load(opacityUrl, (t) => { onTex(t); setAlphaMap(t) }, undefined, () => setAlphaMap(null))
-    else setAlphaMap(null)
-    if (normalUrl) loader.load(normalUrl, (t) => { onTex(t); setNormalMap(t) }, undefined, () => setNormalMap(null))
-    else setNormalMap(null)
-    if (roughnessUrl) loader.load(roughnessUrl, (t) => { onTex(t); setRoughnessMap(t) }, undefined, () => setRoughnessMap(null))
-    else setRoughnessMap(null)
+    })()
+    return () => { alive = false }
   }, [enabled, setId])
 
-  // Загрузка atlas.json
+  // Базовые текстуры теперь кэшируются на уровне реестра и переиспользуются
+  // многими компонентами; dispose здесь не вызываем, чтобы не ломать разделяемые ресурсы.
+
+  // Загрузка atlas.json c кэшированием (без повторных сетевых запросов)
   useEffect(() => {
     if (!enabled) { setAtlas(null); return }
     const set = (setId && leafTextureRegistry.get(setId)) || leafTextureRegistry.list()[0]
     const atlasUrl = set?.atlasUrl
+    let alive = true
     if (atlasUrl) {
-      fetch(atlasUrl)
-        .then(r => r.json())
-        .then((a) => setAtlas(a))
-        .catch(() => setAtlas(null))
+      // Сначала пытаемся отдать из кэша синхронно
+      if (atlasCache.has(atlasUrl)) {
+        setAtlas(atlasCache.get(atlasUrl) || null)
+      } else {
+        // Иначе один раз грузим и кладём в кэш
+        getAtlasJson(atlasUrl).then((a) => { if (alive) setAtlas(a) })
+      }
     } else {
       setAtlas(null)
     }
+    return () => { alive = false }
   }, [enabled, setId])
 
-  // Применение вырезки, установка anchor и uTexCenter
+  // Применение вырезки, установка anchor и uTexCenter (с кэшированием вариантов)
   useEffect(() => {
     if (!enabled) return
     if (!diffuseMap) return
@@ -124,34 +131,63 @@ export function useLeafTextures(
     const cx = offX + repX * 0.5
     const cyFlipTrue = offYFlipTrue + repY * 0.5
     const cyFlipFalse = offYFlipFalse + repY * 0.5
-    const applyRect = (t: THREE.Texture | null) => {
-      if (!t) return
-      t.repeat.set(repX, repY)
-      t.offset.set(offX, t.flipY ? offYFlipTrue : offYFlipFalse)
-      t.center.set(0.0, 0.0)
-      t.rotation = 0
-      // Синхронизируем анти‑bleeding настройки для всех карт
-      // Для цветовой карты мипы включены выше; здесь только синхронизируем offset/repeat
-      t.needsUpdate = true
+    // Если в кэше уже есть вариант для (setId|sprite) — используем его
+    const cached = variantCache.get(variantKey)
+    if (cached && cached.diffuse) {
+      setDiffuseMap(cached.diffuse)
+      setAlphaMap(cached.alpha)
+      setNormalMap(cached.normal)
+      setRoughnessMap(cached.roughness)
+      setTexAspect(cached.texAspect)
+      setAnchorUV(cached.anchorUV)
+      // uTexCenter для материала тоже обновим
+      const uniforms = getUniforms?.()
+      if (uniforms && uniforms.uTexCenter) uniforms.uTexCenter.value.set(cached.uTexCenter?.x ?? 0.5, cached.uTexCenter?.y ?? 0.5)
+      return
     }
-    applyRect(diffuseMap); applyRect(alphaMap); applyRect(normalMap); applyRect(roughnessMap)
-    // Центр спрайта для вращения в шейдере
+
+    // Иначе создаём клон‑варианты (общие для всех потребителей) и сохраняем в кэш
+    const cloneAndApply = (t: THREE.Texture | null) => {
+      if (!t) return null
+      const c = t.clone()
+      c.repeat.set(repX, repY)
+      c.offset.set(offX, c.flipY ? offYFlipTrue : offYFlipFalse)
+      c.center.set(0.0, 0.0)
+      c.rotation = 0
+      c.needsUpdate = true
+      return c
+    }
+    const d = cloneAndApply(diffuseMap)
+    const a = cloneAndApply(alphaMap)
+    const n = cloneAndApply(normalMap)
+    const r = cloneAndApply(roughnessMap)
+
     const uniforms = getUniforms?.()
-    if (uniforms && uniforms.uTexCenter) {
-      const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
-      uniforms.uTexCenter.value.set(cx, cy)
-    }
+    const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
+    if (uniforms && uniforms.uTexCenter) uniforms.uTexCenter.value.set(cx, cy)
     setTexAspect(rect.width / rect.height)
-    // Anchor: нормированные координаты внутри прямоугольника (по умолчанию — нижняя середина)
-    const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
-    const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
-    if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
-      const uN = Math.min(1, Math.max(0, ax / rect.width))
-      const vN = Math.min(1, Math.max(0, ay / rect.height))
-      setAnchorUV([uN, vN])
-    } else {
-      setAnchorUV([0.5, 1.0])
-    }
+    setDiffuseMap(d)
+    setAlphaMap(a)
+    setNormalMap(n)
+    setRoughnessMap(r)
+    const anchorPair: [number, number] = (() => {
+      const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
+      const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
+      if (typeof ax === 'number' && typeof ay === 'number' && rect.width > 0 && rect.height > 0) {
+        const uN = Math.min(1, Math.max(0, ax / rect.width))
+        const vN = Math.min(1, Math.max(0, ay / rect.height))
+        return [uN, vN]
+      }
+      return [0.5, 1.0]
+    })()
+    setAnchorUV(anchorPair)
+
+    variantCache.set(variantKey, {
+      diffuse: d, alpha: a, normal: n, roughness: r,
+      texAspect: rect.width / rect.height,
+      anchorUV: anchorPair,
+      uTexCenter: { x: cx, y: cy }
+    })
   }, [enabled, atlas, diffuseMap, alphaMap, normalMap, roughnessMap, spriteName])
 
   return { diffuseMap, alphaMap, normalMap, roughnessMap, atlas, texAspect, anchorUV }

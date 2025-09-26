@@ -5,6 +5,7 @@ import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/m
 import { leafTextureRegistry, woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
+import { loadLeafAtlasCached, loadLeafTextureCached } from '@/shared/lib/textures/LeafTextureRegistry'
 
 export interface TreeBillboardData {
   /** Итоговая текстура RGBA (цвет + альфа) запечённого дерева */
@@ -23,6 +24,7 @@ export interface TreeBillboardData {
  * версию, чтобы сбрасывать устаревшие текстуры.
  */
 const billboardCache = new Map<string, TreeBillboardData>()
+const billboardInflight = new Map<string, Promise<TreeBillboardData | null>>()
 const CACHE_VERSION = 'v4'
 function cacheKey(object: SceneObject, paletteUuid: string): string { return `${object.uuid}|${paletteUuid}|${CACHE_VERSION}` }
 
@@ -66,7 +68,11 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   const key = cacheKey(object, paletteUuid)
   const existing = billboardCache.get(key)
   if (existing) return existing
+  const infl = billboardInflight.get(key)
+  if (infl) return await infl
 
+  // Запускаем единичную задачу бэйка с коалесингом параллельных вызовов по ключу
+  const task = (async (): Promise<TreeBillboardData | null> => {
   // Высота для билборда возьмём из реальной сцены (bbox), а не из metrics,
   // чтобы избежать рассинхрона. Значение metrics можно использовать как fallback.
   const metricsHeight: number = (object as any)?.treeData?.metrics?.height || 0
@@ -207,11 +213,10 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
     const spriteName: string | undefined = (sampleLeaf?.geometry?.texSpriteName) || undefined
     const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
     if (!set) return null
-    const loader = new THREE.TextureLoader()
-    const colorMap = await new Promise<THREE.Texture | null>((res) => loader.load(set.colorMapUrl, (t)=>{ (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.generateMipmaps=false; t.minFilter=THREE.LinearFilter; res(t)}, undefined, ()=>res(null)))
-    const alphaMap = set.opacityMapUrl ? await new Promise<THREE.Texture | null>((res) => loader.load(set.opacityMapUrl!, (t)=>{ t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.generateMipmaps=false; t.minFilter=THREE.LinearFilter; res(t)}, undefined, ()=>res(null))) : null
+    const colorMap = await loadLeafTextureCached(set.colorMapUrl, { colorSpace: 'srgb', generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4 })
+    const alphaMap = set.opacityMapUrl ? await loadLeafTextureCached(set.opacityMapUrl!, { generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4 }) : null
     if (!colorMap) return null
-    const atlas = set.atlasUrl ? await fetch(set.atlasUrl).then(r=>r.json()).catch(()=>null) : null
+    const atlas = set.atlasUrl ? await loadLeafAtlasCached(set.atlasUrl) : null
     const img: any = colorMap.image
     if (!img || !img.width || !img.height) return null
     const W = img.width, H = img.height
@@ -222,19 +227,31 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
       const offX = rect.x / W
       const offYFlipTrue = 1 - (rect.y + rect.height) / H
       const offYFlipFalse = rect.y / H
-      colorMap.repeat.set(repX, repY)
-      colorMap.offset.set(offX, colorMap.flipY ? offYFlipTrue : offYFlipFalse)
-      if (alphaMap) { alphaMap.repeat.copy(colorMap.repeat); alphaMap.offset.copy(colorMap.offset) }
+      // ВАЖНО: не мутировать кэшированные карты: работаем с клонами
+      const colorCfg = colorMap.clone()
+      colorCfg.repeat.set(repX, repY)
+      colorCfg.offset.set(offX, colorCfg.flipY ? offYFlipTrue : offYFlipFalse)
+      colorCfg.needsUpdate = true
+      let alphaCfg: THREE.Texture | null = null
+      if (alphaMap) {
+        alphaCfg = alphaMap.clone()
+        alphaCfg.repeat.copy(colorCfg.repeat)
+        alphaCfg.offset.copy(colorCfg.offset)
+        alphaCfg.needsUpdate = true
+      }
       texAspect = rect.width / rect.height
       const ax = typeof rect.anchorX === 'number' ? rect.anchorX : (rect.anchor?.x)
       const ay = typeof rect.anchorY === 'number' ? rect.anchorY : (rect.anchor?.y)
       anchorUV = [ Math.min(1, Math.max(0, (ax ?? rect.width*0.5) / rect.width)), Math.min(1, Math.max(0, (ay ?? rect.height) / rect.height)) ]
+      leafMat.map = colorCfg
+      leafMat.alphaMap = alphaCfg || undefined
     } else {
       texAspect = W / H
       anchorUV = [0.5, 1.0]
+      // Без атласа используем базовые карты напрямую (можно клон, но не меняем repeat/offset)
+      leafMat.map = colorMap
+      leafMat.alphaMap = alphaMap || undefined
     }
-    leafMat.map = colorMap
-    leafMat.alphaMap = alphaMap || undefined
     // Выровнять поведение покраски с InstancedLeaves: цвет — из палитры и в линейном пространстве
     // Параметры покраски берём из object.treeData.params
     const paintFactorFromObject: number = (object as any)?.treeData?.params?.leafTexturePaintFactor ?? 0
@@ -411,6 +428,11 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
   const data: TreeBillboardData = { texture, heightWorld, widthWorld, baseOffsetY }
   billboardCache.set(key, data)
   return data
+  })()
+  billboardInflight.set(key, task)
+  const result = await task
+  billboardInflight.delete(key)
+  return result
 }
 
 /**
