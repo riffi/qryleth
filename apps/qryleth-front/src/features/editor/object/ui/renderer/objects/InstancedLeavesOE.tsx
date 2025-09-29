@@ -37,14 +37,16 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   // Интенсивность ambient‑света ObjectEditor для масштабирования подсветки на просвет
   const ambientIntensity = useObjectStore(s => s.lighting?.ambient?.intensity ?? 1.0)
   // Текущее имя спрайта для материал‑ключа (форсируем ремонт при смене)
-  const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
+  // Имя спрайта: предпочитаем выбор из параметров генератора, иначе — из геометрии примитива
+  const spriteNameFromParams = useObjectStore(s => s.treeData?.params?.leafTextureSpriteName) as string | undefined
+  const spriteNameKey = (spriteNameFromParams || (sample as any)?.geometry?.texSpriteName || 'default')
   const shape = 'texture'
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   // Общий хук: загрузка карт/atlas + crop и anchor/texAspect + uTexCenter
   const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
     texSetId,
     true,
-    (sample as any)?.geometry?.texSpriteName,
+    spriteNameFromParams || (sample as any)?.geometry?.texSpriteName,
     () => (materialRef.current as any)?.userData?.uniforms,
   )
 

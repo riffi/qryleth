@@ -135,7 +135,8 @@ function bucketizeByChunks(
     const materialUuid = (m as any)?.uuid || 'default-material'
 
     const setId = (it.sceneObject as any)?.treeData?.params?.leafTextureSetId as (string | undefined)
-    const sprite = (it.primitive.geometry as any)?.texSpriteName as (string | undefined)
+    const spriteFromParams = (it.sceneObject as any)?.treeData?.params?.leafTextureSpriteName as (string | undefined)
+    const sprite = (spriteFromParams || (it.primitive.geometry as any)?.texSpriteName) as (string | undefined)
     const paintFactor = (it.sceneObject as any)?.treeData?.params?.leafTexturePaintFactor as (number | undefined)
     const key: AnyKey = { t: 'bb', cx, cz, shape: shape as any, materialUuid, setId, sprite, paintFactor }
 

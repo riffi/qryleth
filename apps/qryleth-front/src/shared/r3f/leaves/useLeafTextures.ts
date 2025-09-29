@@ -59,9 +59,9 @@ export function useLeafTextures(
   const [atlas, setAtlas] = useState<LeafTextureSetState['atlas']>(null)
   const [anchorUV, setAnchorUV] = useState<[number, number] | null>(null)
 
-  // Вариантный кэш по (setId|sprite) для уже сконфигурированных (offset/repeat) текстур,
-  // чтобы не клонировать/перенастраивать на каждый ремоунт чанков/LOD.
-  const variantKey = `${setId || leafTextureRegistry.list()[0]?.id || 'default'}|${spriteName || 'default'}`
+  // Вариантный кэш по (URL‑ам карт|sprite) для уже сконфигурированных (offset/repeat) текстур,
+  // чтобы не клонировать/перенастраивать на каждый ремоунт чанков/LOD. Ключ основан на URL карт,
+  // а не на setId, чтобы исключить любые несоответствия при одинаковых/пустых id.
   const variantCache: any = (useLeafTextures as any)._variantCache || ((useLeafTextures as any)._variantCache = new Map<string, any>())
 
   // Загрузка карт с кэшированием (на уровне реестра)
@@ -119,6 +119,16 @@ export function useLeafTextures(
     const items = atlas || []
     const rect: any = (items.find(i => i.name === spriteName) || items[0])
     if (!rect) return
+    // Ключ кэша формируем по ФАКТИЧЕСКИ загруженным картам (их image.src/uuid)
+    // и сигнатуре текущего atlas (длина + имя первого спрайта), чтобы исключить гонки,
+    // когда карты уже новые, а atlas ещё старый (или наоборот).
+    const srcOf = (t: any) => (t?.image?.src) || t?.uuid || ''
+    const atlasSig = (() => {
+      const n = items?.length || 0
+      const h = (items && items[0]?.name) || ''
+      return `${n}:${h}`
+    })()
+    const variantKey = `${srcOf(diffuseMap)}|${srcOf(alphaMap)}|${srcOf(normalMap)}|${srcOf(roughnessMap)}|${spriteName || 'default'}|atlas:${atlasSig}`
     // Добавляем небольшой внутренний паддинг (в UV) для снижения bleeding в мипах
     const PAD = 2 // пикселя
     const padX = Math.min(rect.width * 0.25, PAD)
@@ -131,7 +141,7 @@ export function useLeafTextures(
     const cx = offX + repX * 0.5
     const cyFlipTrue = offYFlipTrue + repY * 0.5
     const cyFlipFalse = offYFlipFalse + repY * 0.5
-    // Если в кэше уже есть вариант для (setId|sprite) — используем его
+    // Если в кэше уже есть вариант для (url‑набор|sprite) — используем его
     const cached = variantCache.get(variantKey)
     if (cached && cached.diffuse) {
       setDiffuseMap(cached.diffuse)
@@ -163,7 +173,7 @@ export function useLeafTextures(
     const r = cloneAndApply(roughnessMap)
 
     const uniforms = getUniforms?.()
-    const cy = (diffuseMap && diffuseMap.flipY === false) ? cyFlipFalse : cyFlipTrue
+    const cy = (diffuseMap && (diffuseMap as any).flipY === false) ? cyFlipFalse : cyFlipTrue
     if (uniforms && uniforms.uTexCenter) uniforms.uTexCenter.value.set(cx, cy)
     setTexAspect(rect.width / rect.height)
     setDiffuseMap(d)

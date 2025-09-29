@@ -104,7 +104,17 @@ export const TreeGeneratorPanel: React.FC = () => {
         if (!mounted) return
         const opts = (arr || []).map(x => ({ value: x.name, label: x.name }))
         setAtlasOptions(opts)
-        if (!params.leafTextureSpriteName && opts[0]) setParams(p => ({ ...p, leafTextureSpriteName: opts[0].value }))
+        // Если текущий спрайт не задан или отсутствует в новом атласе — сбрасываем на первый
+        const hasCurrent = !!(params.leafTextureSpriteName && opts.some(o => o.value === params.leafTextureSpriteName))
+        if ((!params.leafTextureSpriteName || !hasCurrent) && opts[0]) {
+          setParams(p => ({ ...p, leafTextureSpriteName: opts[0].value }))
+          // Также синхронизируем со стором дерева, чтобы предпросмотр обновился без регенерации
+          const st = useObjectStore.getState()
+          st.setTreeData({
+            ...(st.treeData || {} as any),
+            params: { ...((st.treeData?.params as any) || {}), leafTextureSpriteName: opts[0].value }
+          } as any)
+        }
       })
       .catch(() => void 0)
     return () => { mounted = false }
@@ -862,15 +872,13 @@ export const TreeGeneratorPanel: React.FC = () => {
                   onClick={() => {
                     // Обновляем локальные параметры генератора
                     setParams(p => ({ ...p, leafTextureSetId: set.id }))
-                    // Мгновенно пробрасываем выбор в объект (если это процедурное дерево),
-                    // чтобы отладочная панель и предпросмотр сразу переключились на новый набор
+                    // Мгновенно пробрасываем выбор в данные объекта (всегда мержим параметры),
+                    // чтобы предпросмотр и отладочные панели сразу переключились на новый набор
                     const st = useObjectStore.getState()
-                    if (st.objectType === 'tree' && st.treeData?.params) {
-                      st.setTreeData({
-                        ...st.treeData,
-                        params: { ...(st.treeData.params as any), leafTextureSetId: set.id }
-                      })
-                    }
+                    st.setTreeData({
+                      ...(st.treeData || {} as any),
+                      params: { ...((st.treeData?.params as any) || {}), leafTextureSetId: set.id }
+                    } as any)
                     setLeafSetModalOpen(false)
                   }}
                   style={{

@@ -16,7 +16,9 @@ interface LeafBillboard3DProps {
  */
 export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, materialProps, meshProps }) => {
   const shape = (primitive?.geometry as any)?.shape || 'billboard'
-  const spriteName: string | undefined = (primitive?.geometry as any)?.texSpriteName
+  // Имя спрайта: предпочитаем значение из параметров дерева (если есть), иначе — из геометрии примитива
+  const spriteNameFromParams: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSpriteName)
+  const spriteName: string | undefined = spriteNameFromParams || (primitive?.geometry as any)?.texSpriteName
   // Идентификатор набора текстур берём из параметров дерева текущего объекта (ObjectEditor)
   const texSetId: string | undefined = useObjectStore(s => s.treeData?.params?.leafTextureSetId)
   // Фактор покраски и разброс по листьям

@@ -95,7 +95,9 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const effectiveShape: 'texture' = 'texture'
   // Представитель для texture-листьев, если есть
   const textureSample = useMemo(() => spheres[0]?.primitive as any, [spheres])
-  const spriteNameKey = ((textureSample as any)?.geometry?.texSpriteName) || 'default'
+  // Имя спрайта: если у объекта (дерево) задано в params — используем его, иначе берём из примитива
+  const spriteNameFromParams = (sceneObject as any)?.treeData?.params?.leafTextureSpriteName as (string | undefined)
+  const spriteNameKey = (spriteNameFromParams || (textureSample as any)?.geometry?.texSpriteName || 'default')
   // Идентификатор набора текстур и параметры покраски берем из object.treeData.params
   const setIdFromObject: string | undefined = (sceneObject as any)?.treeData?.params?.leafTextureSetId
   const paintFactorFromObject: number = (sceneObject as any)?.treeData?.params?.leafTexturePaintFactor ?? 0
@@ -105,7 +107,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
     setIdFromObject,
     effectiveShape === 'texture',
-    (textureSample as any)?.geometry?.texSpriteName,
+    spriteNameFromParams || (textureSample as any)?.geometry?.texSpriteName,
     () => (materialRef.current as any)?.userData?.uniforms,
   )
 
