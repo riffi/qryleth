@@ -5,11 +5,11 @@ import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 import type { SceneLayer, SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
-import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
+import { makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 
-type LeafShape = 'billboard' | 'coniferCross' | 'texture' | 'sphere'
+type LeafShape = 'texture'
 
 interface LeafPrimitiveLike {
   type: 'leaf'
@@ -33,19 +33,14 @@ interface ChunkKeyBase {
 
 interface BillboardKey extends ChunkKeyBase {
   t: 'bb'
-  shape: Exclude<LeafShape, 'sphere'>
+  shape: LeafShape
   materialUuid: string
   setId?: string
   sprite?: string
   paintFactor?: number
 }
 
-interface SphereKey extends ChunkKeyBase {
-  t: 'sp'
-  materialUuid: string
-}
-
-type AnyKey = BillboardKey | SphereKey
+type AnyKey = BillboardKey
 
 interface ChunkBucket {
   key: AnyKey
@@ -54,10 +49,7 @@ interface ChunkBucket {
 
 function keyToString(k: AnyKey): string {
   // Ключ сегмента — строка для Map. Все важные параметры включены для изоляции групп.
-  if (k.t === 'bb') {
-    return `bb|${k.cx}|${k.cz}|${k.shape}|${k.materialUuid}|${k.setId || 'def'}|${k.sprite || 'def'}|pf:${k.paintFactor ?? 'na'}`
-  }
-  return `sp|${k.cx}|${k.cz}|${k.materialUuid}`
+  return `bb|${k.cx}|${k.cz}|${k.shape}|${k.materialUuid}|${k.setId || 'def'}|${k.sprite || 'def'}|pf:${k.paintFactor ?? 'na'}`
 }
 
 /**
@@ -133,7 +125,7 @@ function bucketizeByChunks(
     const cx = Math.floor(ix / chunkSize) * chunkSize + half
     const cz = Math.floor(iz / chunkSize) * chunkSize + half
 
-    const shape = (it.primitive.geometry.shape || 'billboard') as LeafShape
+    const shape = 'texture' as LeafShape
     const m = resolveMaterial({
       directMaterial: it.primitive.material,
       objectMaterialUuid: it.primitive.objectMaterialUuid,
@@ -142,15 +134,10 @@ function bucketizeByChunks(
     })
     const materialUuid = (m as any)?.uuid || 'default-material'
 
-    let key: AnyKey
-    if (shape === 'sphere') {
-      key = { t: 'sp', cx, cz, materialUuid }
-    } else {
-      const setId = (it.sceneObject as any)?.treeData?.params?.leafTextureSetId as (string | undefined)
-      const sprite = (it.primitive.geometry as any)?.texSpriteName as (string | undefined)
-      const paintFactor = (it.sceneObject as any)?.treeData?.params?.leafTexturePaintFactor as (number | undefined)
-      key = { t: 'bb', cx, cz, shape: shape as any, materialUuid, setId, sprite, paintFactor }
-    }
+    const setId = (it.sceneObject as any)?.treeData?.params?.leafTextureSetId as (string | undefined)
+    const sprite = (it.primitive.geometry as any)?.texSpriteName as (string | undefined)
+    const paintFactor = (it.sceneObject as any)?.treeData?.params?.leafTexturePaintFactor as (number | undefined)
+    const key: AnyKey = { t: 'bb', cx, cz, shape: shape as any, materialUuid, setId, sprite, paintFactor }
 
     const ks = keyToString(key)
     let bucket = map.get(ks)
@@ -322,17 +309,17 @@ const LeafBillboardChunkMesh: React.FC<{
   // useLeafTextures: только для texture-режима
   const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
     bucket.key.setId,
-    effectiveShape === 'texture',
+    true,
     spriteNameKey,
     () => (materialRef.current as any)?.userData?.uniforms,
   )
 
   // Базовая геометрия и ее клон для корректного boundingSphere
   const geometry = useMemo(() => {
-    const base = effectiveShape === 'coniferCross' ? makeConiferCrossGeometry() : makeLeafPlaneGeometry()
+    const base = makeLeafPlaneGeometry()
     const g = (base as any).clone?.() || base
     return g as THREE.BufferGeometry
-  }, [effectiveShape])
+  }, [])
 
   // Cleanup на unmount: освобождаем только геометрию/материал (текстуры кэшируются отдельно)
   useEffect(() => {
@@ -347,7 +334,7 @@ const LeafBillboardChunkMesh: React.FC<{
     if (!mat) return
     materialRef.current = mat
     patchLeafMaterial(mat, {
-      shape: effectiveShape as any,
+      shape: 'texture',
       texAspect: texAspect || 1,
       rectDebug: false,
       edgeDebug: false,
@@ -390,9 +377,8 @@ const LeafBillboardChunkMesh: React.FC<{
       vLocal.add(new THREE.Vector3(ix, iy, iz))
 
       const r = primitive.geometry.radius || 0.5
-      const shapeScaleMul = effectiveShape === 'coniferCross' ? 2.0 : 1.0
-      const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * shapeScaleMul * (scaleMul || 1)
-      const sx = effectiveShape === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
+      const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * (scaleMul || 1)
+      const sx = uniformScale * (texAspect || 1)
       const sy = uniformScale
       const sz = uniformScale
 
@@ -438,12 +424,11 @@ const LeafBillboardChunkMesh: React.FC<{
     let boundRad = Math.max(maxR, vertRad)
     boundRad *= 1.06 // небольшой запас против «пограничного» отсекающего мерцания
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
-  }, [bucket.items, bucket.key.cx, bucket.key.cz, effectiveShape, texAspect, anchorUV, scaleMul])
+  }, [bucket.items, bucket.key.cx, bucket.key.cz, texAspect, anchorUV, scaleMul])
 
   // Инстансовый атрибут aLeafPaintMul для пер-листового разброса покраски (jitter)
   useEffect(() => {
     if (!meshRef.current) return
-    if (effectiveShape !== 'texture') return
     const g = meshRef.current.geometry as THREE.BufferGeometry
     const arr = new Float32Array(bucket.items.length)
     for (let k = 0; k < bucket.items.length; k++) {
@@ -456,7 +441,7 @@ const LeafBillboardChunkMesh: React.FC<{
       arr[k] = mul
     }
     g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
-  }, [bucket.items, effectiveShape])
+  }, [bucket.items])
 
   const handleClick = (event: any) => {
     if (!onClick) return
@@ -478,12 +463,11 @@ const LeafBillboardChunkMesh: React.FC<{
   // Обновление униформ при изменении фактора/цвета без ремонта шейдера
   useEffect(() => {
     if (!materialRef.current) return
-    if (effectiveShape !== 'texture') return
     const uniforms = (materialRef.current as any)?.userData?.uniforms
     if (!uniforms) return
     if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = paintFactor
     if (uniforms.uLeafTargetColor) uniforms.uLeafTargetColor.value.set(targetLeafColorLinear.r, targetLeafColorLinear.g, targetLeafColorLinear.b)
-  }, [effectiveShape, paintFactor, targetLeafColorLinear])
+  }, [paintFactor, targetLeafColorLinear])
 
   if (bucket.items.length === 0) return null
   return (
@@ -497,18 +481,18 @@ const LeafBillboardChunkMesh: React.FC<{
       onPointerOver={handleHover}
     >
       <meshStandardMaterial
-        key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
+        key={`leafMat-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRef}
         {...materialProps}
         envMapIntensity={1}
         color={'#FFFFFF'}
-        map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
-        alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
-        normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
-        roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
+        map={diffuseMap || undefined}
+        alphaMap={alphaMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
         transparent={false}
-        alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : (materialProps as any).alphaTest}
-      alphaToCoverage={effectiveShape === 'texture' ? true : undefined}
+        alphaTest={!!diffuseMap ? 0.5 : 0.0}
+        alphaToCoverage={true}
     />
     </instancedMesh>
   )
@@ -622,11 +606,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
     <group>
       {/* Near LOD — полная листва */}
       {[...nearBuckets.values()].map((b) => (
-        b.key.t === 'sp' ? (
-          <LeafSphereChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
-        ) : (
-          <LeafBillboardChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
-        )
+        <LeafBillboardChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
       ))}
 
       {/* Near↔Far переход: двойная отрисовка с фейдом — Near с (1-t), Far с t */}
@@ -643,11 +623,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
 
       {/* Far LOD — редуцированные, увеличенные листья */}
       {[...farBuckets.values()].map((b) => (
-        b.key.t === 'sp' ? (
-          <LeafSphereChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
-        ) : (
-          <LeafBillboardChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
-        )
+        <LeafBillboardChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
       ))}
 
       {/* Far↔Billboard переход: гасим Far листья (1-t). Билборды включаются отдельно. */}

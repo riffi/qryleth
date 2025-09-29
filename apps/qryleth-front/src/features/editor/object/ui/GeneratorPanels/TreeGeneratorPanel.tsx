@@ -49,7 +49,7 @@ export const TreeGeneratorPanel: React.FC = () => {
     branchBendJitter: 0.4,
     branchCollarSize: 0.6,
     branchCollarFrac: 0.22,
-    leafShape: 'billboard',
+    leafShape: 'texture',
     leafPlacement: 'end',
     leafTiltDeg: 25,
     leafGlobalTiltMode: 'none',
@@ -153,7 +153,7 @@ export const TreeGeneratorPanel: React.FC = () => {
         'branchLevels', 'branchesPerSegment', 'branchCountJitter', 'branchTopBias', 'branchUpBias',
         'branchLength', 'branchLengthJitter', 'branchRadius', 'branchRadiusFalloff', 'branchTipTaper', 'branchBendBase', 'branchBendJitter', 'branchCollarSize', 'branchCollarFrac', 'branchChildTipBias', 'branchChildAvoidBaseFrac', 'branchAngleDeg', 'branchAngleDegFirst', 'branchAngleDegNext', 'angleSpread',
         'randomness',
-        'leavesPerBranch', 'leafSize', 'leafShape', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafTexturePaintFactor', 'leafTexturePaintJitter', 'leafPlacement', 'leavesPerMeter',
+        'leavesPerBranch', 'leafSize', 'leafTiltDeg', 'leafGlobalTiltMode', 'leafGlobalTiltLevel', 'leafTextureSpriteName', 'leafTextureSetId', 'leafTexturePaintFactor', 'leafTexturePaintJitter', 'leafPlacement', 'leavesPerMeter',
         'embedFactor', 'barkTexDensityPerMeter',
         'branchHeightCutoff',
       ]
@@ -654,18 +654,8 @@ export const TreeGeneratorPanel: React.FC = () => {
             <NumberInput label="Листьев/ветка" value={params.leavesPerBranch} onChange={(v) => setParams(p => ({ ...p, leavesPerBranch: Math.max(0, Math.round(Number(v) || 0)) }))} min={0} step={1} disabled={params.branchLevels <= 0 || params.leafPlacement === 'along'}/>
             <NumberInput label="Размер листа" value={params.leafSize} onChange={(v) => setParams(p => ({ ...p, leafSize: Math.max(0.01, Number(v) || 0) }))} min={0.01} step={0.01} disabled={params.branchLevels <= 0}/>
           </Group>
-        <SegmentedControl
-          value={params.leafShape || 'billboard'}
-          onChange={(v) => setParams(p => ({ ...p, leafShape: (v as 'billboard'|'sphere'|'coniferCross'|'texture') }))}
-          data={[
-            { label: 'Билборды', value: 'billboard' },
-            { label: 'Сферы', value: 'sphere' },
-            { label: 'Хвойная (крест)', value: 'coniferCross' },
-            { label: 'Текстура', value: 'texture' },
-          ]}
-          disabled={params.branchLevels <= 0}
-        />
-        {params.leafShape === 'texture' && (
+        {/* Выбор режима листвы удалён: оставлена только текстура */}
+        {(
           <Stack gap="xs">
             <Group grow align="end">
               <NumberInput

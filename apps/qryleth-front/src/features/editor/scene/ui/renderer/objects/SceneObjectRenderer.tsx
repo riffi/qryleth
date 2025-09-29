@@ -8,7 +8,6 @@ import { useSceneStore } from '../../../model/sceneStore.ts'
 import { paletteRegistry } from '@/shared/lib/palette'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
-import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import { useSingleTreeLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 import type {
@@ -216,18 +215,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
-                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
-                        <InstancedLeafSpheres
-                          sceneObject={sceneObject}
-                          leaves={treeBuckets.leaves as any}
-                          instances={[normalizedInstance]}
-                          materials={sceneObject.materials}
-                          opacity={nearAlpha}
-                          depthWrite={!blending}
-                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
-                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
-                        />
-                      )}
+                      {/* Вариант сферических листьев удалён */}
 
                       {/* Far LOD — только ствол + редуцированные и крупнее листья, с кросс‑фейдом */}
 
@@ -245,20 +233,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
                           onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
                         />
                       )}
-                      {treeBuckets.leaves.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
-                        <InstancedLeafSpheres
-                          sceneObject={sceneObject}
-                          leaves={treeBuckets.leaves as any}
-                          instances={[normalizedInstance]}
-                          materials={sceneObject.materials}
-                          sampleRatio={leafSampleRatio}
-                          scaleMul={leafScaleMul}
-                          opacity={farAlpha}
-                          depthWrite={!blending}
-                          onClick={(e) => onClick?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, point: (e as any).point, object: (e as any).object })}
-                          onHover={(e) => onHover?.({ objectUuid: instance.objectUuid, instanceId: instance.uuid, objectInstanceIndex: instanceIndex, object: (e as any).object })}
-                        />
-                      )}
+                      {/* Вариант сферических листьев удалён */}
                     </>
                   )
                 })()

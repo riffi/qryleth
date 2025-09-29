@@ -18,16 +18,12 @@ export function computeLeafEuler(
   axisN: [number, number, number],
   radial: THREE.Vector3,
   params: TreeGeneratorParams,
-  rng: () => number,
-  facingDir: [number, number, number],
+  _rng: () => number,
+  _facingDir: [number, number, number],
 ): [number, number, number] {
-  const isTexture = (params.leafShape || 'billboard') === 'texture'
-  if (!isTexture) {
-    const roll = (rng() - 0.5) * Math.PI
-    const e = eulerFromDir(facingDir)
-    return [e[0], e[1], e[2] + roll]
-  }
-
+  // Единственный режим — текстурированный лист (плоский билборд).
+  // Ориентируем нормаль листа z между радиальным вектором r и осью ветви t на угол phi,
+  // затем учитываем глобальное стремление листвы (up/down/none) в плоскости листа.
   const r = radial.clone().normalize()
   const t = new THREE.Vector3(...axisN).normalize()
   const phi = degToRad(Math.max(0, Math.min(90, (params.leafTiltDeg ?? 25))))
@@ -71,7 +67,7 @@ export function computeLeafEuler(
  * Иначе — возвращает одиночное имя из params.leafTextureSpriteName (или undefined).
  */
 export function selectLeafSprite(params: TreeGeneratorParams, rng: () => number): string | undefined {
-  if ((params.leafShape || 'billboard') !== 'texture') return undefined
+  // Для текстурной листвы: выбираем имя спрайта либо по списку useAllLeafSprites, либо одиночное имя
   if (params.useAllLeafSprites && Array.isArray(params.leafSpriteNames) && params.leafSpriteNames.length > 0) {
     const names = params.leafSpriteNames
     const idx = Math.floor(rng() * names.length) % names.length

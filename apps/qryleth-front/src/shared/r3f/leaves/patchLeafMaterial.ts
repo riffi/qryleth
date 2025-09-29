@@ -1,159 +1,126 @@
 import * as THREE from 'three'
 
-export type LeafShape = 'billboard' | 'coniferCross' | 'texture'
+export type LeafShape = 'texture'
 
 export interface PatchLeafMaterialOptions {
+  /** Всегда 'texture' */
   shape: LeafShape
+  /** Соотношение сторон спрайта */
   texAspect: number
   // Отладочные флаги и параметры маски/изгиба
   rectDebug?: boolean
   edgeDebug?: boolean
   edgeSoftness?: number
-  bendAmountBillboard?: number
-  bendAmountConifer?: number
-  // Параметры HSV-покраски для режима 'texture'
+  // Параметры HSV‑покраски
   leafPaintFactor?: number
   targetLeafColorLinear?: THREE.Color
-  /**
-   * Управлять предварительным умножением цвета на альфу в режиме 'texture'.
-   * По умолчанию true (минимизация bleeding по краям), но при бэйке билбордов
-   * это может сильно затемнять листья. Для бэйка следует отключать (false).
-   */
+  /** Управлять предварительным умножением цвета на альфу (уменьшение bleeding по краям). */
   preMultiplyAlpha?: boolean
-  /**
-   * Сила дополнительной подсветки на просвет (backlight), 0..1.
-   *
-   * Ранее подсветка добавлялась константно и делала листья слишком светлыми,
-   * слабо реагирующими на изменение освещения. Теперь её можно масштабировать
-   * (например, по интенсивности окружающего света сцены) или отключить (0).
-   */
+  /** Сила подсветки на просвет (0..1). */
   backlightStrength?: number
-  /** Глобальный коэффициент фейда (0..1) для дизеринга. По умолчанию 1. */
+  /** Глобальный коэффициент фейда (0..1) для дизеринга. */
   fade?: number
   /** Использовать ли пер‑инстансовый атрибут aFade вместо uFade. */
   useInstanceFade?: boolean
 }
 
 /**
- * Унифицированно настраивает MeshStandardMaterial для листвы перед компиляцией шейдера.
- *
- * Возможности:
- * - Эллиптическая маска в UV для режимов без текстуры;
- * - Мягкий изгиб плоскости по нормали (разные коэффициенты для 'billboard'/'coniferCross');
- * - Рамка по прямоугольнику UV (отладка) и подсветка края по альфа-границе (отладка);
- * - Для 'texture' — HSV-покраска выборки карты цвета к целевому цвету материала «Листья»;
- * - Поддержка центра вращения внутри спрайта (uniform uTexCenter), задается извне.
+ * Настройка MeshStandardMaterial только для текстурированных листьев.
+ * Поддержка: изгиб плоскости, HSV‑покраска цветовой карты, отладка прямоугольника/краёв,
+ * центр спрайта (uTexCenter), фейд и управление premultiply.
  */
 export function patchLeafMaterial(
   mat: THREE.MeshStandardMaterial,
   opts: PatchLeafMaterialOptions,
 ): void {
-  const shape = opts.shape
-  const aspect = shape === 'coniferCross' ? 2.4 : (shape === 'texture' ? (opts.texAspect || 1) : 0.6)
+  const aspect = opts.texAspect || 1
   const edgeSoft = opts.edgeSoftness ?? 0.18
-  const bend = shape === 'coniferCross' ? (opts.bendAmountConifer ?? 0.06) : (opts.bendAmountBillboard ?? 0.08)
+  const bend = 0.08
   const rectDebug = !!opts.rectDebug
   const edgeDebug = !!opts.edgeDebug
 
-  // Делаем листья двусторонними (тонкие плоскости/«кресты»).
+  // Листья — двусторонние плоскости
   mat.side = THREE.DoubleSide
-  // Ранее здесь насильно проставлялся alphaTest для текстурных листьев (0.5),
-  // что дублировало настройку из React-пропов материала. Убираем дублирование —
-  // шейдер возьмёт актуальный порог из матрицы uniform'ов (ниже).
 
   mat.onBeforeCompile = (shader) => {
-    // Базовые uniform и varying
-    const vCommon = (shape === 'texture')
-      ? `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aLeafPaintMul;\nattribute float aFade;\nvarying float vLeafPaintMul;\nvarying float vFade;\nvarying vec2 vLeafUv;`
-      : `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uBend;\nuniform vec2 uTexCenter;\nattribute float aFade;\nvarying float vFade;\nvarying vec2 vLeafUv;`
-    const vBegin = (shape === 'texture')
-      ? `\nvec3 pos = position;\n  vLeafUv = uv;\n  vLeafPaintMul = aLeafPaintMul;\n  vFade = aFade;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
-      : `\nvec3 pos = position;\n  vLeafUv = uv;\n  vFade = aFade;\n  float bend = (vLeafUv.y - 0.5);\n  pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n  vec3 transformed = pos;\n`
+    // Вершинный шейдер: базовые uniform и varying
+    const vCommon = `#include <common>\n` +
+      `uniform float uAspect;\n` +
+      `uniform float uEdgeSoftness;\n` +
+      `uniform float uBend;\n` +
+      `uniform vec2 uTexCenter;\n` +
+      `attribute float aLeafPaintMul;\n` +
+      `attribute float aFade;\n` +
+      `varying float vLeafPaintMul;\n` +
+      `varying float vFade;\n` +
+      `varying vec2 vLeafUv;`
+    const vBegin = `\nvec3 pos = position;\n` +
+      `vLeafUv = uv;\n` +
+      `vLeafPaintMul = aLeafPaintMul;\n` +
+      `vFade = aFade;\n` +
+      `float bend = (vLeafUv.y - 0.5);\n` +
+      `pos += normalize(normal) * ((bend * bend - 0.25) * uBend);\n` +
+      `vec3 transformed = pos;\n`
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', vCommon)
       .replace('#include <begin_vertex>', vBegin)
       .replace('#include <uv_vertex>', `#include <uv_vertex>`)
 
-    // Фрагмент: маска/отладка/HSV-покраска
-    if (shape !== 'texture') {
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nuniform float uAspect;\nuniform float uEdgeSoftness;\nuniform float uFade;\nuniform float uUseInstanceFade;\nvarying float vFade;`)
-        .replace('#include <alphatest_fragment>', `
-          float dx = (vLeafUv.x - 0.5) / 0.5;
-          float dy = (vLeafUv.y - 0.5) / 0.5 / uAspect;
-          float r2 = dx*dx + dy*dy;
-          float alphaMask = smoothstep(1.0 - uEdgeSoftness, 1.0, 1.0 - r2);
-          diffuseColor.a *= alphaMask;
-          // Дизер‑фейд, привязанный к UV
-          float f = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));
-          ivec2 b = ivec2(mod(floor(vLeafUv * 4.0), 4.0));
-          int bayer[16];
-          bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;
-          float threshold = (float(bayer[b.y*4+b.x]) + 0.5) / 16.0;
-          if (f < threshold) discard;
-          #include <alphatest_fragment>
-        `)
-    }
+    // Фрагментный шейдер: HSV‑покраска + отладка
+    let frag = shader.fragmentShader
+    const debugCommon = `#include <common>\n` +
+      `uniform float uEdgeDebug;\n` +
+      `uniform vec3 uEdgeColor;\n` +
+      `uniform float uEdgeWidth;\n` +
+      `uniform float uAlphaThreshold;\n` +
+      `uniform float uRectDebug;\n` +
+      `uniform vec3 uRectColor;\n` +
+      `uniform float uRectWidth;\n` +
+      `uniform float uBacklightStrength;\n` +
+      `uniform float uFade;\n` +
+      `uniform float uUseInstanceFade;\n` +
+      `uniform float uLeafPaintFactor;\n` +
+      `uniform vec3 uLeafTargetColor;\n` +
+      `uniform float uPremultiplyAlpha;\n` +
+      `vec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\n` +
+      `vec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\n` +
+      `float mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }\n` +
+      `varying float vLeafPaintMul;\n` +
+      `varying vec2 vLeafUv;\n` +
+      `varying float vFade;`
+    frag = frag.replace('#include <common>', debugCommon)
 
-    // Перед отсечкой — подмешиваем альфу рамки по краям плоскости (если включен debug)
-    if (shape === 'texture') {
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <alphatest_fragment>', `
-          // Дизер‑фейд, привязанный к UV (uniform'ы объявлены в заголовке)
-          float f = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));
-          ivec2 b = ivec2(mod(floor(vLeafUv * 4.0), 4.0));
-          int bayer[16];
-          bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;
-          float threshold = (float(bayer[b.y*4+b.x]) + 0.5) / 16.0;
-          if (f < threshold) discard;
-          // Сглаживание альфа‑порога маски по fwidth: меньше искрения на границах
-          float a0 = diffuseColor.a;
-          float wa = max(0.0001, fwidth(a0) * 1.25);
-          diffuseColor.a = smoothstep(uAlphaThreshold - wa, uAlphaThreshold + wa, a0);
-          if (uRectDebug > 0.5) {
-            float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));
-            float wr = max(uRectWidth, fwidth(d) * 2.0);
-            float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);
-            diffuseColor.a = max(diffuseColor.a, edgeR);
-          }
-          #include <alphatest_fragment>
-        `)
+    const hsvBlock = `\n  if (uPremultiplyAlpha > 0.5) { diffuseColor.rgb *= diffuseColor.a; }\n` +
+      `  float leafEff = uLeafPaintFactor * vLeafPaintMul;\n` +
+      `  if (leafEff > 0.0001) {\n` +
+      `    vec3 hsv = rgb2hsv(diffuseColor.rgb);\n` +
+      `    vec3 tgt = rgb2hsv(uLeafTargetColor);\n` +
+      `    hsv.x = mixHue(hsv.x, tgt.x, leafEff);\n` +
+      `    hsv.y = mix(hsv.y, tgt.y, leafEff);\n` +
+      `    hsv.z = mix(hsv.z, tgt.z, leafEff);\n` +
+      `    diffuseColor.rgb = hsv2rgb(hsv);\n` +
+      `  }\n`
 
-    }
+    const debugMap = `#include <map_fragment>\n` +
+      `#if defined(USE_MAP)\n` +
+      `  if (uEdgeDebug > 0.5) {\n` +
+      `    float a = diffuseColor.a;\n` +
+      `    float w = fwidth(a) * uEdgeWidth;\n` +
+      `    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n` +
+      `    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n` +
+      `  }\n` +
+      `#endif\n` +
+      `  if (uRectDebug > 0.5) {\n` +
+      `    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n` +
+      `    float wr = max(uRectWidth, fwidth(d) * 2.0);\n` +
+      `    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n` +
+      `    diffuseColor.a = max(diffuseColor.a, edgeR);\n` +
+      `    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n` +
+      `  }\n`
 
-
-
-    // Общие uniforms для debug и HSV-покраски
-    {
-      let frag = shader.fragmentShader
-      const debugCommon = `#include <common>\nuniform float uEdgeDebug;\nuniform vec3 uEdgeColor;\nuniform float uEdgeWidth;\nuniform float uAlphaThreshold;\nuniform float uRectDebug;\nuniform vec3 uRectColor;\nuniform float uRectWidth;\nuniform float uBacklightStrength;\nuniform float uFade;\nuniform float uUseInstanceFade;\n${shape === 'texture' ? 'uniform float uLeafPaintFactor;\nuniform vec3 uLeafTargetColor;\nuniform float uPremultiplyAlpha;\nvec3 rgb2hsv(vec3 c){ vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); float e = 1.0e-10; return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x); }\nvec3 hsv2rgb(vec3 c){ vec3 rgb = clamp( abs(mod(c.x*6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0 ); return c.z * mix(vec3(1.0), rgb, c.y); }\nfloat mixHue(float a, float b, float t){ float d = b - a; d = mod(d + 0.5, 1.0) - 0.5; return fract(a + d * t + 1.0); }' : ''}\n${shape === 'texture' ? 'varying float vLeafPaintMul;\n' : ''}varying vec2 vLeafUv;\nvarying float vFade;`
-      frag = frag.replace('#include <common>', debugCommon)
-      const hsvBlock = (shape === 'texture') ? `\n  
-        // Предварительное умножение цвета на альфу (контролируемое флагом)\n  
-        if (uPremultiplyAlpha > 0.5) { diffuseColor.rgb *= diffuseColor.a; }\n  
-        float leafEff = uLeafPaintFactor * vLeafPaintMul;\n  
-        if (leafEff > 0.0001) {\n
-            vec3 hsv = rgb2hsv(diffuseColor.rgb);\n    
-            vec3 tgt = rgb2hsv(uLeafTargetColor);\n    
-            hsv.x = mixHue(hsv.x, tgt.x, leafEff);\n    
-            hsv.y = mix(hsv.y, tgt.y, leafEff);\n    
-            hsv.z = mix(hsv.z, tgt.z, leafEff);\n
-            diffuseColor.rgb = hsv2rgb(hsv);\n
-         }\n` : ''
-      const debugMap = `#include <map_fragment>\n#if defined(USE_MAP)\n  if (uEdgeDebug > 0.5) {\n    float a = diffuseColor.a;\n    float w = fwidth(a) * uEdgeWidth;\n    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n  }\n#endif\n  if (uRectDebug > 0.5) {\n    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n    float wr = max(uRectWidth, fwidth(d) * 2.0);\n    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n    diffuseColor.a = max(diffuseColor.a, edgeR);\n    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n  }\n`
-      frag = frag.replace('#include <map_fragment>', debugMap.replace('#include <map_fragment>', `#include <map_fragment>${hsvBlock}`))
-      shader.fragmentShader = frag
-    }
-
-    // Мягкая подсветка на просвет (тонкий «транслуцентный» эффект), теперь управляемая.
-    // Сила задаётся uniform'ом uBacklightStrength (0..1). При 0 — эффект отключён.
-    // shader.fragmentShader = shader.fragmentShader
-    //   .replace('#include <lights_fragment_end>', `
-    //     #include <lights_fragment_end>
-    //     float back = clamp(dot(normalize(-geometryNormal), normalize(vec3(0.2, 1.0, 0.1))), 0.0, 1.0);
-    //     reflectedLight.indirectDiffuse += vec3(0.06, 0.10, 0.06) * back * uBacklightStrength;
-    //   `)
+    frag = frag.replace('#include <map_fragment>', debugMap.replace('#include <map_fragment>', `#include <map_fragment>${hsvBlock}`))
+    shader.fragmentShader = frag
 
     // Инициализация uniform'ов
     shader.uniforms.uAspect = { value: aspect }
@@ -166,18 +133,16 @@ export function patchLeafMaterial(
     shader.uniforms.uEdgeColor = { value: new THREE.Color(0x00ff00) }
     shader.uniforms.uEdgeWidth = { value: 2.0 }
     shader.uniforms.uAlphaThreshold = { value: (mat.alphaTest ?? 0.5) as number }
-    // Управление силой подсветки на просвет: по умолчанию выключено (0.0)
     shader.uniforms.uBacklightStrength = { value: Math.max(0, Math.min(1, opts.backlightStrength ?? 0.0)) }
     shader.uniforms.uFade = { value: Math.max(0, Math.min(1, opts.fade ?? 1.0)) }
     shader.uniforms.uUseInstanceFade = { value: opts.useInstanceFade ? 1.0 : 0.0 }
-    if (shape === 'texture') {
-      const c = opts.targetLeafColorLinear || new THREE.Color('#2E8B57')
-      shader.uniforms.uLeafPaintFactor = { value: opts.leafPaintFactor ?? 0 }
-      shader.uniforms.uLeafTargetColor = { value: new THREE.Color(c.r, c.g, c.b) }
-      shader.uniforms.uPremultiplyAlpha = { value: opts.preMultiplyAlpha === false ? 0.0 : 1.0 }
-    }
+    const c = opts.targetLeafColorLinear || new THREE.Color('#2E8B57')
+    shader.uniforms.uLeafPaintFactor = { value: opts.leafPaintFactor ?? 0 }
+    shader.uniforms.uLeafTargetColor = { value: new THREE.Color(c.r, c.g, c.b) }
+    shader.uniforms.uPremultiplyAlpha = { value: opts.preMultiplyAlpha === false ? 0.0 : 1.0 }
     ;(mat as any).userData.uniforms = shader.uniforms
   }
 
   mat.needsUpdate = true
 }
+

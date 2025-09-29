@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
-import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
+import { makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
@@ -10,7 +10,7 @@ import type { SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 
 interface SpherePrimitiveLike {
   type: 'leaf'
-  geometry: { radius: number; shape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture' }
+  geometry: { radius: number; shape?: 'texture' }
   transform?: { position?: number[]; rotation?: number[]; scale?: number[] }
   material?: any
   objectMaterialUuid?: string
@@ -72,12 +72,8 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   const samplePrimitive = spheres[0]?.primitive as any
   // Ссылка на материал (для доступа к uniforms при установке uTexCenter из хука)
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
-  // Список биллборд‑листьев (исключаем сферические), используем ниже во всех мемо/эффектах
-  const billboardLeavesRaw = useMemo(() => {
-    const arr = spheres.filter(s => s.primitive.geometry.shape !== 'sphere')
-    dbg('billboardLeavesRaw computed', { total: spheres.length, billboard: arr.length })
-    return arr
-  }, [spheres])
+  // Листья всегда текстурные билборды
+  const billboardLeavesRaw = useMemo(() => spheres, [spheres])
   /**
    * Применяет детерминированный LOD‑сэмплинг листьев по UUID.
    * При sampleRatio ∈ (0..1) выбирает стабильное подмножество, чтобы избежать «дрожания» набора.
@@ -95,28 +91,10 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     return out
   }, [billboardLeavesRaw, sampleRatio])
   // Признак наличия текстурных листьев (по shape или по наличию texSpriteName)
-  const hasTextureLeaves = useMemo(
-    () => {
-      const v = spheres.some(s => (s.primitive.geometry as any)?.shape === 'texture' || (s.primitive.geometry as any)?.texSpriteName)
-      dbg('hasTextureLeaves?', v, { sample: (spheres[0]?.primitive.geometry as any) })
-      return v
-    },
-    [spheres]
-  )
-  // Эффективный режим: texture при наличии текстурных листьев, иначе coniferCross если есть, иначе billboard
-  const effectiveShape: 'billboard' | 'coniferCross' | 'texture' = useMemo(() => {
-    if (hasTextureLeaves) return 'texture'
-    const anyCross = billboardLeaves.some(l => l.primitive.geometry.shape === 'coniferCross')
-    const eff = anyCross ? 'coniferCross' : 'billboard'
-    dbg('effectiveShape', eff)
-    return eff
-  }, [hasTextureLeaves, billboardLeaves])
+  // Единственный режим — текстурные листья
+  const effectiveShape: 'texture' = 'texture'
   // Представитель для texture-листьев, если есть
-  const textureSample = useMemo(() => {
-    const p = spheres.find(l => (l.primitive.geometry as any).shape === 'texture' || (l.primitive.geometry as any).texSpriteName)?.primitive as any
-    dbg('textureSample chosen', { sprite: (p as any)?.geometry?.texSpriteName, shape: (p as any)?.geometry?.shape })
-    return p
-  }, [spheres])
+  const textureSample = useMemo(() => spheres[0]?.primitive as any, [spheres])
   const spriteNameKey = ((textureSample as any)?.geometry?.texSpriteName) || 'default'
   // Идентификатор набора текстур и параметры покраски берем из object.treeData.params
   const setIdFromObject: string | undefined = (sceneObject as any)?.treeData?.params?.leafTextureSetId
@@ -186,18 +164,14 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
 
         // Итоговый масштаб: радиус * scale примитива * scale инстанса (равномерный)
         const r = prim.geometry.radius || 0.5
-        const shape = prim.geometry.shape || 'billboard'
-        const shapeScaleMul = shape === 'coniferCross' ? 2.0 : 1.0
-        // Итоговый множитель масштаба = форма (для «креста» выше) × глобальный LOD‑множитель scaleMul
-        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * shapeScaleMul * (scaleMul || 1)
-        const sh = prim.geometry.shape || 'billboard'
-        const sx = sh === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
+        const uniformScale = r * Math.cbrt(Math.abs(isx * isy * isz)) * Math.cbrt(Math.abs(psx * psy * psz)) * (scaleMul || 1)
+        const sx = uniformScale * (texAspect || 1)
         const sy = uniformScale
         const sz = uniformScale
 
         dummy.position.set(vLocal.x, vLocal.y, vLocal.z)
         // Смещение на точку основания спрайта (delta относительно нижней середины, которую уже учитывает генератор)
-        if (sh === 'texture') {
+        {
           const u = anchorUV?.[0] ?? 0.5
           const v = anchorUV?.[1] ?? 1.0
           // Смещение = -anchor_local; anchor_local = ((u-0.5)*sx, (0.5 - v)*sy)
@@ -265,9 +239,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   }
 
   // Переходим от сфер к плоским биллбордам-листьям: базовая геометрия — плоскость 1x1
-  const geometry = useMemo(() => {
-    return effectiveShape === 'coniferCross' ? makeConiferCrossGeometry() : makeLeafPlaneGeometry()
-  }, [effectiveShape])
+  const geometry = useMemo(() => makeLeafPlaneGeometry(), [])
 
   // Подкручиваем материал для маски формы листа и лёгкой подсветки на просвет
   // materialRef объявлен выше
@@ -289,7 +261,6 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
   // Генерация инстансового атрибута aLeafPaintMul: множитель применения фактора на каждый инстанс листа
   useEffect(() => {
     if (!meshRef.current) return
-    if (effectiveShape !== 'texture') return
     const g = meshRef.current.geometry as THREE.BufferGeometry
     const total = instances.length * billboardLeaves.length
     const arr = new Float32Array(total)
@@ -306,22 +277,20 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       }
     }
     g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
-  }, [meshRef.current, effectiveShape, instances, billboardLeaves, paintJitterFromObject])
+  }, [meshRef.current, instances, billboardLeaves, paintJitterFromObject])
 
   // Обновляем униформы покраски при изменении фактора/цвета
   useEffect(() => {
     if (!materialRef.current) return
-    if (effectiveShape !== 'texture') return
     const uniforms = (materialRef.current as any)?.userData?.uniforms
     if (!uniforms) return
     if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = paintFactorFromObject
     if (uniforms.uLeafTargetColor) uniforms.uLeafTargetColor.value.set(targetLeafColorLinear.r, targetLeafColorLinear.g, targetLeafColorLinear.b)
-  }, [effectiveShape, paintFactorFromObject, targetLeafColorLinear])
+  }, [paintFactorFromObject, targetLeafColorLinear])
 
   // Обновляем атрибут при изменении jitter без ремонта шейдера
   useEffect(() => {
     if (!meshRef.current) return
-    if (effectiveShape !== 'texture') return
     const g = meshRef.current.geometry as THREE.BufferGeometry
     const attr: any = g.getAttribute('aLeafPaintMul')
     if (!attr) return
@@ -337,7 +306,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
       }
     }
     attr.needsUpdate = true
-  }, [meshRef.current, effectiveShape, instances, billboardLeaves, paintJitterFromObject])
+  }, [meshRef.current, instances, billboardLeaves, paintJitterFromObject])
 
   return (
     <instancedMesh
@@ -350,7 +319,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     >
       {/* debug render log removed */}
       <meshStandardMaterial
-        key={`leafMat-${effectiveShape}-${spriteNameKey}-${!!diffuseMap}`}
+        key={`leafMat-${spriteNameKey}-${!!diffuseMap}`}
         ref={onMaterialRefPatched}
         {...materialProps}
         envMapIntensity={0}
@@ -365,17 +334,12 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         // чтобы не затемнять текстуру. Базовый цвет — белый.
         //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#FFFFFF' : (materialProps as any).color) : (materialProps as any).color}
         color={'#000000'}
-        //color={diffuseMap}
-        map={effectiveShape === 'texture' ? diffuseMap || undefined : undefined}
-        alphaMap={effectiveShape === 'texture' ? alphaMap || undefined : undefined}
-        normalMap={effectiveShape === 'texture' ? normalMap || undefined : undefined}
-        roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
-        // transparent={effectiveShape === 'texture'
-        //   ? (opacity != null ? (opacity < 1) : false)
-        //   : ((opacity != null ? (opacity < 1) : false) || materialProps.transparent)}
+        map={diffuseMap || undefined}
+        alphaMap={alphaMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
         transparent={opacity != null ? (opacity < 0.999) : (materialProps as any).transparent}
-        //alphaToCoverage={effectiveShape=== 'texture' ? true : undefined}
-        alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
+        alphaTest={!!diffuseMap ? 0.5 : 0.0}
       />
     </instancedMesh>
   )

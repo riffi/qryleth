@@ -5,7 +5,6 @@ import { usePalettePreviewUuid } from '../../../model/palettePreviewStore.ts'
 import { GroupRenderer } from './GroupRenderer.tsx'
 import { InstancedBranchesOE } from './InstancedBranchesOE'
 import { InstancedLeavesOE } from './InstancedLeavesOE'
-import { InstancedLeafSpheresOE } from './InstancedLeafSpheresOE'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getOrCreateTreeBillboard } from '@/shared/r3f/optimization/TreeBillboardBaker'
@@ -77,8 +76,7 @@ export const ObjectScenePrimitives: React.FC = () => {
 
   const ungroupedCylinders = ungrouped.filter(({ p }) => p.type === 'trunk' || p.type === 'branch')
   const ungroupedLeaves = ungrouped.filter(({ p }) => p.type === 'leaf')
-  const ungroupedLeafBillboards = ungroupedLeaves.filter(({ p }) => (p as any).geometry?.shape !== 'sphere')
-  const ungroupedLeafSpheres = ungroupedLeaves.filter(({ p }) => (p as any).geometry?.shape === 'sphere')
+  const ungroupedLeafBillboards = ungroupedLeaves
 
   // Предпросмотр LOD (импостора): заменяем обычный рендер дерева на билборд
   if (lodPreviewEnabled) {
@@ -106,14 +104,7 @@ export const ObjectScenePrimitives: React.FC = () => {
           onPrimitiveHover={() => {}}
         />
       )}
-      {ungroupedLeafSpheres.length > 0 && (
-        <InstancedLeafSpheresOE
-          leaves={ungroupedLeafSpheres.map(({ p, idx }) => ({ primitive: p, index: idx })) as any}
-          objectMaterials={objectMaterials}
-          onPrimitiveClick={handleObjectClick}
-          onPrimitiveHover={() => {}}
-        />
-      )}
+      {/* Сферические листья удалены */}
 
       {rootGroups.map(group => (
         <GroupRenderer

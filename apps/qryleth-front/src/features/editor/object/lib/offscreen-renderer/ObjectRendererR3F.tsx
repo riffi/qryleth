@@ -8,7 +8,6 @@ import type { GfxObject } from '@/entities/object'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
-import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 
 export interface ObjectRendererR3FProps {
   /** Объект для рендеринга */
@@ -111,16 +110,7 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
             />
           )}
 
-          {/* Сферические листья, если используются */}
-          {treeBuckets.leaves.length > 0 && (
-            <InstancedLeafSpheres
-              sceneObject={sceneLike}
-              leaves={treeBuckets.leaves as any}
-              instances={[singleInstance] as any}
-              materials={materials}
-              onClick={handleObjectClick}
-            />
-          )}
+          {/* Вариант сферических листьев удалён */}
 
           {/* Прочие примитивы дерева, если такие есть */}
           {treeBuckets.rest.map(({ primitive, index }) => (

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
-import { makeConiferCrossGeometry, makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
+import { makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 import { useObjectStore } from '../../../model/objectStore'
 import type { GfxPrimitive } from '@/entities/primitive'
@@ -38,12 +38,12 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
   const ambientIntensity = useObjectStore(s => s.lighting?.ambient?.intensity ?? 1.0)
   // Текущее имя спрайта для материал‑ключа (форсируем ремонт при смене)
   const spriteNameKey = (sample as any)?.geometry?.texSpriteName || 'default'
-  const shape = (sample as any)?.geometry?.shape || 'billboard'
+  const shape = 'texture'
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   // Общий хук: загрузка карт/atlas + crop и anchor/texAspect + uTexCenter
   const { diffuseMap, alphaMap, normalMap, roughnessMap, texAspect, anchorUV } = useLeafTextures(
     texSetId,
-    shape === 'texture',
+    true,
     (sample as any)?.geometry?.texSpriteName,
     () => (materialRef.current as any)?.userData?.uniforms,
   )
@@ -95,20 +95,17 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       const [px, py, pz] = t.position || [0,0,0]
       const [prx, pry, prz] = t.rotation || [0,0,0]
       const [psx, psy, psz] = t.scale || [1,1,1]
-      // Радиус листа → масштаб. Для coniferCross усиливаем в 1.8–2.2 раза, чтобы кластер был заметнее
+      // Радиус листа → масштаб.
       const r = prim.type === 'leaf' ? (prim as any).geometry.radius : 0.5
-      const shape = (prim as any).geometry?.shape || 'billboard'
-      const scaleMul = shape === 'coniferCross' ? 2.0 : 1.0
-      const uniformScale = r * Math.cbrt(Math.abs(psx * psy * psz)) * scaleMul
-      const shape2 = (prim as any).geometry?.shape || 'billboard'
+      const uniformScale = r * Math.cbrt(Math.abs(psx * psy * psz))
       // Для режима 'texture' поддерживаем неравномерный масштаб по X с учетом aspect карты
-      const sx = shape2 === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
+      const sx = uniformScale * (texAspect || 1)
       const sy = uniformScale
       const sz = uniformScale
       dummy.position.set(px, py, pz)
       dummy.rotation.set(prx, pry, prz)
       // Привязываем геометрию к точке основания спрайта: смещение в локальных координатах плоскости
-      if (shape2 === 'texture') {
+      {
         const u = anchorUV?.[0] ?? 0.5
         const v = anchorUV?.[1] ?? 1.0
         // Переносим локальные координаты anchor в центр плоскости (точку крепления):
@@ -163,9 +160,8 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
 
   // Геометрия: общий помощник для плоскости/«креста»
   const geometry = useMemo(() => {
-    const shape = (sample as any)?.geometry?.shape || 'billboard'
-    return shape === 'coniferCross' ? makeConiferCrossGeometry() : makeLeafPlaneGeometry()
-  }, [sample])
+    return makeLeafPlaneGeometry()
+  }, [])
 
   // Тот же материал с onBeforeCompile: маска/изгиб/подсветка
   // materialRef объявлен выше
@@ -174,7 +170,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
     if (!mat) return
     materialRef.current = mat
     patchLeafMaterial(mat, {
-      shape: ((sample as any)?.geometry?.shape || 'billboard') as any,
+      shape: 'texture',
       texAspect: texAspect || 1,
       rectDebug: !!leafRectDebug,
       edgeDebug: false,
@@ -188,8 +184,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
 
   // Обновляем флаг uRectDebug при переключении тумблера в UI без пересоздания материала
   useEffect(() => {
-    const shape = (sample as any)?.geometry?.shape || 'billboard'
-    if (shape !== 'texture') return
+    const shape = 'texture'
     const uniforms = (materialRef.current as any)?.userData?.uniforms
     if (uniforms && uniforms.uRectDebug) {
       uniforms.uRectDebug.value = leafRectDebug ? 1.0 : 0.0
@@ -198,8 +193,7 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
 
   // Обновляем униформы покраски при изменении фактора/цвета
   useEffect(() => {
-    const shape = (sample as any)?.geometry?.shape || 'billboard'
-    if (shape !== 'texture') return
+    const shape = 'texture'
     const uniforms = (materialRef.current as any)?.userData?.uniforms
     if (!uniforms) return
     if (uniforms.uLeafPaintFactor) uniforms.uLeafPaintFactor.value = leafPaintFactor
@@ -233,14 +227,13 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
         // иначе текстура выглядит темнее. Устанавливаем базовый цвет в белый, когда map активен.
         //color={(sample as any)?.geometry?.shape === 'texture' ? (diffuseMap ? '#ffffff' : (materialProps as any).color) : (materialProps as any).color}
         color={'#FFFFFF'}
-        map={(sample as any)?.geometry?.shape === 'texture' ? diffuseMap || undefined : undefined}
-        alphaMap={(sample as any)?.geometry?.shape === 'texture' ? alphaMap || undefined : undefined}
-        normalMap={(sample as any)?.geometry?.shape === 'texture' ? normalMap || undefined : undefined}
-        roughnessMap={(sample as any)?.geometry?.shape === 'texture' ? roughnessMap || undefined : undefined}
+        map={diffuseMap || undefined}
+        alphaMap={alphaMap || undefined}
+        normalMap={normalMap || undefined}
+        roughnessMap={roughnessMap || undefined}
         // Избегаем общего блендинга с HDRI: используем отсечение по альфе вместо полупрозрачности.
-        transparent={(sample as any)?.geometry?.shape === 'texture' ? false : materialProps.transparent}
-        //alphaTest={(sample as any)?.geometry?.shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
-        alphaToCoverage={(sample as any)?.geometry?.shape === 'texture' ? true : undefined}
+        transparent={false}
+        alphaToCoverage={true}
       />
     </instancedMesh>
   )

@@ -176,7 +176,7 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
       })
   if (leaves.length === 0) return null
   const hasTextureLeaf = leaves.some(l => (l.geometry?.shape === 'texture') || (l.geometry?.texSpriteName))
-  const effectiveShape: 'texture' | 'billboard' | 'coniferCross' = hasTextureLeaf ? 'texture' : (leaves.some(l => l.geometry?.shape === 'coniferCross') ? 'coniferCross' : 'billboard')
+  const effectiveShape: 'texture' = 'texture'
 
   const geometry = new THREE.PlaneGeometry(1, 1)
   geometry.translate(0, 0.5, 0)
@@ -208,7 +208,7 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
 
   let texAspect = 1
   let anchorUV: [number, number] | null = null
-  if (effectiveShape === 'texture') {
+  {
     const texSetId: string | undefined = (object as any)?.treeData?.params?.leafTextureSetId
     const spriteName: string | undefined = (sampleLeaf?.geometry?.texSpriteName) || undefined
     const set = (texSetId && leafTextureRegistry.get(texSetId)) || leafTextureRegistry.list()[0]
@@ -281,8 +281,6 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
         uniforms.uTexCenter.value.set(cx, cy)
       }
     } catch {}
-  } else {
-    patchLeafMaterial(leafMat, { shape: effectiveShape as any, texAspect: 1, rectDebug: false, edgeDebug: false, backlightStrength: 0 })
   }
 
   const count = leaves.length
@@ -307,14 +305,13 @@ export async function getOrCreateTreeBillboard(object: SceneObject, paletteUuid:
     const [prx, pry, prz] = t.rotation || [0,0,0]
     const [psx, psy, psz] = t.scale || [1,1,1]
     const r = prim.geometry?.radius || 0.5
-    const shapeScaleMul = effectiveShape === 'coniferCross' ? 2.0 : 1.0
-    const uniformScale = r * Math.cbrt(Math.abs(psx*psy*psz)) * shapeScaleMul * scaleMulLOD
-    const sx = effectiveShape === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
+    const uniformScale = r * Math.cbrt(Math.abs(psx*psy*psz)) * scaleMulLOD
+    const sx = uniformScale * (texAspect || 1)
     const sy = uniformScale
     const sz = uniformScale
     dummy.position.set(px, py, pz)
     dummy.rotation.set(prx, pry, prz)
-    if (effectiveShape === 'texture') {
+    {
       const u = anchorUV?.[0] ?? 0.5
       const v = anchorUV?.[1] ?? 1.0
       const dx = (0.5 - u) * sx

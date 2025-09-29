@@ -7,7 +7,6 @@ import { GfxLayerType } from '@/entities/layer'
 import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/InstancedTransformContext'
 import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
-import { InstancedLeafSpheres } from '@/shared/r3f/optimization/InstancedLeafSpheres'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
@@ -347,24 +346,14 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
       )}
 
       {spheres.length > 0 && nearInstances.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
-        <>
-          <InstancedLeaves
-            sceneObject={sceneObject}
-            spheres={spheres}
-            instances={nearInstances}
-            materials={sceneObject.materials}
-            onClick={onClick}
-            onHover={onHover}
-          />
-          <InstancedLeafSpheres
-            sceneObject={sceneObject}
-            leaves={spheres as any}
-            instances={nearInstances}
-            materials={sceneObject.materials}
-            onClick={onClick}
-            onHover={onHover}
-          />
-        </>
+        <InstancedLeaves
+          sceneObject={sceneObject}
+          spheres={spheres}
+          instances={nearInstances}
+          materials={sceneObject.materials}
+          onClick={onClick}
+          onHover={onHover}
+        />
       )}
 
       {/* Дальние инстансы (упрощенная модель) */}
@@ -381,28 +370,16 @@ const CompositeInstancedGroup: React.FC<CompositeInstancedGroupProps> = ({
       )}
 
       {spheres.length > 0 && farInstances.length > 0 && !SCENE_CHUNKED_LEAVES_ENABLED && (
-        <>
-          <InstancedLeaves
-            sceneObject={sceneObject}
-            spheres={spheres}
-            instances={farInstances}
-            materials={sceneObject.materials}
-            sampleRatio={leafSampleRatioFar}
-            scaleMul={leafScaleMulFar}
-            onClick={onClick}
-            onHover={onHover}
-          />
-          <InstancedLeafSpheres
-            sceneObject={sceneObject}
-            leaves={spheres as any}
-            instances={farInstances}
-            materials={sceneObject.materials}
-            sampleRatio={leafSampleRatioFar}
-            scaleMul={leafScaleMulFar}
-            onClick={onClick}
-            onHover={onHover}
-          />
-        </>
+        <InstancedLeaves
+          sceneObject={sceneObject}
+          spheres={spheres}
+          instances={farInstances}
+          materials={sceneObject.materials}
+          sampleRatio={leafSampleRatioFar}
+          scaleMul={leafScaleMulFar}
+          onClick={onClick}
+          onHover={onHover}
+        />
       )}
 
       {/* Прочие примитивы (включая единый меш ствола):

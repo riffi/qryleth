@@ -872,7 +872,7 @@ export function generateTree(params: TreeGeneratorParams & {
             pos[2] += tangent.z * tShift
 
             // Готовим ориентацию/смещение для листа
-            const isTexture = (params.leafShape || 'billboard') === 'texture'
+  const isTexture = true
             let leafEuler: [number, number, number]
             // Радиус текущего листа (детерминированный для разброса) — используем и для сдвига центра
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
@@ -885,7 +885,7 @@ export function generateTree(params: TreeGeneratorParams & {
               uuid: generateUUID(),
               type: 'leaf',
               name: 'Лист',
-              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName as any },
+              geometry: { radius: leafRadius, shape: 'texture', texSpriteName: texName as any },
               objectMaterialUuid: leafMaterialUuid,
               visible: true,
               transform: {
@@ -916,7 +916,7 @@ export function generateTree(params: TreeGeneratorParams & {
               curvedEnd[1] + radial.y * radialDist,
               curvedEnd[2] + radial.z * radialDist,
             ]
-            const isTexture = (params.leafShape || 'billboard') === 'texture'
+            const isTexture = true
             let leafEuler: [number, number, number]
             const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
             leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
@@ -925,7 +925,7 @@ export function generateTree(params: TreeGeneratorParams & {
               uuid: generateUUID(),
               type: 'leaf',
               name: 'Лист',
-              geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName2 as any },
+              geometry: { radius: leafRadius, shape: 'texture', texSpriteName: texName2 as any },
               objectMaterialUuid: leafMaterialUuid,
               visible: true,
               transform: {
@@ -966,7 +966,7 @@ export function generateTree(params: TreeGeneratorParams & {
               curvedEnd[1] + radial.y * radialDist,
               curvedEnd[2] + radial.z * radialDist,
             ]
-              const isTexture = (params.leafShape || 'billboard') === 'texture'
+              const isTexture = true
               let leafEuler: [number, number, number]
               const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
               leafEuler = computeLeafEuler(axisN, radial, params as any, rng, nDir)
@@ -975,7 +975,7 @@ export function generateTree(params: TreeGeneratorParams & {
                 uuid: generateUUID(),
                 type: 'leaf',
                 name: 'Лист',
-                geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName2 as any },
+                geometry: { radius: leafRadius, shape: 'texture', texSpriteName: texName2 as any },
                 objectMaterialUuid: leafMaterialUuid,
                 visible: true,
                 transform: {
@@ -1197,7 +1197,7 @@ export function generateTree(params: TreeGeneratorParams & {
           pos[1] += tangent.y * tShift
           pos[2] += tangent.z * tShift
 
-          const isTexture = (params.leafShape || 'billboard') === 'texture'
+          const isTexture = true
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
           leafEuler = computeLeafEuler(axisN, radial, params as any, rng, [tVec.x, tVec.y, tVec.z])
@@ -1206,7 +1206,7 @@ export function generateTree(params: TreeGeneratorParams & {
             uuid: generateUUID(),
             type: 'leaf',
             name: 'Лист',
-            geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName as any },
+            geometry: { radius: leafRadius, shape: 'texture', texSpriteName: texName as any },
             objectMaterialUuid: leafMaterialUuid,
             visible: true,
             transform: { position: pos, rotation: leafEuler, scale: [1, 1, 1] },
@@ -1225,7 +1225,7 @@ export function generateTree(params: TreeGeneratorParams & {
             curvedEnd[1] + radial.y * radialDist,
             curvedEnd[2] + radial.z * radialDist
           ]
-          const isTexture = (params.leafShape || 'billboard') === 'texture'
+          const isTexture = true
           let leafEuler: [number, number, number]
           const leafRadius = Math.max(0.01, leafSize * (0.7 + 0.6 * rng()))
           leafEuler = computeLeafEuler(axisN, radial, params as any, rng, tube.endTangent as any)
@@ -1234,7 +1234,7 @@ export function generateTree(params: TreeGeneratorParams & {
             uuid: generateUUID(),
             type: 'leaf',
             name: 'Лист',
-            geometry: { radius: leafRadius, shape: params.leafShape || 'billboard', texSpriteName: texName2 as any },
+            geometry: { radius: leafRadius, shape: 'texture', texSpriteName: texName2 as any },
             objectMaterialUuid: leafMaterialUuid,
             visible: true,
             transform: { position: pos, rotation: leafEuler, scale: [1, 1, 1] },

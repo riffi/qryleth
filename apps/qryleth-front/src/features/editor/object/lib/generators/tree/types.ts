@@ -105,13 +105,16 @@ export interface TreeGeneratorParams {
   branchCollarSize?: number
   /** Длина воротника (доля длины ветки от основания, 0..0.6). */
   branchCollarFrac?: number
-  /** Тип листвы: billboard, sphere, coniferCross или texture */
-  leafShape?: 'billboard' | 'sphere' | 'coniferCross' | 'texture'
+  /**
+   * Тип листвы: оставлен только 'texture'. Ранее поддерживались 'billboard', 'sphere' и 'coniferCross'.
+   * Поле сохраняется в схеме для явной фиксации варианта и будущей расширяемости.
+   */
+  leafShape?: 'texture'
   /**
    * Наклон листа к поверхности ветви (в градусах, 0..90).
    * 0° — лист параллелен поверхности ветки, «смотрит» наружу (нормаль = радиальная наружу).
    * 90° — лист перпендикулярен ветке (нормаль совпадает с осью ветви).
-   * Применяется для leafShape='texture'.
+   * Применяется для текстурной листвы.
    */
   leafTiltDeg?: number
   /**
@@ -131,7 +134,7 @@ export interface TreeGeneratorParams {
   /**
    * Идентификатор набора текстур листвы из реестра (leafTextureRegistry).
    * Например: 'leafset019-1k-jpg' или 'leafset024-1k-jpg'.
-   * Применяется при leafShape='texture' для выбора карт и atlas.json.
+   * Применяется для выбора карт и atlas.json.
    */
   leafTextureSetId?: string
   /**
@@ -155,12 +158,12 @@ export interface TreeGeneratorParams {
   barkTexDensityPerMeter?: number
   /**
    * Имя спрайта (подпрямоугольника) из atlas.json выбранного набора.
-   * Используется только при leafShape='texture'. Если не задано — берётся первый элемент атласа.
+   * Если не задано — берётся первый элемент атласа.
    */
   leafTextureSpriteName?: string
   /**
    * Использовать все спрайты атласа (равномерно в случайном порядке).
-   * Применяется только при leafShape='texture'. Если true и задан массив leafSpriteNames,
+   * Если true и задан массив leafSpriteNames,
    * то при генерации каждому листу выбирается имя спрайта из списка детерминированным rng.
    */
   useAllLeafSprites?: boolean
@@ -176,7 +179,7 @@ export interface TreeGeneratorParams {
    * материала листвы. Яркость (Value) сохраняется, чтобы сохранить объём и
    * детали исходной текстуры. Значения между 0 и 1 выполняют плавную интерполяцию
    * в пространстве HSV по кратчайшей дуге тона.
-   * Применяется только для листьев с shape='texture'.
+   * Применяется только для текстурной листвы.
    */
   leafTexturePaintFactor?: number
   /**
@@ -185,7 +188,7 @@ export interface TreeGeneratorParams {
    * 1 — максимальный разброс: для каждого листа коэффициент выбирается детерминированно
    *     из диапазона [0 .. leafTexturePaintFactor]. Промежуточные значения линейно
    *     сужают нижнюю границу диапазона: при 0.5 — [0.5*leafTexturePaintFactor .. leafTexturePaintFactor].
-   * Используется только при shape='texture'.
+   * Используется только для текстурной листвы.
    */
   leafTexturePaintJitter?: number
   /**
