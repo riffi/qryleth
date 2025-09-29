@@ -189,6 +189,14 @@ const LeafSphereChunkMesh: React.FC<{
   // Геометрия сферы 1x1, клонируем для индивидуального boundingSphere
   const geometry = useMemo(() => new THREE.SphereGeometry(1, 12, 12).clone(), [])
 
+  // Освобождаем геометрию/материал на размонтировании (утечки геометрий при смене чанка)
+  useEffect(() => {
+    return () => {
+      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
+    }
+  }, [])
+
   // Заполняем матрицы и считаем boundingSphere
   useEffect(() => {
     if (!meshRef.current) return
@@ -325,6 +333,14 @@ const LeafBillboardChunkMesh: React.FC<{
     const g = (base as any).clone?.() || base
     return g as THREE.BufferGeometry
   }, [effectiveShape])
+
+  // Cleanup на unmount: освобождаем только геометрию/материал (текстуры кэшируются отдельно)
+  useEffect(() => {
+    return () => {
+      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
+    }
+  }, [])
 
   // Материал: патч шейдеров листвы
   const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
@@ -492,11 +508,13 @@ const LeafBillboardChunkMesh: React.FC<{
         roughnessMap={effectiveShape === 'texture' ? roughnessMap || undefined : undefined}
         transparent={false}
         alphaTest={effectiveShape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : (materialProps as any).alphaTest}
-        alphaToCoverage={effectiveShape === 'texture' ? true : undefined}
-      />
+      alphaToCoverage={effectiveShape === 'texture' ? true : undefined}
+    />
     </instancedMesh>
   )
 }
+
+// Примечание: очистка ресурсов происходит внутри компонентов LeafSphereChunkMesh/LeafBillboardChunkMesh
 
 export interface ChunkedInstancedLeavesProps {
   /** Полный список объектов сцены */

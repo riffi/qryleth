@@ -146,6 +146,14 @@ const BillboardChunkMesh: React.FC<{
     return g
   }, [])
 
+  // Cleanup: освобождаем геометрию/материал инстанса при размонтировании или смене чанков
+  useEffect(() => {
+    return () => {
+      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
+    }
+  }, [])
+
   // Первичная укладка матриц (yaw=0) + расчёт boundingSphere
   useEffect(() => {
     if (!meshRef.current || !billboard) return

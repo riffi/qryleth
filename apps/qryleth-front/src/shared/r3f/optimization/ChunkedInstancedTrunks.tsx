@@ -169,6 +169,14 @@ const TrunkChunkMesh: React.FC<{
     return g
   }, [sample])
 
+  // Cleanup: освобождаем геометрию и материал на unmount
+  useEffect(() => {
+    return () => {
+      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
+    }
+  }, [])
+
   // Материал: из материала примитива + карты коры из реестра, как в обычном рендере
   const materialProps = useMemo(() => {
     const matDef = resolveMaterial({
