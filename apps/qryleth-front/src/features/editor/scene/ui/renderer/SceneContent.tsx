@@ -16,13 +16,7 @@ import { Sky, Environment as DreiEnvironment } from '@react-three/drei'
 import { useLoader } from '@react-three/fiber'
 import { EXRLoader } from 'three-stdlib'
 import { EquirectangularReflectionMapping } from 'three'
-import {
-  EffectComposer,
-  N8AO,
-  TiltShift,
-  TiltShift2,
-  ToneMapping
-} from "@react-three/postprocessing";
+import { EffectComposer, ToneMapping } from "@react-three/postprocessing";
 import {ToneMappingMode, VignetteEffect} from 'postprocessing'
 import { ViewportAxesHelper } from './controls/ViewportAxesHelper'
 import { FpsCounter } from './controls/FpsCounter'
@@ -115,6 +109,18 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
     prevComposerRef.current = curr
   }, [renderProfile])
 
+  // Мемоизированный блок постпроцессинга, чтобы его не пересоздавать при частых ре-рендерах SceneContent
+  const PostFX = React.useMemo(() => {
+    const Comp: React.FC<{ exposure: number; isViewProfile: boolean }> = React.memo(({ exposure, isViewProfile }) => (
+      <EffectComposer ref={composerRef} multisampling={isViewProfile ? 0 : 0}>
+        <Exposure exposure={exposure} />
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
+    ))
+    Comp.displayName = 'PostFX'
+    return Comp
+  }, [])
+
   return (
     <>
       {/*
@@ -187,41 +193,8 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
       <CloudLayers />
 
 
-      {/*
-        Постпроцессинг:
-        - N8AO: экранное затенение на основе нормалей (Ambient Occlusion)
-        - ToneMapping: финальный тонемаппинг с управлением экспозицией (учитывает lighting.exposure)
-        ВАЖНО: Тонемаппинг выполняется последним, поэтому renderer.toneMapping отключён (NoToneMapping).
-      */}
-      <EffectComposer ref={composerRef} multisampling={isViewProfile ? 0 : 0}>
-        {/*
-          В Edit-профиле отключаем тяжёлые эффекты (AO/AtmosphericTint),
-          оставляя только экспозицию и тонемаппинг для корректной картинки.
-          Это снижает draw calls в режиме редактирования.
-        */}
-        {/*{isViewProfile && (*/}
-        {/*    <N8AO*/}
-        {/*        quality={'ultra'}*/}
-        {/*        aoRadius={2}*/}
-        {/*        aoSamples={20}*/}
-        {/*        intensity={2}*/}
-        {/*        distanceFalloff={3}*/}
-        {/*        denoiseRadius={10}*/}
-        {/*        denoiseSamples={10}*/}
-        {/*        renderMode={0}*/}
-        {/*    />*/}
-        {/*)}*/}
-        {/* Предтонемаппинг-экспозиция: масштабирует яркость как в three.js renderer */}
-        <Exposure exposure={lighting.exposure ?? 1.0} />
-        {/*{isViewProfile && (*/}
-        {/*    <AtmosphericTint*/}
-        {/*        sky={sceneBackground}*/}
-        {/*        strength={0.5}*/}
-        {/*        power={1}*/}
-        {/*    />*/}
-        {/*)}*/}
-        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-      </EffectComposer>
+      {/* Постпроцессинг: вынесен в мемо-компонент, чтобы избежать переинициализации */}
+      <PostFX exposure={lighting.exposure ?? 1.0} isViewProfile={isViewProfile} />
     </>
   )
 }
