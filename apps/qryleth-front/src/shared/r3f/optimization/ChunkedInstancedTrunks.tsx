@@ -131,7 +131,7 @@ export const ChunkedInstancedTrunks: React.FC<{
 
   if (buckets.length === 0) return null
   return (
-    <group>
+    <group name="TrunkChunks">
       {buckets.map((b) => (
         <TrunkChunkMesh key={keyOf(b.key)} bucket={b} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
       ))}
@@ -305,6 +305,7 @@ const TrunkChunkMesh: React.FC<{
       ref={meshRef}
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
+      name={`TrunkChunk [${bucket.key.cx},${bucket.key.cz}] obj:${bucket.key.objectUuid} count:${bucket.items.length}`}
       castShadow
       receiveShadow
       onClick={handleClick}

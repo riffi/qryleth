@@ -103,7 +103,7 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
   if (buckets.length === 0) return null
 
   return (
-    <group>
+    <group name="TreeBillboardChunks">
       {buckets.map((b) => (
         <BillboardChunkMesh
           key={keyOf(b.key)}
@@ -242,7 +242,10 @@ const BillboardChunkMesh: React.FC<{
   }
 
   if (!billboard || bucket.items.length === 0) return (
-    <group position={[bucket.key.cx, 0, bucket.key.cz]} />
+    <group
+      position={[bucket.key.cx, 0, bucket.key.cz]}
+      name={`TreeBillboardChunk [${bucket.key.cx},${bucket.key.cz}] obj:${bucket.key.objectUuid} pal:${bucket.key.paletteUuid} (empty)`}
+    />
   )
 
   // Нормализуем ориентацию CanvasTexture: фиксируем поворот на 180°, чтобы исключить случайный инверт по Y
@@ -254,10 +257,14 @@ const BillboardChunkMesh: React.FC<{
   } catch {}
 
   return (
-    <group position={[bucket.key.cx, 0, bucket.key.cz]}>
+    <group
+      position={[bucket.key.cx, 0, bucket.key.cz]}
+      name={`TreeBillboardChunk [${bucket.key.cx},${bucket.key.cz}] obj:${bucket.key.objectUuid} pal:${bucket.key.paletteUuid} count:${bucket.items.length}`}
+    >
       <instancedMesh
         ref={meshRef}
         args={[geometry as any, undefined as any, bucket.items.length]}
+        name={`TreeBillboardMesh [${bucket.key.cx},${bucket.key.cz}] obj:${bucket.key.objectUuid} pal:${bucket.key.paletteUuid} count:${bucket.items.length}`}
         castShadow={false}
         receiveShadow={false}
         onClick={handleClick}

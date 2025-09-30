@@ -316,9 +316,11 @@ const LeafBillboardChunkMeshImpl: React.FC<{
   scaleMul?: number
   fadeByUuid?: Map<string, number>
   visible?: boolean
+  /** Произвольное имя для удобства отладки: попадет в name инстанс‑меша. */
+  debugName?: string
   onClick?: (e: any) => void
   onHover?: (e: any) => void
-}> = ({ bucket, paletteUuid, scaleMul = 1, fadeByUuid, visible = true, onClick, onHover }) => {
+}> = ({ bucket, paletteUuid, scaleMul = 1, fadeByUuid, visible = true, debugName, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const bucketRef = useRef(bucket)
 
@@ -607,6 +609,7 @@ const LeafBillboardChunkMeshImpl: React.FC<{
       ref={meshRef}
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
+      name={debugName || `LeafChunkMesh [${bucket.key.cx},${bucket.key.cz}] sprite:${spriteNameKey} set:${bucket.key.setId || 'def'} mat:${bucket.key.materialUuid}`}
       visible={visible}
       // В отладочном режиме отключаем фрустум‑куллинг, чтобы исключить ошибки границ
       frustumCulled={false}
@@ -869,7 +872,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
   if (visibleInstances.length === 0) return null
 
   return (
-    <group>
+    <group name="LeafChunks">
       {/* Унифицированный рендер всех чанков со стабильными ключами.
           Все LOD-компоненты остаются смонтированными, переключаются через visible.
           Это устраняет мерцание при пересчете LOD. */}
@@ -895,13 +898,14 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
         const isFarOutActive = hasFarOut
 
         return (
-          <group key={ks}>
+          <group key={ks} name={`LeafChunkGroup [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}>
             {/* Near LOD - показываем когда есть элементы и нет перехода */}
             {hasNear && (
               <LeafBillboardChunkMesh
                 key="near"
                 bucket={{ key: unified.key, items: unified.nearItems! } as any}
                 paletteUuid={paletteUuid}
+                debugName={`LeafChunkMesh near [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}
                 visible={isNearActive}
                 onClick={onClick}
                 onHover={onHover}
@@ -915,6 +919,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
                 bucket={{ key: unified.key, items: unified.nearBlendItems! } as any}
                 paletteUuid={paletteUuid}
                 fadeByUuid={unified.nearBlendFade}
+                debugName={`LeafChunkMesh nearBlend [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}
                 visible={isNearBlendActive && unified.key.t === 'bb'}
                 onClick={onClick}
                 onHover={onHover}
@@ -929,6 +934,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
                 paletteUuid={paletteUuid}
                 scaleMul={leafScaleMulFar}
                 fadeByUuid={unified.farBlendFade}
+                debugName={`LeafChunkMesh farBlend [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}
                 visible={isFarBlendActive && unified.key.t === 'bb'}
                 onClick={onClick}
                 onHover={onHover}
@@ -942,6 +948,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
                 bucket={{ key: unified.key, items: unified.farItems! } as any}
                 paletteUuid={paletteUuid}
                 scaleMul={leafScaleMulFar}
+                debugName={`LeafChunkMesh far [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}
                 visible={isFarActive}
                 onClick={onClick}
                 onHover={onHover}
@@ -956,6 +963,7 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
                 paletteUuid={paletteUuid}
                 scaleMul={leafScaleMulFar}
                 fadeByUuid={unified.farOutFade}
+                debugName={`LeafChunkMesh farOut [${unified.key.cx},${unified.key.cz}] sprite:${unified.key.sprite || 'def'} set:${unified.key.setId || 'def'} mat:${(unified.key as any).materialUuid}`}
                 visible={isFarOutActive && unified.key.t === 'bb'}
                 onClick={onClick}
                 onHover={onHover}

@@ -132,8 +132,8 @@ const initialState: SceneStoreState = {
     farOutPx: defaultTreeLodConfig.farOutPx as number,
     farInPx: defaultTreeLodConfig.farInPx as number,
     // Размеры чанков — параметры UI, не входят в defaultTreeLodConfig
-    leafChunkSize: 200,
-    trunkChunkSize: 32,
+    leafChunkSize: 2000,
+    trunkChunkSize: 100
   },
 
   // Scene metadata
