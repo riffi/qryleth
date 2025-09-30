@@ -86,11 +86,11 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   // Near LOD: дерево > 250px на экране (очень близко)
   // Far LOD: дерево 50-250px (средняя дистанция) - основной режим
   // Billboard: дерево < 50px (очень далеко)
-  nearOutPx: 200,  // Near → Far когда дерево < 200px
-  nearInPx: 250,   // Возврат к Near когда > 250px
+  nearOutPx: 210,  // Near → Far когда дерево < 200px
+  nearInPx: 230,   // Возврат к Near когда > 250px
   // Сужаем пороги LOD3 (ближе к камере)
-  farOutPx: 60,    // Far → Billboard когда < 60px
-  farInPx: 100,    // Возврат к Far когда > 100px
+  farOutPx: 120,    // Far → Billboard когда < 60px
+  farInPx: 150,    // Возврат к Far когда > 100px
   epsilonPx: 1,
   approximateTreeHeightWorld: 10,
 

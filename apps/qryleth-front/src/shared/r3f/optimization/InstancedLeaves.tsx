@@ -321,7 +321,7 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
     >
       {/* debug render log removed */}
       <meshStandardMaterial
-        key={`leafMat-${spriteNameKey}-${!!diffuseMap}`}
+        key={`leafMat-${spriteNameKey}-${!!diffuseMap}-${paletteUuid}`}
         ref={onMaterialRefPatched}
         {...materialProps}
         envMapIntensity={0}
@@ -332,10 +332,13 @@ export const InstancedLeaves: React.FC<InstancedLeavesProps> = ({
         opacity={opacity != null ? opacity : (materialProps as any).opacity}
         depthWrite={depthWrite != null ? depthWrite : (materialProps as any).depthWrite}
 
-        // При активной цветовой карте листа убираем дополнительный tint (умножение цвета),
-        // чтобы не затемнять текстуру. Базовый цвет — белый.
-        //color={effectiveShape === 'texture' ? (!!diffuseMap ? '#FFFFFF' : (materialProps as any).color) : (materialProps as any).color}
-        color={'#000000'}
+        // При активной цветовой карте листа убираем дополнительный tint (умножение цвета)
+        // со стороны базового цвета материала, чтобы не затемнять текстуру. Для текстурных
+        // листьев базовый цвет должен быть белым — тогда оттенок задаётся исключительно
+        // картой и шейдерной HSV‑покраской (uLeafTargetColor), что корректно учитывает
+        // активную палитру при её смене в SceneEditor.
+        // Если карта отсутствует, используем рассчитанный с палитрой цвет материала.
+        color={diffuseMap ? '#FFFFFF' : (materialProps as any).color}
         map={diffuseMap || undefined}
         alphaMap={alphaMap || undefined}
         normalMap={normalMap || undefined}

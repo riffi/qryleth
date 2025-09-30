@@ -110,24 +110,24 @@ export function patchLeafMaterial(
       `    float edge = 1.0 - smoothstep(uAlphaThreshold - w, uAlphaThreshold + w, a);\n` +
       `    diffuseColor.rgb = mix(diffuseColor.rgb, uEdgeColor, clamp(edge, 0.0, 1.0));\n` +
       `  }\n` +
-      `#endif\n` +
-      `  // Дизер-фейд (ordered 4x4 Bayer) по uFade или aFade\n` +
-      `  float _fade = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));\n` +
-      `  int bx = int(mod(gl_FragCoord.x, 4.0));\n` +
-      `  int by = int(mod(gl_FragCoord.y, 4.0));\n` +
-      `  int bayer[16];\n` +
-      `  bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;\n` +
-      `  float _thr = (float(bayer[by*4+bx]) + 0.5) / 16.0;\n` +
-      `  if (_fade < _thr) discard;\n` +
-      `  // Альфа-отсечка после модификации a\n` +
-      `  if (diffuseColor.a < uAlphaThreshold) discard;\n` +
-      `  if (uRectDebug > 0.5) {\n` +
-      `    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n` +
-      `    float wr = max(uRectWidth, fwidth(d) * 2.0);\n` +
-      `    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n` +
-      `    diffuseColor.a = max(diffuseColor.a, edgeR);\n` +
-      `    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n` +
-      `  }\n`
+      `#endif\n`// +
+      // `  // Дизер-фейд (ordered 4x4 Bayer) по uFade или aFade\n` +
+      // `  float _fade = mix(uFade, vFade, clamp(uUseInstanceFade, 0.0, 1.0));\n` +
+      // `  int bx = int(mod(gl_FragCoord.x, 4.0));\n` +
+      // `  int by = int(mod(gl_FragCoord.y, 4.0));\n` +
+      // `  int bayer[16];\n` +
+      // `  bayer[0]=0; bayer[1]=8; bayer[2]=2; bayer[3]=10; bayer[4]=12; bayer[5]=4; bayer[6]=14; bayer[7]=6; bayer[8]=3; bayer[9]=11; bayer[10]=1; bayer[11]=9; bayer[12]=15; bayer[13]=7; bayer[14]=13; bayer[15]=5;\n` +
+      // `  float _thr = (float(bayer[by*4+bx]) + 0.5) / 16.0;\n` +
+      // `  if (_fade < _thr) discard;\n` +
+      // `  // Альфа-отсечка после модификации a\n` +
+      // `  if (diffuseColor.a < uAlphaThreshold) discard;\n` +
+      // `  if (uRectDebug > 0.5) {\n` +
+      // `    float d = min(min(vLeafUv.x, vLeafUv.y), min(1.0 - vLeafUv.x, 1.0 - vLeafUv.y));\n` +
+      // `    float wr = max(uRectWidth, fwidth(d) * 2.0);\n` +
+      // `    float edgeR = 1.0 - smoothstep(wr * 0.5, wr, d);\n` +
+      // `    diffuseColor.a = max(diffuseColor.a, edgeR);\n` +
+      // `    diffuseColor.rgb = mix(diffuseColor.rgb, uRectColor, clamp(edgeR, 0.0, 1.0));\n` +
+      // `  }\n`
 
     frag = frag.replace('#include <map_fragment>', debugMap.replace('#include <map_fragment>', `#include <map_fragment>${hsvBlock}`))
     shader.fragmentShader = frag

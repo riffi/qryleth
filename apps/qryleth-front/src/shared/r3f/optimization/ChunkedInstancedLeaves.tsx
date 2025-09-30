@@ -615,7 +615,7 @@ const LeafBillboardChunkMeshImpl: React.FC<{
       onPointerOver={handleHover}
     >
       <meshStandardMaterial
-        key={`leafMat-${spriteNameKey}-${!!diffuseMap}`}
+        key={`leafMat-${spriteNameKey}-${!!diffuseMap}-${paletteUuid}`}
         ref={onMaterialRef}
         {...materialProps}
         envMapIntensity={1}
