@@ -80,8 +80,8 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   // Billboard: дерево < 50px (очень далеко)
   nearOutPx: 200,  // Near → Far когда дерево < 200px
   nearInPx: 250,   // Возврат к Near когда > 250px
-  farOutPx: 30,    // Far → Billboard когда < 30px
-  farInPx: 50,     // Возврат к Far когда > 50px
+  farOutPx: 50,    // Far → Billboard когда < 30px
+  farInPx: 70,     // Возврат к Far когда > 50px
   epsilonPx: 1,
   approximateTreeHeightWorld: 10,
 
@@ -119,6 +119,8 @@ export function useSingleTreeLod(
   const cfg = React.useMemo(() => ({ ...defaultTreeLodConfig, ...(config || {}) }), [config])
   const bboxRef = React.useRef<THREE.Box3 | null>(null)
   const bboxHeightRef = React.useRef<number>(cfg.approximateTreeHeightWorld || 10)
+  // Последняя мировая позиция камеры — используется для детекции движения и расчётов
+  const lastCameraWorldRef = React.useRef(new THREE.Vector3())
   const frameCountRef = React.useRef(0)
   const [weights, setWeights] = React.useState({ near: 1, far: 0, bb: 0 })
 
@@ -143,7 +145,10 @@ export function useSingleTreeLod(
 
     const camera = state.camera as THREE.PerspectiveCamera
     // Оценка высоты в пикселях: Spx ≈ Hworld * (Hpx / (2*tan(fov/2) * d))
-    const camToObj = _worldPos.copy(g.getWorldPosition(new THREE.Vector3())).sub(camera.position)
+    // ВАЖНО: используем мировую позицию камеры (getWorldPosition), т.к. в walk‑режиме
+    // камера может быть дочерним объектом рига и её local position не меняется.
+    camera.getWorldPosition(_cameraPos)
+    const camToObj = _worldPos.copy(g.getWorldPosition(new THREE.Vector3())).sub(_cameraPos)
     const d = Math.max(0.001, camToObj.length())
     const Hpx = state.size.height
     const fovRad = (camera.fov ?? 60) * Math.PI / 180
@@ -191,7 +196,7 @@ export function useSingleTreeLod(
       const bbSq = bbDflt * bbDflt
       // Приблизим dist к sqrt(distance^2), чтобы не менять поведение радикально
       g.getWorldPosition(_worldPos)
-      _cameraPos.copy(camera.position)
+      camera.getWorldPosition(_cameraPos)
       const dsq = _worldPos.distanceToSquared(_cameraPos)
       if (dsq <= nearSq) { wNear = 1 } else if (dsq <= farSq) { wFar = 1 } else if (dsq <= bbSq) { wBB = 1 } else { wBB = 1 }
     }
@@ -254,7 +259,12 @@ export function usePartitionInstancesByLod(
   const [farBbBlend, setFarBbBlend] = React.useState<Array<{ inst: SceneObjectInstance, t: number }>>([])
 
   const frameCountRef = React.useRef(0)
+  // Последняя мировая позиция камеры (а не локальная camera.position)
   const lastCameraPosRef = React.useRef(new THREE.Vector3())
+  const lastLodUpdateFrameRef = React.useRef(0)
+  // Флаг: фиксируем, что была заметная смена позиции камеры в период, когда сработал throttling
+  // Нужен, чтобы не «застревать» в старой классификации, если последнее движение попало в окно пропуска.
+  const hadMovementWhileThrottledRef = React.useRef(false)
 
   // ИСПРАВЛЕНИЕ: Используем useRef для хранения предыдущих сигнатур
   const prevSignaturesRef = React.useRef<{
@@ -278,6 +288,8 @@ export function usePartitionInstancesByLod(
   const LOD_DEBUG = (typeof window !== 'undefined') && !!(window as any).__LOD_DEBUG_TREE__
 
   useFrame((state) => {
+      frameCountRef.current++
+
       // При выключенном LOD — все инстансы относятся к near; остальные наборы пустые
       if (cfg.enabled === false) {
         const all = instances
@@ -296,10 +308,35 @@ export function usePartitionInstancesByLod(
       }
     const camera = state.camera as THREE.PerspectiveCamera
 
-    // ИСПРАВЛЕНИЕ: Увеличиваем порог для определения движения камеры
-    const camMoved = camera.position.distanceToSquared(lastCameraPosRef.current) > 0.01 // было 1e-4
-    if (!camMoved) return
-    lastCameraPosRef.current.copy(camera.position)
+    // ОПТИМИЗАЦИЯ: Throttling - пересчёт LOD не чаще раза в 3 кадра
+    const LOD_UPDATE_THROTTLE = 3
+    const framesSinceLastUpdate = frameCountRef.current - lastLodUpdateFrameRef.current
+
+    // Оценка движения камеры (достаточно заметная смена позиции)
+    // Детекция движения: сравниваем МИРОВУЮ позицию камеры с предыдущей
+    const camWorldNow = new THREE.Vector3()
+    camera.getWorldPosition(camWorldNow)
+    const camMoved = camWorldNow.distanceToSquared(lastCameraPosRef.current) > 0.01 // было 1e-4
+
+    // Если в окне троттлинга — отмечаем факт движения и выходим,
+    // чтобы выполнить пересчёт в следующий допустимый кадр даже если камера уже остановилась.
+    if (framesSinceLastUpdate < LOD_UPDATE_THROTTLE) {
+      if (camMoved) hadMovementWhileThrottledRef.current = true
+      return
+    }
+
+    // Если камера не движется, но было движение в окне троттлинга — всё равно пересчитаем один раз.
+    if (!camMoved && !hadMovementWhileThrottledRef.current) {
+      // В качестве дополнительной страховки: редкий пересчёт каждые ~30 кадров,
+      // чтобы учесть внешние изменения (например, изменение размеров вьюпорта).
+      const RARE_RECALC_PERIOD = 30
+      if (framesSinceLastUpdate < RARE_RECALC_PERIOD) return
+    }
+
+    // Фиксируем текущую позицию камеры и момент обновления
+    lastCameraPosRef.current.copy(camWorldNow)
+    lastLodUpdateFrameRef.current = frameCountRef.current
+    hadMovementWhileThrottledRef.current = false
 
     const Hpx = state.size.height
     const fovRad = (camera.fov ?? 60) * Math.PI / 180
@@ -320,12 +357,14 @@ export function usePartitionInstancesByLod(
     const nextClass: Record<string, 'near' | 'nf' | 'far' | 'fb' | 'bb'> = {}
     const nextBlend: Record<string, number> = {}
 
+    // Текущая мировая позиция камеры для расчёта дистанций до инстансов
+    const camWorld = new THREE.Vector3(); camera.getWorldPosition(camWorld)
     for (let i = 0; i < instances.length; i++) {
       const inst = instances[i]
       const p = inst.transform?.position || [0, 0, 0]
-      const dx = camera.position.x - p[0]
-      const dy = camera.position.y - p[1]
-      const dz = camera.position.z - p[2]
+      const dx = camWorld.x - p[0]
+      const dy = camWorld.y - p[1]
+      const dz = camWorld.z - p[2]
       const d = Math.max(0.001, Math.hypot(dx, dy, dz))
       const Spx = Hworld * (projK / d)
       const dist = 1 / Math.max(Spx, epsPx)
@@ -436,11 +475,9 @@ export function usePartitionInstancesByLod(
       anyChanged = true
     }
 
-    if (!anyChanged && LOD_DEBUG && (frameCountRef.current++ % debugEveryNFrames === 0)) {
+    if (!anyChanged && LOD_DEBUG && (frameCountRef.current % debugEveryNFrames === 0)) {
       console.log('[LOD][partition][idle] no changes at camera move')
     }
-
-    frameCountRef.current++
   })
 
   return React.useMemo(() => ({

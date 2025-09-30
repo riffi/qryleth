@@ -413,6 +413,29 @@ const LeafBillboardChunkMeshImpl: React.FC<{
 
     // Проверяем, изменились ли items или параметры
     const last = lastProcessedRef.current
+
+    // ОПТИМИЗАЦИЯ: Глубокое сравнение fadeByUuid вместо сравнения ссылок
+    let fadeChanged = false
+    const currentFade = fadeByUuidRef.current
+    const lastFade = last.fadeByUuid
+    if (currentFade !== lastFade) {
+      // Сравниваем только если ссылки разные
+      if (!currentFade || !lastFade || currentFade.size !== lastFade.size) {
+        fadeChanged = true
+      } else {
+        // Проверяем значения fade для элементов текущего bucket
+        for (let i = 0; i < bucket.items.length; i++) {
+          const uuid = bucket.items[i].instance.uuid
+          const currVal = currentFade.get(uuid)
+          const lastVal = lastFade.get(uuid)
+          if (currVal !== lastVal) {
+            fadeChanged = true
+            break
+          }
+        }
+      }
+    }
+
     const itemsChanged = (
       last.items !== bucket.items ||
       last.itemsLength !== bucket.items.length ||
@@ -420,7 +443,7 @@ const LeafBillboardChunkMeshImpl: React.FC<{
       last.texAspect !== (texAspect || 1) ||
       last.anchorUV0 !== (anchorUV?.[0] ?? 0.5) ||
       last.anchorUV1 !== (anchorUV?.[1] ?? 1.0) ||
-      last.fadeByUuid !== fadeByUuidRef.current
+      fadeChanged
     )
 
     if (!itemsChanged) return // Пропускаем, если ничего не изменилось
@@ -596,6 +619,10 @@ const LeafBillboardChunkMeshImpl: React.FC<{
         alphaMap={alphaMap || undefined}
         normalMap={normalMap || undefined}
         roughnessMap={roughnessMap || undefined}
+        // В переходных окнах Near↔Far и Far↔Billboard два набора отрисовываются одновременно.
+        // Чтобы дизер-фейд работал корректно и наборы не «глушили» друг друга по Z,
+        // отключаем запись в depth для blend‑вариантов (признак — передан fadeByUuid).
+        depthWrite={!!fadeByUuid ? false : true}
         transparent={false}
         alphaTest={!!diffuseMap ? 0.5 : 0.0}
         alphaToCoverage={true}

@@ -123,14 +123,15 @@ const initialState: SceneStoreState = {
   // LOD деревьев / размеры чанков
   lodConfig: {
     enabled: true,
-    // ИСПРАВЛЕНО: Настроены широкие диапазоны для покрытия всех дистанций
+    // Диапазоны экранных порогов (px) синхронизированы с defaultTreeLodConfig,
+    // чтобы исключить рассогласования между редактором сцены и общими хуками LOD.
     // Near LOD: дерево > 250px на экране (очень близко)
-    // Far LOD: дерево 50-250px (средняя дистанция)
-    // Billboard: дерево < 50px (очень далеко)
-    nearOutPx: 230,  // Near → Far когда дерево < 200px
-    nearInPx: 200,   // Возврат к Near когда > 250px
-    farOutPx: 50,    // Far → Billboard когда < 30px
-    farInPx: 30,     // Возврат к Far когда > 50px
+    // Far LOD:  50–250px (средняя дистанция)
+    // Billboard: < 50px (очень далеко)
+    nearOutPx: 200,  // Near → Far, когда высота кроны < 200px
+    nearInPx: 250,   // Возврат к Near, когда ≥ 250px
+    farOutPx: 30,    // Far → Billboard, когда < 30px
+    farInPx: 50,     // Возврат к Far, когда ≥ 50px
     leafChunkSize: 200,
     trunkChunkSize: 32,
   },
@@ -743,18 +744,50 @@ export const useSceneStore = create<SceneStore>()(
     },
     /**
      * Устанавливает экранно‑пространственные пороги LOD для деревьев.
-     * Значения приводятся к положительным и некоррелирующимся NaN — не меняются.
+     *
+     * Требования к окнам гистерезиса:
+     *  - nearInPx > nearOutPx ≥ farInPx > farOutPx (в px‑пространстве),
+     *  - рекомендуемая ширина каждого окна ~30–40px.
+     *
+     * Значения приводятся к положительным, далее применяется минимальная коррекция,
+     * чтобы сохранить отношения и исключить «мертвые зоны».
      */
     setTreeLodThresholds: (thresholds: Partial<{ nearInPx: number; nearOutPx: number; farInPx: number; farOutPx: number }>) => {
-      set(state => ({
-        lodConfig: {
-          ...state.lodConfig,
-          nearInPx: Number.isFinite(thresholds.nearInPx as number) ? Math.max(1, thresholds.nearInPx as number) : state.lodConfig.nearInPx,
-          nearOutPx: Number.isFinite(thresholds.nearOutPx as number) ? Math.max(1, thresholds.nearOutPx as number) : state.lodConfig.nearOutPx,
-          farInPx: Number.isFinite(thresholds.farInPx as number) ? Math.max(1, thresholds.farInPx as number) : state.lodConfig.farInPx,
-          farOutPx: Number.isFinite(thresholds.farOutPx as number) ? Math.max(1, thresholds.farOutPx as number) : state.lodConfig.farOutPx,
-        }
-      }))
+      set(state => {
+        // Базовые значения из текущего стора
+        let nearIn = state.lodConfig.nearInPx
+        let nearOut = state.lodConfig.nearOutPx
+        let farIn = state.lodConfig.farInPx
+        let farOut = state.lodConfig.farOutPx
+
+        // Применяем входящие значения (с положительным клампом)
+        if (Number.isFinite(thresholds.nearInPx as number)) nearIn = Math.max(1, thresholds.nearInPx as number)
+        if (Number.isFinite(thresholds.nearOutPx as number)) nearOut = Math.max(1, thresholds.nearOutPx as number)
+        if (Number.isFinite(thresholds.farInPx as number)) farIn = Math.max(1, thresholds.farInPx as number)
+        if (Number.isFinite(thresholds.farOutPx as number)) farOut = Math.max(1, thresholds.farOutPx as number)
+
+        // Минимальные зазоры (px)
+        const gapNear = 5
+        const gapFar = 5
+
+        // Корректируем отношения: nearIn > nearOut ≥ farIn > farOut
+        // 1) farIn > farOut
+        if (!(farIn > farOut)) farIn = Math.max(farOut + gapFar, farOut + 1)
+        // 2) nearOut ≥ farIn
+        if (nearOut < farIn) nearOut = farIn
+        // 3) nearIn > nearOut
+        if (!(nearIn > nearOut)) nearIn = Math.max(nearOut + gapNear, nearOut + 1)
+
+        return ({
+          lodConfig: {
+            ...state.lodConfig,
+            nearInPx: nearIn,
+            nearOutPx: nearOut,
+            farInPx: farIn,
+            farOutPx: farOut,
+          }
+        })
+      })
     },
 
     // =====================
