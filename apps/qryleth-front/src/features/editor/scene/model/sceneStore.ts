@@ -23,6 +23,7 @@ import type { GfxBiome } from '@/entities/biome'
 import { normalizePrimitive, ensurePrimitiveNames } from '@/entities/primitive'
 import type { LightingSettings } from '@/entities/lighting'
 import { DEFAULT_LIGHTING_PRESET_KEY, getLightingPreset } from './lighting-presets'
+import { defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { materialRegistry } from '@/shared/lib/materials/MaterialRegistry'
 import type { GfxMaterial } from '@/entities/material'
@@ -121,19 +122,16 @@ const initialState: SceneStoreState = {
   shadowCameraHelperVisible: false,
 
   // LOD деревьев / размеры чанков
+  // ВАЖНО: инициализируем экранные пороги из defaultTreeLodConfig, чтобы UI по умолчанию
+  // соответствовал дефолтной конфигурации LOD из общего модуля. Это исключает
+  // рассогласования и «перетирание» дефолтов значениями UI.
   lodConfig: {
-    enabled: true,
-    // Диапазоны экранных порогов (px) синхронизированы с defaultTreeLodConfig,
-    // чтобы исключить рассогласования между редактором сцены и общими хуками LOD.
-    // Near LOD: дерево > 250px на экране (очень близко)
-    // Far LOD:  50–250px (средняя дистанция)
-    // Billboard: < 50px (очень далеко)
-    // Сужаем полосу фейда Near↔Far: 20px (210..230)
-    nearOutPx: 210,  // Near → Far, когда высота кроны < 210px
-    nearInPx: 230,   // Возврат к Near, когда ≥ 230px
-    // Сужаем полосу фейда Far↔Billboard: 20px (60..80) и оставляем LOD3 ближе
-    farOutPx: 60,    // Far → Billboard, когда < 60px
-    farInPx: 80,     // Возврат к Far, когда ≥ 80px
+    enabled: defaultTreeLodConfig.enabled ?? true,
+    nearOutPx: defaultTreeLodConfig.nearOutPx as number,
+    nearInPx: defaultTreeLodConfig.nearInPx as number,
+    farOutPx: defaultTreeLodConfig.farOutPx as number,
+    farInPx: defaultTreeLodConfig.farInPx as number,
+    // Размеры чанков — параметры UI, не входят в defaultTreeLodConfig
     leafChunkSize: 200,
     trunkChunkSize: 32,
   },
