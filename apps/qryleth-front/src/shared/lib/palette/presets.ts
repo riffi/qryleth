@@ -85,12 +85,37 @@ export const QRYLETH_ALIEN: GlobalPalette = {
 }
 
 /**
+ * Предустановленная палитра: Qryleth Azure (мягкие синие с лёгкой лавандой).
+ * Вся палитра — от белого до холодных оттенков.
+ * UUID должен оставаться стабильным.
+ */
+/** Мягкая сине-лавандовая палитра, чуть контрастнее; «зелень» ближе к синему. */
+export const QRYLETH_AZURE: GlobalPalette = {
+    uuid: 'azure',
+    name: 'Qryleth Azure',
+    colors: {
+        sky:    '#BED6FF', // чуть темнее небо для контраста
+        fog:    '#CCD5E6', // более холодный туман
+        water:  '#5F84CC', // глубже и насыщеннее
+        foliage:'#7FA9C8', // зелень с явным сдвигом к синему
+        wood:   '#8693A3', // холодный серо-синий «дерево»
+        rock:   '#98A3B6', // камень темнее, контрастнее
+        metal:  '#BFC7D5', // прохладный светлый металл
+        sand:   '#E7ECF5', // очень светлый холодный «наст/песок»
+        ground: '#8C98AD', // более тёмная промёрзшая почва
+        snow:   '#FFFFFF', // чистый белый
+        accent: '#6E73F2', // насыщённый лавандово-синий акцент
+    }
+}
+
+/**
  * Список предустановленных палитр, доступных без пользовательского CRUD.
  */
 export const PREDEFINED_GLOBAL_PALETTES: GlobalPalette[] = [
   QRYLETH_DEFAULT,
   QRYLETH_AUTUMN,
   QRYLETH_WINTER,
+  QRYLETH_AZURE,
   QRYLETH_ALIEN
 ]
 
