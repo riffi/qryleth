@@ -9,6 +9,38 @@ import { makeLeafPlaneGeometry } from '@/shared/r3f/leaves/makeLeafGeometry'
 import { useLeafTextures } from '@/shared/r3f/leaves/useLeafTextures'
 import { patchLeafMaterial } from '@/shared/r3f/leaves/patchLeafMaterial'
 
+/**
+ * Кеш базовых геометрий для переиспользования между всеми чанками.
+ * Создаются один раз при первом использовании и не удаляются до конца сессии.
+ * Это предотвращает утечку памяти при пересоздании чанков во время пересчета LOD.
+ */
+const geometryCache = {
+  leafPlane: null as THREE.BufferGeometry | null,
+  leafSphere: null as THREE.BufferGeometry | null,
+}
+
+/**
+ * Возвращает кешированную геометрию плоского листа (billboard).
+ * Создается один раз и переиспользуется всеми LeafBillboardChunkMesh.
+ */
+function getCachedLeafPlaneGeometry(): THREE.BufferGeometry {
+  if (!geometryCache.leafPlane) {
+    geometryCache.leafPlane = makeLeafPlaneGeometry()
+  }
+  return geometryCache.leafPlane
+}
+
+/**
+ * Возвращает кешированную геометрию сферического листа.
+ * Создается один раз и переиспользуется всеми LeafSphereChunkMesh.
+ */
+function getCachedLeafSphereGeometry(): THREE.BufferGeometry {
+  if (!geometryCache.leafSphere) {
+    geometryCache.leafSphere = new THREE.SphereGeometry(1, 12, 12)
+  }
+  return geometryCache.leafSphere
+}
+
 type LeafShape = 'texture'
 
 interface LeafPrimitiveLike {
@@ -174,16 +206,16 @@ const LeafSphereChunkMesh: React.FC<{
   }), [sample])
   const materialProps = useMemo(() => materialToThreePropsWithPalette(resolved, activePalette as any), [resolved, activePalette])
 
-  // Геометрия сферы 1x1, клонируем для индивидуального boundingSphere
-  const geometry = useMemo(() => new THREE.SphereGeometry(1, 12, 12).clone(), [])
+  // Клонируем кешированную базовую геометрию сферы для индивидуального boundingSphere каждого чанка
+  const geometry = useMemo(() => getCachedLeafSphereGeometry().clone(), [])
 
-  // Освобождаем геометрию/материал на размонтировании (утечки геометрий при смене чанка)
+  // Cleanup на unmount: освобождаем клон геометрии и материал
   useEffect(() => {
     return () => {
-      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { geometry.dispose() } catch {}
       try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
     }
-  }, [])
+  }, [geometry])
 
   // Заполняем матрицы и считаем boundingSphere
   useEffect(() => {
@@ -315,20 +347,17 @@ const LeafBillboardChunkMesh: React.FC<{
     () => (materialRef.current as any)?.userData?.uniforms,
   )
 
-  // Базовая геометрия и ее клон для корректного boundingSphere
-  const geometry = useMemo(() => {
-    const base = makeLeafPlaneGeometry()
-    const g = (base as any).clone?.() || base
-    return g as THREE.BufferGeometry
-  }, [])
+  // Клонируем кешированную базовую геометрию для индивидуальных инстансовых атрибутов (aFade, aLeafPaintMul)
+  // Каждый чанк должен иметь свою копию, чтобы атрибуты не конфликтовали между чанками
+  const geometry = useMemo(() => getCachedLeafPlaneGeometry().clone(), [])
 
-  // Cleanup на unmount: освобождаем только геометрию/материал (текстуры кэшируются отдельно)
+  // Cleanup на unmount: освобождаем клон геометрии и материал
   useEffect(() => {
     return () => {
-      try { (meshRef.current?.geometry as any)?.dispose?.() } catch {}
+      try { geometry.dispose() } catch {}
       try { ((meshRef.current?.material as any) as THREE.Material)?.dispose?.() } catch {}
     }
-  }, [])
+  }, [geometry])
 
   // Материал: патч шейдеров листвы
   const onMaterialRef = (mat: THREE.MeshStandardMaterial | null) => {
@@ -417,21 +446,34 @@ const LeafBillboardChunkMesh: React.FC<{
       maxR = Math.max(maxR, dHoriz)
     }
     meshRef.current.instanceMatrix.needsUpdate = true
-    // Пер‑инстансовый атрибут aFade
-    const arr = new Float32Array(fades)
-    geometry.setAttribute('aFade', new THREE.InstancedBufferAttribute(arr, 1))
+
+    // Пер‑инстансовый атрибут aFade - проверяем, существует ли уже, чтобы не пересоздавать без нужды
+    const existingFade = meshRef.current.geometry.getAttribute('aFade') as THREE.InstancedBufferAttribute | undefined
+    if (!existingFade || existingFade.count !== bucket.items.length) {
+      const arr = new Float32Array(fades)
+      meshRef.current.geometry.setAttribute('aFade', new THREE.InstancedBufferAttribute(arr, 1))
+    } else {
+      // Обновляем существующий атрибут
+      existingFade.set(fades)
+      existingFade.needsUpdate = true
+    }
+
     const centerY = (minY + maxY) * 0.5
     const vertRad = (maxY - minY) * 0.5
     let boundRad = Math.max(maxR, vertRad)
     boundRad *= 1.06 // небольшой запас против «пограничного» отсекающего мерцания
-    geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
-  }, [bucket.items, bucket.key.cx, bucket.key.cz, texAspect, anchorUV, scaleMul])
+    meshRef.current.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
+  }, [bucket.items, bucket.key.cx, bucket.key.cz, texAspect, anchorUV, scaleMul, fadeByUuid])
 
   // Инстансовый атрибут aLeafPaintMul для пер-листового разброса покраски (jitter)
   useEffect(() => {
     if (!meshRef.current) return
     const g = meshRef.current.geometry as THREE.BufferGeometry
+
+    // Проверяем, существует ли уже атрибут, чтобы не пересоздавать без нужды
+    const existingPaintMul = g.getAttribute('aLeafPaintMul') as THREE.InstancedBufferAttribute | undefined
     const arr = new Float32Array(bucket.items.length)
+
     for (let k = 0; k < bucket.items.length; k++) {
       const { sceneObject, primitive, instance } = bucket.items[k]
       const jitter = (sceneObject as any)?.treeData?.params?.leafTexturePaintJitter ?? 0
@@ -441,7 +483,14 @@ const LeafBillboardChunkMesh: React.FC<{
       const mul = 1 - Math.max(0, Math.min(1, jitter)) * rnd
       arr[k] = mul
     }
-    g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
+
+    if (!existingPaintMul || existingPaintMul.count !== bucket.items.length) {
+      g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
+    } else {
+      // Обновляем существующий атрибут
+      existingPaintMul.set(arr)
+      existingPaintMul.needsUpdate = true
+    }
   }, [bucket.items])
 
   const handleClick = (event: any) => {
