@@ -66,6 +66,10 @@ export interface TreeLodConfig {
   twoLevelOnly?: boolean
   /** Временный флаг: отключить фейд и смешивание между LOD — резкое переключение. */
   noBlend?: boolean
+  /** Ширина полосы фейда Near↔Far в пикселях (отдельно от гистерезиса). */
+  fadeWidthNearPx?: number
+  /** Ширина полосы фейда Far↔Billboard в пикселях (отдельно от гистерезиса). */
+  fadeWidthFarPx?: number
 }
 
 /**
@@ -98,6 +102,8 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   includeBranchesFar: false,
   twoLevelOnly: false,
   noBlend: false,
+  fadeWidthNearPx: 20,
+  fadeWidthFarPx: 20,
 }
 
 // Кешируем векторы для переиспользования
@@ -130,6 +136,9 @@ export function useSingleTreeLod(
   const lastCameraWorldRef = React.useRef(new THREE.Vector3())
   const frameCountRef = React.useRef(0)
   const [weights, setWeights] = React.useState({ near: 1, far: 0, bb: 0 })
+
+  // Стабильный класс по гистерезису (без учёта фейда)
+  const stableLodRef = React.useRef<'near' | 'far' | 'bb'>('near')
 
   useFrame((state) => {
     // Если LOD отключён глобально — всегда отдаём near и выходим
@@ -170,6 +179,12 @@ export function useSingleTreeLod(
     const nearOutD = toDist(cfg.nearOutPx)
     const farInD   = toDist(cfg.farInPx)
     const farOutD  = toDist(cfg.farOutPx)
+    const fadeNear = Math.max(0, cfg.fadeWidthNearPx ?? 0)
+    const fadeFar  = Math.max(0, cfg.fadeWidthFarPx ?? 0)
+    const nearFadeHalfD = toDist((cfg.nearOutPx || 0) + fadeNear * 0.5) // верхняя кромка (ближе)
+    const nearFadeLowD  = toDist(Math.max(1e-3, (cfg.nearOutPx || 0) - fadeNear * 0.5)) // нижняя кромка (дальше)
+    const farFadeLowD   = toDist(Math.max(1e-3, (cfg.farOutPx || 0) - fadeFar * 0.5))
+    const farFadeHighD  = toDist((cfg.farOutPx || 0) + fadeFar * 0.5)
 
     // Fallback к старым метровым порогам, если Px не заданы
     const nearDflt = cfg.nearDistance
@@ -179,40 +194,59 @@ export function useSingleTreeLod(
     // Вычисление весов
     let wNear = 0, wFar = 0, wBB = 0
 
-    if (cfg.twoLevelOnly && farInD && farOutD) {
-      // Режим 2 LOD
-      if (cfg.noBlend) {
-        // Жёсткое переключение без фейда: одна граница по farInD для обоих направлений.
-        // Это обеспечивает идентичное поведение во всех потребителях и исключает расхождения.
-        if (dist <= farInD) { wNear = 1 } else { wBB = 1 }
-      } else {
-        // Смешение по окну Far↔Billboard
-        if (dist <= farInD) {
-          wNear = 1
-        } else if (dist < farOutD) {
-          const t = (dist - farInD) / Math.max(1e-6, (farOutD - farInD))
-          wNear = 1 - t
-          wBB = t
-        } else {
-          wBB = 1
-        }
+    if (nearInD && nearOutD && farInD && farOutD) {
+      // 1) Сначала дискретное решение по гистерезису (без фейда)
+      let stable = stableLodRef.current
+      if (stable === 'near') {
+        if (dist >= (nearOutD || 0)) stable = 'far'
+      } else if (stable === 'far') {
+        if (dist <= (nearInD || 0)) stable = 'near'
+        else if (dist >= (farOutD || 0)) stable = 'bb'
+      } else { // 'bb'
+        if (dist <= (farInD || 0)) stable = 'far'
       }
-    } else if (nearInD && nearOutD && farInD && farOutD) {
-      // Полная схема 3 LOD
-      if (dist <= nearInD) {
-        wNear = 1
-      } else if (dist < nearOutD) {
-        const t = (dist - nearInD) / Math.max(1e-6, (nearOutD - nearInD))
-        wNear = 1 - t
-        wFar = t
-      } else if (dist <= farInD) {
-        wFar = 1
-      } else if (dist < farOutD) {
-        const t = (dist - farInD) / Math.max(1e-6, (farOutD - farInD))
-        wFar = 1 - t
-        wBB = t
+      stableLodRef.current = stable
+
+      // 2) Узкая полоса фейда — только вокруг активной границы
+      if (cfg.noBlend) {
+        // Режим без фейда: сразу отдаем стабильный класс
+        if (stable === 'near') wNear = 1
+        else if (stable === 'far') wFar = 1
+        else wBB = 1
       } else {
-        wBB = 1
+        if (stable === 'near') {
+          // Вблизи границы nearOut: near↔far фейд только в полосе fadeWidthNearPx
+          if (fadeNear > 0 && nearFadeLowD && nearFadeHalfD && dist > nearFadeLowD && dist < nearFadeHalfD) {
+            const t = (dist - nearFadeHalfD) / Math.max(1e-6, (nearFadeLowD - nearFadeHalfD))
+            wNear = 1 - t; wFar = t
+          } else {
+            wNear = 1
+          }
+        } else if (stable === 'far') {
+          // Две потенциальные границы для far: к near (nearIn) и к bb (farOut)
+          let blended = false
+          if (fadeNear > 0 && nearInD) {
+            const halfUpper = toDist(Math.max(1e-3, (cfg.nearInPx || 0) + fadeNear * 0.5))
+            const halfLower = toDist(Math.max(1e-3, (cfg.nearInPx || 0) - fadeNear * 0.5))
+            if (halfLower && halfUpper && dist > halfLower && dist < halfUpper) {
+              const t = (dist - halfLower) / Math.max(1e-6, (halfUpper - halfLower))
+              wNear = t; wFar = 1 - t; blended = true
+            }
+          }
+          if (!blended && fadeFar > 0 && farFadeLowD && farFadeHighD && dist > farFadeLowD && dist < farFadeHighD) {
+            const t = (dist - farFadeLowD) / Math.max(1e-6, (farFadeHighD - farFadeLowD))
+            wFar = 1 - t; wBB = t; blended = true
+          }
+          if (!blended) wFar = 1
+        } else { // stable === 'bb'
+          // Вблизи границы farIn: bb↔far фейд только в полосе fadeWidthFarPx
+          if (fadeFar > 0 && farFadeLowD && farFadeHighD && dist > farFadeLowD && dist < farFadeHighD) {
+            const t = 1 - (dist - farFadeLowD) / Math.max(1e-6, (farFadeHighD - farFadeLowD))
+            wFar = t; wBB = 1 - t
+          } else {
+            wBB = 1
+          }
+        }
       }
     } else {
       // Обратная совместимость: по метровым порогам (без двойного окна)
@@ -398,41 +432,61 @@ export function usePartitionInstancesByLod(
       const Spx = Hworld * (projK / d)
       const dist = 1 / Math.max(Spx, epsPx)
 
-      if (cfg.twoLevelOnly && farInD && farOutD) {
-        // 2 LOD: near ↔ billboard
+      if (nearInD && nearOutD && farInD && farOutD) {
+        // Раздельно: гистерезис + узкая полоса фейда
+        const fadeNear = Math.max(0, cfg.fadeWidthNearPx ?? 0)
+        const fadeFar  = Math.max(0, cfg.fadeWidthFarPx ?? 0)
+
+        // Границы полос фейда в dist-пространстве
+        const nearOutPx = cfg.nearOutPx || 0
+        const nearInPx  = cfg.nearInPx  || 0
+        const farOutPx  = cfg.farOutPx  || 0
+        const nearFadeHalfD = toDist(nearOutPx + fadeNear * 0.5)
+        const nearFadeLowD  = toDist(Math.max(1e-3, nearOutPx - fadeNear * 0.5))
+        const nearInLowD    = toDist(Math.max(1e-3, nearInPx - fadeNear * 0.5))
+        const nearInHighD   = toDist(nearInPx + fadeNear * 0.5)
+        const farFadeLowD   = toDist(Math.max(1e-3, farOutPx - fadeFar * 0.5))
+        const farFadeHighD  = toDist(farOutPx + fadeFar * 0.5)
+
+        const prev = prevClassRef.current[inst.uuid] || 'near'
+        let stable: 'near' | 'far' | 'bb' = prev
+        // Гистерезис: обновляем стабильный класс только при пересечении порогов
+        if (stable === 'near') {
+          if (dist >= (nearOutD || 0)) stable = 'far'
+        } else if (stable === 'far') {
+          if (dist <= (nearInD || 0)) stable = 'near'
+          else if (dist >= (farOutD || 0)) stable = 'bb'
+        } else { // bb
+          if (dist <= (farInD || 0)) stable = 'far'
+        }
+
         if (cfg.noBlend) {
-          // Без фейда и без гистерезиса: единый порог farInD
-          if (dist <= farInD) { nextNear.push(inst); nextClass[inst.uuid] = 'near' }
+          if (stable === 'near') { nextNear.push(inst); nextClass[inst.uuid] = 'near' }
+          else if (stable === 'far') { nextFar.push(inst); nextClass[inst.uuid] = 'far' }
           else { nextBB.push(inst); nextClass[inst.uuid] = 'bb' }
         } else {
-          if (dist <= farInD) {
-            nextNear.push(inst); nextClass[inst.uuid] = 'near'
-          } else if (dist < farOutD) {
-            const t = Math.min(1, Math.max(0, (dist - farInD) / Math.max(1e-6, (farOutD - farInD))))
-            nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t
-          } else {
-            nextBB.push(inst); nextClass[inst.uuid] = 'bb'
+          if (stable === 'near') {
+            if (fadeNear > 0 && nearFadeLowD && nearFadeHalfD && dist > nearFadeLowD && dist < nearFadeHalfD) {
+              const t = (dist - nearFadeHalfD) / Math.max(1e-6, (nearFadeLowD - nearFadeHalfD))
+              nextNF.push({ inst, t }); nextClass[inst.uuid] = 'nf'; nextBlend[inst.uuid] = t
+            } else { nextNear.push(inst); nextClass[inst.uuid] = 'near' }
+          } else if (stable === 'far') {
+            let blended = false
+            if (fadeNear > 0 && nearInLowD && nearInHighD && dist > nearInLowD && dist < nearInHighD) {
+              const t = (dist - nearInLowD) / Math.max(1e-6, (nearInHighD - nearInLowD))
+              nextNF.push({ inst, t }); nextClass[inst.uuid] = 'nf'; nextBlend[inst.uuid] = t; blended = true
+            }
+            if (!blended && fadeFar > 0 && farFadeLowD && farFadeHighD && dist > farFadeLowD && dist < farFadeHighD) {
+              const t = (dist - farFadeLowD) / Math.max(1e-6, (farFadeHighD - farFadeLowD))
+              nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t; blended = true
+            }
+            if (!blended) { nextFar.push(inst); nextClass[inst.uuid] = 'far' }
+          } else { // bb
+            if (fadeFar > 0 && farFadeLowD && farFadeHighD && dist > farFadeLowD && dist < farFadeHighD) {
+              const t = 1 - (dist - farFadeLowD) / Math.max(1e-6, (farFadeHighD - farFadeLowD))
+              nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t
+            } else { nextBB.push(inst); nextClass[inst.uuid] = 'bb' }
           }
-        }
-      } else if (nearInD && nearOutD && farInD && farOutD) {
-        // ИСПРАВЛЕНО: Восстановлена полная логика с переходами Far↔Billboard
-        if (dist <= nearInD) {
-          // Близко: чистый Near LOD
-          nextNear.push(inst); nextClass[inst.uuid] = 'near'
-        } else if (dist < nearOutD) {
-          // Переход Near → Far
-          const t = Math.min(1, Math.max(0, (dist - nearInD) / Math.max(1e-6, (nearOutD - nearInD))))
-          nextNF.push({ inst, t }); nextClass[inst.uuid] = 'nf'; nextBlend[inst.uuid] = t
-        } else if (dist <= farInD) {
-          // Средняя дистанция: чистый Far LOD
-          nextFar.push(inst); nextClass[inst.uuid] = 'far'
-        } else if (dist < farOutD) {
-          // Переход Far → Billboard
-          const t = Math.min(1, Math.max(0, (dist - farInD) / Math.max(1e-6, (farOutD - farInD))))
-          nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t
-        } else {
-          // Очень далеко: чистый Billboard
-          nextBB.push(inst); nextClass[inst.uuid] = 'bb'
         }
       } else {
         // Fallback к старым порогам (метры)

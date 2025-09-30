@@ -128,11 +128,12 @@ const initialState: SceneStoreState = {
     // Near LOD: дерево > 250px на экране (очень близко)
     // Far LOD:  50–250px (средняя дистанция)
     // Billboard: < 50px (очень далеко)
-    nearOutPx: 200,  // Near → Far, когда высота кроны < 200px
-    nearInPx: 250,   // Возврат к Near, когда ≥ 250px
-    // Сужаем пороги LOD3 (билбордов), чтобы включались ближе к камере
+    // Сужаем полосу фейда Near↔Far: 20px (210..230)
+    nearOutPx: 210,  // Near → Far, когда высота кроны < 210px
+    nearInPx: 230,   // Возврат к Near, когда ≥ 230px
+    // Сужаем полосу фейда Far↔Billboard: 20px (60..80) и оставляем LOD3 ближе
     farOutPx: 60,    // Far → Billboard, когда < 60px
-    farInPx: 100,    // Возврат к Far, когда ≥ 100px
+    farInPx: 80,     // Возврат к Far, когда ≥ 80px
     leafChunkSize: 200,
     trunkChunkSize: 32,
   },
