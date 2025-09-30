@@ -62,6 +62,10 @@ export interface TreeLodConfig {
   nearTrunkRadialSegments: number
   farTrunkRadialSegments: number
   includeBranchesFar: boolean
+  /** Временный режим: только 2 LOD (near/billboard) с переходом между ними. */
+  twoLevelOnly?: boolean
+  /** Временный флаг: отключить фейд и смешивание между LOD — резкое переключение. */
+  noBlend?: boolean
 }
 
 /**
@@ -80,8 +84,9 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   // Billboard: дерево < 50px (очень далеко)
   nearOutPx: 200,  // Near → Far когда дерево < 200px
   nearInPx: 250,   // Возврат к Near когда > 250px
-  farOutPx: 50,    // Far → Billboard когда < 30px
-  farInPx: 70,     // Возврат к Far когда > 50px
+  // Сужаем пороги LOD3 (ближе к камере)
+  farOutPx: 60,    // Far → Billboard когда < 60px
+  farInPx: 100,    // Возврат к Far когда > 100px
   epsilonPx: 1,
   approximateTreeHeightWorld: 10,
 
@@ -91,6 +96,8 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   nearTrunkRadialSegments: 12,
   farTrunkRadialSegments: 8,
   includeBranchesFar: false,
+  twoLevelOnly: false,
+  noBlend: false,
 }
 
 // Кешируем векторы для переиспользования
@@ -172,8 +179,26 @@ export function useSingleTreeLod(
     // Вычисление весов
     let wNear = 0, wFar = 0, wBB = 0
 
-    if (nearInD && nearOutD && farInD && farOutD) {
-      // near зона
+    if (cfg.twoLevelOnly && farInD && farOutD) {
+      // Режим 2 LOD
+      if (cfg.noBlend) {
+        // Жёсткое переключение без фейда: одна граница по farInD для обоих направлений.
+        // Это обеспечивает идентичное поведение во всех потребителях и исключает расхождения.
+        if (dist <= farInD) { wNear = 1 } else { wBB = 1 }
+      } else {
+        // Смешение по окну Far↔Billboard
+        if (dist <= farInD) {
+          wNear = 1
+        } else if (dist < farOutD) {
+          const t = (dist - farInD) / Math.max(1e-6, (farOutD - farInD))
+          wNear = 1 - t
+          wBB = t
+        } else {
+          wBB = 1
+        }
+      }
+    } else if (nearInD && nearOutD && farInD && farOutD) {
+      // Полная схема 3 LOD
       if (dist <= nearInD) {
         wNear = 1
       } else if (dist < nearOutD) {
@@ -308,8 +333,9 @@ export function usePartitionInstancesByLod(
       }
     const camera = state.camera as THREE.PerspectiveCamera
 
-    // ОПТИМИЗАЦИЯ: Throttling - пересчёт LOD не чаще раза в 3 кадра
-    const LOD_UPDATE_THROTTLE = 3
+    // ОПТИМИЗАЦИЯ: Throttling — в режиме отладки (twoLevelOnly/noBlend)
+    // пересчитываем чаще, чтобы исключить «залипание» состояний.
+    const LOD_UPDATE_THROTTLE = (cfg.twoLevelOnly || cfg.noBlend) ? 1 : 3
     const framesSinceLastUpdate = frameCountRef.current - lastLodUpdateFrameRef.current
 
     // Оценка движения камеры (достаточно заметная смена позиции)
@@ -327,10 +353,13 @@ export function usePartitionInstancesByLod(
 
     // Если камера не движется, но было движение в окне троттлинга — всё равно пересчитаем один раз.
     if (!camMoved && !hadMovementWhileThrottledRef.current) {
-      // В качестве дополнительной страховки: редкий пересчёт каждые ~30 кадров,
-      // чтобы учесть внешние изменения (например, изменение размеров вьюпорта).
-      const RARE_RECALC_PERIOD = 30
-      if (framesSinceLastUpdate < RARE_RECALC_PERIOD) return
+      // В режиме отладки (twoLevelOnly/noBlend) — не ждём движения, пересчитываем всегда
+      if (!(cfg.twoLevelOnly || cfg.noBlend)) {
+        // В качестве дополнительной страховки: редкий пересчёт каждые ~30 кадров,
+        // чтобы учесть внешние изменения (например, изменение размеров вьюпорта).
+        const RARE_RECALC_PERIOD = 30
+        if (framesSinceLastUpdate < RARE_RECALC_PERIOD) return
+      }
     }
 
     // Фиксируем текущую позицию камеры и момент обновления
@@ -369,7 +398,23 @@ export function usePartitionInstancesByLod(
       const Spx = Hworld * (projK / d)
       const dist = 1 / Math.max(Spx, epsPx)
 
-      if (nearInD && nearOutD && farInD && farOutD) {
+      if (cfg.twoLevelOnly && farInD && farOutD) {
+        // 2 LOD: near ↔ billboard
+        if (cfg.noBlend) {
+          // Без фейда и без гистерезиса: единый порог farInD
+          if (dist <= farInD) { nextNear.push(inst); nextClass[inst.uuid] = 'near' }
+          else { nextBB.push(inst); nextClass[inst.uuid] = 'bb' }
+        } else {
+          if (dist <= farInD) {
+            nextNear.push(inst); nextClass[inst.uuid] = 'near'
+          } else if (dist < farOutD) {
+            const t = Math.min(1, Math.max(0, (dist - farInD) / Math.max(1e-6, (farOutD - farInD))))
+            nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t
+          } else {
+            nextBB.push(inst); nextClass[inst.uuid] = 'bb'
+          }
+        }
+      } else if (nearInD && nearOutD && farInD && farOutD) {
         // ИСПРАВЛЕНО: Восстановлена полная логика с переходами Far↔Billboard
         if (dist <= nearInD) {
           // Близко: чистый Near LOD

@@ -177,7 +177,8 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
           nearOutPx: lodCfgScene.nearOutPx,
           farInPx: lodCfgScene.farInPx,
           farOutPx: lodCfgScene.farOutPx,
-          approximateTreeHeightWorld: 10,
+          // Полная схема LOD с near↔far↔billboard
+          approximateTreeHeightWorld: 18,
           nearDistance: 30,
           farDistance: 50,
           billboardDistance: 70,

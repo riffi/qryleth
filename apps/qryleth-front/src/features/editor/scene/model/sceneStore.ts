@@ -130,8 +130,9 @@ const initialState: SceneStoreState = {
     // Billboard: < 50px (очень далеко)
     nearOutPx: 200,  // Near → Far, когда высота кроны < 200px
     nearInPx: 250,   // Возврат к Near, когда ≥ 250px
-    farOutPx: 30,    // Far → Billboard, когда < 30px
-    farInPx: 50,     // Возврат к Far, когда ≥ 50px
+    // Сужаем пороги LOD3 (билбордов), чтобы включались ближе к камере
+    farOutPx: 60,    // Far → Billboard, когда < 60px
+    farInPx: 100,    // Возврат к Far, когда ≥ 100px
     leafChunkSize: 200,
     trunkChunkSize: 32,
   },

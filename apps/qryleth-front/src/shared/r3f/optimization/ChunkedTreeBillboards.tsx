@@ -52,7 +52,10 @@ export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ ob
     nearOutPx: lodCfg.nearOutPx,
     farInPx: lodCfg.farInPx,
     farOutPx: lodCfg.farOutPx,
-    approximateTreeHeightWorld: 10,
+    // Полная схема LOD с near↔far↔billboard
+    // Синхронизировано с ChunkedInstancedLeaves: используем ту же высоту,
+    // чтобы решения near/billboard совпадали в кадре
+    approximateTreeHeightWorld: 18,
     nearDistance: 30,
     farDistance: 50,
     billboardDistance: 70,

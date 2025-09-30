@@ -528,6 +528,10 @@ const LeafBillboardChunkMeshImpl: React.FC<{
       maxR = Math.max(maxR, dHoriz)
     }
     meshRef.current.instanceMatrix.needsUpdate = true
+    // ВАЖНО: обновляем количество инстансов для отрисовки, чтобы соответствовать длине bucket.items
+    // Это устраняет случай, когда InstancedMesh был создан с нулевым/другим количеством
+    // и оставался «пустым» после появления элементов без ремаута.
+    try { (meshRef.current as any).count = bucket.items.length } catch {}
 
     // Пер‑инстансовый атрибут aFade - проверяем, существует ли уже, чтобы не пересоздавать без нужды
     const existingFade = meshRef.current.geometry.getAttribute('aFade') as THREE.InstancedBufferAttribute | undefined
@@ -604,7 +608,8 @@ const LeafBillboardChunkMeshImpl: React.FC<{
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
       visible={visible}
-      frustumCulled={true}
+      // В отладочном режиме отключаем фрустум‑куллинг, чтобы исключить ошибки границ
+      frustumCulled={false}
       castShadow
       onClick={handleClick}
       onPointerOver={handleHover}
@@ -644,8 +649,10 @@ const LeafBillboardChunkMesh = React.memo(LeafBillboardChunkMeshImpl, (prev, nex
     prev.visible === next.visible &&
     prev.onClick === next.onClick &&
     prev.onHover === next.onHover &&
-    keyToString(prev.bucket.key) === keyToString(next.bucket.key)
-    // bucket.items и fadeByUuid НЕ сравниваем - они обновляются через ref
+    keyToString(prev.bucket.key) === keyToString(next.bucket.key) &&
+    // РАЗРЕШАЕМ перерендер, когда меняется количество элементов/карта фейдов.
+    prev.bucket.items.length === next.bucket.items.length &&
+    ((prev.fadeByUuid?.size || 0) === (next.fadeByUuid?.size || 0))
   )
 })
 
@@ -699,7 +706,10 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
     nearOutPx: lodCfg.nearOutPx,
     farInPx: lodCfg.farInPx,
     farOutPx: lodCfg.farOutPx,
-    approximateTreeHeightWorld: 10,
+    // Полная схема LOD с near↔far↔billboard
+    // Временная отладка: увеличиваем аппроксимацию высоты дерева,
+    // чтобы переход к near происходил раньше при приближении
+    approximateTreeHeightWorld: 18,
     nearDistance: 30,
     farDistance: 50,
     billboardDistance: 70,
