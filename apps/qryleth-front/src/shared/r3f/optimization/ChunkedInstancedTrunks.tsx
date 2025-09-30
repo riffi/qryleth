@@ -29,13 +29,19 @@ function keyOf(k: ChunkKey): string { return `${k.cx}|${k.cz}|${k.objectUuid}|${
 /**
  * Проверяет полную видимость инстанса: слой, объект, инстанс.
  */
-function isInstanceVisible(instance: SceneObjectInstance, object: SceneObject, layers: SceneLayer[]): boolean {
+function isInstanceVisible(
+  instance: SceneObjectInstance,
+  object: SceneObject,
+  layers: SceneLayer[],
+  hiddenBiomeUuids?: Set<string>,
+): boolean {
   const layerId = object.layerId || 'objects'
   const layer = layers.find(l => l.id === layerId)
   const isLayerVisible = layer ? layer.visible : true
   const isObjectVisible = object.visible !== false
   const isInstanceVisible = instance.visible !== false
-  return isLayerVisible && isObjectVisible && isInstanceVisible
+  const biomeVisible = !instance.biomeUuid || !(hiddenBiomeUuids && hiddenBiomeUuids.has(instance.biomeUuid))
+  return isLayerVisible && isObjectVisible && isInstanceVisible && biomeVisible
 }
 
 /**
@@ -97,12 +103,14 @@ export const ChunkedInstancedTrunks: React.FC<{
   const objectsById = useMemo(() => new Map(objects.map(o => [o.uuid, o])), [objects])
 
   // Собираем стволы (mesh) только у объектов с treeData.params
+  const biomes = useSceneStore(s => s.biomes)
+  const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
   const trunkItems = useMemo<TrunkItem[]>(() => {
     const out: TrunkItem[] = []
     for (const inst of instances) {
       const obj = objectsById.get(inst.objectUuid)
       if (!obj) continue
-      if (!isInstanceVisible(inst, obj, layers)) continue
+      if (!isInstanceVisible(inst, obj, layers, hiddenBiomeUuids)) continue
       if (!(obj as any)?.treeData?.params) continue
       for (const p of (obj.primitives || [])) {
         if (p.type !== 'mesh') continue
@@ -110,7 +118,7 @@ export const ChunkedInstancedTrunks: React.FC<{
       }
     }
     return out
-  }, [instances, objectsById, layers])
+  }, [instances, objectsById, layers, hiddenBiomeUuids])
 
   // Бакетизация по чанкам + objectUuid (геометрия ствола специфична для объекта)
   const buckets = useMemo(() => {

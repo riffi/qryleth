@@ -209,6 +209,9 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
   onClick,
   onHover
 }) => {
+  // Набор скрытых биомов: инстансы, привязанные к ним (biomeUuid), не отображаются
+  const biomes = useSceneStore(s => s.biomes)
+  const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
   const instanceCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     instances.forEach((inst) => {
@@ -233,7 +236,9 @@ export const InstancedObjects: React.FC<InstancedObjectsProps> = ({
     // Check instance visibility
     const isInstanceVisibleFlag = instance.visible !== false
 
-    return isLayerVisible && isObjectVisible && isInstanceVisibleFlag
+    // Biome visibility: скрытый биом скрывает все его инстансы
+    const biomeVisible = !instance.biomeUuid || !hiddenBiomeUuids.has(instance.biomeUuid)
+    return isLayerVisible && isObjectVisible && isInstanceVisibleFlag && biomeVisible
   }
 
   // Group object instances by object type for instancing

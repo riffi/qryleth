@@ -28,6 +28,9 @@ export const SceneObjects: React.FC = () => {
   const lodConfig = useSceneStore(s => s.lodConfig)
 
   const sceneEvents = useSceneEvents()
+  // Скрытые биомы: инстансы, привязанные к ним, не отображаются
+  const biomes = useSceneStore(s => s.biomes)
+  const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
 
   // Calculate instance counts for optimization
   const instanceCounts = useMemo(() => {
@@ -124,9 +127,11 @@ export const SceneObjects: React.FC = () => {
         const isLayerVisible = layer ? layer.visible : true
 
         // Check complete visibility (layer, object, instance)
+        const isBiomeVisible = !instance.biomeUuid || !hiddenBiomeUuids.has(instance.biomeUuid)
         const isCompletelyVisible = isLayerVisible &&
                                    (sceneObject.visible !== false) &&
-                                   (instance.visible !== false)
+                                   (instance.visible !== false) &&
+                                   isBiomeVisible
 
         // Don't render hidden objects at all to exclude them from ray casting
         if (!isCompletelyVisible) {

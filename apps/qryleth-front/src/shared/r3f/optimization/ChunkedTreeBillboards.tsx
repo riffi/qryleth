@@ -39,10 +39,14 @@ export interface ChunkedTreeBillboardsProps {
 export const ChunkedTreeBillboards: React.FC<ChunkedTreeBillboardsProps> = ({ objects, instances, layers, chunkSize = 32, onClick, onHover }) => {
   const paletteUuid = useSceneStore(s => s.environmentContent?.paletteUuid || 'default')
   const objectsById = useMemo(() => new Map(objects.map(o => [o.uuid, o])), [objects])
+  const biomes = useSceneStore(s => s.biomes)
+  const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
   const visibleInstances = useMemo(() => instances.filter(inst => {
     const obj = objectsById.get(inst.objectUuid)
-    return !!obj && isInstanceVisible(inst, obj, layers)
-  }), [instances, objectsById, layers])
+    if (!obj) return false
+    if (inst.biomeUuid && hiddenBiomeUuids.has(inst.biomeUuid)) return false
+    return isInstanceVisible(inst, obj, layers)
+  }), [instances, objectsById, layers, hiddenBiomeUuids])
 
   // Разделяем по LOD и забираем billboard‑инстансы (solid) и зону Far↔Billboard (с t)
   const lodCfg = useSceneStore(s => s.lodConfig)

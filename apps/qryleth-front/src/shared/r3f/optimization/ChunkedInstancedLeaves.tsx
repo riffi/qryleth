@@ -88,13 +88,19 @@ function keyToString(k: AnyKey): string {
 /**
  * Возвращает true, если инстанс видим полностью по слоям/видимости объекта/инстанса.
  */
-function isInstanceCompletelyVisible(instance: SceneObjectInstance, sceneObject: SceneObject, layers: SceneLayer[]): boolean {
+function isInstanceCompletelyVisible(
+  instance: SceneObjectInstance,
+  sceneObject: SceneObject,
+  layers: SceneLayer[],
+  hiddenBiomeUuids?: Set<string>,
+): boolean {
   const layerId = sceneObject.layerId || 'objects'
   const layer = layers.find(l => l.id === layerId)
   const isLayerVisible = layer ? layer.visible : true
   const isObjectVisible = sceneObject.visible !== false
   const isInstanceVisible = instance.visible !== false
-  return isLayerVisible && isObjectVisible && isInstanceVisible
+  const biomeVisible = !instance.biomeUuid || !(hiddenBiomeUuids && hiddenBiomeUuids.has(instance.biomeUuid))
+  return isLayerVisible && isObjectVisible && isInstanceVisible && biomeVisible
 }
 
 /**
@@ -691,14 +697,16 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
     }
     return s
   }, [objects])
+  const biomes = useSceneStore(s => s.biomes)
+  const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
   const visibleInstances = useMemo(() => {
     return instances.filter(inst => {
       if (!hasLeavesObjectIds.has(inst.objectUuid)) return false
       const obj = objectsById.get(inst.objectUuid)
       if (!obj) return false
-      return isInstanceCompletelyVisible(inst, obj, layers)
+      return isInstanceCompletelyVisible(inst, obj, layers, hiddenBiomeUuids)
     })
-  }, [instances, objectsById, layers, hasLeavesObjectIds])
+  }, [instances, objectsById, layers, hasLeavesObjectIds, hiddenBiomeUuids])
 
   // Разделяем инстансы на near/far по дистанции (общий LOD для всех деревьев)
   // Конфигурация LOD c экрана — берём из zustand-стора сцены
