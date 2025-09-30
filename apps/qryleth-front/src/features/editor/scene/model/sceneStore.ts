@@ -123,11 +123,14 @@ const initialState: SceneStoreState = {
   // LOD деревьев / размеры чанков
   lodConfig: {
     enabled: true,
-    // Пороги по умолчанию синхронизированы с defaultTreeLodConfig
-    nearOutPx: 200,
-    nearInPx: 250,
-    farOutPx: 70,
-    farInPx: 90,
+    // ИСПРАВЛЕНО: Настроены широкие диапазоны для покрытия всех дистанций
+    // Near LOD: дерево > 250px на экране (очень близко)
+    // Far LOD: дерево 50-250px (средняя дистанция)
+    // Billboard: дерево < 50px (очень далеко)
+    nearOutPx: 230,  // Near → Far когда дерево < 200px
+    nearInPx: 200,   // Возврат к Near когда > 250px
+    farOutPx: 50,    // Far → Billboard когда < 30px
+    farInPx: 30,     // Возврат к Far когда > 50px
     leafChunkSize: 200,
     trunkChunkSize: 32,
   },

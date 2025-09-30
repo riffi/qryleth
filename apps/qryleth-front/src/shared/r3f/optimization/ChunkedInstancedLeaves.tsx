@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
@@ -309,15 +310,20 @@ const LeafSphereChunkMesh: React.FC<{
  * Компонент‑меш для одного чанка плоских листьев (billboard/coniferCross/texture).
  * Загружает карты для текстурного режима, применяет patchLeafMaterial и формирует матрицы.
  */
-const LeafBillboardChunkMesh: React.FC<{
+const LeafBillboardChunkMeshImpl: React.FC<{
   bucket: ChunkBucket & { key: BillboardKey }
   paletteUuid: string
   scaleMul?: number
   fadeByUuid?: Map<string, number>
+  visible?: boolean
   onClick?: (e: any) => void
   onHover?: (e: any) => void
-}> = ({ bucket, paletteUuid, scaleMul = 1, fadeByUuid, onClick, onHover }) => {
+}> = ({ bucket, paletteUuid, scaleMul = 1, fadeByUuid, visible = true, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
+  const bucketRef = useRef(bucket)
+
+  // Обновляем ref при изменении bucket, но не вызываем перерендер
+  bucketRef.current = bucket
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   const sample = bucket.items[0]
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
@@ -376,9 +382,60 @@ const LeafBillboardChunkMesh: React.FC<{
     })
   }
 
-  // Вычисляем матрицы и boundingSphere
-  useEffect(() => {
-    if (!meshRef.current) return
+  // Отслеживаем последние обработанные items и параметры
+  const lastProcessedRef = useRef<{
+    items: LeafItem[]
+    itemsLength: number
+    scaleMul: number
+    texAspect: number
+    anchorUV0: number
+    anchorUV1: number
+    fadeByUuid?: Map<string, number>
+  }>({
+    items: [],
+    itemsLength: 0,
+    scaleMul: 1,
+    texAspect: 1,
+    anchorUV0: 0.5,
+    anchorUV1: 1.0,
+  })
+  const fadeByUuidRef = useRef(fadeByUuid)
+  fadeByUuidRef.current = fadeByUuid
+
+  // Вычисляем матрицы и boundingSphere только при изменении данных
+  useFrame(() => {
+    // Ранний выход для невидимых компонентов (не делаем никаких проверок)
+    if (!visible || !meshRef.current) return
+    const bucket = bucketRef.current
+
+    // ИСПРАВЛЕНО: Ранний выход если нет элементов (пустой blend-массив)
+    if (!bucket.items || bucket.items.length === 0) return
+
+    // Проверяем, изменились ли items или параметры
+    const last = lastProcessedRef.current
+    const itemsChanged = (
+      last.items !== bucket.items ||
+      last.itemsLength !== bucket.items.length ||
+      last.scaleMul !== (scaleMul || 1) ||
+      last.texAspect !== (texAspect || 1) ||
+      last.anchorUV0 !== (anchorUV?.[0] ?? 0.5) ||
+      last.anchorUV1 !== (anchorUV?.[1] ?? 1.0) ||
+      last.fadeByUuid !== fadeByUuidRef.current
+    )
+
+    if (!itemsChanged) return // Пропускаем, если ничего не изменилось
+
+    // Сохраняем текущее состояние
+    lastProcessedRef.current = {
+      items: bucket.items,
+      itemsLength: bucket.items.length,
+      scaleMul: scaleMul || 1,
+      texAspect: texAspect || 1,
+      anchorUV0: anchorUV?.[0] ?? 0.5,
+      anchorUV1: anchorUV?.[1] ?? 1.0,
+      fadeByUuid: fadeByUuidRef.current,
+    }
+
     const dummy = new THREE.Object3D()
     let minY = Number.POSITIVE_INFINITY
     let maxY = Number.NEGATIVE_INFINITY
@@ -433,10 +490,12 @@ const LeafBillboardChunkMesh: React.FC<{
       dummy.scale.set(sx, sy, sz)
       dummy.updateMatrix()
       meshRef.current.setMatrixAt(k, dummy.matrix)
-      // Фейд: если передан fadeByUuid, берём по uuid инстанса
+      // ИСПРАВЛЕНО: Фейд с более корректной обработкой
+      // Если fadeByUuid передан, берём значение по uuid инстанса
+      // Если значения нет в мапе, используем 1 (полная видимость)
       const uuid = instance.uuid
-      const f = fadeByUuid?.get(uuid)
-      fades[k] = (f == null ? 1 : Math.max(0, Math.min(1, f)))
+      const fadeValue = fadeByUuidRef.current?.get(uuid)
+      fades[k] = fadeValue !== undefined ? Math.max(0, Math.min(1, fadeValue)) : 1
 
       // После возможного anchor‑смещения используем фактическую Y‑позицию dummy
       const y = dummy.position.y
@@ -461,18 +520,15 @@ const LeafBillboardChunkMesh: React.FC<{
     const centerY = (minY + maxY) * 0.5
     const vertRad = (maxY - minY) * 0.5
     let boundRad = Math.max(maxR, vertRad)
-    boundRad *= 1.06 // небольшой запас против «пограничного» отсекающего мерцания
+    // ИСПРАВЛЕНО: Увеличен запас для billboards, которые поворачиваются к камере
+    // При повороте billboard эффективный радиус может увеличиться до √2 ≈ 1.41
+    boundRad *= 1.5 // было 1.06 - увеличено для предотвращения culling при поворотах
     meshRef.current.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, centerY, 0), boundRad)
-  }, [bucket.items, bucket.key.cx, bucket.key.cz, texAspect, anchorUV, scaleMul, fadeByUuid])
 
-  // Инстансовый атрибут aLeafPaintMul для пер-листового разброса покраски (jitter)
-  useEffect(() => {
-    if (!meshRef.current) return
+    // Обновляем aLeafPaintMul
     const g = meshRef.current.geometry as THREE.BufferGeometry
-
-    // Проверяем, существует ли уже атрибут, чтобы не пересоздавать без нужды
     const existingPaintMul = g.getAttribute('aLeafPaintMul') as THREE.InstancedBufferAttribute | undefined
-    const arr = new Float32Array(bucket.items.length)
+    const arrPaint = new Float32Array(bucket.items.length)
 
     for (let k = 0; k < bucket.items.length; k++) {
       const { sceneObject, primitive, instance } = bucket.items[k]
@@ -481,17 +537,16 @@ const LeafBillboardChunkMesh: React.FC<{
       const instUuid = (instance as any)?.uuid || String(k)
       const rnd = hashToUnit(String(instUuid + '/' + primUuid))
       const mul = 1 - Math.max(0, Math.min(1, jitter)) * rnd
-      arr[k] = mul
+      arrPaint[k] = mul
     }
 
     if (!existingPaintMul || existingPaintMul.count !== bucket.items.length) {
-      g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arr, 1))
+      g.setAttribute('aLeafPaintMul', new THREE.InstancedBufferAttribute(arrPaint, 1))
     } else {
-      // Обновляем существующий атрибут
-      existingPaintMul.set(arr)
+      existingPaintMul.set(arrPaint)
       existingPaintMul.needsUpdate = true
     }
-  }, [bucket.items])
+  })
 
   const handleClick = (event: any) => {
     if (!onClick) return
@@ -525,6 +580,7 @@ const LeafBillboardChunkMesh: React.FC<{
       ref={meshRef}
       args={[geometry as any, undefined as any, bucket.items.length]}
       position={[bucket.key.cx, 0, bucket.key.cz]}
+      visible={visible}
       frustumCulled={true}
       castShadow
       onClick={handleClick}
@@ -547,6 +603,24 @@ const LeafBillboardChunkMesh: React.FC<{
     </instancedMesh>
   )
 }
+
+/**
+ * Мемоизированная версия LeafBillboardChunkMesh.
+ * Компонент НЕ перерендеривается при изменении bucket.items - только при изменении ключа или видимости.
+ * Это устраняет мерцание при пересчете LOD.
+ */
+const LeafBillboardChunkMesh = React.memo(LeafBillboardChunkMeshImpl, (prev, next) => {
+  // Перерендер только если изменились критичные пропсы
+  return (
+    prev.paletteUuid === next.paletteUuid &&
+    prev.scaleMul === next.scaleMul &&
+    prev.visible === next.visible &&
+    prev.onClick === next.onClick &&
+    prev.onHover === next.onHover &&
+    keyToString(prev.bucket.key) === keyToString(next.bucket.key)
+    // bucket.items и fadeByUuid НЕ сравниваем - они обновляются через ref
+  )
+})
 
 // Примечание: очистка ресурсов происходит внутри компонентов LeafSphereChunkMesh/LeafBillboardChunkMesh
 
@@ -631,6 +705,81 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
   const farBlendBuckets = useMemo(() => bucketizeByChunks(farBlendItems, chunkSize), [farBlendItems, chunkSize])
   const farOutBuckets = useMemo(() => bucketizeByChunks(farOutItems, chunkSize), [farOutItems, chunkSize])
 
+  // Стабильная Map чанков - сохраняет ссылки на объекты между рендерами
+  const allBucketsUnifiedRef = React.useRef(new Map<string, {
+    key: AnyKey
+    nearItems?: LeafItem[]
+    nearBlendItems?: LeafItem[]
+    farBlendItems?: LeafItem[]
+    farItems?: LeafItem[]
+    farOutItems?: LeafItem[]
+    nearBlendFade?: Map<string, number>
+    farBlendFade?: Map<string, number>
+    farOutFade?: Map<string, number>
+  }>())
+
+  // Обновляем содержимое стабильной Map (объекты unified НЕ пересоздаются, только обновляются)
+  const allBucketsUnified = useMemo(() => {
+    const map = allBucketsUnifiedRef.current
+
+    // Удаляем чанки, которых больше нет
+    const allCurrentKeys = new Set<string>()
+    const collectKeys = (buckets: Map<string, ChunkBucket>) => {
+      for (const ks of buckets.keys()) allCurrentKeys.add(ks)
+    }
+    collectKeys(nearBuckets)
+    collectKeys(nearBlendBuckets)
+    collectKeys(farBlendBuckets)
+    collectKeys(farBuckets)
+    collectKeys(farOutBuckets)
+
+    for (const ks of map.keys()) {
+      if (!allCurrentKeys.has(ks)) map.delete(ks)
+    }
+
+    // Обновляем/добавляем чанки
+    const addToBucket = (buckets: Map<string, ChunkBucket>, type: 'near' | 'nearBlend' | 'farBlend' | 'far' | 'farOut') => {
+      for (const [ks, bucket] of buckets.entries()) {
+        if (!map.has(ks)) {
+          map.set(ks, { key: bucket.key })
+        }
+        const unified = map.get(ks)!
+        // Обновляем key на случай изменений
+        unified.key = bucket.key
+        // Обновляем items для соответствующего LOD-уровня
+        if (type === 'near') unified.nearItems = bucket.items
+        else if (type === 'nearBlend') unified.nearBlendItems = bucket.items
+        else if (type === 'farBlend') unified.farBlendItems = bucket.items
+        else if (type === 'far') unified.farItems = bucket.items
+        else if (type === 'farOut') unified.farOutItems = bucket.items
+      }
+    }
+
+    // Сбрасываем все items перед обновлением
+    for (const unified of map.values()) {
+      unified.nearItems = undefined
+      unified.nearBlendItems = undefined
+      unified.farBlendItems = undefined
+      unified.farItems = undefined
+      unified.farOutItems = undefined
+    }
+
+    addToBucket(nearBuckets, 'near')
+    addToBucket(nearBlendBuckets, 'nearBlend')
+    addToBucket(farBlendBuckets, 'farBlend')
+    addToBucket(farBuckets, 'far')
+    addToBucket(farOutBuckets, 'farOut')
+
+    // Добавляем карты фейда
+    for (const unified of map.values()) {
+      unified.nearBlendFade = unified.nearBlendItems ? nearBlendFade : undefined
+      unified.farBlendFade = unified.farBlendItems ? farBlendFade : undefined
+      unified.farOutFade = unified.farOutItems ? farOutFade : undefined
+    }
+
+    return map
+  }, [nearBuckets, farBuckets, nearBlendBuckets, farBlendBuckets, farOutBuckets, nearBlendFade, farBlendFade, farOutFade])
+
   // Отладка стабильности чанков: логируем изменения состава ключей
   const prevKeysRef = React.useRef<Set<string>>(new Set())
   React.useEffect(() => {
@@ -650,38 +799,134 @@ export const ChunkedInstancedLeaves: React.FC<ChunkedInstancedLeavesProps> = ({ 
     prevKeysRef.current = keys
   }, [nearBuckets, farBuckets, nearBlendBuckets, farBlendBuckets, farOutBuckets])
 
+  // Отладка видимости LOD-уровней
+  React.useEffect(() => {
+    const LDBG: any = (typeof window !== 'undefined') ? (window as any).__LOD_DEBUG_LEAF_BUCKETS__ : false
+    if (!LDBG) return
+    let nearVisible = 0, nearBlendVisible = 0, farBlendVisible = 0, farVisible = 0, farOutVisible = 0
+    for (const unified of allBucketsUnified.values()) {
+      const hasNear = !!unified.nearItems && unified.nearItems.length > 0
+      const hasNearBlend = !!unified.nearBlendItems && unified.nearBlendItems.length > 0
+      const hasFarBlend = !!unified.farBlendItems && unified.farBlendItems.length > 0
+      const hasFar = !!unified.farItems && unified.farItems.length > 0
+      const hasFarOut = !!unified.farOutItems && unified.farOutItems.length > 0
+
+      const isNearActive = hasNear && !hasNearBlend
+      const isNearBlendActive = hasNearBlend
+      const isFarBlendActive = hasFarBlend
+      const isFarActive = hasFar && !hasNearBlend && !hasFarOut
+      const isFarOutActive = hasFarOut
+
+      if (isNearActive) nearVisible++
+      if (isNearBlendActive) nearBlendVisible++
+      if (isFarBlendActive) farBlendVisible++
+      if (isFarActive) farVisible++
+      if (isFarOutActive) farOutVisible++
+    }
+    if (nearVisible || nearBlendVisible || farBlendVisible || farVisible || farOutVisible) {
+      console.log('[LEAF][visibility] near=%d nearBlend=%d farBlend=%d far=%d farOut=%d',
+        nearVisible, nearBlendVisible, farBlendVisible, farVisible, farOutVisible)
+    }
+  }, [allBucketsUnified])
+
   if (visibleInstances.length === 0) return null
 
   return (
     <group>
-      {/* Near LOD — полная листва */}
-      {[...nearBuckets.values()].map((b) => (
-        <LeafBillboardChunkMesh key={`near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} onClick={onClick} onHover={onHover} />
-      ))}
+      {/* Унифицированный рендер всех чанков со стабильными ключами.
+          Все LOD-компоненты остаются смонтированными, переключаются через visible.
+          Это устраняет мерцание при пересчете LOD. */}
+      {[...allBucketsUnified.entries()].map(([ks, unified]) => {
+        const hasNear = !!unified.nearItems && unified.nearItems.length > 0
+        const hasNearBlend = !!unified.nearBlendItems && unified.nearBlendItems.length > 0
+        const hasFarBlend = !!unified.farBlendItems && unified.farBlendItems.length > 0
+        const hasFar = !!unified.farItems && unified.farItems.length > 0
+        const hasFarOut = !!unified.farOutItems && unified.farOutItems.length > 0
 
-      {/* Near↔Far переход: двойная отрисовка с фейдом — Near с (1-t), Far с t */}
-      {[...nearBlendBuckets.values()].map((b) => (
-        b.key.t === 'bb' ? (
-          <LeafBillboardChunkMesh key={`nf-near|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} fadeByUuid={nearBlendFade} onClick={onClick} onHover={onHover} />
-        ) : null
-      ))}
-      {[...farBlendBuckets.values()].map((b) => (
-        b.key.t === 'bb' ? (
-          <LeafBillboardChunkMesh key={`nf-far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} fadeByUuid={farBlendFade} onClick={onClick} onHover={onHover} />
-        ) : null
-      ))}
+        // Если чанк никогда не был заполнен, пропускаем
+        if (!hasNear && !hasNearBlend && !hasFarBlend && !hasFar && !hasFarOut) {
+          return null
+        }
 
-      {/* Far LOD — редуцированные, увеличенные листья */}
-      {[...farBuckets.values()].map((b) => (
-        <LeafBillboardChunkMesh key={`far|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} onClick={onClick} onHover={onHover} />
-      ))}
+        // ИСПРАВЛЕНО: Каждый LOD-уровень показывается ВСЕГДА когда есть элементы
+        // Логика: инстансы попадают ЛИБО в solid-набор, ЛИБО в blend-набор (взаимоисключающе)
+        // Поэтому нет конфликтов - каждый набор рисуется независимо
+        const isNearActive = hasNear
+        const isNearBlendActive = hasNearBlend
+        const isFarBlendActive = hasFarBlend
+        const isFarActive = hasFar
+        const isFarOutActive = hasFarOut
 
-      {/* Far↔Billboard переход: гасим Far листья (1-t). Билборды включаются отдельно. */}
-      {[...farOutBuckets.values()].map((b) => (
-        b.key.t === 'bb' ? (
-          <LeafBillboardChunkMesh key={`fb|${keyToString(b.key)}`} bucket={b as any} paletteUuid={paletteUuid} scaleMul={leafScaleMulFar} fadeByUuid={farOutFade} onClick={onClick} onHover={onHover} />
-        ) : null
-      ))}
+        return (
+          <group key={ks}>
+            {/* Near LOD - показываем когда есть элементы и нет перехода */}
+            {hasNear && (
+              <LeafBillboardChunkMesh
+                key="near"
+                bucket={{ key: unified.key, items: unified.nearItems! } as any}
+                paletteUuid={paletteUuid}
+                visible={isNearActive}
+                onClick={onClick}
+                onHover={onHover}
+              />
+            )}
+
+            {/* Near↔Far blend: near component - показываем только если есть элементы */}
+            {hasNearBlend && (
+              <LeafBillboardChunkMesh
+                key="nearBlend"
+                bucket={{ key: unified.key, items: unified.nearBlendItems! } as any}
+                paletteUuid={paletteUuid}
+                fadeByUuid={unified.nearBlendFade}
+                visible={isNearBlendActive && unified.key.t === 'bb'}
+                onClick={onClick}
+                onHover={onHover}
+              />
+            )}
+
+            {/* Near↔Far blend: far component - показываем только если есть элементы */}
+            {hasFarBlend && (
+              <LeafBillboardChunkMesh
+                key="farBlend"
+                bucket={{ key: unified.key, items: unified.farBlendItems! } as any}
+                paletteUuid={paletteUuid}
+                scaleMul={leafScaleMulFar}
+                fadeByUuid={unified.farBlendFade}
+                visible={isFarBlendActive && unified.key.t === 'bb'}
+                onClick={onClick}
+                onHover={onHover}
+              />
+            )}
+
+            {/* Far LOD - показываем когда есть элементы и нет переходов */}
+            {hasFar && (
+              <LeafBillboardChunkMesh
+                key="far"
+                bucket={{ key: unified.key, items: unified.farItems! } as any}
+                paletteUuid={paletteUuid}
+                scaleMul={leafScaleMulFar}
+                visible={isFarActive}
+                onClick={onClick}
+                onHover={onHover}
+              />
+            )}
+
+            {/* Far↔Billboard blend - показываем только если есть элементы */}
+            {hasFarOut && (
+              <LeafBillboardChunkMesh
+                key="farOut"
+                bucket={{ key: unified.key, items: unified.farOutItems! } as any}
+                paletteUuid={paletteUuid}
+                scaleMul={leafScaleMulFar}
+                fadeByUuid={unified.farOutFade}
+                visible={isFarOutActive && unified.key.t === 'bb'}
+                onClick={onClick}
+                onHover={onHover}
+              />
+            )}
+          </group>
+        )
+      })}
     </group>
   )
 }

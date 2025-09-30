@@ -74,12 +74,14 @@ export const defaultTreeLodConfig: TreeLodConfig = {
   farDistance: 50,
   billboardDistance: 70,
 
-  // Рекомендуемые screen‑space пороги (px по высоте кроны)
-  // Near↔Far — окно ~30px (короче), Far↔BB — окно ~35px (длиннее)
-  nearOutPx: 200,
-  nearInPx: 250,
-  farOutPx: 70,
-  farInPx: 90,
+  // ИСПРАВЛЕНО: Настроены широкие диапазоны для покрытия всех дистанций
+  // Near LOD: дерево > 250px на экране (очень близко)
+  // Far LOD: дерево 50-250px (средняя дистанция) - основной режим
+  // Billboard: дерево < 50px (очень далеко)
+  nearOutPx: 200,  // Near → Far когда дерево < 200px
+  nearInPx: 250,   // Возврат к Near когда > 250px
+  farOutPx: 30,    // Far → Billboard когда < 30px
+  farInPx: 50,     // Возврат к Far когда > 50px
   epsilonPx: 1,
   approximateTreeHeightWorld: 10,
 
@@ -329,17 +331,23 @@ export function usePartitionInstancesByLod(
       const dist = 1 / Math.max(Spx, epsPx)
 
       if (nearInD && nearOutD && farInD && farOutD) {
+        // ИСПРАВЛЕНО: Восстановлена полная логика с переходами Far↔Billboard
         if (dist <= nearInD) {
+          // Близко: чистый Near LOD
           nextNear.push(inst); nextClass[inst.uuid] = 'near'
         } else if (dist < nearOutD) {
+          // Переход Near → Far
           const t = Math.min(1, Math.max(0, (dist - nearInD) / Math.max(1e-6, (nearOutD - nearInD))))
           nextNF.push({ inst, t }); nextClass[inst.uuid] = 'nf'; nextBlend[inst.uuid] = t
         } else if (dist <= farInD) {
+          // Средняя дистанция: чистый Far LOD
           nextFar.push(inst); nextClass[inst.uuid] = 'far'
         } else if (dist < farOutD) {
+          // Переход Far → Billboard
           const t = Math.min(1, Math.max(0, (dist - farInD) / Math.max(1e-6, (farOutD - farInD))))
           nextFB.push({ inst, t }); nextClass[inst.uuid] = 'fb'; nextBlend[inst.uuid] = t
         } else {
+          // Очень далеко: чистый Billboard
           nextBB.push(inst); nextClass[inst.uuid] = 'bb'
         }
       } else {
