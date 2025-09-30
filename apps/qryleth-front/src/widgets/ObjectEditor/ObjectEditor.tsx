@@ -73,6 +73,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   // Тип объекта: используем для условного показа генератора/спрайт‑дебага
   const objectType = useObjectStore(s => s.objectType)
   const isTree = objectType === 'tree'
+  const isGrass = objectType === 'grass'
   const lodPreviewEnabled = useObjectStore(s => s.lodPreviewEnabled)
 
   /**
@@ -177,6 +178,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         onToggleManager={() => panelStateBridge.togglePanel?.('manager')}
         generatorCollapsed={isTree ? panelStateBridge.panelState?.rightPanel !== 'treeGenerator' : undefined}
         onToggleGenerator={isTree ? () => panelStateBridge.togglePanel?.('treeGenerator') : undefined}
+        grassGeneratorCollapsed={isGrass ? panelStateBridge.panelState?.rightPanel !== 'grassGenerator' : undefined}
+        onToggleGrassGenerator={isGrass ? () => panelStateBridge.togglePanel?.('grassGenerator') : undefined}
       />
       <ObjectEditorR3F objectData={objectData} />
     </ObjectEditorLayout>

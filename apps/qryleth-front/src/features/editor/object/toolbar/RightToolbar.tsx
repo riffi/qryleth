@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconFolder, IconTrees } from '@tabler/icons-react'
+import { IconFolder, IconTrees, IconLeaf } from '@tabler/icons-react'
 
 interface RightToolbarProps {
   /** Свёрнут ли менеджер объектов (правая панель). true = менеджер скрыт. */
@@ -12,13 +12,17 @@ interface RightToolbarProps {
   generatorCollapsed?: boolean
   /** Переключить видимость правой панели (генератор деревьев). */
   onToggleGenerator?: () => void
+  /** Свёрнут ли генератор травы (правая панель). true = панель скрыта. */
+  grassGeneratorCollapsed?: boolean
+  /** Переключить видимость правой панели (генератор травы). */
+  onToggleGrassGenerator?: () => void
 }
 
 /**
  * Правый тулбар ObjectEditor: управление панелью менеджера объектов.
  * Визуально и по UX согласован с тулбаром SceneEditor.
  */
-export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator }) => {
+export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, grassGeneratorCollapsed, onToggleGrassGenerator }) => {
   return (
     <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
@@ -45,6 +49,20 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
               style={{ borderRadius: 4, transition: 'all 200ms ease' }}
             >
               <IconTrees size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {onToggleGrassGenerator && (
+          <Tooltip label={grassGeneratorCollapsed ? 'Открыть генератор травы' : 'Закрыть генератор травы'} position="left" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={!grassGeneratorCollapsed ? 'filled' : 'subtle'}
+              color={!grassGeneratorCollapsed ? 'teal' : 'gray'}
+              onClick={onToggleGrassGenerator}
+              aria-label={grassGeneratorCollapsed ? 'Открыть генератор травы' : 'Закрыть генератор травы'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconLeaf size={20} />
             </ActionIcon>
           </Tooltip>
         )}

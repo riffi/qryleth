@@ -8,6 +8,7 @@ import {
 } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { TransformModeButtons, GridToggleButton, RenderModeSegment } from '@/shared/ui'
 import type { GfxObject } from '@/entities/object'
 
@@ -55,16 +56,24 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
     store.clearScene()
 
     if (objectData) {
-      // Сохраняем тип объекта и treeData в стор для консистентности UI/сохранения
+      // Сохраняем тип объекта и генераторные данные (tree/grass) в стор для консистентности UI/сохранения
       store.setObjectType(objectData.objectType)
       store.setTreeData(objectData.treeData)
+      ;(store as any).setGrassData(objectData as any && (objectData as any).grassData)
 
-      // Если объект — процедурное дерево, восстанавливаем примитивы на лету
+      // Если объект — процедурный (дерево/трава), восстанавливаем примитивы на лету
       if (objectData.objectType === 'tree' && objectData.treeData?.params && objectData.treeData.barkMaterialUuid && objectData.treeData.leafMaterialUuid) {
         const generated = generateTree({
           ...(objectData.treeData.params as any),
           barkMaterialUuid: objectData.treeData.barkMaterialUuid,
           leafMaterialUuid: objectData.treeData.leafMaterialUuid
+        })
+        store.setPrimitives(generated)
+      } else if ((objectData as any).objectType === 'grass' && (objectData as any).grassData?.params && (objectData as any).grassData?.grassMaterialUuid) {
+        const g = (objectData as any).grassData
+        const generated = generateGrass({
+          ...(g.params as any),
+          grassMaterialUuid: g.grassMaterialUuid
         })
         store.setPrimitives(generated)
       } else {
@@ -81,7 +90,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
         store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
       }
 
-      if ((objectData.primitives?.length ?? 0) > 0 || (objectData.objectType === 'tree')) {
+      if ((objectData.primitives?.length ?? 0) > 0 || (objectData.objectType === 'tree') || ((objectData as any).objectType === 'grass')) {
         store.selectPrimitive(0)
       }
     }

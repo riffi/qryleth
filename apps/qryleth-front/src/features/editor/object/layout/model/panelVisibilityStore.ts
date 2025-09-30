@@ -1,16 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type PanelType = 'chat' | 'properties' | 'spriteDebug' | 'manager' | 'treeGenerator'
+export type PanelType = 'chat' | 'properties' | 'spriteDebug' | 'manager' | 'treeGenerator' | 'grassGenerator'
 
 export interface PanelState {
   leftPanel: 'chat' | 'properties' | 'spriteDebug' | null
-  rightPanel: 'manager' | 'treeGenerator' | null
+  rightPanel: 'manager' | 'treeGenerator' | 'grassGenerator' | null
   chatVisible: boolean
   propertiesVisible: boolean
   spriteDebugVisible: boolean
   managerVisible: boolean
   treeGeneratorVisible: boolean
+  grassGeneratorVisible: boolean
 }
 
 const DEFAULT_PANEL_STATE: PanelState = {
@@ -21,6 +22,7 @@ const DEFAULT_PANEL_STATE: PanelState = {
   spriteDebugVisible: false,
   managerVisible: false,
   treeGeneratorVisible: false,
+  grassGeneratorVisible: false,
 }
 
 interface GlobalPanelStore extends PanelState {
@@ -80,29 +82,46 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               }
               break
 
-            case 'manager':
+          case 'manager':
               if (state.rightPanel === 'manager') {
                 newState.rightPanel = null
-                newState.managerVisible = false
-                newState.treeGeneratorVisible = false
-              } else {
-                newState.rightPanel = 'manager'
-                newState.managerVisible = true
-                newState.treeGeneratorVisible = false
-              }
-              break
+              newState.managerVisible = false
+              newState.treeGeneratorVisible = false
+              newState.grassGeneratorVisible = false
+            } else {
+              newState.rightPanel = 'manager'
+              newState.managerVisible = true
+              newState.treeGeneratorVisible = false
+              newState.grassGeneratorVisible = false
+            }
+            break
 
-            case 'treeGenerator':
-              if (state.rightPanel === 'treeGenerator') {
-                newState.rightPanel = null
-                newState.treeGeneratorVisible = false
-                newState.managerVisible = false
-              } else {
-                newState.rightPanel = 'treeGenerator'
-                newState.treeGeneratorVisible = true
-                newState.managerVisible = false
-              }
-              break
+          case 'treeGenerator':
+            if (state.rightPanel === 'treeGenerator') {
+              newState.rightPanel = null
+              newState.treeGeneratorVisible = false
+              newState.managerVisible = false
+              newState.grassGeneratorVisible = false
+            } else {
+              newState.rightPanel = 'treeGenerator'
+              newState.treeGeneratorVisible = true
+              newState.managerVisible = false
+              newState.grassGeneratorVisible = false
+            }
+            break
+          case 'grassGenerator':
+            if (state.rightPanel === 'grassGenerator') {
+              newState.rightPanel = null
+              newState.grassGeneratorVisible = false
+              newState.managerVisible = false
+              newState.treeGeneratorVisible = false
+            } else {
+              newState.rightPanel = 'grassGenerator'
+              newState.grassGeneratorVisible = true
+              newState.managerVisible = false
+              newState.treeGeneratorVisible = false
+            }
+            break
           }
 
           return newState
@@ -133,17 +152,25 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               newState.propertiesVisible = false
               break
 
-            case 'manager':
-              newState.rightPanel = 'manager'
-              newState.managerVisible = true
-              newState.treeGeneratorVisible = false
-              break
+          case 'manager':
+            newState.rightPanel = 'manager'
+            newState.managerVisible = true
+            newState.treeGeneratorVisible = false
+            newState.grassGeneratorVisible = false
+            break
 
-            case 'treeGenerator':
-              newState.rightPanel = 'treeGenerator'
-              newState.treeGeneratorVisible = true
-              newState.managerVisible = false
-              break
+          case 'treeGenerator':
+            newState.rightPanel = 'treeGenerator'
+            newState.treeGeneratorVisible = true
+            newState.managerVisible = false
+            newState.grassGeneratorVisible = false
+            break
+          case 'grassGenerator':
+            newState.rightPanel = 'grassGenerator'
+            newState.grassGeneratorVisible = true
+            newState.managerVisible = false
+            newState.treeGeneratorVisible = false
+            break
           }
 
           return newState
@@ -167,16 +194,24 @@ export const useObjectPanelVisibilityStore = create<GlobalPanelStore>()(
               if (state.leftPanel === 'spriteDebug') newState.leftPanel = null
               newState.spriteDebugVisible = false
               break
-            case 'manager':
-              newState.rightPanel = null
-              newState.managerVisible = false
-              newState.treeGeneratorVisible = false
-              break
-            case 'treeGenerator':
-              newState.rightPanel = null
-              newState.treeGeneratorVisible = false
-              newState.managerVisible = false
-              break
+          case 'manager':
+            newState.rightPanel = null
+            newState.managerVisible = false
+            newState.treeGeneratorVisible = false
+            newState.grassGeneratorVisible = false
+            break
+          case 'treeGenerator':
+            newState.rightPanel = null
+            newState.treeGeneratorVisible = false
+            newState.managerVisible = false
+            newState.grassGeneratorVisible = false
+            break
+          case 'grassGenerator':
+            newState.rightPanel = null
+            newState.grassGeneratorVisible = false
+            newState.managerVisible = false
+            newState.treeGeneratorVisible = false
+            break
           }
 
           return newState

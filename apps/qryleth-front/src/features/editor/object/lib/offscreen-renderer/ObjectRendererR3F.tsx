@@ -6,6 +6,7 @@ import { buildGroupTree } from '@/entities/primitiveGroup/model/utils'
 import type { RenderMode } from '@/shared/types/ui'
 import type { GfxObject } from '@/entities/object'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 
@@ -33,13 +34,19 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
   gfxObject,
   renderMode = 'solid'
 }) => {
-  // Если объект является процедурным деревом — восстанавливаем примитивы детерминированно
+  // Если объект является процедурным деревом/травой — восстанавливаем примитивы детерминированно
   const isTree = gfxObject.objectType === 'tree' && !!gfxObject.treeData?.params
+  const isGrass = (gfxObject as any).objectType === 'grass' && !!(gfxObject as any).grassData?.params
   const primitives = isTree
     ? generateTree({
         ...(gfxObject.treeData!.params as any),
         barkMaterialUuid: gfxObject.treeData!.barkMaterialUuid,
         leafMaterialUuid: gfxObject.treeData!.leafMaterialUuid
+      })
+    : isGrass
+    ? generateGrass({
+        ...((gfxObject as any).grassData!.params as any),
+        grassMaterialUuid: (gfxObject as any).grassData!.grassMaterialUuid,
       })
     : gfxObject.primitives
   const primitiveGroups = gfxObject.primitiveGroups ?? {}

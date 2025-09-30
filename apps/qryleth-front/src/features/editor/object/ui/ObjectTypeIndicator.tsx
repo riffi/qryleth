@@ -1,6 +1,6 @@
 import React from 'react'
 import { ActionIcon, Group, Modal, SegmentedControl, Text, Tooltip, Button } from '@mantine/core'
-import { IconCube, IconTrees, IconPencil } from '@tabler/icons-react'
+import { IconCube, IconTrees, IconPencil, IconLeaf } from '@tabler/icons-react'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
 
 /**
@@ -17,11 +17,12 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
   const setObjectType = useObjectStore(s => s.setObjectType)
   const setTreeData = useObjectStore(s => s.setTreeData)
   const setPrimitives = useObjectStore(s => s.setPrimitives)
+  const setGrassData = useObjectStore(s => s.setGrassData)
   const setPrimitiveGroups = useObjectStore(s => s.setPrimitiveGroups)
   const setPrimitiveGroupAssignments = useObjectStore(s => s.setPrimitiveGroupAssignments)
 
   const [opened, setOpened] = React.useState(false)
-  const [nextType, setNextType] = React.useState<'regular' | 'tree'>(objectType || 'regular')
+  const [nextType, setNextType] = React.useState<'regular' | 'tree' | 'grass'>(objectType || 'regular')
 
   /**
    * Подтверждает смену типа объекта: очищает примитивы/группы/привязки и параметры дерева,
@@ -32,15 +33,16 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
     setPrimitives([])
     setPrimitiveGroups({})
     setPrimitiveGroupAssignments({})
-    // Сбрасываем параметры генерации дерева
+    // Сбрасываем параметры генерации дерева/травы
     setTreeData(undefined)
+    setGrassData(undefined)
     // Устанавливаем новый тип
     setObjectType(nextType)
     setOpened(false)
   }
 
-  const Icon = objectType === 'tree' ? IconTrees : IconCube
-  const iconTitle = objectType === 'tree' ? 'Процедурный объект: Дерево' : 'Обычный объект'
+  const Icon = objectType === 'tree' ? IconTrees : objectType === 'grass' ? IconLeaf : IconCube
+  const iconTitle = objectType === 'tree' ? 'Процедурный объект: Дерево' : objectType === 'grass' ? 'Процедурный объект: Трава' : 'Обычный объект'
   const iconPx = size === 'lg' ? 22 : size === 'md' ? 18 : 16
   const textSize = size === 'lg' ? 'md' : size === 'md' ? 'sm' : 'xs'
   const editIconPx = size === 'lg' ? 18 : size === 'md' ? 16 : 14
@@ -55,7 +57,7 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
         </Tooltip>
         {withLabel && (
           <Text size={textSize} c="dimmed" fw={500}>
-            {objectType === 'tree' ? 'Дерево' : 'Обычный'}
+            {objectType === 'tree' ? 'Дерево' : objectType === 'grass' ? 'Трава' : 'Обычный'}
           </Text>
         )}
         <Tooltip label="Изменить тип объекта" withArrow>
@@ -72,10 +74,11 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
         <SegmentedControl
           fullWidth
           value={nextType}
-          onChange={(v) => setNextType(v as 'regular' | 'tree')}
+          onChange={(v) => setNextType(v as 'regular' | 'tree' | 'grass')}
           data={[
             { label: 'Обычный', value: 'regular' },
             { label: 'Дерево', value: 'tree' },
+            { label: 'Трава', value: 'grass' },
           ]}
         />
         <Group justify="flex-end" mt="md">

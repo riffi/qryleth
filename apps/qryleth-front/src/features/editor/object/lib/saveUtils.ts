@@ -17,14 +17,15 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   
   const updatedObject: GfxObject = {
     ...baseObject,
-    // Если объект является процедурным деревом — не сохраняем примитивы, а сохраняем параметры генерации
-    primitives: state.objectType === 'tree' ? [] : state.primitives.map(p => ({ ...p })),
+    // Если объект является процедурным деревом/травой — не сохраняем примитивы, а сохраняем параметры генерации
+    primitives: (state.objectType === 'tree' || state.objectType === 'grass') ? [] : state.primitives.map(p => ({ ...p })),
     boundingBox: state.boundingBox,
     materials: state.materials,
     primitiveGroups: state.primitiveGroups,
     primitiveGroupAssignments: state.primitiveGroupAssignments,
     objectType: state.objectType ?? baseObject.objectType,
     treeData: state.objectType === 'tree' ? (state.treeData ?? baseObject.treeData) : undefined,
+    grassData: state.objectType === 'grass' ? (state.grassData ?? (baseObject as any).grassData) : undefined,
     // Дублируем теги в objectData для согласованности с библиотекой
     ...(metaTags ? { tags: metaTags } : {}),
   }
@@ -105,13 +106,22 @@ function generateCacheKey(gfxObject: GfxObject): string {
    * Формируем детерминированные данные для ключа кеша на основе важных полей объекта.
    * Включаем типы и параметры примитивов, id материалов/групп и сами коллекции материалов/групп.
    */
-  const keyData = gfxObject.objectType === 'tree' && gfxObject.treeData
+  const keyData = (gfxObject.objectType === 'tree' && gfxObject.treeData)
     ? {
         objectType: 'tree',
         tree: {
           params: gfxObject.treeData.params,
           bark: gfxObject.treeData.barkMaterialUuid,
           leaf: gfxObject.treeData.leafMaterialUuid
+        },
+        materials: gfxObject.materials
+      }
+    : (gfxObject.objectType === 'grass' && (gfxObject as any).grassData)
+    ? {
+        objectType: 'grass',
+        grass: {
+          params: (gfxObject as any).grassData.params,
+          mat: (gfxObject as any).grassData.grassMaterialUuid,
         },
         materials: gfxObject.materials
       }
