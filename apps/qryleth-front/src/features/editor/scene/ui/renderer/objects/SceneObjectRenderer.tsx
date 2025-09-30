@@ -9,7 +9,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import type {SceneObject, SceneObjectInstance} from "@/entities/scene/types.ts";
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { useSingleTreeLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
-import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
+import { SCENE_CHUNKED_LEAVES_ENABLED, SCENE_CHUNKED_GRASS_ENABLED } from '@/shared/r3f/optimization/flags'
 import type {
   ObjectTransformEvent,
   RenderMode,
@@ -165,7 +165,7 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
        * примитивов (ствола, ветвей, листьев) сохраняются и рендерятся корректно в координатах
        * группы — то есть относительно единожды применённой трансформации выбранного инстанса.
        */}
-      {(() => {
+      {(sceneObject.objectType === 'grass' && SCENE_CHUNKED_GRASS_ENABLED) ? null : (() => {
         const normalizedInstance = {
           ...instance,
           transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] as [number, number, number] },

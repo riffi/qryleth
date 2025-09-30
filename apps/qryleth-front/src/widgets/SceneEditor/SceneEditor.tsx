@@ -113,6 +113,8 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
       // объект корректно сворачивался до процедурного вида.
       objectType: (updated as any).objectType,
       treeData: (updated as any).treeData,
+      // Аналогично поддерживаем процедурную траву
+      grassData: (updated as any).grassData,
       // Дополнительно прокидываем возможные метаданные (например, теги)
       tags: (updated as any).tags,
     })

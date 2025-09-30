@@ -46,6 +46,7 @@ import type { GfxLandscape } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import type { GfxHeightSampler } from '@/entities/terrain'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -424,7 +425,7 @@ export class SceneAPI {
       const rec = await db.getObject(libUuid)
       if (!rec) continue
       const objectUuid = generateUUID()
-      // Если объект из библиотеки — процедурное дерево, восстановим примитивы из treeData
+      // Если объект из библиотеки — процедурный (дерево/трава), восстановим примитивы
       let obj: SceneObject
       if (rec.objectData.objectType === 'tree' && rec.objectData.treeData?.params) {
         // Генерация примитивов дерева с учётом сохранённых параметров и материалов
@@ -445,12 +446,37 @@ export class SceneAPI {
           layerId: 'objects',
           libraryUuid: rec.uuid
         }
+      } else if ((rec.objectData as any).objectType === 'grass' && (rec.objectData as any).grassData?.params && (rec.objectData as any).grassData?.grassMaterialUuid) {
+        const g: any = (rec.objectData as any).grassData
+        const generated = generateGrass({
+          ...(g.params as any),
+          grassMaterialUuid: g.grassMaterialUuid
+        })
+        obj = {
+          uuid: objectUuid,
+          name: rec.name,
+          primitives: generated,
+          materials: rec.objectData.materials || [],
+          objectType: 'grass',
+          // @ts-ignore
+          grassData: (rec.objectData as any).grassData,
+          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+          layerId: 'objects',
+          libraryUuid: rec.uuid
+        }
       } else {
         obj = {
           uuid: objectUuid,
           name: rec.name,
           primitives: rec.objectData.primitives,
           materials: rec.objectData.materials || [],
+          // Сохраняем objectType/генераторные данные, если они есть, чтобы ObjectEditor мог корректно открыть
+          // @ts-ignore
+          objectType: (rec.objectData as any).objectType || undefined,
+          // @ts-ignore
+          grassData: (rec.objectData as any).grassData || undefined,
+          // @ts-ignore
+          treeData: (rec.objectData as any).treeData || undefined,
           boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: rec.objectData.primitives } as any),
           layerId: 'objects',
           libraryUuid: rec.uuid

@@ -31,6 +31,7 @@ import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
 
@@ -251,6 +252,25 @@ export const useSceneStore = create<SceneStore>()(
             console.warn('Не удалось восстановить примитивы дерева при загрузке сцены:', e)
           }
         }
+        // Если объект — процедурная трава, восстанавливаем пучок травы
+        if ((obj as any).objectType === 'grass' && (obj as any).grassData?.params && (obj as any).grassData?.grassMaterialUuid) {
+          try {
+            const g = (obj as any).grassData
+            const restored = generateGrass({
+              ...(g.params as any),
+              grassMaterialUuid: g.grassMaterialUuid
+            })
+            return {
+              ...obj,
+              uuid: obj.uuid || generateUUID(),
+              visible: obj.visible !== false,
+              primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+              libraryUuid: obj.libraryUuid
+            }
+          } catch (e) {
+            console.warn('Не удалось восстановить примитивы травы при загрузке сцены:', e)
+          }
+        }
         return {
           ...obj,
           uuid: obj.uuid || generateUUID(),
@@ -281,6 +301,30 @@ export const useSceneStore = create<SceneStore>()(
           }
         } catch (e) {
           console.warn('Не удалось восстановить примитивы дерева при добавлении объекта на сцену:', e)
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        }
+      } else if ((object as any).objectType === 'grass' && (object as any).grassData?.params && (object as any).grassData?.grassMaterialUuid) {
+        try {
+          const g = (object as any).grassData
+          const restored = generateGrass({
+            ...(g.params as any),
+            grassMaterialUuid: g.grassMaterialUuid
+          })
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        } catch (e) {
+          console.warn('Не удалось восстановить примитивы травы при добавлении объекта на сцену:', e)
           normalized = {
             ...object,
             uuid: object.uuid || generateUUID(),
@@ -338,6 +382,8 @@ export const useSceneStore = create<SceneStore>()(
         // Определяем, нужно ли пересобрать примитивы из treeData
         const isTree = (merged as any).objectType === 'tree'
         const tree = (merged as any).treeData as any | undefined
+        const isGrass = (merged as any).objectType === 'grass'
+        const grass = (merged as any).grassData as any | undefined
 
         let nextPrimitives = obj.primitives
         let primitivesChanged = false
@@ -354,6 +400,21 @@ export const useSceneStore = create<SceneStore>()(
           } catch (e) {
             console.warn('updateObject: не удалось восстановить примитивы дерева из treeData:', e)
             // Если не удалось восстановить — пробуем применить явно переданные примитивы (если есть)
+            if (updates.primitives) {
+              nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
+              primitivesChanged = true
+            }
+          }
+        } else if (isGrass && grass?.params && grass?.grassMaterialUuid) {
+          try {
+            const restored = generateGrass({
+              ...(grass.params as any),
+              grassMaterialUuid: grass.grassMaterialUuid
+            })
+            nextPrimitives = ensurePrimitiveNames(restored.map(normalizePrimitive))
+            primitivesChanged = true
+          } catch (e) {
+            console.warn('updateObject: не удалось восстановить примитивы травы из grassData:', e)
             if (updates.primitives) {
               nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
               primitivesChanged = true

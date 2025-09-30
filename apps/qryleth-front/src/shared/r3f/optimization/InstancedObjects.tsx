@@ -12,7 +12,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
-import { SCENE_CHUNKED_LEAVES_ENABLED, SCENE_CHUNKED_TRUNKS_ENABLED } from '@/shared/r3f/optimization/flags'
+import { SCENE_CHUNKED_LEAVES_ENABLED, SCENE_CHUNKED_TRUNKS_ENABLED, SCENE_CHUNKED_GRASS_ENABLED } from '@/shared/r3f/optimization/flags'
 
 // Флаг-рубильник: отключаем рендер цилиндров ствола/ветвей (InstancedBranches)
 // Единый меш коры уже используется по умолчанию; оставляем возможность включить в будущем.
@@ -496,8 +496,10 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
   // Условие расширено: считаем это стволом, если примитив типа 'mesh' И у объекта есть treeData.params
   // (даже если objectType !== 'tree', например, после развёртки дерева в примитивы с сохранением treeData).
   const isTreeUnifiedTrunk = primitive.type === 'mesh' && !!(sceneObject as any)?.treeData?.params
+  // Специальный случай: меш травы у процедурной травы. Если включена сценовая сегментация — пропускаем.
+  const isGrassUnifiedMesh = primitive.type === 'mesh' && ((sceneObject as any)?.objectType === 'grass')
   // Если включена сценовая сегментация стволов — не рендерим их здесь, за это отвечает ChunkedInstancedTrunks
-  if (SCENE_CHUNKED_TRUNKS_ENABLED && isTreeUnifiedTrunk) {
+  if ((SCENE_CHUNKED_TRUNKS_ENABLED && isTreeUnifiedTrunk) || (SCENE_CHUNKED_GRASS_ENABLED && isGrassUnifiedMesh)) {
     return null
   }
   // Ленивая инициализация реестра текстур коры

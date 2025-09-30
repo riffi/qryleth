@@ -14,3 +14,10 @@ export const SCENE_BILLBOARD_BORDER_DEBUG = false
  * false — стволы рендерятся через InstancedObjects/Instances без сегментации.
  */
 export const SCENE_CHUNKED_TRUNKS_ENABLED = true
+/**
+ * Глобальный флаг включения сегментации травы по чанкам.
+ *
+ * true  — используется ChunkedInstancedGrass (устойчивый фрустум‑куллинг);
+ * false — трава рендерится через InstancedObjects без сегментации.
+ */
+export const SCENE_CHUNKED_GRASS_ENABLED = true

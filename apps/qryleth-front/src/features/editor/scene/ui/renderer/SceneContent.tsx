@@ -112,7 +112,7 @@ export const SceneContent: React.FC<SceneContentProps> = ({ renderProfile }) => 
   // Мемоизированный блок постпроцессинга, чтобы его не пересоздавать при частых ре-рендерах SceneContent
   const PostFX = React.useMemo(() => {
     const Comp: React.FC<{ exposure: number; isViewProfile: boolean }> = React.memo(({ exposure, isViewProfile }) => (
-      <EffectComposer ref={composerRef} multisampling={isViewProfile ? 0 : 0}>
+      <EffectComposer ref={composerRef} multisampling={isViewProfile ? 8 : 0}>
         <Exposure exposure={exposure} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
