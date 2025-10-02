@@ -39,6 +39,12 @@ export function createDefaultGrassMaterials(options?: { color?: string }): Creat
 /**
  * Генерирует единый 'mesh' примитив пучка травы из N плоских лент.
  * Ленты создаются сегментами по высоте с плавным изгибом и сужением к вершине.
+ *
+ * Ключевое изменение: нормали поверхности рассчитываются динамически из касательной
+ * вдоль стебля (по параметру t) и поперечного направления ленты (лево→право).
+ * Это устраняет «одноцветность» по длине клинка: при изгибе освещение меняется
+ * реалистично, так как нормаль повторяет локальную ориентацию поверхности.
+ *
  * Материал назначается через objectMaterialUuid (UUID материала травы).
  */
 export function generateGrass(params: GrassGeneratorParams & { grassMaterialUuid: string }): GfxPrimitive[] {
@@ -78,36 +84,54 @@ export function generateGrass(params: GrassGeneratorParams & { grassMaterialUuid
     // Лёгкое случайное отклонение «вбок» при изгибе усилит натуральность
     const bendSide = (rng() * 2 - 1) * 0.3
 
-    // Предвычисление вершин ленты: на каждый сегмент по 2 точки (левая/правая)
+    // Предвычисление колец ленты, чтобы затем корректно посчитать касательные и нормали
     // Параметр t∈[0..1] — высотная координата
     const baseIndex = Math.floor(positions.length / 3)
+    // Первый проход: формируем вершины и сохраняем центральные точки и «право» для каждого кольца
+    const centers: { x: number, y: number, z: number }[] = []
+    const rights: { x: number, y: number, z: number }[] = []
     for (let i = 0; i <= segments; i++) {
       const t = i / segments
       // Кривизна: парабола вверх с отклонением в плоскости направления bendYaw
-      // Вертикальная компонента
       const y = baseY + h * t
-      // Горизонтальное отклонение кончика: ~bend*h (линейно по t, с лёгкой параболой)
       const bendAmount = bend * h * (t * t)
       const dx = Math.cos(bendYaw) * bendAmount + Math.sin(bendYaw) * bendSide * (t * h * 0.2)
       const dz = Math.sin(bendYaw) * bendAmount - Math.cos(bendYaw) * bendSide * (t * h * 0.2)
       // Ширина ленты по высоте
       const w = halfW * (1 - taper * t)
-      // Локальная «правая» ось ленты: орт в плоскости XZ перпендикулярно направлению изгиба
+      // Ось «право» ленты в плоскости XZ перпендикулярна направлению изгиба
       const rightX = -Math.sin(bendYaw)
       const rightZ = Math.cos(bendYaw)
-      // Две точки (левая и правая) относительно центральной линии
-      const xL = baseX + dx - rightX * w
-      const zL = baseZ + dz - rightZ * w
-      const xR = baseX + dx + rightX * w
-      const zR = baseZ + dz + rightZ * w
+      const xC = baseX + dx
+      const zC = baseZ + dz
+      const xL = xC - rightX * w
+      const zL = zC - rightZ * w
+      const xR = xC + rightX * w
+      const zR = zC + rightZ * w
       positions.push(xL, y, zL)
       positions.push(xR, y, zR)
-
-      // Нормали: плоская лента — берём нормаль перпендикулярно плоскости ленты (две стороны будем отрисовывать за счёт материала side=Double)
-      // Для устойчивости используем аппроксимацию: нормаль вбок от «right» и вверх (чтобы было базовое нормал‑освещение)
-      const nx = 0
-      const ny = 1
-      const nz = 0
+      centers.push({ x: xC, y, z: zC })
+      rights.push({ x: xR - xL, y: 0, z: zR - zL })
+    }
+    // Второй проход: рассчитываем нормали на основе касательной (по центрам) и «права»
+    for (let i = 0; i <= segments; i++) {
+      const cPrev = centers[Math.max(0, i - 1)]
+      const cNext = centers[Math.min(segments, i + 1)]
+      let tx = cNext.x - cPrev.x
+      let ty = cNext.y - cPrev.y
+      let tz = cNext.z - cPrev.z
+      const lenT = Math.hypot(tx, ty, tz) || 1
+      tx /= lenT; ty /= lenT; tz /= lenT
+      let rx = rights[i].x
+      let ry = rights[i].y
+      let rz = rights[i].z
+      const lenR = Math.hypot(rx, ry, rz) || 1
+      rx /= lenR; ry /= lenR; rz /= lenR
+      let nx = ry * tz - rz * ty
+      let ny = rz * tx - rx * tz
+      let nz = rx * ty - ry * tx
+      const lenN = Math.hypot(nx, ny, nz) || 1
+      nx /= lenN; ny /= lenN; nz /= lenN
       normals.push(nx, ny, nz)
       normals.push(nx, ny, nz)
     }
