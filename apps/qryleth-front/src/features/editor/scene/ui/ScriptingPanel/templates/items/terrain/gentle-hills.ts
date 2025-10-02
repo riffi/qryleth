@@ -50,7 +50,47 @@ const hillsSpec = {
 const hills = await sceneApi.createProceduralLandscape(hillsSpec, {
   name: 'Пасторальные холмы',
   visible: true,
-  material: { color: '#5cad5c' } // Лесная зелень для мягких холмов
+    material: {
+    uvRepeat: [16, 16],
+    multiTexture: {
+      exposure: 4, 
+      blendHeightMeters: 0.01,
+      layers: [
+      { 
+          textureId: 'ground082s-1k-jpg', 
+          height: -1.0, 
+          uvRepeat: [16, 16],
+          colorSource: {
+            type: 'role',
+            role: 'ground'
+          },
+          colorize: 0.9
+      }, 
+        { 
+          textureId: 'ground037-1k-jpg', 
+          height: 1.0, 
+          uvRepeat: [16, 16],
+          colorSource: {
+            type: 'role',
+            role: 'foliage'
+          },
+          colorize: 0.9
+    
+        },
+        { 
+          textureId: 'grass003-1k-jpg', 
+          height: 5.0, 
+          uvRepeat: [16, 16],
+          colorSource: {
+            type: 'role',
+            role: 'foliage'
+          },
+         colorize: 0.9
+        } 
+    
+      ]
+    }
+  }
 })
 
 console.log('Созданы холмы:', hills)`

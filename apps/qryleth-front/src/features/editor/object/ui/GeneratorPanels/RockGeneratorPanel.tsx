@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Select, Stack, Switch, Text, ColorInput, Slider } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Select, Stack, Switch, Text, ColorInput, Slider, ActionIcon, Tooltip } from '@mantine/core'
+import { IconDice5 } from '@tabler/icons-react'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultRockMaterials, generateRock } from '../../lib/generators/rock/generateRock'
 import type { RockGeneratorParams, RockRecipeId } from '../../lib/generators/rock/types'
@@ -100,7 +101,15 @@ export const RockGeneratorPanel: React.FC = () => {
     <Stack gap="sm" p="sm">
       <Text fw={600}>Генератор камня</Text>
       <Group grow>
-        <NumberInput label="Seed" value={params.seed} onChange={(v) => setParams(p => ({ ...p, seed: Math.floor(Number(v) || 0) }))} step={1}/>
+        {/* Блок управления случайностью: значение seed + кнопка переброса */}
+        <Group align="end" gap="xs" wrap="nowrap" style={{ flex: 1 }}>
+          <NumberInput label="Seed" value={params.seed} onChange={(v) => setParams(p => ({ ...p, seed: Math.floor(Number(v) || 0) }))} step={1}/>
+          <Tooltip label="Перебросить seed" withArrow>
+            <ActionIcon variant="subtle" color="blue" mt={22} onClick={() => setParams(p => ({ ...p, seed: Math.floor(Math.random() * 1_000_000) }))}>
+              <IconDice5 size={18} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
         <Select label="Рецепт" data={recipeOptions} value={params.recipe} onChange={(v) => setParams(p => ({ ...p, recipe: (v as RockRecipeId) || 'boulder' }))} />
       </Group>
       <Group grow>
