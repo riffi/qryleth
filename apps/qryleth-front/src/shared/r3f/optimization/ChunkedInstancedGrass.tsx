@@ -258,7 +258,11 @@ const GrassChunkMesh: React.FC<{
       onClick={handleClick}
       onPointerOver={handleHover}
     >
-      <meshStandardMaterial {...materialProps} />
+      <meshStandardMaterial
+          {...materialProps}
+          envMapIntensity={1}
+          alphaTest={0}
+      />
     </instancedMesh>
   )
 }

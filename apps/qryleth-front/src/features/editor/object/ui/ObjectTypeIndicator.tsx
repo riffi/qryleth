@@ -20,9 +20,10 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
   const setGrassData = useObjectStore(s => s.setGrassData)
   const setPrimitiveGroups = useObjectStore(s => s.setPrimitiveGroups)
   const setPrimitiveGroupAssignments = useObjectStore(s => s.setPrimitiveGroupAssignments)
+  const setRockData = useObjectStore(s => (s as any).setRockData)
 
   const [opened, setOpened] = React.useState(false)
-  const [nextType, setNextType] = React.useState<'regular' | 'tree' | 'grass'>(objectType || 'regular')
+  const [nextType, setNextType] = React.useState<'regular' | 'tree' | 'grass' | 'rock'>(objectType || 'regular')
 
   /**
    * Подтверждает смену типа объекта: очищает примитивы/группы/привязки и параметры дерева,
@@ -33,16 +34,17 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
     setPrimitives([])
     setPrimitiveGroups({})
     setPrimitiveGroupAssignments({})
-    // Сбрасываем параметры генерации дерева/травы
+    // Сбрасываем параметры генерации дерева/травы/камня
     setTreeData(undefined)
     setGrassData(undefined)
+    setRockData?.(undefined as any)
     // Устанавливаем новый тип
     setObjectType(nextType)
     setOpened(false)
   }
 
   const Icon = objectType === 'tree' ? IconTrees : objectType === 'grass' ? IconLeaf : IconCube
-  const iconTitle = objectType === 'tree' ? 'Процедурный объект: Дерево' : objectType === 'grass' ? 'Процедурный объект: Трава' : 'Обычный объект'
+  const iconTitle = objectType === 'tree' ? 'Процедурный объект: Дерево' : objectType === 'grass' ? 'Процедурный объект: Трава' : objectType === 'rock' ? 'Процедурный объект: Камень' : 'Обычный объект'
   const iconPx = size === 'lg' ? 22 : size === 'md' ? 18 : 16
   const textSize = size === 'lg' ? 'md' : size === 'md' ? 'sm' : 'xs'
   const editIconPx = size === 'lg' ? 18 : size === 'md' ? 16 : 14
@@ -74,11 +76,12 @@ export const ObjectTypeIndicator: React.FC<{ size?: 'sm' | 'md' | 'lg'; withLabe
         <SegmentedControl
           fullWidth
           value={nextType}
-          onChange={(v) => setNextType(v as 'regular' | 'tree' | 'grass')}
+          onChange={(v) => setNextType(v as 'regular' | 'tree' | 'grass' | 'rock')}
           data={[
             { label: 'Обычный', value: 'regular' },
             { label: 'Дерево', value: 'tree' },
             { label: 'Трава', value: 'grass' },
+            { label: 'Камень', value: 'rock' },
           ]}
         />
         <Group justify="flex-end" mt="md">

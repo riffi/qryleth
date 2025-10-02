@@ -32,6 +32,7 @@ import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
+import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
 import type { GfxWaterBody } from '@/entities/water'
 import type { GfxLandscape } from '@/entities/terrain'
 
@@ -271,6 +272,25 @@ export const useSceneStore = create<SceneStore>()(
             console.warn('Не удалось восстановить примитивы травы при загрузке сцены:', e)
           }
         }
+        // Если объект — процедурный камень, восстанавливаем меш
+        if ((obj as any).objectType === 'rock' && (obj as any).rockData?.params && (obj as any).rockData?.rockMaterialUuid) {
+          try {
+            const g = (obj as any).rockData
+            const restored = generateRock({
+              ...(g.params as any),
+              rockMaterialUuid: g.rockMaterialUuid
+            })
+            return {
+              ...obj,
+              uuid: obj.uuid || generateUUID(),
+              visible: obj.visible !== false,
+              primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+              libraryUuid: obj.libraryUuid
+            }
+          } catch (e) {
+            console.warn('Не удалось восстановить примитивы камня при загрузке сцены:', e)
+          }
+        }
         return {
           ...obj,
           uuid: obj.uuid || generateUUID(),
@@ -333,6 +353,30 @@ export const useSceneStore = create<SceneStore>()(
             libraryUuid: object.libraryUuid
           }
         }
+      } else if ((object as any).objectType === 'rock' && (object as any).rockData?.params && (object as any).rockData?.rockMaterialUuid) {
+        try {
+          const g = (object as any).rockData
+          const restored = generateRock({
+            ...(g.params as any),
+            rockMaterialUuid: g.rockMaterialUuid
+          })
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(restored.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        } catch (e) {
+          console.warn('Не удалось восстановить примитивы камня при добавлении объекта на сцену:', e)
+          normalized = {
+            ...object,
+            uuid: object.uuid || generateUUID(),
+            visible: object.visible !== false,
+            primitives: ensurePrimitiveNames(object.primitives.map(normalizePrimitive)),
+            libraryUuid: object.libraryUuid
+          }
+        }
       } else {
         normalized = {
           ...object,
@@ -384,6 +428,8 @@ export const useSceneStore = create<SceneStore>()(
         const tree = (merged as any).treeData as any | undefined
         const isGrass = (merged as any).objectType === 'grass'
         const grass = (merged as any).grassData as any | undefined
+        const isRock = (merged as any).objectType === 'rock'
+        const rock = (merged as any).rockData as any | undefined
 
         let nextPrimitives = obj.primitives
         let primitivesChanged = false
@@ -415,6 +461,21 @@ export const useSceneStore = create<SceneStore>()(
             primitivesChanged = true
           } catch (e) {
             console.warn('updateObject: не удалось восстановить примитивы травы из grassData:', e)
+            if (updates.primitives) {
+              nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
+              primitivesChanged = true
+            }
+          }
+        } else if (isRock && rock?.params && rock?.rockMaterialUuid) {
+          try {
+            const restored = generateRock({
+              ...(rock.params as any),
+              rockMaterialUuid: rock.rockMaterialUuid
+            })
+            nextPrimitives = ensurePrimitiveNames(restored.map(normalizePrimitive))
+            primitivesChanged = true
+          } catch (e) {
+            console.warn('updateObject: не удалось восстановить примитивы камня из rockData:', e)
             if (updates.primitives) {
               nextPrimitives = ensurePrimitiveNames(updates.primitives.map(normalizePrimitive))
               primitivesChanged = true
@@ -1167,6 +1228,14 @@ export const useSceneStore = create<SceneStore>()(
             ...obj,
             primitives: [],
             // Привязки к группам не имеют смысла без примитивов — уберём их
+            primitiveGroups: undefined,
+            primitiveGroupAssignments: undefined,
+          }
+        }
+        if (obj.objectType === 'rock' && (obj as any).rockData?.params) {
+          return {
+            ...obj,
+            primitives: [],
             primitiveGroups: undefined,
             primitiveGroupAssignments: undefined,
           }

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, lazy } from 'react'
 import { clamp } from '@/shared/lib/math/number'
 import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
-import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconLeaf, IconX } from '@tabler/icons-react'
+import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconLeaf, IconCube, IconX } from '@tabler/icons-react'
 import { DragHandleVertical } from '@/shared/ui'
 import {
   useSelectedMaterialUuid,
@@ -19,6 +19,7 @@ import { MaterialControlPanel } from '@/features/editor/object/ui/MaterialContro
 import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagementPanel/ObjectManagementPanel'
 import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/TreeGeneratorPanel'
 import { GrassGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/GrassGeneratorPanel'
+import { RockGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/RockGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
 import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
@@ -261,6 +262,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     const objectType = useObjectStore(s => s.objectType)
     const isTree = objectType === 'tree'
     const isGrass = objectType === 'grass'
+    const isRock = objectType === 'rock'
     const current = panelState.rightPanel
     const isOpen = current !== null
     return (
@@ -285,8 +287,13 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         {isOpen && (
           <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
             <Group>
-              {current === 'manager' ? <IconFolder size={20} /> : current === 'treeGenerator' ? <IconTrees size={20} /> : <IconLeaf size={20} />}
-              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : 'Генератор травы'}</Text>
+              {
+                current === 'manager' ? <IconFolder size={20} />
+                : current === 'treeGenerator' ? <IconTrees size={20} />
+                : current === 'grassGenerator' ? <IconLeaf size={20} />
+                : <IconCube size={20} />
+              }
+              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : current === 'grassGenerator' ? 'Генератор травы' : 'Генератор камня'}</Text>
             </Group>
             <ActionIcon
               variant="subtle"
@@ -302,6 +309,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           {current === 'manager' && <ObjectManagementPanel />}
           {current === 'treeGenerator' && isTree && <TreeGeneratorPanel />}
           {current === 'grassGenerator' && isGrass && <GrassGeneratorPanel />}
+          {current === 'rockGenerator' && isRock && <RockGeneratorPanel />}
         </Box>
       </Paper>
     )
@@ -309,11 +317,10 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
 
   // Если тип объекта обычный — принудительно закрываем «неактуальные» панели
   const objectType = useObjectStore(s => s.objectType)
-  // Автооткрытие панели генератора травы при открытии объекта типа 'grass'
+  // Автооткрытие панели генератора травы/камня при открытии соответствующего типа
   useEffect(() => {
-    if (objectType === 'grass') {
-      showPanel?.('grassGenerator')
-    }
+    if (objectType === 'grass') showPanel?.('grassGenerator')
+    if (objectType === 'rock') showPanel?.('rockGenerator')
   }, [objectType])
   useEffect(() => {
     if (objectType !== 'tree') {
@@ -327,6 +334,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     if (objectType !== 'grass') {
       if (panelState.rightPanel === 'grassGenerator') {
         hidePanel?.('grassGenerator') ?? showPanel?.('manager')
+      }
+    }
+    if (objectType !== 'rock') {
+      if (panelState.rightPanel === 'rockGenerator') {
+        hidePanel?.('rockGenerator') ?? showPanel?.('manager')
       }
     }
   }, [objectType, panelState.leftPanel, panelState.rightPanel, hidePanel, showPanel])

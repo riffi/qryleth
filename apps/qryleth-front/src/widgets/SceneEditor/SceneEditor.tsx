@@ -115,6 +115,8 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ uuid, isNew, showObjec
       treeData: (updated as any).treeData,
       // Аналогично поддерживаем процедурную траву
       grassData: (updated as any).grassData,
+      // Аналогично поддерживаем процедурный камень
+      rockData: (updated as any).rockData,
       // Дополнительно прокидываем возможные метаданные (например, теги)
       tags: (updated as any).tags,
     })

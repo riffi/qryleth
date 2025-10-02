@@ -19,7 +19,7 @@ export interface GfxObject {
    *
   * Поле опционально для обратной совместимости: отсутствие трактуется как 'regular'.
   */
-  objectType?: 'regular' | 'tree' | 'grass';
+  objectType?: 'regular' | 'tree' | 'grass' | 'rock';
   /**
    * Параметры процедурного дерева (для objectType = 'tree').
    *
@@ -37,6 +37,17 @@ export interface GfxObject {
     barkMaterialUuid: string;
     /** UUID материала листвы. */
     leafMaterialUuid: string;
+  };
+  /**
+   * Параметры процедурного камня (для objectType = 'rock').
+   * Хранит сериализованные входные параметры генератора и UUID материала камня.
+   * Эти данные используются для детерминированной реконструкции меша при отображении/использовании.
+   */
+  rockData?: {
+    /** Сериализованные параметры генерации камня (совместимы с RockGeneratorParams). */
+    params: any;
+    /** UUID материала камня. */
+    rockMaterialUuid: string;
   };
   /**
    * Параметры процедурной травы (для objectType = 'grass').

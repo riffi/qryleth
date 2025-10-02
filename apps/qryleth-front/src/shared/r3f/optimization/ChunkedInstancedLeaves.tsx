@@ -637,9 +637,9 @@ const LeafBillboardChunkMeshImpl: React.FC<{
         // Чтобы дизер-фейд работал корректно и наборы не «глушили» друг друга по Z,
         // отключаем запись в depth для blend‑вариантов (признак — передан fadeByUuid).
         depthWrite={!!fadeByUuid ? false : true}
-        transparent={false}
-        alphaTest={!!diffuseMap ? 0.5 : 0.0}
-        alphaToCoverage={true}
+        transparent={true}
+        alphaTest={!!diffuseMap ? 0.05 : 0.0}
+        alphaToCoverage={false}
     />
     </instancedMesh>
   )

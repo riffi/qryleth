@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconFolder, IconTrees, IconLeaf } from '@tabler/icons-react'
+import { IconFolder, IconTrees, IconLeaf, IconCube } from '@tabler/icons-react'
 
 interface RightToolbarProps {
   /** Свёрнут ли менеджер объектов (правая панель). true = менеджер скрыт. */
@@ -16,13 +16,17 @@ interface RightToolbarProps {
   grassGeneratorCollapsed?: boolean
   /** Переключить видимость правой панели (генератор травы). */
   onToggleGrassGenerator?: () => void
+  /** Свёрнут ли генератор камня (правая панель). true = панель скрыта. */
+  rockGeneratorCollapsed?: boolean
+  /** Переключить видимость правой панели (генератор камня). */
+  onToggleRockGenerator?: () => void
 }
 
 /**
  * Правый тулбар ObjectEditor: управление панелью менеджера объектов.
  * Визуально и по UX согласован с тулбаром SceneEditor.
  */
-export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, grassGeneratorCollapsed, onToggleGrassGenerator }) => {
+export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, grassGeneratorCollapsed, onToggleGrassGenerator, rockGeneratorCollapsed, onToggleRockGenerator }) => {
   return (
     <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
@@ -63,6 +67,20 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
               style={{ borderRadius: 4, transition: 'all 200ms ease' }}
             >
               <IconLeaf size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {onToggleRockGenerator && (
+          <Tooltip label={rockGeneratorCollapsed ? 'Открыть генератор камня' : 'Закрыть генератор камня'} position="left" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={!rockGeneratorCollapsed ? 'filled' : 'subtle'}
+              color={!rockGeneratorCollapsed ? 'gray' : 'gray'}
+              onClick={onToggleRockGenerator}
+              aria-label={rockGeneratorCollapsed ? 'Открыть генератор камня' : 'Закрыть генератор камня'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconCube size={20} />
             </ActionIcon>
           </Tooltip>
         )}

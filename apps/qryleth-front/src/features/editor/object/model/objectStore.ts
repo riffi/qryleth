@@ -20,7 +20,7 @@ interface ObjectStoreState {
    * Тип текущего редактируемого объекта.
    * 'regular' — геометрия хранится в primitives, 'tree' — хранится только конфигурация генератора.
    */
-  objectType?: 'regular' | 'tree' | 'grass'
+  objectType?: 'regular' | 'tree' | 'grass' | 'rock'
   /**
    * Данные процедурного дерева (параметры + UUID материалов), если объект — дерево.
    * Используется для сохранения в библиотеку и реконструкции превью/рендера.
@@ -37,6 +37,14 @@ interface ObjectStoreState {
   grassData?: {
     params: any
     grassMaterialUuid: string
+  }
+  /**
+   * Данные процедурного камня (параметры + UUID материала), если объект — камень.
+   * Используется для сохранения в библиотеку и реконструкции превью/рендера.
+   */
+  rockData?: {
+    params: any
+    rockMaterialUuid: string
   }
   primitives: GfxPrimitive[]
   /** Материалы объекта */
@@ -67,11 +75,13 @@ interface ObjectStoreState {
 
 interface ObjectStoreActions {
   /** Устанавливает тип объекта (обычный/дерево/трава). */
-  setObjectType: (type: 'regular' | 'tree' | 'grass' | undefined) => void
+  setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | undefined) => void
   /** Записывает/очищает параметры процедурного дерева. */
   setTreeData: (data: ObjectStoreState['treeData']) => void
   /** Записывает/очищает параметры процедурной травы. */
   setGrassData: (data: ObjectStoreState['grassData']) => void
+  /** Записывает/очищает параметры процедурного камня. */
+  setRockData: (data: ObjectStoreState['rockData']) => void
   setPrimitives: (primitives: GfxPrimitive[]) => void
   addPrimitive: (primitive: GfxPrimitive) => void
   updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) => void
@@ -200,12 +210,14 @@ export const useObjectStore = create<ObjectStore>()(
     lodPreviewEnabled: false,
 
     // Устанавливает тип объекта
-    setObjectType: (type: 'regular' | 'tree' | 'grass' | undefined) => set({ objectType: type }),
+    setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | undefined) => set({ objectType: type }),
 
     // Устанавливает или очищает данные процедурного дерева
     setTreeData: (data) => set({ treeData: data }),
     // Устанавливает или очищает данные процедурной травы
     setGrassData: (data) => set({ grassData: data }),
+    // Устанавливает или очищает данные процедурного камня
+    setRockData: (data) => set({ rockData: data }),
 
     // Устанавливает список примитивов, нормализуя их
     // и заполняя отсутствующие имена

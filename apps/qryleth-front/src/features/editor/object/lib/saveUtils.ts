@@ -17,8 +17,8 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   
   const updatedObject: GfxObject = {
     ...baseObject,
-    // Если объект является процедурным деревом/травой — не сохраняем примитивы, а сохраняем параметры генерации
-    primitives: (state.objectType === 'tree' || state.objectType === 'grass') ? [] : state.primitives.map(p => ({ ...p })),
+    // Если объект является процедурным деревом/травой/камнем — не сохраняем примитивы, а сохраняем параметры генерации
+    primitives: (state.objectType === 'tree' || state.objectType === 'grass' || state.objectType === 'rock') ? [] : state.primitives.map(p => ({ ...p })),
     boundingBox: state.boundingBox,
     materials: state.materials,
     primitiveGroups: state.primitiveGroups,
@@ -26,6 +26,7 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
     objectType: state.objectType ?? baseObject.objectType,
     treeData: state.objectType === 'tree' ? (state.treeData ?? baseObject.treeData) : undefined,
     grassData: state.objectType === 'grass' ? (state.grassData ?? (baseObject as any).grassData) : undefined,
+    rockData: state.objectType === 'rock' ? ((state as any).rockData ?? (baseObject as any).rockData) : undefined,
     // Дублируем теги в objectData для согласованности с библиотекой
     ...(metaTags ? { tags: metaTags } : {}),
   }
@@ -122,6 +123,15 @@ function generateCacheKey(gfxObject: GfxObject): string {
         grass: {
           params: (gfxObject as any).grassData.params,
           mat: (gfxObject as any).grassData.grassMaterialUuid,
+        },
+        materials: gfxObject.materials
+      }
+    : (gfxObject.objectType === 'rock' && (gfxObject as any).rockData)
+    ? {
+        objectType: 'rock',
+        rock: {
+          params: (gfxObject as any).rockData.params,
+          mat: (gfxObject as any).rockData.rockMaterialUuid,
         },
         materials: gfxObject.materials
       }
