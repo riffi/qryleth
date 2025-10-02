@@ -60,6 +60,13 @@ export interface RockGeneratorParams {
   rockTriplanar?: boolean
   /** Масштаб трипланарной проекции (плиточность). */
   rockTexScale?: number
+  /**
+   * Фактор окраски из палитры (0..1):
+   * 0 — не окрашивать (использовать только текстуры камня),
+   * 1 — максимально смешать цвет с цветом роли 'rock' активной палитры.
+   * Значение по умолчанию: 0.
+   */
+  rockPaletteFactor?: number
 }
 
 export interface RockGeneratorResult {

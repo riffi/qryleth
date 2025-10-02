@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Group, NumberInput, Select, Stack, Switch, Text, ColorInput } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Select, Stack, Switch, Text, ColorInput, Slider } from '@mantine/core'
 import { useObjectStore } from '../../model/objectStore'
 import { createDefaultRockMaterials, generateRock } from '../../lib/generators/rock/generateRock'
 import type { RockGeneratorParams, RockRecipeId } from '../../lib/generators/rock/types'
@@ -146,6 +146,12 @@ export const RockGeneratorPanel: React.FC = () => {
       <Box>
         <Text size="sm" c="dimmed">Создаёт единый mesh (sdf + marching cubes); материал односторонний.</Text>
       </Box>
+      <Group grow>
+        <Stack gap={4} style={{ flex: 1 }}>
+          <Text size="sm">Фактор окраски палитрой</Text>
+          <Slider min={0} max={1} step={0.01} value={params.rockPaletteFactor ?? 0} onChange={(v) => setParams(p => ({ ...p, rockPaletteFactor: Math.max(0, Math.min(1, Number(v) || 0)) }))} />
+        </Stack>
+      </Group>
     </Stack>
   )
 }

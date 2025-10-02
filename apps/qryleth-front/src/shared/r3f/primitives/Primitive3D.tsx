@@ -214,6 +214,20 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
     (sceneRockTriplanar !== undefined ? sceneRockTriplanar : (sceneIsRockObject ? true : undefined))
   ) ?? oeRockTriplanar ?? false
   const rockTexScale = (sceneRockTexScale ?? oeRockTexScale ?? 3)
+  // Фактор окраски камня цветом палитры
+  const sceneRockPaletteFactor: number | undefined = useSceneStore(s => {
+    if (!objectUuid) return undefined
+    const obj = s.objects.find(o => o.uuid === objectUuid)
+    return (obj as any)?.rockData?.params?.rockPaletteFactor as number | undefined
+  })
+  const oeRockPaletteFactor: number = useObjectStore(s => ((s as any).rockData?.params?.rockPaletteFactor ?? 0))
+  const rockPaletteFactor = (sceneRockPaletteFactor ?? oeRockPaletteFactor ?? 0)
+  // Цвет цели из палитры берём из материала (резолвится наверху в PrimitiveRenderer/InstancedRenderer)
+  const targetRockColorLinear = useMemo(() => {
+    const c = new THREE.Color(((materialProps as any)?.color) || '#ffffff')
+    ;(c as any).convertSRGBToLinear?.()
+    return c
+  }, [materialProps])
   // Карты PBR для коры
   const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)
   const [normalMap, setNormalMap] = useState<THREE.Texture | null>(null)
@@ -251,6 +265,9 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
         const m = materialRef.current
         m.onBeforeCompile = (shader: any) => {
           shader.uniforms.uTexScale = { value: rockTexScale }
+          // Uniforms окраски камня из палитры
+          shader.uniforms.uRockPaintFactor = { value: Math.max(0, Math.min(1, rockPaletteFactor || 0)) }
+          shader.uniforms.uRockTargetColor = { value: targetRockColorLinear }
 
           const isGLSL3 = shader.fragmentShader.includes('#version 300 es')
           const varyingDeclV = isGLSL3
@@ -268,7 +285,7 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
             '#include <worldpos_vertex>\n vWorldPos = worldPosition.xyz;\n vWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
           )
 
-          const funcs = `\nuniform float uTexScale;\n${varyingDeclF}
+          const funcs = `\nuniform float uTexScale;\nuniform float uRockPaintFactor;\nuniform vec3 uRockTargetColor;\n${varyingDeclF}
 vec3 blendWeights(vec3 n){ vec3 an = abs(n); an = pow(an, vec3(4.0)); float s = an.x+an.y+an.z+1e-5; return an/s; }
 vec2 uvProj(vec3 p, int axis){ if(axis==0) return p.zy; if(axis==1) return p.xz; return p.xy; }
 vec4 triColor(sampler2D tex, vec3 pos, vec3 n){ vec3 w = blendWeights(n); vec4 cx = ${texFn}(tex, uvProj(pos*uTexScale,0)); vec4 cy = ${texFn}(tex, uvProj(pos*uTexScale,1)); vec4 cz = ${texFn}(tex, uvProj(pos*uTexScale,2)); return cx*w.x + cy*w.y + cz*w.z; }
@@ -278,8 +295,8 @@ vec3 triNormalWS(sampler2D tex, vec3 pos, vec3 n){ vec3 w = blendWeights(n); vec
           shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\n' + funcs)
           shader.fragmentShader = shader.fragmentShader
             .replace(
-              '#include <map_fragment>',
-              `#ifdef USE_MAP\n  vec4 texelColor = triColor(map, vWorldPos, normalize(vWorldNormal));\n  texelColor.rgb = pow( max(texelColor.rgb, vec3(0.0)), vec3(2.2) );\n  diffuseColor *= texelColor;\n#endif`
+            '#include <map_fragment>',
+            `#ifdef USE_MAP\n  vec4 texelColor = triColor(map, vWorldPos, normalize(vWorldNormal));\n  texelColor.rgb = pow( max(texelColor.rgb, vec3(0.0)), vec3(2.2) );\n  vec3 mixed = mix( texelColor.rgb, uRockTargetColor, clamp(uRockPaintFactor, 0.0, 1.0) );\n  diffuseColor.rgb *= mixed;\n  diffuseColor.a *= texelColor.a;\n#endif`
             )
             .replace(
               '#include <normal_fragment_maps>',
