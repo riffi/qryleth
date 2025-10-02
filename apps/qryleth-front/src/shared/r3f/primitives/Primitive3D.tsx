@@ -119,6 +119,15 @@ interface Mesh3DProps {
  * Рендер произвольной BufferGeometry из массивов позиций/нормалей/индексов.
  * Предназначено для единого меша ствола без видимых стыков.
  */
+/**
+ * Компонент отрисовки произвольной BufferGeometry (mesh) с поддержкой PBR-текстур.
+ *
+ * Особенность для SceneEditor: если mesh принадлежит объекту типа 'rock' (камень),
+ * то трипланарное наложение для набора текстур камня включается по умолчанию,
+ * даже если флаг не задан в параметрах. Это делает поведение равным ObjectEditor,
+ * где пользователь видит ожидаемый трипланар без необходимости выставлять галочки
+ * в UI сцены. При этом, если явно указан флаг rockTriplanar = false, он уважается.
+ */
 export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshProps }) => {
   // Ленивая инициализация реестра текстур коры
   if (woodTextureRegistry.size === 0) {
@@ -184,6 +193,12 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
     const obj = s.objects.find(o => o.uuid === objectUuid)
     return (obj as any)?.rockData?.params?.rockTriplanar as boolean | undefined
   })
+  // Определяем, является ли объект камнем, чтобы в SceneEditor по умолчанию включить трипланар
+  const sceneIsRockObject: boolean | undefined = useSceneStore(s => {
+    if (!objectUuid) return undefined
+    const obj = s.objects.find(o => o.uuid === objectUuid)
+    return (obj as any)?.objectType === 'rock'
+  })
   const sceneRockTexScale: number | undefined = useSceneStore(s => {
     if (!objectUuid) return undefined
     const obj = s.objects.find(o => o.uuid === objectUuid)
@@ -191,7 +206,13 @@ export const Mesh3D: React.FC<Mesh3DProps> = ({ primitive, materialProps, meshPr
   })
   const oeRockTriplanar: boolean = useObjectStore(s => ((s as any).rockData?.params?.rockTriplanar ?? false))
   const oeRockTexScale: number = useObjectStore(s => ((s as any).rockData?.params?.rockTexScale ?? 3))
-  const rockTriplanar = (sceneRockTriplanar ?? oeRockTriplanar) || false
+  // Логика трипланара:
+  // - Если в сцене явно указан флаг — используем его.
+  // - Иначе, если объект сцены — камень, включаем трипланар по умолчанию.
+  // - Иначе используем значение из ObjectEditor (offscreen) или false.
+  const rockTriplanar = (
+    (sceneRockTriplanar !== undefined ? sceneRockTriplanar : (sceneIsRockObject ? true : undefined))
+  ) ?? oeRockTriplanar ?? false
   const rockTexScale = (sceneRockTexScale ?? oeRockTexScale ?? 3)
   // Карты PBR для коры
   const [colorMap, setColorMap] = useState<THREE.Texture | null>(null)

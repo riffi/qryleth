@@ -47,6 +47,7 @@ import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxH
 import type { GfxHeightSampler } from '@/entities/terrain'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
+import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -460,6 +461,24 @@ export class SceneAPI {
           objectType: 'grass',
           // @ts-ignore
           grassData: (rec.objectData as any).grassData,
+          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+          layerId: 'objects',
+          libraryUuid: rec.uuid
+        }
+      } else if ((rec.objectData as any).objectType === 'rock' && (rec.objectData as any).rockData?.params && (rec.objectData as any).rockData?.rockMaterialUuid) {
+        const g: any = (rec.objectData as any).rockData
+        const generated = generateRock({
+          ...(g.params as any),
+          rockMaterialUuid: g.rockMaterialUuid
+        })
+        obj = {
+          uuid: objectUuid,
+          name: rec.name,
+          primitives: generated,
+          materials: rec.objectData.materials || [],
+          objectType: 'rock',
+          // @ts-ignore
+          rockData: (rec.objectData as any).rockData,
           boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
           layerId: 'objects',
           libraryUuid: rec.uuid
@@ -1094,6 +1113,38 @@ export class SceneAPI {
           objectType: 'tree',
           treeData: record.objectData.treeData
         }
+      } else if ((record.objectData as any).objectType === 'grass' && (record.objectData as any).grassData?.params && (record.objectData as any).grassData?.grassMaterialUuid) {
+        const g: any = (record.objectData as any).grassData
+        const generated = generateGrass({
+          ...(g.params as any),
+          grassMaterialUuid: g.grassMaterialUuid
+        })
+        objectData = {
+          uuid: generateUUID(),
+          name: record.name,
+          primitives: generated.map(p => ({ ...p, uuid: generateUUID() })),
+          libraryUuid: record.uuid,
+          materials: record.objectData.materials || [],
+          objectType: 'grass',
+          // @ts-ignore
+          grassData: (record.objectData as any).grassData
+        }
+      } else if ((record.objectData as any).objectType === 'rock' && (record.objectData as any).rockData?.params && (record.objectData as any).rockData?.rockMaterialUuid) {
+        const g: any = (record.objectData as any).rockData
+        const generated = generateRock({
+          ...(g.params as any),
+          rockMaterialUuid: g.rockMaterialUuid
+        })
+        objectData = {
+          uuid: generateUUID(),
+          name: record.name,
+          primitives: generated.map(p => ({ ...p, uuid: generateUUID() })),
+          libraryUuid: record.uuid,
+          materials: record.objectData.materials || [],
+          objectType: 'rock',
+          // @ts-ignore
+          rockData: (record.objectData as any).rockData
+        }
       } else {
         objectData = {
           uuid: generateUUID(),
@@ -1365,6 +1416,20 @@ export class SceneAPI {
           leafMaterialUuid: correctedObject.treeData.leafMaterialUuid
         })
         correctedObject = { ...correctedObject, primitives: generated }
+      } else if (correctedObject.objectType === 'grass' && (correctedObject as any).grassData?.params && (correctedObject as any).grassData?.grassMaterialUuid) {
+        const g: any = (correctedObject as any).grassData
+        const generated = generateGrass({
+          ...(g.params as any),
+          grassMaterialUuid: g.grassMaterialUuid
+        })
+        correctedObject = { ...correctedObject, primitives: generated }
+      } else if (correctedObject.objectType === 'rock' && (correctedObject as any).rockData?.params && (correctedObject as any).rockData?.rockMaterialUuid) {
+        const g: any = (correctedObject as any).rockData
+        const generated = generateRock({
+          ...(g.params as any),
+          rockMaterialUuid: g.rockMaterialUuid
+        })
+        correctedObject = { ...correctedObject, primitives: generated }
       }
 
       // Рассчитать BoundingBox для объекта (после возможной реконструкции дерева)
@@ -1383,7 +1448,11 @@ export class SceneAPI {
         libraryUuid: correctedObject.libraryUuid,
         materials: correctedObject.materials,
         objectType: correctedObject.objectType,
-        treeData: correctedObject.treeData
+        treeData: correctedObject.treeData,
+        // @ts-ignore
+        grassData: (correctedObject as any).grassData,
+        // @ts-ignore
+        rockData: (correctedObject as any).rockData
       }
 
       // Добавить объект в store

@@ -10,7 +10,7 @@ import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
-import { woodTextureRegistry, initializeWoodTextures } from '@/shared/lib/textures'
+import { woodTextureRegistry, initializeWoodTextures, rockTextureRegistry, initializeRockTextures } from '@/shared/lib/textures'
 import { usePartitionInstancesByLod, defaultTreeLodConfig } from '@/shared/r3f/optimization/treeLod'
 import { SCENE_CHUNKED_LEAVES_ENABLED, SCENE_CHUNKED_TRUNKS_ENABLED, SCENE_CHUNKED_GRASS_ENABLED } from '@/shared/r3f/optimization/flags'
 
@@ -115,8 +115,16 @@ const PrimitiveGeometry: React.FC<{ primitive: any }> = ({ primitive }) => {
 interface PrimitiveMaterialProps {
   primitive: any
   materials?: any[]
+  sceneObject?: SceneObject
 }
-const PrimitiveMaterial: React.FC<PrimitiveMaterialProps> = ({ primitive, materials }) => {
+/**
+ * Материал для примитива внутри InstancedMesh.
+ *
+ * Для объектов типа 'rock' (камни) в SceneEditor трипланарное наложение
+ * каменных текстур включается по умолчанию, если флаг не задан в sceneObject.rockData.
+ * Явное значение rockTriplanar=false уважается и отключает трипланар.
+ */
+const PrimitiveMaterial: React.FC<PrimitiveMaterialProps> = ({ primitive, materials, sceneObject }) => {
   // Читаем активную палитру сцены → реактивно перерисовываем материал при её смене
   const paletteUuid = useSceneStore(s => s.environmentContent?.paletteUuid || 'default')
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
@@ -129,7 +137,106 @@ const PrimitiveMaterial: React.FC<PrimitiveMaterialProps> = ({ primitive, materi
     objectMaterials: materials,
   })
   const threeProps = materialToThreePropsWithPalette(resolved, activePalette as any)
-  return <meshStandardMaterial {...threeProps} />
+
+  // Поддержка набора текстур камня и трипланара в инстанс‑рендере
+  const [colorMap, setColorMap] = React.useState<THREE.Texture | null>(null)
+  const [normalMap, setNormalMap] = React.useState<THREE.Texture | null>(null)
+  const [roughnessMap, setRoughnessMap] = React.useState<THREE.Texture | null>(null)
+  const [aoMap, setAoMap] = React.useState<THREE.Texture | null>(null)
+  const matRef = React.useRef<THREE.MeshStandardMaterial | null>(null)
+  // Инициализация реестра камня
+  if (rockTextureRegistry.size === 0) { try { initializeRockTextures() } catch {} }
+
+  React.useEffect(() => {
+    if (!sceneObject) return
+    const rock = (sceneObject as any)?.rockData?.params
+    const rockSetId: string | undefined = rock?.rockTextureSetId
+    const ru: number = rock?.rockUvRepeatU ?? 1
+    const rv: number = rock?.rockUvRepeatV ?? 1
+    // Трипланар: по умолчанию true для объектов типа 'rock',
+    // если значение не задано явно в параметрах объекта сцены
+    const triplanar: boolean = (rock?.rockTriplanar === undefined)
+      ? (sceneObject?.objectType === 'rock')
+      : !!rock?.rockTriplanar
+    const texScale: number = rock?.rockTexScale ?? 3
+
+    if (!rockSetId) { setColorMap(null); setNormalMap(null); setRoughnessMap(null); setAoMap(null); return }
+    const set = rockTextureRegistry.get(rockSetId)
+    if (!set) return
+    const loader = new THREE.TextureLoader()
+    const onTex = (t: THREE.Texture | null) => {
+      if (!t) return
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(Math.max(0.05, ru || 1), Math.max(0.05, rv || 1))
+      t.anisotropy = 4
+      t.needsUpdate = true
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setColorMap(t) })
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setNormalMap(t) })
+    else setNormalMap(null)
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setRoughnessMap(t) })
+    else setRoughnessMap(null)
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setAoMap(t) })
+    else setAoMap(null)
+
+    // Трипланарный патч
+    if (triplanar && matRef.current) {
+      const m = matRef.current
+      m.onBeforeCompile = (shader: any) => {
+        shader.uniforms.uTexScale = { value: texScale }
+        const isGLSL3 = shader.fragmentShader.includes('#version 300 es')
+        const varyingDeclV = isGLSL3
+          ? 'out vec3 vWorldPos;\nout vec3 vWorldNormal;\n'
+          : 'varying vec3 vWorldPos;\nvarying vec3 vWorldNormal;\n'
+        const varyingDeclF = isGLSL3
+          ? 'in vec3 vWorldPos;\nin vec3 vWorldNormal;\n'
+          : 'varying vec3 vWorldPos;\nvarying vec3 vWorldNormal;\n'
+        const texFn = isGLSL3 ? 'texture' : 'texture2D'
+        if (isGLSL3) shader.vertexShader = shader.vertexShader.replace('void main() {', `${varyingDeclV}\nvoid main() {`)
+        else shader.vertexShader = `${varyingDeclV}` + shader.vertexShader
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <worldpos_vertex>',
+          '#include <worldpos_vertex>\n vWorldPos = worldPosition.xyz;\n vWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
+        )
+        const funcs = `\nuniform float uTexScale;\n${varyingDeclF}
+vec3 blendWeights(vec3 n){ vec3 an = abs(n); an = pow(an, vec3(4.0)); float s = an.x+an.y+an.z+1e-5; return an/s; }
+vec2 uvProj(vec3 p, int axis){ if(axis==0) return p.zy; if(axis==1) return p.xz; return p.xy; }
+vec4 triColor(sampler2D tex, vec3 pos, vec3 n){ vec3 w = blendWeights(n); vec4 cx = ${texFn}(tex, uvProj(pos*uTexScale,0)); vec4 cy = ${texFn}(tex, uvProj(pos*uTexScale,1)); vec4 cz = ${texFn}(tex, uvProj(pos*uTexScale,2)); return cx*w.x + cy*w.y + cz*w.z; }
+float triScalar(sampler2D tex, vec3 pos, vec3 n){ return triColor(tex, pos, n).r; }
+vec3 triNormalWS(sampler2D tex, vec3 pos, vec3 n){ vec3 w = blendWeights(n); vec3 nTx = ${texFn}(tex, uvProj(pos*uTexScale,0)).xyz*2.0-1.0; vec3 Tx=vec3(0.0,0.0,1.0), Bx=vec3(0.0,1.0,0.0), Nx=vec3(1.0,0.0,0.0); vec3 wx = normalize(Tx*nTx.x + Bx*nTx.y + Nx*nTx.z); vec3 nTy = ${texFn}(tex, uvProj(pos*uTexScale,1)).xyz*2.0-1.0; vec3 Ty=vec3(1.0,0.0,0.0), By=vec3(0.0,0.0,1.0), Ny=vec3(0.0,1.0,0.0); vec3 wy = normalize(Ty*nTy.x + By*nTy.y + Ny*nTy.z); vec3 nTz = ${texFn}(tex, uvProj(pos*uTexScale,2)).xyz*2.0-1.0; vec3 Tz=vec3(1.0,0.0,0.0), Bz=vec3(0.0,1.0,0.0), Nz=vec3(0.0,0.0,1.0); vec3 wz = normalize(Tz*nTz.x + Bz*nTz.y + Nz*nTz.z); return normalize(wx*w.x + wy*w.y + wz*w.z); }`
+        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\n' + funcs)
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            '#include <map_fragment>',
+            `#ifdef USE_MAP\n  vec4 texelColor = triColor(map, vWorldPos, normalize(vWorldNormal));\n  texelColor.rgb = pow( max(texelColor.rgb, vec3(0.0)), vec3(2.2) );\n  diffuseColor *= texelColor;\n#endif`
+          )
+          .replace(
+            '#include <normal_fragment_maps>',
+            `#ifdef USE_NORMALMAP\n  vec3 Nw = triNormalWS(normalMap, vWorldPos, normalize(vWorldNormal));\n  normal = normalize( ( viewMatrix * vec4( Nw, 0.0 ) ).xyz );\n#endif`
+          )
+          .replace(
+            '#include <roughnessmap_fragment>',
+            `float roughnessFactor = roughness;\n#ifdef USE_ROUGHNESSMAP\n float tr = triScalar( roughnessMap, vWorldPos, normalize(vWorldNormal) );\n roughnessFactor *= tr;\n#endif`
+          )
+          .replace(
+            '#include <aomap_fragment>',
+            `#ifdef USE_AOMAP\n float ao = triScalar( aoMap, vWorldPos, normalize(vWorldNormal) );\n float ambientOcclusion = 1.0 - (1.0 - ao) * aoMapIntensity;\n reflectedLight.indirectDiffuse *= ambientOcclusion;\n #ifdef USE_CLEARCOAT\n  reflectedLight.indirectDiffuse += irradiance * (clearCoat * envBRDF.x) * ambientOcclusion;\n #endif\n#endif`
+          )
+      }
+      m.needsUpdate = true
+    }
+  }, [sceneObject])
+
+  return (
+    <meshStandardMaterial
+      ref={matRef as any}
+      {...threeProps}
+      map={colorMap || undefined}
+      normalMap={normalMap || undefined}
+      roughnessMap={roughnessMap || undefined}
+      aoMap={aoMap || undefined}
+    />
+  )
 }
 
 /**
@@ -578,7 +685,7 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
           aoMap={barkAoMap || undefined}
         />
       ) : (
-        <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} />
+        <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} sceneObject={sceneObject} />
       )}
 
       {instances.map((instance, index) => {
