@@ -1,0 +1,21 @@
+{
+  "seed": 2,
+  "type": "deciduous",
+  "bark": { "type": "oak", "flatShading": false, "textured": false, "tint": 16777215, "textureScale": { "x": 1, "y": 1 } },
+  "branch": {
+    "levels": 3,
+    "angle": { "1": 70, "2": 60, "3": 60 },
+    "children": { "0": 7, "1": 6, "2": 4 },
+    "force": { "direction": { "x": 0, "y": 1, "z": 0 }, "strength": 0.01 },
+    "gnarliness": { "0": 0.15, "1": 0.2, "2": 0.25, "3": 0.02 },
+    "length": { "0": 18, "1": 14, "2": 8, "3": 1 },
+    "radius": { "0": 1.4, "1": 0.7, "2": 0.55, "3": 0.4 },
+    "sections": { "0": 12, "1": 10, "2": 8, "3": 6 },
+    "segments": { "0": 8, "1": 6, "2": 4, "3": 3 },
+    "start": { "1": 0.4, "2": 0.3, "3": 0.3 },
+    "taper": { "0": 0.7, "1": 0.7, "2": 0.7, "3": 0.7 },
+    "twist": { "0": 0, "1": 0, "2": 0, "3": 0 }
+  },
+  "leaves": { "type": "oak", "billboard": "double", "angle": 12, "count": 28, "start": 0.15, "size": 2.6, "sizeVariance": 0.65, "tint": 16777215, "alphaTest": 0.5 }
+}
+

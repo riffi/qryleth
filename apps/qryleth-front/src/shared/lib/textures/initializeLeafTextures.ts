@@ -73,4 +73,36 @@ export function initializeLeafTextures(): void {
     opacityMapUrl: stylizedBirchBase + 'BirchTree_Leaves_Opacity.png',
     atlasUrl: stylizedBirchBase + 'atlas.json',
   })
+
+  // Наборы «ez-tree» для полного соответствия библиотеке
+  const ezBase = '/texture/ez-tree/leaves/'
+  leafTextureRegistry.register({
+    id: 'ez-leaf-oak',
+    name: 'ez-tree Oak Leaves',
+    previewUrl: ezBase + 'oak_color.png',
+    colorMapUrl: ezBase + 'oak_color.png',
+    // Для ez-tree используем альфа-канал colorMap; atlas не требуется
+    atlasUrl: '' as any,
+  } as any)
+  leafTextureRegistry.register({
+    id: 'ez-leaf-ash',
+    name: 'ez-tree Ash Leaves',
+    previewUrl: ezBase + 'ash_color.png',
+    colorMapUrl: ezBase + 'ash_color.png',
+    atlasUrl: '' as any,
+  } as any)
+  leafTextureRegistry.register({
+    id: 'ez-leaf-aspen',
+    name: 'ez-tree Aspen Leaves',
+    previewUrl: ezBase + 'aspen_color.png',
+    colorMapUrl: ezBase + 'aspen_color.png',
+    atlasUrl: '' as any,
+  } as any)
+  leafTextureRegistry.register({
+    id: 'ez-leaf-pine',
+    name: 'ez-tree Pine Leaves',
+    previewUrl: ezBase + 'pine_color.png',
+    colorMapUrl: ezBase + 'pine_color.png',
+    atlasUrl: '' as any,
+  } as any)
 }

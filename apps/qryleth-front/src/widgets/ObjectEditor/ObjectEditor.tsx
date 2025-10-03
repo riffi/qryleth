@@ -179,6 +179,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         onToggleManager={() => panelStateBridge.togglePanel?.('manager')}
         generatorCollapsed={isTree ? panelStateBridge.panelState?.rightPanel !== 'treeGenerator' : undefined}
         onToggleGenerator={isTree ? () => panelStateBridge.togglePanel?.('treeGenerator') : undefined}
+        ezTreeGeneratorCollapsed={isTree ? panelStateBridge.panelState?.rightPanel !== 'ezTreeGenerator' : undefined}
+        onToggleEzTreeGenerator={isTree ? () => panelStateBridge.togglePanel?.('ezTreeGenerator') : undefined}
         grassGeneratorCollapsed={isGrass ? panelStateBridge.panelState?.rightPanel !== 'grassGenerator' : undefined}
         onToggleGrassGenerator={isGrass ? () => panelStateBridge.togglePanel?.('grassGenerator') : undefined}
         rockGeneratorCollapsed={isRock ? panelStateBridge.panelState?.rightPanel !== 'rockGenerator' : undefined}

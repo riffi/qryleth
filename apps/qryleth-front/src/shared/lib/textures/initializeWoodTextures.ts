@@ -78,4 +78,43 @@ export function initializeWoodTextures(): void {
     aoMapUrl: wood0062Base + 'wood_0062_ao_1k.jpg',
     displacementMapUrl: wood0062Base + 'wood_0062_height_1k.png',
   })
+
+  // Наборы «ez-tree» для коры деревьев (пути ожидают размещения файлов в public)
+  const ezBarkBase = '/texture/ez-tree/bark/'
+  woodTextureRegistry.register({
+    id: 'ez-bark-oak',
+    name: 'ez-tree Bark Oak',
+    previewUrl: ezBarkBase + 'oak_color_1k.jpg',
+    colorMapUrl: ezBarkBase + 'oak_color_1k.jpg',
+    normalMapUrl: ezBarkBase + 'oak_normal_1k.jpg',
+    roughnessMapUrl: ezBarkBase + 'oak_roughness_1k.jpg',
+    aoMapUrl: ezBarkBase + 'oak_ao_1k.jpg',
+  })
+  woodTextureRegistry.register({
+    id: 'ez-bark-birch',
+    name: 'ez-tree Bark Birch',
+    previewUrl: ezBarkBase + 'birch_color_1k.jpg',
+    colorMapUrl: ezBarkBase + 'birch_color_1k.jpg',
+    normalMapUrl: ezBarkBase + 'birch_normal_1k.jpg',
+    roughnessMapUrl: ezBarkBase + 'birch_roughness_1k.jpg',
+    aoMapUrl: ezBarkBase + 'birch_ao_1k.jpg',
+  })
+  woodTextureRegistry.register({
+    id: 'ez-bark-pine',
+    name: 'ez-tree Bark Pine',
+    previewUrl: ezBarkBase + 'pine_color_1k.jpg',
+    colorMapUrl: ezBarkBase + 'pine_color_1k.jpg',
+    normalMapUrl: ezBarkBase + 'pine_normal_1k.jpg',
+    roughnessMapUrl: ezBarkBase + 'pine_roughness_1k.jpg',
+    aoMapUrl: ezBarkBase + 'pine_ao_1k.jpg',
+  })
+  woodTextureRegistry.register({
+    id: 'ez-bark-willow',
+    name: 'ez-tree Bark Willow',
+    previewUrl: ezBarkBase + 'willow_color_1k.jpg',
+    colorMapUrl: ezBarkBase + 'willow_color_1k.jpg',
+    normalMapUrl: ezBarkBase + 'willow_normal_1k.jpg',
+    roughnessMapUrl: ezBarkBase + 'willow_roughness_1k.jpg',
+    aoMapUrl: ezBarkBase + 'willow_ao_1k.jpg',
+  })
 }

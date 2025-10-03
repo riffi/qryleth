@@ -12,6 +12,10 @@ interface RightToolbarProps {
   generatorCollapsed?: boolean
   /** Переключить видимость правой панели (генератор деревьев). */
   onToggleGenerator?: () => void
+  /** Свёрнут ли генератор деревьев ez-tree (правая панель). true = панель скрыта. */
+  ezTreeGeneratorCollapsed?: boolean
+  /** Переключить видимость правой панели (генератор ez-tree). */
+  onToggleEzTreeGenerator?: () => void
   /** Свёрнут ли генератор травы (правая панель). true = панель скрыта. */
   grassGeneratorCollapsed?: boolean
   /** Переключить видимость правой панели (генератор травы). */
@@ -26,7 +30,7 @@ interface RightToolbarProps {
  * Правый тулбар ObjectEditor: управление панелью менеджера объектов.
  * Визуально и по UX согласован с тулбаром SceneEditor.
  */
-export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, grassGeneratorCollapsed, onToggleGrassGenerator, rockGeneratorCollapsed, onToggleRockGenerator }) => {
+export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, ezTreeGeneratorCollapsed, onToggleEzTreeGenerator, grassGeneratorCollapsed, onToggleGrassGenerator, rockGeneratorCollapsed, onToggleRockGenerator }) => {
   return (
     <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
@@ -50,6 +54,20 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
               color={!generatorCollapsed ? 'green' : 'gray'}
               onClick={onToggleGenerator}
               aria-label={generatorCollapsed ? 'Открыть генератор деревьев' : 'Закрыть генератор деревьев'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconTrees size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {onToggleEzTreeGenerator && (
+          <Tooltip label={ezTreeGeneratorCollapsed ? 'Открыть генератор дерева (ez-tree)' : 'Закрыть генератор дерева (ez-tree)'} position="left" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={!ezTreeGeneratorCollapsed ? 'filled' : 'subtle'}
+              color={!ezTreeGeneratorCollapsed ? 'lime' : 'gray'}
+              onClick={onToggleEzTreeGenerator}
+              aria-label={ezTreeGeneratorCollapsed ? 'Открыть генератор дерева (ez-tree)' : 'Закрыть генератор дерева (ez-tree)'}
               style={{ borderRadius: 4, transition: 'all 200ms ease' }}
             >
               <IconTrees size={20} />

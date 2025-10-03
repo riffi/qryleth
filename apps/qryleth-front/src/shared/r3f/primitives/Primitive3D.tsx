@@ -364,7 +364,7 @@ vec3 triNormalWS(sampler2D tex, vec3 pos, vec3 n){ vec3 w = blendWeights(n); vec
   }, [geom.positions, geom.normals, geom.indices, geom.uvs])
 
   return (
-    <mesh {...(meshProps || {})} castShadow receiveShadow={false}>
+    <mesh {...(meshProps || {})} castShadow receiveShadow>
       <primitive object={bufferGeometry} attach="geometry" />
       <meshStandardMaterial
         ref={m => { materialRef.current = m }}

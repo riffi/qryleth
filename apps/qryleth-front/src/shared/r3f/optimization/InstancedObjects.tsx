@@ -625,6 +625,8 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
   const [barkAoMap, setBarkAoMap] = React.useState<THREE.Texture | null>(null)
   // Ссылка на материал для явного обновления при смене карт
   const trunkMatRef = React.useRef<THREE.MeshStandardMaterial | null>(null)
+  const ezCompat = useObjectStore(s => (s.treeData as any)?.params?.ezTreeCompat ?? false) as boolean
+  const barkFlat = useObjectStore(s => (s.treeData as any)?.params?.barkFlat ?? false) as boolean
   React.useEffect(() => {
     if (!isTreeUnifiedTrunk) return
     const params = (sceneObject as any)?.treeData?.params || {}
@@ -641,12 +643,24 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
       t.anisotropy = 4
       t.needsUpdate = true
     }
-    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setBarkColorMap(t) })
-    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setBarkNormalMap(t) })
+    const fallback = () => {
+      const list = woodTextureRegistry.list()
+      const alt = list.find(s => s.id !== set.id)
+      if (!alt) return
+      loader.load(alt.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setBarkColorMap(t) })
+      if (alt.normalMapUrl) loader.load(alt.normalMapUrl, (t) => { onTex(t); setBarkNormalMap(t) })
+      else setBarkNormalMap(null)
+      if (alt.roughnessMapUrl) loader.load(alt.roughnessMapUrl, (t) => { onTex(t); setBarkRoughnessMap(t) })
+      else setBarkRoughnessMap(null)
+      if (alt.aoMapUrl) loader.load(alt.aoMapUrl, (t) => { onTex(t); setBarkAoMap(t) })
+      else setBarkAoMap(null)
+    }
+    loader.load(set.colorMapUrl, (t) => { onTex(t); (t as any).colorSpace = (THREE as any).SRGBColorSpace || (t as any).colorSpace; setBarkColorMap(t) }, undefined, fallback)
+    if (set.normalMapUrl) loader.load(set.normalMapUrl, (t) => { onTex(t); setBarkNormalMap(t) }, undefined, () => setBarkNormalMap(null))
     else setBarkNormalMap(null)
-    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setBarkRoughnessMap(t) })
+    if (set.roughnessMapUrl) loader.load(set.roughnessMapUrl, (t) => { onTex(t); setBarkRoughnessMap(t) }, undefined, () => setBarkRoughnessMap(null))
     else setBarkRoughnessMap(null)
-    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setBarkAoMap(t) })
+    if (set.aoMapUrl) loader.load(set.aoMapUrl, (t) => { onTex(t); setBarkAoMap(t) }, undefined, () => setBarkAoMap(null))
     else setBarkAoMap(null)
   }, [isTreeUnifiedTrunk, sceneObject])
   // Явно помечаем материал на обновление при смене карт
@@ -672,6 +686,25 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
     >
       <PrimitiveGeometry primitive={primitive} />
       {isTreeUnifiedTrunk ? (
+        ezCompat ? (
+          <meshPhongMaterial
+            key={`tree-unified-trunk-phong-${primitive.uuid}-${barkColorMap ? 'tex' : 'notex'}`}
+            ref={trunkMatRef as any}
+            color={(materialToThreePropsWithPalette(
+              resolveMaterial({
+                directMaterial: primitive.material,
+                objectMaterialUuid: primitive.objectMaterialUuid,
+                globalMaterialUuid: primitive.globalMaterialUuid,
+                objectMaterials: materials || sceneObject.materials,
+              }),
+              paletteRegistry.get((useSceneStore.getState().environmentContent?.paletteUuid || 'default')) as any
+            ) as any).color}
+            flatShading={barkFlat}
+            map={barkColorMap || undefined}
+            normalMap={barkNormalMap || undefined}
+            // AO/roughness карты у Phong не поддерживаются напрямую — игнорируем
+          />
+        ) : (
         <meshStandardMaterial
           key={`tree-unified-trunk-${primitive.uuid}-${barkColorMap ? 'tex' : 'notex'}`}
           ref={trunkMatRef as any}
@@ -690,6 +723,7 @@ const PrimitiveInstancedGroup: React.FC<PrimitiveInstancedGroupProps> = ({
           roughnessMap={barkRoughnessMap || undefined}
           aoMap={barkAoMap || undefined}
         />
+        )
       ) : (
         <PrimitiveMaterial primitive={primitive} materials={materials || sceneObject.materials} sceneObject={sceneObject} />
       )}

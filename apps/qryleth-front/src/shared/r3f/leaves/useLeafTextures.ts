@@ -71,17 +71,31 @@ export function useLeafTextures(
       setDiffuseMap(null); setAlphaMap(null); setNormalMap(null); setRoughnessMap(null)
       return
     }
-    const set = (setId && leafTextureRegistry.get(setId)) || leafTextureRegistry.list()[0]
-    if (!set) { setDiffuseMap(null); setAlphaMap(null); setNormalMap(null); setRoughnessMap(null); return }
-    ;(async () => {
-      const { colorMap, opacityMap, normalMap, roughnessMap } = await loadLeafBaseMaps(set)
-      if (!alive) return
+    const pickSet = () => (setId && leafTextureRegistry.get(setId)) || leafTextureRegistry.list()[0]
+    const loadForSet = async (s: any): Promise<boolean> => {
+      if (!s) return false
+      const { colorMap, opacityMap, normalMap, roughnessMap } = await loadLeafBaseMaps(s)
+      if (!alive) return true
+      if (!colorMap) return false
       setDiffuseMap(colorMap)
       setAlphaMap(opacityMap)
       setNormalMap(normalMap)
       setRoughnessMap(roughnessMap)
       const img2: any = colorMap?.image
       if (img2 && img2.width && img2.height) setTexAspect(img2.width / img2.height)
+      return true
+    }
+    ;(async () => {
+      const current = pickSet()
+      const ok = await loadForSet(current)
+      if (ok) return
+      // Fallback: пробуем первый доступный набор, если текущий не загрузился
+      const list = leafTextureRegistry.list()
+      for (const s of list) {
+        if (s === current) continue
+        const ok2 = await loadForSet(s)
+        if (ok2) break
+      }
     })()
     return () => { alive = false }
   }, [enabled, setId])

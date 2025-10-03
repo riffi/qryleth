@@ -18,6 +18,7 @@ import { GroupControlPanel } from '@/features/editor/object/ui/GroupControlPanel
 import { MaterialControlPanel } from '@/features/editor/object/ui/MaterialControlPanel/MaterialControlPanel'
 import { ObjectManagementPanel } from '@/features/editor/object/ui/ObjectManagementPanel/ObjectManagementPanel'
 import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/TreeGeneratorPanel'
+import { EzTreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/EzTreeGeneratorPanel'
 import { GrassGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/GrassGeneratorPanel'
 import { RockGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/RockGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
@@ -290,10 +291,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
               {
                 current === 'manager' ? <IconFolder size={20} />
                 : current === 'treeGenerator' ? <IconTrees size={20} />
+                : current === 'ezTreeGenerator' ? <IconTrees size={20} />
                 : current === 'grassGenerator' ? <IconLeaf size={20} />
                 : <IconCube size={20} />
               }
-              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : current === 'grassGenerator' ? 'Генератор травы' : 'Генератор камня'}</Text>
+              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : current === 'ezTreeGenerator' ? 'Генератор дерева (ez-tree)' : current === 'grassGenerator' ? 'Генератор травы' : 'Генератор камня'}</Text>
             </Group>
             <ActionIcon
               variant="subtle"
@@ -308,6 +310,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
         <Box style={{ flex: 1, minHeight: 0 }}>
           {current === 'manager' && <ObjectManagementPanel />}
           {current === 'treeGenerator' && isTree && <TreeGeneratorPanel />}
+          {current === 'ezTreeGenerator' && isTree && <EzTreeGeneratorPanel />}
           {current === 'grassGenerator' && isGrass && <GrassGeneratorPanel />}
           {current === 'rockGenerator' && isRock && <RockGeneratorPanel />}
         </Box>
@@ -329,6 +332,9 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
       }
       if (panelState.rightPanel === 'treeGenerator') {
         hidePanel?.('treeGenerator') ?? showPanel?.('manager')
+      }
+      if (panelState.rightPanel === 'ezTreeGenerator') {
+        hidePanel?.('ezTreeGenerator') ?? showPanel?.('manager')
       }
     }
     if (objectType !== 'grass') {

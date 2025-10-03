@@ -142,6 +142,9 @@ export async function loadLeafTextureCached(url: string, opts?: LeafTexOpts): Pr
         t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
         t.center.set(0.0, 0.0)
         t.rotation = 0
+        // ВАЖНО: для PNG с альфой используем premultiplyAlpha, как в ez-tree,
+        // чтобы убрать белые ореолы по краям выреза при мип-мапинге
+        t.premultiplyAlpha = true
         if (opts?.anisotropy != null) t.anisotropy = opts.anisotropy
         if (opts?.generateMipmaps != null) t.generateMipmaps = opts.generateMipmaps
         if (opts?.minFilter != null) t.minFilter = opts.minFilter

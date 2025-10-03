@@ -123,7 +123,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
       const vN = Math.min(1, Math.max(0, ay / rect.height))
       setAnchorUV([uN, vN])
     } else {
-      setAnchorUV([0.5, 1.0])
+      // Для ez-tree совместимости якорь — нижняя середина (0.5, 0.0)
+      setAnchorUV([0.5, 0.0])
     }
   }, [shape, atlas, diffuseMap, alphaMap, normalMap, roughnessMap, spriteName])
 
@@ -134,7 +135,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   const [psx, psy, psz] = primitive?.transform?.scale || [1,1,1]
   // Масштаб листа: радиус с учётом локального scale примитива (как в OE: корень третьей степени объёма)
   const uniformScale = radius * Math.cbrt(Math.abs(psx * psy * psz))
-  const sx = shape === 'texture' ? uniformScale * (texAspect || 1) : uniformScale
+  const ezCompat: boolean = useObjectStore(s => (s.treeData as any)?.params?.ezTreeCompat ?? false)
+  const sx = shape === 'texture' ? (ezCompat ? uniformScale : (uniformScale * (texAspect || 1))) : uniformScale
   const sy = uniformScale
   const sz = uniformScale
 
@@ -142,7 +144,7 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
   const offVec = useMemo(() => {
     if (shape !== 'texture') return new THREE.Vector3(0,0,0)
     const u = anchorUV?.[0] ?? 0.5
-    const v = anchorUV?.[1] ?? 1.0
+    const v = anchorUV?.[1] ?? 0.0
     const dx = (0.5 - u) * sx
     const dy = (v - 0.5) * sy
     // В локальных координатах плоскости; поворот применяется на родительской группе
@@ -201,11 +203,12 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
           ref={onMaterialRef}
           side={THREE.DoubleSide}
           map={shape === 'texture' ? diffuseMap || undefined : undefined}
-          alphaMap={shape === 'texture' ? alphaMap || undefined : undefined}
+          alphaMap={shape === 'texture' ? (alphaMap || undefined) : undefined}
           normalMap={shape === 'texture' ? normalMap || undefined : undefined}
           roughnessMap={shape === 'texture' ? roughnessMap || undefined : undefined}
-          transparent={shape === 'texture' ? (!!diffuseMap ? true : false) : materialProps.transparent}
-          alphaTest={shape === 'texture' ? (!!diffuseMap ? 0.5 : 0.0) : materialProps.alphaTest}
+          // Как в ez-tree: используем только alphaTest, без прозрачности
+          transparent={false}
+          alphaTest={shape === 'texture' ? 0.5 : materialProps.alphaTest}
         />
       </mesh>
     </group>
