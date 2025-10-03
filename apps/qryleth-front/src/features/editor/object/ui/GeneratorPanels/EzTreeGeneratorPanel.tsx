@@ -258,6 +258,10 @@ export const EzTreeGeneratorPanel: React.FC = () => {
     const opts = new TreeOptions()
     opts.seed = seed
     opts.type = treeType
+    // ВАЖНО: сначала применяем пресет (если выбран), чтобы затем значения из UI его переопределили
+    if (preset && TreePreset[preset]) {
+      opts.copy(TreePreset[preset])
+    }
     // Кора
     opts.bark.type = barkType
     opts.bark.tint = 0xffffff // базовый белый — используем цвет материала стора
@@ -288,10 +292,7 @@ export const EzTreeGeneratorPanel: React.FC = () => {
     opts.leaves.tint = parseInt(leafTint.replace('#','0x')) || 0xffffff
     opts.leaves.alphaTest = leafAlphaTest
 
-    // Пресеты можно применить путём merge в opts (необязательно)
-    if (preset && TreePreset[preset]) {
-      opts.copy(TreePreset[preset])
-    }
+    // (Пресет уже применён выше — здесь больше не копируем, чтобы не перетирать значения из UI)
     const ge = generateEzTreeGeometry(opts)
     const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
 
