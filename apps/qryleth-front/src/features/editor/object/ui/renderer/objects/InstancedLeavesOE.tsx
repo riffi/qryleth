@@ -117,12 +117,16 @@ export const InstancedLeavesOE: React.FC<InstancedLeavesOEProps> = ({ leaves, ob
       dummy.rotation.set(prx, pry, prz)
       // Привязываем геометрию к точке основания спрайта: смещение в локальных координатах плоскости
       {
+        // Якорь по умолчанию — нижняя середина (0.5, 0.0), как в ez-tree
         const u = anchorUV?.[0] ?? 0.5
-        const v = anchorUV?.[1] ?? 1.0
+        const v = anchorUV?.[1] ?? 0.0
         // Переносим локальные координаты anchor в центр плоскости (точку крепления):
         // локально anchor = ((u-0.5)*sx, (0.5 - v)*sy); смещение = -anchor → ((0.5-u)*sx, (v-0.5)*sy)
         const dx = (0.5 - u) * sx
-        const dy = (v - 0.5) * sy
+        // Важно: как в ez-tree, основание листа находится внизу плоскости,
+        // поэтому смещение к pivot должно быть ВВЕРХ на половину высоты.
+        // Меняем знак: (0.5 - v) вместо (v - 0.5).
+        const dy = (0.5 - v) * sy
         const off = new THREE.Vector3(dx, dy, 0)
         off.applyEuler(new THREE.Euler(prx, pry, prz, 'XYZ'))
         dummy.position.add(off)

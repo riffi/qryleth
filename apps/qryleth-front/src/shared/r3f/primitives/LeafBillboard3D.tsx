@@ -146,7 +146,8 @@ export const LeafBillboard3D: React.FC<LeafBillboard3DProps> = ({ primitive, mat
     const u = anchorUV?.[0] ?? 0.5
     const v = anchorUV?.[1] ?? 0.0
     const dx = (0.5 - u) * sx
-    const dy = (v - 0.5) * sy
+    // Смещение вверх к нижнему краю (как в ez-tree): (0.5 - v)
+    const dy = (0.5 - v) * sy
     // В локальных координатах плоскости; поворот применяется на родительской группе
     return new THREE.Vector3(dx, dy, 0)
   }, [shape, anchorUV, sx, sy])
