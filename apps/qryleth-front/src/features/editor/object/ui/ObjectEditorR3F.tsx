@@ -8,6 +8,8 @@ import {
 } from '../model/objectStore'
 import { useOEKeyboardShortcuts } from '../lib/hooks/useOEKeyboardShortcuts'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
+import { generateUUID } from '@/shared/lib/uuid'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { TransformModeButtons, GridToggleButton, RenderModeSegment } from '@/shared/ui'
 import type { GfxObject } from '@/entities/object'
@@ -63,12 +65,40 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
 
       // Если объект — процедурный (дерево/трава), восстанавливаем примитивы на лету
       if (objectData.objectType === 'tree' && objectData.treeData?.params && objectData.treeData.barkMaterialUuid && objectData.treeData.leafMaterialUuid) {
-        const generated = generateTree({
-          ...(objectData.treeData.params as any),
-          barkMaterialUuid: objectData.treeData.barkMaterialUuid,
-          leafMaterialUuid: objectData.treeData.leafMaterialUuid
-        })
-        store.setPrimitives(generated)
+        const params: any = objectData.treeData.params
+        // Если объект создан через ez-tree — восстанавливаем геометрию ez-tree, а не legacy‑дерева
+        if (params?.ezTreeCompat) {
+          const opts = new TreeOptions()
+          try { opts.copy(params) } catch {}
+          const ge = generateEzTreeGeometry(opts)
+          const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
+          const trunkPrim: any = {
+            uuid: generateUUID(),
+            type: 'mesh',
+            name: 'ez-tree: ствол+ветви',
+            geometry: branches,
+            objectMaterialUuid: objectData.treeData.barkMaterialUuid,
+            visible: true,
+            transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+          }
+          const leafPrims: any[] = ge.leafInstances.map(inst => ({
+            uuid: generateUUID(),
+            type: 'leaf',
+            name: 'Лист',
+            geometry: { radius: Math.max(0.01, inst.size), shape: 'texture' },
+            objectMaterialUuid: objectData.treeData!.leafMaterialUuid,
+            visible: true,
+            transform: { position: inst.position, rotation: inst.orientation, scale: [1,1,1] }
+          }))
+          store.setPrimitives([trunkPrim, ...leafPrims])
+        } else {
+          const generated = generateTree({
+            ...(params as any),
+            barkMaterialUuid: objectData.treeData.barkMaterialUuid,
+            leafMaterialUuid: objectData.treeData.leafMaterialUuid
+          })
+          store.setPrimitives(generated)
+        }
       } else if ((objectData as any).objectType === 'grass' && (objectData as any).grassData?.params && (objectData as any).grassData?.grassMaterialUuid) {
         const g = (objectData as any).grassData
         const generated = generateGrass({

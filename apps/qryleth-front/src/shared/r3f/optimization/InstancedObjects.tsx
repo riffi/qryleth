@@ -8,6 +8,7 @@ import { useInstancedTransformOverrides } from '@/shared/r3f/optimization/Instan
 import { InstancedBranches } from '@/shared/r3f/optimization/InstancedBranches'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
+import { useObjectStore } from '@/features/editor/object/model/objectStore'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
 import { woodTextureRegistry, initializeWoodTextures, rockTextureRegistry, initializeRockTextures } from '@/shared/lib/textures'

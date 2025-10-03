@@ -156,6 +156,21 @@ export function generateTree(params: TreeGeneratorParams & {
     leafMaterialUuid,
   } = params
 
+  // Защита от некорректных/устаревших данных сцен: нормализуем числовые параметры,
+  // чтобы исключить NaN/Infinity и нули там, где ожидаются положительные значения.
+  const trunkSegmentsSafe = (() => {
+    const n = Math.floor(Number(trunkSegments))
+    return Number.isFinite(n) && n > 0 ? n : 12
+  })()
+  const trunkHeightSafe = (() => {
+    const n = Number(trunkHeight)
+    return Number.isFinite(n) && n > 0 ? n : 10
+  })()
+  const trunkRadiusSafe = (() => {
+    const n = Number(trunkRadius)
+    return Number.isFinite(n) && n > 0 ? n : 0.5
+  })()
+
   // Отсечка по высоте для появления ветвей: все точки крепления ниже
   // этой высоты полностью исключаются из генерации веток. Нормируем
   // значение параметра на диапазон [0 .. trunkHeight]. Если не задано — 0.
@@ -221,7 +236,7 @@ export function generateTree(params: TreeGeneratorParams & {
   }
 
   // 1) Ствол(ы): один вертикальный + опциональные разветвления, с плавными стыками
-  const segH = trunkHeight / Math.max(1, trunkSegments)
+  const segH = trunkHeightSafe / Math.max(1, trunkSegmentsSafe)
   const taper = trunkTaperFactor ?? 0.4
   /**
    * Функция радиуса ствола на расстоянии s [0..1] вдоль его высоты с учётом taper.
@@ -439,15 +454,15 @@ export function generateTree(params: TreeGeneratorParams & {
   {
     const curvePts = buildTrunkCurvePoints(trunkHeight, trunkShearStrength, rng, randomness)
     const taper = Math.max(0, Math.min(0.95, trunkTaperFactor ?? 0.4))
-    const tube = buildTaperedTubeMesh(curvePts, trunkRadius, {
-      tubularSegments: Math.max(12, trunkSegments * 4),
+    const tube = buildTaperedTubeMesh(curvePts, trunkRadiusSafe, {
+      tubularSegments: Math.max(12, trunkSegmentsSafe * 4),
       radialSegments: trunkRadialSegments,
       taper: linearTaper(taper),
       collarFrac: 0,
       collarScale: 1,
       // Единая плотность по UV: repeats = длина(м) * texD
       vStart: 0,
-      vScale: trunkHeight * texD,
+      vScale: trunkHeightSafe * texD,
       // U: классическая угловая развёртка без метрического пересчёта — стабильна по окружности
       // Зафиксируем начальную ориентацию U=0 для ствола вдоль мировой оси X
       refNormal: [1, 0, 0],
@@ -470,12 +485,12 @@ export function generateTree(params: TreeGeneratorParams & {
     // берём вершины сегментов (верх каждой из trunkSegments частей) и используем
     // локальную касательную и радиус ствола на этой высоте
     const curve = new THREE.CatmullRomCurve3(curvePts, false, 'catmullrom', 0.5)
-    const segs = Math.max(1, trunkSegments)
+    const segs = Math.max(1, trunkSegmentsSafe)
     for (let i = 0; i < segs; i++) {
       const t = (i + 1) / segs
       const p = curve.getPoint(t)
       const tan = curve.getTangent(t).normalize()
-      const r = Math.max(0.02, radiusAt01(trunkRadius, t))
+      const r = Math.max(0.02, radiusAt01(trunkRadiusSafe, t))
       trunkAttachments.push({
         point: [p.x, p.y, p.z],
         axis: [tan.x, tan.y, tan.z],
@@ -486,7 +501,7 @@ export function generateTree(params: TreeGeneratorParams & {
 
   type TrunkNode = { base: [number,number,number]; axis: [number,number,number]; height: number; radius: number; segments: number; endPoint: [number,number,number]; endAxis: [number,number,number] }
   const mainEndAxis: [number,number,number] = mainTrunk.path ? normalize(mainTrunk.path.tangents[mainTrunk.path.tangents.length - 1]) : [0,1,0]
-  let currentLevel: TrunkNode[] = [{ base: [0,0,0], axis: [0,1,0], height: trunkHeight, radius: trunkRadius, segments: trunkSegments, endPoint: mainTrunk.endPoint, endAxis: mainEndAxis }]
+  let currentLevel: TrunkNode[] = [{ base: [0,0,0], axis: [0,1,0], height: trunkHeightSafe, radius: trunkRadiusSafe, segments: trunkSegmentsSafe, endPoint: mainTrunk.endPoint, endAxis: mainEndAxis }]
   for (let lvl = 0; lvl < tbLevels; lvl++) {
     const nextLevel: TrunkNode[] = []
     for (const node of currentLevel) {
@@ -1144,7 +1159,7 @@ export function generateTree(params: TreeGeneratorParams & {
     const tipTaper = Math.max(0, Math.min(0.95, branchTipTaper ?? 0.35))
     const rad = Math.max(0.005, trunkEndRadius)
     const curvePts = buildBranchCurvePoints(baseInside, aN, len, rng)
-    const vStartCont = Math.max(1, trunkHeight * texD)
+    const vStartCont = Math.max(1, trunkHeightSafe * texD)
     const tube = buildTaperedTubeMesh(curvePts, rad, {
       tubularSegments: 20,
       radialSegments: trunkRadialSegments,

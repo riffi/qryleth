@@ -33,6 +33,7 @@ import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
 import { invalidateTreeBillboards } from '@/shared/r3f/optimization/TreeBillboardBaker'
 import { invalidateGrassBillboards } from '@/shared/r3f/optimization/GrassBillboardBaker'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
 import type { GfxWaterBody } from '@/entities/water'
@@ -447,12 +448,40 @@ export const useSceneStore = create<SceneStore>()(
 
         if (isTree && tree?.params) {
           try {
-            const restored = generateTree({
-              ...(tree.params as any),
-              barkMaterialUuid: tree.barkMaterialUuid,
-              leafMaterialUuid: tree.leafMaterialUuid
-            })
-            nextPrimitives = ensurePrimitiveNames(restored.map(normalizePrimitive))
+            const params: any = tree.params
+            if (params?.ezTreeCompat) {
+              // Реконструкция ez-tree как набора примитивов: единый mesh ствола + примитивы-листья
+              const opts = new TreeOptions()
+              try { opts.copy(params) } catch {}
+              const ge = generateEzTreeGeometry(opts)
+              const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
+              const trunkPrim: any = {
+                uuid: generateUUID(),
+                type: 'mesh',
+                name: 'ez-tree: ствол+ветви',
+                geometry: branches,
+                objectMaterialUuid: tree.barkMaterialUuid,
+                visible: true,
+                transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+              }
+              const leafPrims: any[] = ge.leafInstances.map(inst => ({
+                uuid: generateUUID(),
+                type: 'leaf',
+                name: 'Лист',
+                geometry: { radius: Math.max(0.01, inst.size), shape: 'texture' },
+                objectMaterialUuid: tree.leafMaterialUuid,
+                visible: true,
+                transform: { position: inst.position, rotation: inst.orientation, scale: [1,1,1] }
+              }))
+              nextPrimitives = ensurePrimitiveNames([trunkPrim, ...leafPrims].map(normalizePrimitive))
+            } else {
+              const restored = generateTree({
+                ...(params as any),
+                barkMaterialUuid: tree.barkMaterialUuid,
+                leafMaterialUuid: tree.leafMaterialUuid
+              })
+              nextPrimitives = ensurePrimitiveNames(restored.map(normalizePrimitive))
+            }
             primitivesChanged = true
           } catch (e) {
             console.warn('updateObject: не удалось восстановить примитивы дерева из treeData:', e)
