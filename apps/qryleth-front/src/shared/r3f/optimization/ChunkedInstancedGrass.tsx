@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { paletteRegistry } from '@/shared/lib/palette'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import type { SceneLayer, SceneObject, SceneObjectInstance } from '@/entities/scene/types'
@@ -157,6 +158,7 @@ const GrassChunkMesh: React.FC<{
   onHover?: (e: any) => void
 }> = ({ bucket, paletteUuid, onClick, onHover }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null)
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   const sample = bucket.items[0]
   const activePalette = paletteRegistry.get(paletteUuid) || paletteRegistry.get('default')
 
@@ -194,6 +196,70 @@ const GrassChunkMesh: React.FC<{
     })
     return materialToThreePropsWithPalette(matDef, activePalette as any)
   }, [sample, activePalette])
+
+  /**
+   * Лёгкое ветровое покачивание для LOD1 (near):
+   * Вершины смещаются в плоскости XZ по синусоиде с малой амплитудой.
+   * Направление и скорость берутся из стора окружения (ветер).
+   */
+  const wind = useSceneStore(s => s.environmentContent?.wind)
+  const uniformsRef = useRef({
+    uTime: { value: 0 },
+    uWindDir: { value: new THREE.Vector2(1, 0) },
+    uAmp: { value: 0.03 },
+    uFreq: { value: 0.7 },
+    uSpeed: { value: 1.0 },
+    uBend: { value: 0.7 },
+  })
+
+  useEffect(() => {
+    const mat = materialRef.current as any
+    if (!mat) return
+    // Граница по Y из геометрии для нормализации высоты
+    geometry.computeBoundingBox()
+    const bb = geometry.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3())
+    const minY = bb.min.y
+    const height = Math.max(1e-3, bb.max.y - bb.min.y)
+
+    mat.onBeforeCompile = (shader: any) => {
+      shader.uniforms.uTime = uniformsRef.current.uTime
+      shader.uniforms.uWindDir = uniformsRef.current.uWindDir
+      shader.uniforms.uAmp = uniformsRef.current.uAmp
+      shader.uniforms.uFreq = uniformsRef.current.uFreq
+      shader.uniforms.uSpeed = uniformsRef.current.uSpeed
+      shader.uniforms.uBend = uniformsRef.current.uBend
+      shader.uniforms.uMinY = { value: minY }
+      shader.uniforms.uHeight = { value: height }
+
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          'void main() {',
+          `uniform float uTime;\nuniform vec2 uWindDir;\nuniform float uAmp;\nuniform float uFreq;\nuniform float uSpeed;\nuniform float uBend;\nuniform float uMinY;\nuniform float uHeight;\nvoid main() {`
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>\n  // Смещение по ветру только у вершинок: основание остаётся на месте.\n  // Нормализуем высоту вершины в пределах геометрии чанка.\n  float hRel = clamp((transformed.y - uMinY) / max(1e-3, uHeight), 0.0, 1.0);\n  // Увеличиваем вклад к верхушкам (плавнее у основания):
+  float hPow = pow(hRel, 1.6);
+  vec2 windDir = normalize(uWindDir);
+  float phase = dot(transformed.xz, windDir * uFreq) + uTime * uSpeed;\n  float a = uAmp * (uBend * hPow);\n  transformed.xz += windDir * (sin(phase) * a);`
+        )
+    }
+    mat.needsUpdate = true
+  }, [])
+
+  useFrame((state) => {
+    // Обновляем uniforms: время и ветер из стора
+    uniformsRef.current.uTime.value = state.clock.getElapsedTime()
+    const dir = wind?.direction || [1, 0]
+    const len = Math.hypot(dir[0], dir[1]) || 1
+    uniformsRef.current.uWindDir.value.set(dir[0] / len, dir[1] / len)
+    const spd = Math.max(0, Number(wind?.speed ?? 0.2))
+    // Лёгкое покачивание: небольшая амплитуда, умеренная частота и скорость
+    uniformsRef.current.uAmp.value = Math.min(0.07, 0.02 + 0.05 * spd)
+    uniformsRef.current.uFreq.value = 0.6 + 0.4 * spd
+    uniformsRef.current.uSpeed.value = 0.8 + 1.2 * spd
+    uniformsRef.current.uBend.value = 0.6
+  })
 
   // Заполняем матрицы и рассчитываем boundingSphere чанка
   useEffect(() => {
@@ -278,6 +344,7 @@ const GrassChunkMesh: React.FC<{
       onPointerOver={handleHover}
     >
       <meshStandardMaterial
+          ref={materialRef as any}
           {...materialProps}
           envMapIntensity={1}
           alphaTest={0}

@@ -8,7 +8,7 @@ import {
     useSelectionState,
     useSceneActions
 } from '../../model/optimizedSelectors.ts'
-import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider, Select } from '@mantine/core'
+import { Paper, Stack, Text, Group, ScrollArea, ActionIcon, Tooltip, Divider, Select, NumberInput } from '@mantine/core'
 import { IconPlus, IconCheck } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db } from '@/shared/lib/database.ts'
@@ -80,6 +80,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
     const landscapeContent = useSceneStore(state => state.landscapeContent)
   const waterContent = useSceneStore(state => state.waterContent)
   const environmentContent = useSceneStore(state => state.environmentContent)
+  const windSpeed = useSceneStore(state => state.environmentContent?.wind?.speed || 0)
+  const setWindSpeed = useSceneStore(state => state.setWindSpeed)
     const { lighting: storeLighting } = useSceneMetadata()
     const { selectedObject: storeSelectedObject } = useSelectionState()
     const {
@@ -552,6 +554,24 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                         onChange={(val) => { if (val) SceneAPI.setPalette(val) }}
                         withinPortal={false}
                         style={{ flex: 1 }}
+                      />
+                      {/**
+                       * Контрол скорости ветра сцены.
+                       *
+                       * Логика:
+                       * - Значение хранится в zustand-сторе как environmentContent.wind.speed (модульная величина);
+                       * - Меняется напрямую через setWindSpeed; отрицательные значения клампятся к 0 внутри стора;
+                       * - Используется облаками, травой (LOD1 покачивание) и прочими системами, где есть ветер.
+                       */}
+                      <NumberInput
+                        label="Скорость ветра"
+                        size="xs"
+                        value={windSpeed}
+                        onChange={(v) => { const num = Number(v); setWindSpeed(Number.isFinite(num) ? Math.max(0, num) : 0) }}
+                        step={0.1}
+                        min={0}
+                        max={3}
+                        style={{ width: 160 }}
                       />
                     </Group>
 
