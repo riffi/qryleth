@@ -4,6 +4,7 @@ import { paletteRegistry } from '@/shared/lib/palette'
 import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import type { SceneLayer, SceneObject, SceneObjectInstance } from '@/entities/scene/types'
 import { resolveMaterial, materialToThreePropsWithPalette } from '@/shared/lib/materials'
+import { usePartitionGrassByLod } from '@/shared/r3f/optimization/grassLod'
 
 interface GrassItem {
   sceneObject: SceneObject
@@ -87,21 +88,39 @@ export const ChunkedInstancedGrass: React.FC<{
   const biomes = useSceneStore(s => s.biomes)
   const hiddenBiomeUuids = useMemo(() => new Set((biomes || []).filter(b => b.visible === false).map(b => b.uuid)), [biomes])
 
-  // Собираем пучки травы (mesh) только у объектов с objectType='grass'
+  // Валидация видимости и принадлежности к траве
+  const visibleGrassInstances = useMemo(() => instances.filter(inst => {
+    const obj = objectsById.get(inst.objectUuid)
+    if (!obj) return false
+    if (!isInstanceVisible(inst, obj, layers, hiddenBiomeUuids)) return false
+    return (obj as any).objectType === 'grass'
+  }), [instances, objectsById, layers, hiddenBiomeUuids])
+
+  // Разделяем по LOD: в этом компоненте оставляем только ближние (Near)
+  const lodCfg = useSceneStore(s => s.grassLodConfig)
+  const { nearSolid } = usePartitionGrassByLod(visibleGrassInstances, {
+    enabled: lodCfg.enabled,
+    nearInPx: lodCfg.nearInPx,
+    nearOutPx: lodCfg.nearOutPx,
+    approximateGrassHeightWorld: 1.0,
+  })
+
+  const nearInstances = nearSolid || []
+
+  // Собираем пучки травы (mesh) только для Near
   const grassItems = useMemo<GrassItem[]>(() => {
+    const mapInst = new Set(nearInstances.map(i => i.uuid))
     const out: GrassItem[] = []
-    for (const inst of instances) {
+    for (const inst of nearInstances) {
       const obj = objectsById.get(inst.objectUuid)
       if (!obj) continue
-      if (!isInstanceVisible(inst, obj, layers, hiddenBiomeUuids)) continue
-      if ((obj as any).objectType !== 'grass') continue
       for (const p of (obj.primitives || [])) {
         if (p.type !== 'mesh') continue
         out.push({ sceneObject: obj, instance: inst, primitive: p })
       }
     }
     return out
-  }, [instances, objectsById, layers, hiddenBiomeUuids])
+  }, [nearInstances, objectsById])
 
   // Бакетизация по чанкам + objectUuid
   const buckets = useMemo(() => {
@@ -268,4 +287,3 @@ const GrassChunkMesh: React.FC<{
 }
 
 export default ChunkedInstancedGrass
-

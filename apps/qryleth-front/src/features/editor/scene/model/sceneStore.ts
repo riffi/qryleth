@@ -139,6 +139,15 @@ const initialState: SceneStoreState = {
     leafChunkSize: 2000,
     trunkChunkSize: 100
   },
+  // Отдельные пороги LOD для травы + параметры сегментации
+  grassLodConfig: {
+    enabled: true,
+    // По умолчанию используем умеренные пороги: Near > 140px, Far 50-140px, BB < 50px (если понадобится)
+    nearInPx: 160,
+    nearOutPx: 140,
+    chunkSize: 64,
+    offset: 0.02,
+  },
 
   // Scene metadata
   sceneMetaData: initialSceneMetaData,
@@ -909,6 +918,42 @@ export const useSceneStore = create<SceneStore>()(
             nearOutPx: nearOut,
             farInPx: farIn,
             farOutPx: farOut,
+          }
+        })
+      })
+    },
+
+    /**
+     * Включить/выключить LOD травы (двухуровневый режим Near/Far для травы).
+     */
+    setGrassLodEnabled: (enabled: boolean) => {
+      set(state => ({ grassLodConfig: { ...state.grassLodConfig, enabled: !!enabled } }))
+    },
+    /** Обновить размер чанка и offset трипланара для травы (частично). */
+    setGrassLodParams: (opts: Partial<{ chunkSize: number; offset: number }>) => {
+      set(state => ({
+        grassLodConfig: {
+          ...state.grassLodConfig,
+          chunkSize: Number.isFinite(opts.chunkSize as number) ? Math.max(4, opts.chunkSize as number) : state.grassLodConfig.chunkSize,
+          offset: Number.isFinite(opts.offset as number) ? Math.max(0, opts.offset as number) : state.grassLodConfig.offset,
+        }
+      }))
+    },
+    /** Установить экранные пороги LOD для травы (только nearIn/nearOut) с коррекцией. */
+    setGrassLodThresholds: (thresholds: Partial<{ nearInPx: number; nearOutPx: number }>) => {
+      set(state => {
+        let nearIn = state.grassLodConfig.nearInPx
+        let nearOut = state.grassLodConfig.nearOutPx
+        if (Number.isFinite(thresholds.nearInPx as number)) nearIn = Math.max(1, thresholds.nearInPx as number)
+        if (Number.isFinite(thresholds.nearOutPx as number)) nearOut = Math.max(1, thresholds.nearOutPx as number)
+        const gapNear = 5, gapFar = 5
+        // Для травы только окно nearIn/nearOut: принудительно nearIn > nearOut
+        if (!(nearIn > nearOut)) nearIn = Math.max(nearOut + gapNear, nearOut + 1)
+        return ({
+          grassLodConfig: {
+            ...state.grassLodConfig,
+            nearInPx: nearIn,
+            nearOutPx: nearOut,
           }
         })
       })

@@ -6,6 +6,7 @@ import { SCENE_CHUNKED_LEAVES_ENABLED } from '@/shared/r3f/optimization/flags'
 import { ChunkedTreeBillboards } from '@/shared/r3f/optimization/ChunkedTreeBillboards'
 import { ChunkedInstancedTrunks } from '@/shared/r3f/optimization/ChunkedInstancedTrunks'
 import { ChunkedInstancedGrass } from '@/shared/r3f/optimization/ChunkedInstancedGrass'
+import { ChunkedGrassLod2 } from '@/shared/r3f/optimization/ChunkedGrassLod2'
 import { SCENE_CHUNKED_TRUNKS_ENABLED, SCENE_CHUNKED_GRASS_ENABLED } from '@/shared/r3f/optimization/flags'
 import {
   useSceneObjects,
@@ -27,6 +28,7 @@ export const SceneObjects: React.FC = () => {
   const clearSelection = useSceneStore(state => state.clearSelection)
   const clearHover = useSceneStore(state => state.clearHover)
   const lodConfig = useSceneStore(s => s.lodConfig)
+  const grassLodConfig = useSceneStore(s => s.grassLodConfig)
 
   const sceneEvents = useSceneEvents()
   // Скрытые биомы: инстансы, привязанные к ним, не отображаются
@@ -101,11 +103,22 @@ export const SceneObjects: React.FC = () => {
           objects={objects}
           instances={objectInstances}
           layers={layers}
-          chunkSize={lodConfig.trunkChunkSize}
+          chunkSize={grassLodConfig.chunkSize}
           onClick={sceneEvents.handleClick}
           onHover={sceneEvents.handlePointerOver}
         />
       )}
+
+      {/* LOD2 для травы: три билборд‑плоскости с запечёнными текстурами */}
+      <ChunkedGrassLod2
+        objects={objects}
+        instances={objectInstances}
+        layers={layers}
+        chunkSize={grassLodConfig.chunkSize}
+        offset={grassLodConfig.offset}
+        onClick={sceneEvents.handleClick}
+        onHover={sceneEvents.handlePointerOver}
+      />
 
       {/* Instanced objects for performance optimization (прочие примитивы) */}
       <InstancedObjects

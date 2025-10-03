@@ -8,7 +8,7 @@ import { InstancedLeavesOE } from './InstancedLeavesOE'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getOrCreateTreeBillboard } from '@/shared/r3f/optimization/TreeBillboardBaker'
-import { getOrCreateGrassBillboard } from '@/shared/r3f/optimization/GrassBillboardBaker'
+import { getOrCreateGrassBillboard, getOrCreateGrassBillboardSet } from '@/shared/r3f/optimization/GrassBillboardBaker'
 import {
   useObjectPrimitives,
   useObjectStore,
@@ -83,6 +83,9 @@ export const ObjectScenePrimitives: React.FC = () => {
 
   // Предпросмотр LOD (импостора): заменяем обычный рендер дерева на билборд
   if (lodPreviewEnabled) {
+    if (objectType === 'grass') {
+      return <GrassTriplanarPreview objectState={objectState as any} paletteUuid={paletteUuid || 'default'} />
+    }
     return <BillboardPreview objectState={objectState as any} paletteUuid={paletteUuid || 'default'} />
   }
 
@@ -213,5 +216,69 @@ const BillboardPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({
         side={THREE.DoubleSide}
       />
     </mesh>
+  )
+}
+
+/**
+ * Трипланар‑превью для травы: 3 вертикальные плоскости (0/120/240°) со смещением вдоль нормали.
+ */
+const GrassTriplanarPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({ objectState, paletteUuid }) => {
+  const meshRefs = [React.useRef<THREE.Mesh>(null), React.useRef<THREE.Mesh>(null), React.useRef<THREE.Mesh>(null)]
+  const [bill, setBill] = React.useState<{ textures: [THREE.Texture, THREE.Texture, THREE.Texture]; heightWorld: number; widthWorlds: [number, number, number] } | null>(null)
+  const geometry = React.useMemo(() => { const g = new THREE.PlaneGeometry(1,1); g.translate(0,0.5,0); return g }, [])
+  const offset = 0.02
+
+  React.useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const sceneObject = {
+        uuid: 'object-editor-preview',
+        name: 'ObjectEditorPreview',
+        primitives: objectState.primitives,
+        materials: objectState.materials,
+        objectType: objectState.objectType,
+        grassData: objectState.grassData,
+      } as any
+      const data = await getOrCreateGrassBillboardSet(sceneObject, paletteUuid)
+      if (!alive) return
+      if (data) {
+        try { data.textures.forEach(t => { t.center.set(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true }) } catch {}
+        setBill({ textures: data.textures as any, heightWorld: data.heightWorld, widthWorlds: data.widthWorlds as any })
+      }
+    })()
+    return () => { alive = false }
+  }, [objectState.objectType, objectState.grassData, objectState.primitives, objectState.materials, paletteUuid])
+
+  React.useEffect(() => {
+    if (!bill) return
+    const yaws = [0, 120, 240].map(a => THREE.MathUtils.degToRad(a))
+    for (let i=0;i<3;i++) {
+      const m = meshRefs[i].current
+      if (!m) continue
+      m.scale.set(bill.widthWorlds[i], bill.heightWorld, 1)
+      m.rotation.set(0, yaws[i], 0)
+      // Смещение вдоль местной нормали (+Z) на offset
+      const n = new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(0, yaws[i], 0, 'XYZ'))
+      m.position.set(n.x * offset, 0, n.z * offset)
+    }
+  }, [bill])
+
+  if (!bill) return null
+  return (
+    <group>
+      {[0,1,2].map(i => (
+        <mesh key={`l2-${i}`} ref={meshRefs[i]} geometry={geometry}>
+          <meshStandardMaterial
+            map={bill.textures[i]}
+            transparent={false}
+            alphaTest={0.5}
+            roughness={0.8}
+            metalness={0.0}
+            envMapIntensity={0}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      ))}
+    </group>
   )
 }

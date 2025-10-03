@@ -14,14 +14,24 @@ export interface GrassBillboardData {
   baseOffsetY: number
 }
 
+/** Набор из трёх текстур травы, запечённых под углами 0/120/240 градусов. */
+export interface GrassBillboardSetData {
+  textures: [THREE.Texture, THREE.Texture, THREE.Texture]
+  heightWorld: number
+  widthWorlds: [number, number, number]
+  baseOffsetY: number
+}
+
 /**
  * Внутренний in‑memory кэш запечённых текстур травы.
  * Ключ: `objectUuid|paletteUuid|CACHE_VERSION`.
  * При изменении алгоритма запекания необходимо повышать версию, чтобы сбрасывать устаревшие значения.
  */
 const cache = new Map<string, GrassBillboardData>()
+const cacheSet = new Map<string, GrassBillboardSetData>()
 const inflight = new Map<string, Promise<GrassBillboardData | null>>()
-const CACHE_VERSION = 'v1'
+const inflightSet = new Map<string, Promise<GrassBillboardSetData | null>>()
+const CACHE_VERSION = 'v2'
 function keyOf(object: SceneObject, paletteUuid: string): string { return `${object.uuid}|${paletteUuid}|${CACHE_VERSION}` }
 
 let _renderer: THREE.WebGLRenderer | null = null
@@ -61,11 +71,37 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
   if (infl) return await infl
 
   const task = (async (): Promise<GrassBillboardData | null> => {
+    // Для совместимости строим сет и берём нулевой угол
+    const set = await getOrCreateGrassBillboardSet(object, paletteUuid)
+    if (!set) return null
+    const data: GrassBillboardData = { texture: set.textures[0], heightWorld: set.heightWorld, widthWorld: set.widthWorlds[0], baseOffsetY: set.baseOffsetY }
+    cache.set(k, data)
+    return data
+  })()
+
+  inflight.set(k, task)
+  const res = await task
+  inflight.delete(k)
+  return res
+}
+
+/**
+ * Создаёт (или возвращает из кэша) набор из 3 текстур травы под углами 0/120/240 градусов.
+ */
+export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteUuid: string): Promise<GrassBillboardSetData | null> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null
+  const k = keyOf(object, paletteUuid)
+  const cached = cacheSet.get(k)
+  if (cached) return cached
+  const infl = inflightSet.get(k)
+  if (infl) return await infl
+
+  const task = (async (): Promise<GrassBillboardSetData | null> => {
     // 1) Сцена/свет/контейнер
     const scene = new THREE.Scene()
     scene.background = null
-    scene.add(new THREE.AmbientLight(0xffffff, 5))
-    const dir = new THREE.DirectionalLight(0xffffff, 0.5)
+    scene.add(new THREE.AmbientLight(0xffffff, 4))
+    const dir = new THREE.DirectionalLight(0xffffff, 1)
     dir.position.set(-10, 12, 10)
     dir.target.position.set(0, 0, 0)
     scene.add(dir); scene.add(dir.target)
@@ -121,7 +157,7 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     ;(renderer as any).toneMappingExposure = 1.0
 
-    const heightPx = 512
+    const heightPx = 1024
     const padPx = 0
     renderer.setSize(heightPx + padPx*2, heightPx + padPx*2)
     renderer.setClearColor(0x000000, 0.0)
@@ -138,11 +174,9 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
     const cam = new THREE.OrthographicCamera(-horizRadius, horizRadius, heightWorld/2, -heightWorld/2, 0.1, 1000)
     cam.position.set(0, heightWorld*0.5, horizRadius*2)
     cam.lookAt(0, heightWorld*0.5, 0)
-
-    const yaws = [0, 45, 90, 135, 180, 225, 270, 315]
-    let maxWidthPx = 1
-    for (const deg of yaws) {
-      group.rotation.set(0, THREE.MathUtils.degToRad(deg), 0)
+    // Функция замера ширины по текущему углу и отрисовки в CanvasTexture
+    const captureAtCurrentYaw = (): { texture: THREE.Texture; widthWorld: number } => {
+      // 1) Замер ширины по альфа
       renderer.setRenderTarget(rt)
       renderer.clear(); renderer.render(scene, cam)
       const w = rt.width, h = rt.height
@@ -155,38 +189,44 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
           if (a > 0) { if (x < minX) minX = x; if (x > maxX) maxX = x }
         }
       }
-      if (maxX >= minX) {
-        const widthPx = (maxX - minX + 1)
-        if (widthPx > maxWidthPx) maxWidthPx = widthPx
-      }
+      const widthPx = (maxX >= minX) ? (maxX - minX + 1) : 1
+      const widthWorld = (widthPx / (rt.width)) * (cam.right - cam.left)
+
+      // 2) Финальный фронтальный рендер в целевой размер
+      const outH = heightPx + padPx*2
+      const outW = Math.max(64, Math.min(1024, Math.round(outH * (widthWorld/heightWorld))))
+      renderer.setSize(outW, outH)
+      const outRT = new THREE.WebGLRenderTarget(outW, outH, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
+      renderer.setRenderTarget(outRT)
+      renderer.clear(); renderer.render(scene, cam)
+      const pixelsOut = new Uint8Array(outW*outH*4)
+      renderer.readRenderTargetPixels(outRT, 0, 0, outW, outH, pixelsOut)
+      const canvas = document.createElement('canvas')
+      canvas.width = outW; canvas.height = outH
+      const ctx = canvas.getContext('2d')!
+      const imageData = new ImageData(new Uint8ClampedArray(pixelsOut), outW, outH)
+      ctx.putImageData(imageData, 0, 0)
+      const texture = new THREE.CanvasTexture(canvas)
+      texture.flipY = true
+      ;(texture as any).colorSpace = (THREE as any).SRGBColorSpace || (texture as any).colorSpace
+      texture.needsUpdate = true
+      outRT.dispose()
+      return { texture, widthWorld }
     }
 
-    const widthWorld = (maxWidthPx / (rt.width)) * (cam.right - cam.left)
+    // Снимаем три угла: 0°, 120°, 240°
+    const angles = [0, 120, 240]
+    const textures: THREE.Texture[] = []
+    const widths: number[] = []
+    for (let i = 0; i < 3; i++) {
+      group.rotation.set(0, THREE.MathUtils.degToRad(angles[i]), 0)
+      const { texture, widthWorld } = captureAtCurrentYaw()
+      textures.push(texture)
+      widths.push(widthWorld)
+    }
 
-    // 5) Финальный фронтальный рендер в канвас целевого размера
-    group.rotation.set(0, 0, 0)
-    const outH = heightPx + padPx*2
-    const outW = Math.max(64, Math.min(1024, Math.round(outH * (widthWorld/heightWorld))))
-    renderer.setSize(outW, outH)
-    const outRT = new THREE.WebGLRenderTarget(outW, outH, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
-    renderer.setRenderTarget(outRT)
-    renderer.clear(); renderer.render(scene, cam)
-
-    const pixelsOut = new Uint8Array(outW*outH*4)
-    renderer.readRenderTargetPixels(outRT, 0, 0, outW, outH, pixelsOut)
-    const canvas = document.createElement('canvas')
-    canvas.width = outW; canvas.height = outH
-    const ctx = canvas.getContext('2d')!
-    const imageData = new ImageData(new Uint8ClampedArray(pixelsOut), outW, outH)
-    ctx.putImageData(imageData, 0, 0)
-    const texture = new THREE.CanvasTexture(canvas)
-    // Переворот для соответствия укладке «основание снизу»
-    texture.flipY = true
-    ;(texture as any).colorSpace = (THREE as any).SRGBColorSpace || (texture as any).colorSpace
-    texture.needsUpdate = true
-
-    // 6) Очистка временных ресурсов
-    rt.dispose(); outRT.dispose()
+    // Очистка временных ресурсов (renderer сохраняем)
+    rt.dispose()
     try {
       // Пройтись по дочерним и освободить материалы/геометрии
       for (const ch of group.children) {
@@ -198,14 +238,14 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
     } catch {}
     group.clear(); scene.clear()
 
-    const data: GrassBillboardData = { texture, heightWorld, widthWorld, baseOffsetY }
-    cache.set(k, data)
+    const data: GrassBillboardSetData = { textures: [textures[0], textures[1], textures[2]] as any, heightWorld, widthWorlds: [widths[0], widths[1], widths[2]] as any, baseOffsetY }
+    cacheSet.set(k, data)
     return data
   })()
 
-  inflight.set(k, task)
+  inflightSet.set(k, task)
   const res = await task
-  inflight.delete(k)
+  inflightSet.delete(k)
   return res
 }
 
@@ -218,5 +258,6 @@ export async function getOrCreateGrassBillboard(object: SceneObject, paletteUuid
 export function invalidateGrassBillboards(): void {
   cache.forEach(v => v.texture.dispose())
   cache.clear()
+  cacheSet.forEach(set => { try { set.textures.forEach(t => t.dispose()) } catch {} })
+  cacheSet.clear()
 }
-
