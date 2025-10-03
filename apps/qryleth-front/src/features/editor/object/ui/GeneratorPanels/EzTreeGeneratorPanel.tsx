@@ -153,6 +153,10 @@ export const EzTreeGeneratorPanel: React.FC = () => {
       if (typeof b.type === 'string') setBarkType(b.type)
       if (typeof b.flatShading === 'boolean') setBarkFlat(b.flatShading)
       if (typeof b.textured === 'boolean') setBarkTex(b.textured)
+      // Маппинг ez-tree textureScale -> наши повторы UV (repeat)
+      // В ez-tree: repeat.x = scale.x; repeat.y = 1/scale.y
+      if (b.textureScale && typeof b.textureScale.x === 'number') setBarkUvRepeatU(b.textureScale.x)
+      if (b.textureScale && typeof b.textureScale.y === 'number' && b.textureScale.y !== 0) setBarkUvRepeatV(1 / b.textureScale.y)
       const br = json.branch || {}
       if (typeof br.levels === 'number') setLevels(br.levels)
       const ang = br.angle || {}

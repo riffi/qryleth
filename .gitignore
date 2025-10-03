@@ -31,3 +31,5 @@ dist-ssr
 .env.test.local
 .env.production.local
 /qryleth-venv/qryleth-venv.iml
+
+ez-tree

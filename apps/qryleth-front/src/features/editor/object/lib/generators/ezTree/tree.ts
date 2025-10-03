@@ -68,8 +68,9 @@ export class Tree {
     let sectionOrientation = branch.orientation.clone()
     let sectionOrigin = branch.origin.clone()
 
-    const denom = this.options.type === TreeType.Deciduous ? Math.max(1, this.options.branch.levels - 1) : 1
-    const sectionLength = branch.length / branch.sectionCount / denom
+    // Длина секции как в ez-tree: без дополнительного деления на (levels-1)
+    // (иначе ствол получается короче и визуально толще у основания)
+    const sectionLength = branch.length / branch.sectionCount
 
     const sections: { origin: THREE.Vector3; orientation: THREE.Euler; radius: number }[] = []
 
