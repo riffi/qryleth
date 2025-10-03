@@ -9,6 +9,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getOrCreateTreeBillboard } from '@/shared/r3f/optimization/TreeBillboardBaker'
 import { getOrCreateGrassBillboard, getOrCreateGrassBillboardSet } from '@/shared/r3f/optimization/GrassBillboardBaker'
+import { useSceneStore } from '@/features/editor/scene/model/sceneStore'
 import {
   useObjectPrimitives,
   useObjectStore,
@@ -224,9 +225,12 @@ const BillboardPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({
  */
 const GrassTriplanarPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({ objectState, paletteUuid }) => {
   const meshRefs = [React.useRef<THREE.Mesh>(null), React.useRef<THREE.Mesh>(null), React.useRef<THREE.Mesh>(null)]
-  const [bill, setBill] = React.useState<{ textures: [THREE.Texture, THREE.Texture, THREE.Texture]; heightWorld: number; widthWorlds: [number, number, number] } | null>(null)
+  const [bill, setBill] = React.useState<{ textures: [THREE.Texture, THREE.Texture, THREE.Texture]; normalTextures?: [THREE.Texture, THREE.Texture, THREE.Texture]; heightWorld: number; widthWorlds: [number, number, number] } | null>(null)
   const geometry = React.useMemo(() => { const g = new THREE.PlaneGeometry(1,1); g.translate(0,0.5,0); return g }, [])
-  const offset = 0.02
+  // Берём offset из данных травы объекта, если задан; иначе глобальный из настроек сцены
+  const globalOffset = useSceneStore(s => s.grassLodConfig?.offset ?? 0.02)
+  const objectOffset = (objectState?.grassData?.params as any)?.lod2Offset
+  const offset = (typeof objectOffset === 'number' && objectOffset >= 0) ? objectOffset : globalOffset
 
   React.useEffect(() => {
     let alive = true
@@ -242,8 +246,11 @@ const GrassTriplanarPreview: React.FC<{ objectState: any; paletteUuid: string }>
       const data = await getOrCreateGrassBillboardSet(sceneObject, paletteUuid)
       if (!alive) return
       if (data) {
-        try { data.textures.forEach(t => { t.center.set(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true }) } catch {}
-        setBill({ textures: data.textures as any, heightWorld: data.heightWorld, widthWorlds: data.widthWorlds as any })
+        try {
+          data.textures.forEach(t => { t.center.set(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true })
+          ;(data as any).normalTextures?.forEach((t: any) => { t.center?.set?.(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true })
+        } catch {}
+        setBill({ textures: data.textures as any, normalTextures: (data as any).normalTextures, heightWorld: data.heightWorld, widthWorlds: data.widthWorlds as any })
       }
     })()
     return () => { alive = false }
@@ -270,12 +277,17 @@ const GrassTriplanarPreview: React.FC<{ objectState: any; paletteUuid: string }>
         <mesh key={`l2-${i}`} ref={meshRefs[i]} geometry={geometry}>
           <meshStandardMaterial
             map={bill.textures[i]}
-            transparent={false}
-            alphaTest={0.5}
+            normalMap={(bill as any).normalTextures?.[i]}
+            normalScale={new THREE.Vector2(0.75, 0.75)}
             roughness={0.8}
             metalness={0.0}
-            envMapIntensity={0}
+            emissive={'#ffffff'}
+            emissiveIntensity={40}
+            emissiveMap={bill.textures[i]}
+            transparent={false}
+            alphaTest={0.5}
             side={THREE.DoubleSide}
+            envMapIntensity={5}
           />
         </mesh>
       ))}

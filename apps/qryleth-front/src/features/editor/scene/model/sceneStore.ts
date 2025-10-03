@@ -143,10 +143,10 @@ const initialState: SceneStoreState = {
   grassLodConfig: {
     enabled: true,
     // По умолчанию используем умеренные пороги: Near > 140px, Far 50-140px, BB < 50px (если понадобится)
-    nearInPx: 160,
-    nearOutPx: 140,
+    nearInPx: 100,
+    nearOutPx: 60,
     chunkSize: 64,
-    offset: 0.02,
+    offset: 0.3,
   },
 
   // Scene metadata

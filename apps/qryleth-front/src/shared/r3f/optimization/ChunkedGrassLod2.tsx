@@ -103,6 +103,7 @@ const GrassLod2Chunk: React.FC<{ bucket: ChunkBucket; paletteUuid: string; offse
         try {
           // Синхронизация ориентации с ObjectEditor: центр (0.5,0.5), поворот PI, flipY=true
           data.textures.forEach(t => { t.center.set(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true })
+          ;(data as any).normalTextures?.forEach((t: any) => { t.center?.set?.(0.5, 0.5); t.rotation = Math.PI; t.flipY = true; t.needsUpdate = true })
         } catch {}
         setBill(data)
       } else {
@@ -126,6 +127,9 @@ const GrassLod2Chunk: React.FC<{ bucket: ChunkBucket; paletteUuid: string; offse
   // Укладка матриц для всех трёх наборов плоскостей
   useEffect(() => {
     if (!bill) return
+    // Переопределяем глобальный offset объектным значением из grassData.params.lod2Offset, если задано
+    const objectOffset = (bucket.object as any)?.grassData?.params?.lod2Offset
+    const effectiveOffset = (typeof objectOffset === 'number' && objectOffset >= 0) ? objectOffset : offset
     const dummies = [new THREE.Object3D(), new THREE.Object3D(), new THREE.Object3D()]
     const baseYaws = [0, 120, 240].map(a => THREE.MathUtils.degToRad(a))
     // Подготовим масштаб по высоте/ширине для каждой стороны
@@ -152,7 +156,7 @@ const GrassLod2Chunk: React.FC<{ bucket: ChunkBucket; paletteUuid: string; offse
         const qFinal = new THREE.Quaternion().copy(qInst).multiply(qYaw)
         // Локальная нормаль плоскости +Z после qFinal — для сдвига offset
         const n = new THREE.Vector3(0,0,1).applyQuaternion(qFinal)
-        const off = n.multiplyScalar(offset)
+        const off = n.multiplyScalar(effectiveOffset)
 
         const lx = ix - cx, lz = iz - cz
         d.position.set(lx + off.x, iy + off.y, lz + off.z)
@@ -169,7 +173,7 @@ const GrassLod2Chunk: React.FC<{ bucket: ChunkBucket; paletteUuid: string; offse
     // BoundingSphere по максимальному радиусу (упрощённо)
     const radius = Math.max(maxHoriz + Math.max(...bill.widthWorlds)*0.75, bill.heightWorld*0.6)
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, bill.heightWorld*0.5, 0), radius)
-  }, [bill, bucket.items, bucket.key.cx, bucket.key.cz, geometry, offset])
+  }, [bill, bucket.items, bucket.key.cx, bucket.key.cz, geometry, offset, bucket.object])
 
   const handleClick = (event: any) => {
     if (!onClick) return
@@ -204,12 +208,19 @@ const GrassLod2Chunk: React.FC<{ bucket: ChunkBucket; paletteUuid: string; offse
         >
           <meshStandardMaterial
             map={bill.textures[i]}
-            transparent={false}
-            alphaTest={0.5}
+            normalMap={bill.normalTextures[i]}
+            // Чуть уменьшаем силу нормалей, чтобы избежать перетемнения
+            normalScale={new THREE.Vector2(0.75, 0.75)}
             roughness={0.8}
             metalness={0.0}
-            envMapIntensity={0}
+            // Добавляем лёгкую эмиссию из albedo для компенсации потери насыщенности
+            emissive={'#ffffff'}
+            emissiveIntensity={10}
+            emissiveMap={bill.textures[i]}
+            transparent={false}
+            alphaTest={0.5}
             side={THREE.DoubleSide}
+            envMapIntensity={1}
           />
         </instancedMesh>
       ))}

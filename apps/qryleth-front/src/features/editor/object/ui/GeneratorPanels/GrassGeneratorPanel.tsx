@@ -21,6 +21,7 @@ export const GrassGeneratorPanel: React.FC = () => {
     bendStrength: 0.5,
     segments: 6,
     clumpRadius: 0.12,
+    lod2Offset: 0.02,
   })
   const [grassColor, setGrassColor] = useState('#2E8B57')
   const [clearBefore, setClearBefore] = useState(true)
@@ -91,6 +92,9 @@ export const GrassGeneratorPanel: React.FC = () => {
       <Group grow>
         <NumberInput label="Изгиб" value={params.bendStrength} onChange={(v) => setParams(p => ({ ...p, bendStrength: Math.max(0, Math.min(1, Number(v) || 0)) }))} min={0} max={1} step={0.01}/>
         <NumberInput label="Сегментов" value={params.segments} onChange={(v) => setParams(p => ({ ...p, segments: Math.max(2, Math.floor(Number(v) || 0)) }))} min={2} step={1}/>
+      </Group>
+      <Group grow>
+        <NumberInput label="LOD2 offset" value={params.lod2Offset} onChange={(v) => setParams(p => ({ ...p, lod2Offset: Math.max(0, Number(v) || 0) }))} min={0} step={0.001} precision={3}/>
       </Group>
       <Group grow>
         <NumberInput label="Радиус пучка" value={params.clumpRadius} onChange={(v) => setParams(p => ({ ...p, clumpRadius: Math.max(0, Number(v) || 0) }))} min={0} step={0.01}/>

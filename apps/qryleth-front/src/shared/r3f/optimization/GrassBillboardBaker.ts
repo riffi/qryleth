@@ -17,6 +17,7 @@ export interface GrassBillboardData {
 /** Набор из трёх текстур травы, запечённых под углами 0/120/240 градусов. */
 export interface GrassBillboardSetData {
   textures: [THREE.Texture, THREE.Texture, THREE.Texture]
+  normalTextures: [THREE.Texture, THREE.Texture, THREE.Texture]
   heightWorld: number
   widthWorlds: [number, number, number]
   baseOffsetY: number
@@ -100,7 +101,7 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
     // 1) Сцена/свет/контейнер
     const scene = new THREE.Scene()
     scene.background = null
-    scene.add(new THREE.AmbientLight(0xffffff, 4))
+    scene.add(new THREE.AmbientLight(0xffffff, 1))
     const dir = new THREE.DirectionalLight(0xffffff, 1)
     dir.position.set(-10, 12, 10)
     dir.target.position.set(0, 0, 0)
@@ -127,11 +128,8 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
         objectMaterials: (object as any).materials,
       })
       const props = materialToThreePropsWithPalette(matDef, activePalette as any)
-      const mat = new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshBasicMaterial({
         color: (props as any)?.color || '#2E8B57',
-        roughness: (props as any)?.roughness ?? 0.9,
-        metalness: (props as any)?.metalness ?? 0.0,
-        envMapIntensity: 0.0,
         side: THREE.DoubleSide,
       })
       const mesh = new THREE.Mesh(g, mat)
@@ -160,7 +158,7 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
     const heightPx = 1024
     const padPx = 0
     renderer.setSize(heightPx + padPx*2, heightPx + padPx*2)
-    renderer.setClearColor(0x000000, 0.0)
+    renderer.setClearColor(0xFFFFFF, 0.0)
     const rt = new THREE.WebGLRenderTarget(heightPx + padPx*2, heightPx + padPx*2, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
 
     // Горизонтальный радиус для ortho‑камеры — по максимальному отступу травинок
@@ -175,7 +173,7 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
     cam.position.set(0, heightWorld*0.5, horizRadius*2)
     cam.lookAt(0, heightWorld*0.5, 0)
     // Функция замера ширины по текущему углу и отрисовки в CanvasTexture
-    const captureAtCurrentYaw = (): { texture: THREE.Texture; widthWorld: number } => {
+    const captureAtCurrentYaw = (yawRad: number): { texture: THREE.Texture; normalTexture: THREE.Texture; widthWorld: number } => {
       // 1) Замер ширины по альфа
       renderer.setRenderTarget(rt)
       renderer.clear(); renderer.render(scene, cam)
@@ -195,33 +193,112 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
       // 2) Финальный фронтальный рендер в целевой размер
       const outH = heightPx + padPx*2
       const outW = Math.max(64, Math.min(1024, Math.round(outH * (widthWorld/heightWorld))))
-      renderer.setSize(outW, outH)
-      const outRT = new THREE.WebGLRenderTarget(outW, outH, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
+      const SSAA = 4
+      const hiW = outW * SSAA
+      const hiH = outH * SSAA
+      renderer.setSize(hiW, hiH)
+      const outRT = new THREE.WebGLRenderTarget(hiW, hiH, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
       renderer.setRenderTarget(outRT)
       renderer.clear(); renderer.render(scene, cam)
-      const pixelsOut = new Uint8Array(outW*outH*4)
-      renderer.readRenderTargetPixels(outRT, 0, 0, outW, outH, pixelsOut)
+      const pixelsOut = new Uint8Array(hiW*hiH*4)
+      renderer.readRenderTargetPixels(outRT, 0, 0, hiW, hiH, pixelsOut)
+      // Источник высокого разрешения
+      const srcCanvas = document.createElement('canvas')
+      srcCanvas.width = hiW; srcCanvas.height = hiH
+      const srcCtx = srcCanvas.getContext('2d')!
+      const srcImage = new ImageData(new Uint8ClampedArray(pixelsOut), hiW, hiH)
+      srcCtx.putImageData(srcImage, 0, 0)
+      // Целевой канвас с итоговым размером (downsample с фильтрацией)
       const canvas = document.createElement('canvas')
       canvas.width = outW; canvas.height = outH
       const ctx = canvas.getContext('2d')!
-      const imageData = new ImageData(new Uint8ClampedArray(pixelsOut), outW, outH)
-      ctx.putImageData(imageData, 0, 0)
+      ;(ctx as any).imageSmoothingEnabled = true
+      ;(ctx as any).imageSmoothingQuality = 'high'
+      ctx.drawImage(srcCanvas, 0, 0, outW, outH)
       const texture = new THREE.CanvasTexture(canvas)
       texture.flipY = true
       ;(texture as any).colorSpace = (THREE as any).SRGBColorSpace || (texture as any).colorSpace
+      texture.generateMipmaps = true
+      texture.minFilter = THREE.LinearMipmapLinearFilter
+      texture.magFilter = THREE.LinearFilter
+      texture.anisotropy = 8
       texture.needsUpdate = true
       outRT.dispose()
-      return { texture, widthWorld }
+      // ===== Нормальный проход =====
+      const meshes: THREE.Mesh[] = []
+      group.traverse(obj => { if ((obj as any).isMesh) meshes.push(obj as THREE.Mesh) })
+      const originals = meshes.map(m => m.material as THREE.Material)
+      const uRight = new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), yawRad)
+      const uUp = new THREE.Vector3(0,1,0)
+      const uFwd = new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0), yawRad)
+      const normMat = new THREE.ShaderMaterial({
+        side: THREE.DoubleSide,
+        transparent: true,
+        vertexShader: `
+          varying vec3 vWorldNormal;
+          void main(){
+            mat3 m = mat3(modelMatrix);
+            vWorldNormal = normalize(m * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vWorldNormal;
+          uniform vec3 uRight; uniform vec3 uUp; uniform vec3 uFwd;
+          void main(){
+            vec3 n = normalize(vWorldNormal);
+            if (!gl_FrontFacing) n = -n;
+            float nx = dot(n, normalize(uRight));
+            float ny = dot(n, normalize(uUp));
+            float nz = dot(n, normalize(uFwd));
+            vec3 enc = 0.5 * (vec3(nx, ny, nz) + 1.0);
+            gl_FragColor = vec4(enc, 1.0);
+          }
+        `,
+        uniforms: { uRight: { value: uRight }, uUp: { value: uUp }, uFwd: { value: uFwd } }
+      })
+      meshes.forEach(m => { (m as any).material = normMat })
+      const outRTn = new THREE.WebGLRenderTarget(hiW, hiH, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false })
+      renderer.setRenderTarget(outRTn)
+      renderer.clear(); renderer.render(scene, cam)
+      const pixelsN = new Uint8Array(hiW*hiH*4)
+      renderer.readRenderTargetPixels(outRTn, 0, 0, hiW, hiH, pixelsN)
+      const srcCanvasN = document.createElement('canvas')
+      srcCanvasN.width = hiW; srcCanvasN.height = hiH
+      const srcCtxN = srcCanvasN.getContext('2d')!
+      const srcImageN = new ImageData(new Uint8ClampedArray(pixelsN), hiW, hiH)
+      srcCtxN.putImageData(srcImageN, 0, 0)
+      const canvasN = document.createElement('canvas')
+      canvasN.width = outW; canvasN.height = outH
+      const ctxN = canvasN.getContext('2d')!
+      ;(ctxN as any).imageSmoothingEnabled = true
+      ;(ctxN as any).imageSmoothingQuality = 'high'
+      ctxN.drawImage(srcCanvasN, 0, 0, outW, outH)
+      const normalTexture = new THREE.CanvasTexture(canvasN)
+      normalTexture.flipY = true
+      ;(normalTexture as any).colorSpace = (THREE as any).NoColorSpace || (normalTexture as any).colorSpace
+      normalTexture.generateMipmaps = true
+      normalTexture.minFilter = THREE.LinearMipmapLinearFilter
+      normalTexture.magFilter = THREE.LinearFilter
+      normalTexture.anisotropy = 8
+      normalTexture.needsUpdate = true
+      outRTn.dispose()
+      // restore materials
+      meshes.forEach((m, i) => { (m as any).material = originals[i] })
+      return { texture, normalTexture, widthWorld }
     }
 
     // Снимаем три угла: 0°, 120°, 240°
     const angles = [0, 120, 240]
     const textures: THREE.Texture[] = []
+    const normalTextures: THREE.Texture[] = []
     const widths: number[] = []
     for (let i = 0; i < 3; i++) {
-      group.rotation.set(0, THREE.MathUtils.degToRad(angles[i]), 0)
-      const { texture, widthWorld } = captureAtCurrentYaw()
+      const yaw = THREE.MathUtils.degToRad(angles[i])
+      group.rotation.set(0, yaw, 0)
+      const { texture, normalTexture, widthWorld } = captureAtCurrentYaw(yaw)
       textures.push(texture)
+      normalTextures.push(normalTexture)
       widths.push(widthWorld)
     }
 
@@ -238,7 +315,7 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
     } catch {}
     group.clear(); scene.clear()
 
-    const data: GrassBillboardSetData = { textures: [textures[0], textures[1], textures[2]] as any, heightWorld, widthWorlds: [widths[0], widths[1], widths[2]] as any, baseOffsetY }
+    const data: GrassBillboardSetData = { textures: [textures[0], textures[1], textures[2]] as any, normalTextures: [normalTextures[0], normalTextures[1], normalTextures[2]] as any, heightWorld, widthWorlds: [widths[0], widths[1], widths[2]] as any, baseOffsetY }
     cacheSet.set(k, data)
     return data
   })()
@@ -258,6 +335,6 @@ export async function getOrCreateGrassBillboardSet(object: SceneObject, paletteU
 export function invalidateGrassBillboards(): void {
   cache.forEach(v => v.texture.dispose())
   cache.clear()
-  cacheSet.forEach(set => { try { set.textures.forEach(t => t.dispose()) } catch {} })
+  cacheSet.forEach(set => { try { set.textures.forEach(t => t.dispose()); set.normalTextures.forEach(t => t.dispose()) } catch {} })
   cacheSet.clear()
 }
