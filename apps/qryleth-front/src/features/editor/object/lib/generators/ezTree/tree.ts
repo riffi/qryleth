@@ -78,10 +78,12 @@ export class Tree {
       let sectionRadius = branch.radius
       if (i === branch.sectionCount && branch.level === this.options.branch.levels) {
         sectionRadius = 0.001
-      } else if (this.options.type === TreeType.Deciduous) {
-        sectionRadius *= 1 - (this.options.branch.taper[branch.level] || 0) * (i / branch.sectionCount)
-      } else {
+      } else if (this.options.type === TreeType.Evergreen) {
+        // Как в ez-tree для хвойных: радиус линейно убывает к 0 вдоль секций.
         sectionRadius *= 1 - (i / branch.sectionCount)
+      } else {
+        // Для лиственных — управляемый taper из пресета.
+        sectionRadius *= 1 - (this.options.branch.taper[branch.level] || 0) * (i / branch.sectionCount)
       }
 
       let first: { vertex: THREE.Vector3; normal: THREE.Vector3; uv: THREE.Vector2 } | null = null
@@ -111,15 +113,39 @@ export class Tree {
       sectionOrigin = sectionOrigin.add(new THREE.Vector3(0, sectionLength, 0).applyEuler(sectionOrientation))
 
       // Случайный «крен» (gnarliness) и сила роста (force)
-      const gn = Math.max(1, 1 / Math.sqrt(Math.max(1e-4, sectionRadius))) * (this.options.branch.gnarliness[branch.level] || 0)
-      sectionOrientation.x += this.rng.range(gn, -gn)
-      sectionOrientation.z += this.rng.range(gn, -gn)
+      // Для соответствия ez-tree:
+      // - У лиственных (Deciduous) допускаем кривизну даже для ствола (level 0), что важно для Ash Small.
+      // - У хвойных (Evergreen) не искажаем ствол, применяем крен только на уровнях > 0.
+      const gnBase = (this.options.branch.gnarliness[branch.level] || 0)
+      const allowGnarliness = this.options.type === TreeType.Deciduous || branch.level > 0
+      if (allowGnarliness && gnBase !== 0) {
+        const gn = Math.max(1, 1 / Math.sqrt(Math.max(1e-4, sectionRadius))) * gnBase
+        sectionOrientation.x += this.rng.range(gn, -gn)
+        sectionOrientation.z += this.rng.range(gn, -gn)
+      }
 
       const qSection = new THREE.Quaternion().setFromEuler(sectionOrientation)
       const qTwist = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.options.branch.twist[branch.level] || 0)
-      const qForce = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3().copy(this.options.branch.force.direction as any))
       qSection.multiply(qTwist)
-      qSection.rotateTowards(qForce, (this.options.branch.force.strength || 0) / Math.max(1e-4, sectionRadius))
+
+      // Направление «силы роста»: учитываем знак strength.
+      // Отрицательный strength трактуем как стремление к противоположному направлению.
+      let strength = this.options.branch.force.strength || 0
+      const forceDir = new THREE.Vector3().copy(this.options.branch.force.direction as any)
+      if (forceDir.lengthSq() === 0) forceDir.set(0, 1, 0)
+      forceDir.normalize()
+      if (strength < 0) {
+        strength = -strength
+        forceDir.multiplyScalar(-1)
+      }
+      const qForce = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), forceDir)
+
+      // Применение силы:
+      // - У лиственных разрешаем на уровне 0 (ствол может изгибаться — Ash Small).
+      // - У хвойных запрещаем на уровне 0 (ствол должен оставаться прямым — Pine Medium).
+      const allowForce = this.options.type === TreeType.Deciduous || branch.level > 0
+      const step = strength / Math.max(1e-4, sectionRadius)
+      if (allowForce && step > 0) qSection.rotateTowards(qForce, step)
       sectionOrientation.setFromQuaternion(qSection)
     }
 
@@ -170,6 +196,8 @@ export class Tree {
       const alpha = ((childStart - idx / (sections.length - 1)) / (1 / (sections.length - 1))) || 0
 
       const origin = new THREE.Vector3().lerpVectors(a.origin, b.origin, alpha)
+      // Радиус дочерней ветви: как в ez-tree — масштабируем пресетный радиус
+      // уровнем локального радиуса родителя в точке ответвления.
       const baseRadius = (this.options.branch.radius[level] || 0.5) * (((1 - alpha) * a.radius) + alpha * b.radius)
 
       const qA = new THREE.Quaternion().setFromEuler(a.orientation)

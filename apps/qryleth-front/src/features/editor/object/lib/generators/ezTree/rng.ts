@@ -1,34 +1,40 @@
 /**
  * Простой детерминированный ГПСЧ (Mulberry32) для воспроизводимости.
  */
+// Полная копия RNG из ez-tree (комбинированный LCG: m_w/m_z)
 export class RNG {
-  private seed: number
+  private m_w = 123456789
+  private m_z = 987654321
+  private mask = 0xffffffff
 
-  /**
-   * Создаёт генератор случайных чисел с целочисленным seed.
-   * @param seed Начальное значение seed
-   */
-  constructor(seed = 0) {
-    this.seed = (seed >>> 0) || 0
+  constructor(seed: number) {
+    this.m_w = (123456789 + (seed | 0)) & this.mask
+    this.m_z = (987654321 - (seed | 0)) & this.mask
   }
 
   /**
-   * Возвращает псевдослучайное число в диапазоне [0, 1).
+   * Возвращает случайное число из [min, max).
+   * Метод повторяет поведение исходного ez-tree RNG (комбинированный LCG).
+   * Используется для детерминированной генерации при заданном seed.
    */
-  next(): number {
-    let t = (this.seed += 0x6D2B79F5)
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  random(max = 1, min = 0): number {
+    this.m_z = (36969 * (this.m_z & 65535) + (this.m_z >>> 16)) & this.mask
+    this.m_w = (18000 * (this.m_w & 65535) + (this.m_w >>> 16)) & this.mask
+    let result = ((this.m_z << 16) + (this.m_w & 65535)) >>> 0
+    result /= 4294967296
+    return (max - min) * result + min
   }
 
   /**
-   * Возвращает число в диапазоне [min, max).
-   * @param max Верхняя граница (исключительно)
-   * @param min Нижняя граница (включительно), по умолчанию 0
+   * Возвращает число в [min, max).
+   * Синоним `random` для обратной совместимости с существующим кодом.
    */
-  range(max = 1, min = 0): number {
-    return min + (max - min) * this.next()
-  }
+  range(max = 1, min = 0): number { return this.random(max, min) }
+
+  /**
+   * Возвращает следующее псевдослучайное число из диапазона [0, 1).
+   * Добавлено для совместимости с вызовами `this.rng.next()` в tree.ts.
+   * Эквивалентно `random(1, 0)`.
+   */
+  next(): number { return this.random(1, 0) }
 }
-
