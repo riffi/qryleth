@@ -14,6 +14,8 @@ import type { LightingSettings } from '@/entities/lighting'
 import type {BoundingBox, Vector3} from '@/shared/types'
 import { calculateObjectBoundingBox } from '@/shared/lib/geometry/boundingBoxUtils'
 import { generateUUID } from '@/shared/lib/uuid'
+import { invalidateGrassBillboards } from '@/shared/r3f/optimization/GrassBillboardBaker'
+import { invalidateTreeBillboards } from '@/shared/r3f/optimization/TreeBillboardBaker'
 
 interface ObjectStoreState {
   /**
@@ -215,7 +217,11 @@ export const useObjectStore = create<ObjectStore>()(
     // Устанавливает или очищает данные процедурного дерева
     setTreeData: (data) => set({ treeData: data }),
     // Устанавливает или очищает данные процедурной травы
-    setGrassData: (data) => set({ grassData: data }),
+    setGrassData: (data) => {
+      // Перегенерация параметров травы требует сброса кэша бэйка
+      try { invalidateGrassBillboards() } catch {}
+      set({ grassData: data })
+    },
     // Устанавливает или очищает данные процедурного камня
     setRockData: (data) => set({ rockData: data }),
 
@@ -223,6 +229,8 @@ export const useObjectStore = create<ObjectStore>()(
     // и заполняя отсутствующие имена
     setPrimitives: (primitives: GfxPrimitive[]) =>
       set((state) => {
+        // Если редактируем трава/дерево — любые изменения примитивов могут влиять на бэйк
+        try { invalidateGrassBillboards(); invalidateTreeBillboards() } catch {}
         // Обеспечиваем UUID для всех примитивов
         const primitivesWithUuid = primitives.map(primitive => ({
           ...primitive,
@@ -401,6 +409,8 @@ export const useObjectStore = create<ObjectStore>()(
           ...material,
           uuid: materialUuid
         }
+        // Любое изменение материалов влияет на бэйк — сбрасываем кэши
+        try { invalidateTreeBillboards(); invalidateGrassBillboards() } catch {}
         return {
           materials: [...state.materials, newMaterial]
         }
@@ -411,13 +421,17 @@ export const useObjectStore = create<ObjectStore>()(
     setLodPreviewEnabled: (v: boolean) => set({ lodPreviewEnabled: !!v }),
 
     updateMaterial: (materialUuid: string, updates: Partial<GfxMaterial>) =>
-      set(state => ({
-        materials: state.materials.map(material =>
-          material.uuid === materialUuid
-            ? { ...material, ...updates }
-            : material
-        )
-      })),
+      set(state => {
+        // Изменение свойств материала — инвалидируем бэйки
+        try { invalidateTreeBillboards(); invalidateGrassBillboards() } catch {}
+        return {
+          materials: state.materials.map(material =>
+            material.uuid === materialUuid
+              ? { ...material, ...updates }
+              : material
+          )
+        }
+      }),
 
     removeMaterial: (materialUuid: string) =>
       set(state => {
@@ -425,7 +439,7 @@ export const useObjectStore = create<ObjectStore>()(
         const newSelectedMaterialUuid = state.selectedMaterialUuid === materialUuid
           ? null
           : state.selectedMaterialUuid
-
+        try { invalidateTreeBillboards(); invalidateGrassBillboards() } catch {}
         return {
           materials: newMaterials,
           selectedMaterialUuid: newSelectedMaterialUuid

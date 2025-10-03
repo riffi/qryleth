@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { invalidateTreeBillboards } from '@/shared/r3f/optimization/TreeBillboardBaker'
+import { invalidateGrassBillboards } from '@/shared/r3f/optimization/GrassBillboardBaker'
 
 /**
  * Стор предпросмотра палитры в ObjectEditor.
@@ -19,7 +21,14 @@ interface PalettePreviewState {
 
 export const usePalettePreviewStore = create<PalettePreviewState>((set) => ({
   paletteUuid: 'default',
-  setPaletteUuid: (uuid: string) => set({ paletteUuid: uuid || 'default' })
+  setPaletteUuid: (uuid: string) => {
+    try {
+      // Смена палитры влияет на запечённый вид импосторов — сбрасываем кэши
+      invalidateTreeBillboards()
+      invalidateGrassBillboards()
+    } catch {}
+    set({ paletteUuid: uuid || 'default' })
+  }
 }))
 
 /**

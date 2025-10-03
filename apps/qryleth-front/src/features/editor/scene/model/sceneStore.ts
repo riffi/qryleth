@@ -30,6 +30,8 @@ import type { GfxMaterial } from '@/entities/material'
 import { GfxLayerType, type GfxMultiColorConfig } from '@/entities/layer'
 import type { GfxEnvironmentContent, GfxCloudSet } from '@/entities/environment'
 import { initializePalettes, paletteRegistry } from '@/shared/lib/palette'
+import { invalidateTreeBillboards } from '@/shared/r3f/optimization/TreeBillboardBaker'
+import { invalidateGrassBillboards } from '@/shared/r3f/optimization/GrassBillboardBaker'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
@@ -975,6 +977,8 @@ export const useSceneStore = create<SceneStore>()(
         fog: content.fog,
         exposure: content.exposure,
       }
+      // Смена палитры может требовать пересборки запечённых билбордов (деревья/трава)
+      try { invalidateTreeBillboards(); invalidateGrassBillboards() } catch {}
       set(state => {
         // Синхронизируем legacy-ветер
         const nextEnv = normalized.wind ? { ...state.environment, wind: { ...normalized.wind } } : state.environment

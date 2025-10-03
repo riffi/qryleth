@@ -106,14 +106,28 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
    * @returns высота Y в мировых единицах
    */
   getHeight(x: number, z: number): number {
-    // Смещаем мировые координаты в локальные относительно центра террейна.
-    // Это необходимо для корректного семплинга источника (Perlin/Heightmap),
-    // так как преобразование world->UV рассчитано на центр в [0,0].
+    /**
+     * Порядок вычислений высоты (обновлён):
+     * 1) Переводим мировые координаты в ЛОКАЛЬНЫЕ относительно центра террейна.
+     * 2) Сначала вычисляем вклад «добавок» (TerrainOps) над нулевой базой.
+     *    Это делает формы добавок (плато, террасы, гребни) более реалистичными —
+     *    Перлин‑шум не «ломает» их края и не вносит искажения в изгибах.
+     * 3) Затем добавляем базовую высоту из источника (Perlin/Heightmap).
+     * 4) Применяем edgeFade, сводя результат к базовому уровню источника на краях.
+     *
+     * Замечание по совместимости: режим 'set' в TerrainOps по‑прежнему трактуется как
+     * задание высоты относительно базовой линии вызова функции применения (теперь — 0),
+     * а итоговая базовая высота источника добавляется после. Таким образом, сумма
+     * (ops над 0) + (base) эквивалентна прежнему «base затем ops» в линейной части,
+     * но визуально сохраняет корректные края фигур благодаря порядку вычислений.
+     */
+    // 0) Смещаем мировые координаты в локальные относительно центра террейна
     const cx = this.config.center?.[0] ?? 0
     const cz = this.config.center?.[1] ?? 0
     const xLocal = x - cx
     const zLocal = z - cz
-    // Проверяем кэш (с округлением координат для стабильности)
+
+    // Кэш значений высоты (для стабильности округляем ключ координат)
     if (this.cacheEnabled) {
       const cacheKey = this.getCacheKey(x, z);
       const cachedHeight = this.heightCache.get(cacheKey);
@@ -122,17 +136,19 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       }
     }
 
-    // 1. Базовая высота из источника
-    // 1. Базовая высота из источника в локальных координатах террейна
-    let height = this.sourceHeight(xLocal, zLocal);
-
-    // 2. Применяем операции модификации террейна
+    // 1) «Добавки» (операции террейна) над нулевой базой
+    let opsHeight = 0
     if (this.config.ops && this.config.ops.length > 0) {
-      // Применяем модификации в ЛОКАЛЬНОЙ системе координат (относительно центра террейна)
-      height = this.applyTerrainOpsOptimized(height, xLocal, zLocal);
+      opsHeight = this.applyTerrainOpsOptimized(0, xLocal, zLocal);
     }
 
-    // 3. Применяем edgeFade: ведём к базовому уровню источника, а не к нулю
+    // 2) Базовая высота источника (Perlin / Heightmap) в локальных координатах
+    const baseHeight = this.sourceHeight(xLocal, zLocal)
+
+    // 3) Комбинация: сначала добавки, затем базовый шум/карта
+    let height = opsHeight + baseHeight
+
+    // 4) Плавный спад к базовому уровню источника на краях мира
     if (this.config.edgeFade && this.config.edgeFade > 0) {
       const fadeMultiplier = calculateEdgeFade(
         xLocal,
@@ -145,7 +161,7 @@ export class GfxHeightSamplerImpl implements GfxHeightSampler {
       height = baseLevel + (height - baseLevel) * fadeMultiplier
     }
 
-    // Сохраняем в кэш
+    // Кэшируем результат
     if (this.cacheEnabled) {
       this.setCachedHeight(x, z, height);
     }

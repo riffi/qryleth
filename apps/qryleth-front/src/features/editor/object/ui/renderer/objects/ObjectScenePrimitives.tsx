@@ -8,6 +8,7 @@ import { InstancedLeavesOE } from './InstancedLeavesOE'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getOrCreateTreeBillboard } from '@/shared/r3f/optimization/TreeBillboardBaker'
+import { getOrCreateGrassBillboard } from '@/shared/r3f/optimization/GrassBillboardBaker'
 import {
   useObjectPrimitives,
   useObjectStore,
@@ -33,14 +34,16 @@ export const ObjectScenePrimitives: React.FC = () => {
   // Читаем поля по отдельности и собираем мемо-объект.
   const objectType = useObjectStore(s => s.objectType)
   const treeData = useObjectStore(s => s.treeData)
+  const grassData = useObjectStore(s => s.grassData)
   const primitivesState = useObjectStore(s => s.primitives)
   const materialsState = useObjectStore(s => s.materials)
   const objectState = useMemo(() => ({
     objectType,
     treeData,
+    grassData,
     primitives: primitivesState,
     materials: materialsState,
-  }), [objectType, treeData, primitivesState, materialsState])
+  }), [objectType, treeData, grassData, primitivesState, materialsState])
 
   /**
    * Обрабатывает клик по примитиву, поддерживая выделение групп через Ctrl+Click
@@ -160,8 +163,12 @@ const BillboardPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({
         materials: objectState.materials,
         objectType: objectState.objectType,
         treeData: objectState.treeData,
+        grassData: objectState.grassData,
       } as any
-      const bill = await getOrCreateTreeBillboard(sceneObject, paletteUuid)
+      // ВЫБОР БЭЙКЕРА: дерево или трава
+      const bill = sceneObject.objectType === 'grass'
+        ? await getOrCreateGrassBillboard(sceneObject, paletteUuid)
+        : await getOrCreateTreeBillboard(sceneObject, paletteUuid)
       if (!alive) return
       if (bill) {
         try {
@@ -174,7 +181,7 @@ const BillboardPreview: React.FC<{ objectState: any; paletteUuid: string }> = ({
       }
     })()
     return () => { alive = false }
-  }, [objectState.objectType, objectState.treeData, objectState.primitives, objectState.materials, paletteUuid])
+  }, [objectState.objectType, objectState.treeData, objectState.grassData, objectState.primitives, objectState.materials, paletteUuid])
 
   // Применяем масштаб меша один раз при получении данных
   React.useEffect(() => {
