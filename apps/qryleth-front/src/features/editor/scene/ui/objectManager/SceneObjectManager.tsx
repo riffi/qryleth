@@ -18,6 +18,7 @@ import { db } from '@/shared/lib/database.ts'
 // поэтому SceneHeader здесь более не используется.
 import { LightingControls } from './LightingControls.tsx'
 import { TreeLodControls } from './TreeLodControls'
+import { GrassLodControls } from './GrassLodControls'
 // Legacy модалки слоёв удалены; используем новые окна для тонких слоёв и содержимого
 import { LayerBasicModal } from './LayerBasicModal'
 import { LandscapeItemModal } from './LandscapeItemModal'
@@ -516,6 +517,7 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
                         onLightingChange={handleLightingChange}
                     />
                     <TreeLodControls />
+                    <GrassLodControls />
 
 
                     <SectionHeader
