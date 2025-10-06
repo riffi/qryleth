@@ -46,6 +46,7 @@ import type { GfxLandscape } from '@/entities/terrain'
 import { createGfxHeightSampler } from '@/features/editor/scene/lib/terrain/GfxHeightSampler'
 import type { GfxHeightSampler } from '@/entities/terrain'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
 
@@ -429,23 +430,61 @@ export class SceneAPI {
       // Если объект из библиотеки — процедурный (дерево/трава), восстановим примитивы
       let obj: SceneObject
       if (rec.objectData.objectType === 'tree' && rec.objectData.treeData?.params) {
-        // Генерация примитивов дерева с учётом сохранённых параметров и материалов
-        const generated = generateTree({
-          ...(rec.objectData.treeData.params as any),
-          barkMaterialUuid: rec.objectData.treeData.barkMaterialUuid,
-          leafMaterialUuid: rec.objectData.treeData.leafMaterialUuid
-        })
-        obj = {
-          uuid: objectUuid,
-          name: rec.name,
-          primitives: generated,
-          // Материалы берём из записи (если сохранены) — UUID должны совпадать с bark/leaf
-          materials: rec.objectData.materials || [],
-          objectType: 'tree',
-          treeData: rec.objectData.treeData,
-          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
-          layerId: 'objects',
-          libraryUuid: rec.uuid
+        // Генерация примитивов дерева из сохранённых параметров и материалов
+        const params: any = rec.objectData.treeData.params
+        if (params?.ezTreeCompat) {
+          const opts = new TreeOptions()
+          try { opts.copy(params) } catch {}
+          const ge = generateEzTreeGeometry(opts)
+          const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
+          const trunkPrim: any = {
+            uuid: generateUUID(),
+            type: 'mesh',
+            name: 'ez-tree: ствол+ветви',
+            geometry: branches,
+            objectMaterialUuid: rec.objectData.treeData.barkMaterialUuid,
+            visible: true,
+            transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+          }
+          const leafPrims: any[] = ge.leafInstances.map(inst => ({
+            uuid: generateUUID(),
+            type: 'leaf',
+            name: 'Лист',
+            geometry: { radius: Math.max(0.01, inst.size), shape: 'texture' },
+            objectMaterialUuid: rec.objectData.treeData!.leafMaterialUuid,
+            visible: true,
+            transform: { position: inst.position, rotation: inst.orientation, scale: [1,1,1] }
+          }))
+          const generated = [trunkPrim, ...leafPrims]
+          obj = {
+            uuid: objectUuid,
+            name: rec.name,
+            primitives: generated,
+            materials: rec.objectData.materials || [],
+            objectType: 'tree',
+            treeData: rec.objectData.treeData,
+            boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+            layerId: 'objects',
+            libraryUuid: rec.uuid
+          }
+        } else {
+          const generated = generateTree({
+            ...(params as any),
+            barkMaterialUuid: rec.objectData.treeData.barkMaterialUuid,
+            leafMaterialUuid: rec.objectData.treeData.leafMaterialUuid
+          })
+          obj = {
+            uuid: objectUuid,
+            name: rec.name,
+            primitives: generated,
+            // Материалы берём из записи (если сохранены) — UUID должны совпадать с bark/leaf
+            materials: rec.objectData.materials || [],
+            objectType: 'tree',
+            treeData: rec.objectData.treeData,
+            boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+            layerId: 'objects',
+            libraryUuid: rec.uuid
+          }
         }
       } else if ((rec.objectData as any).objectType === 'grass' && (rec.objectData as any).grassData?.params && (rec.objectData as any).grassData?.grassMaterialUuid) {
         const g: any = (rec.objectData as any).grassData
@@ -1410,12 +1449,39 @@ export class SceneAPI {
 
       // Если объект — дерево, восстановим примитивы перед расчётом bbox
       if (correctedObject.objectType === 'tree' && correctedObject.treeData?.params) {
-        const generated = generateTree({
-          ...(correctedObject.treeData.params as any),
-          barkMaterialUuid: correctedObject.treeData.barkMaterialUuid,
-          leafMaterialUuid: correctedObject.treeData.leafMaterialUuid
-        })
-        correctedObject = { ...correctedObject, primitives: generated }
+        const params: any = correctedObject.treeData.params
+        if (params?.ezTreeCompat) {
+          const opts = new TreeOptions()
+          try { opts.copy(params) } catch {}
+          const ge = generateEzTreeGeometry(opts)
+          const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
+          const trunkPrim: any = {
+            uuid: generateUUID(),
+            type: 'mesh',
+            name: 'ez-tree: ствол+ветви',
+            geometry: branches,
+            objectMaterialUuid: correctedObject.treeData.barkMaterialUuid,
+            visible: true,
+            transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+          }
+          const leafPrims: any[] = ge.leafInstances.map(inst => ({
+            uuid: generateUUID(),
+            type: 'leaf',
+            name: 'Лист',
+            geometry: { radius: Math.max(0.01, inst.size), shape: 'texture' },
+            objectMaterialUuid: correctedObject.treeData!.leafMaterialUuid,
+            visible: true,
+            transform: { position: inst.position, rotation: inst.orientation, scale: [1,1,1] }
+          }))
+          correctedObject = { ...correctedObject, primitives: [trunkPrim, ...leafPrims] }
+        } else {
+          const generated = generateTree({
+            ...(params as any),
+            barkMaterialUuid: correctedObject.treeData.barkMaterialUuid,
+            leafMaterialUuid: correctedObject.treeData.leafMaterialUuid
+          })
+          correctedObject = { ...correctedObject, primitives: generated }
+        }
       } else if (correctedObject.objectType === 'grass' && (correctedObject as any).grassData?.params && (correctedObject as any).grassData?.grassMaterialUuid) {
         const g: any = (correctedObject as any).grassData
         const generated = generateGrass({

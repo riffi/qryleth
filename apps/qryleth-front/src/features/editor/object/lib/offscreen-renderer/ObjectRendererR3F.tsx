@@ -6,6 +6,8 @@ import { buildGroupTree } from '@/entities/primitiveGroup/model/utils'
 import type { RenderMode } from '@/shared/types/ui'
 import type { GfxObject } from '@/entities/object'
 import { generateTree } from '@/features/editor/object/lib/generators/tree/generateTree'
+import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
+import { generateUUID } from '@/shared/lib/uuid'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import type { GfxPrimitiveGroup } from '@/entities/primitiveGroup'
 import { InstancedLeaves } from '@/shared/r3f/optimization/InstancedLeaves'
@@ -38,11 +40,40 @@ export const ObjectRendererR3F: React.FC<ObjectRendererR3FProps> = ({
   const isTree = gfxObject.objectType === 'tree' && !!gfxObject.treeData?.params
   const isGrass = (gfxObject as any).objectType === 'grass' && !!(gfxObject as any).grassData?.params
   const primitives = isTree
-    ? generateTree({
-        ...(gfxObject.treeData!.params as any),
-        barkMaterialUuid: gfxObject.treeData!.barkMaterialUuid,
-        leafMaterialUuid: gfxObject.treeData!.leafMaterialUuid
-      })
+    ? (() => {
+        const params: any = gfxObject.treeData!.params
+        if (params?.ezTreeCompat) {
+          // Восстанавливаем ez-tree как mesh ствола + примитивы-листья
+          const opts = new TreeOptions()
+          try { opts.copy(params) } catch {}
+          const ge = generateEzTreeGeometry(opts)
+          const branches = { positions: ge.branches.positions, normals: ge.branches.normals, indices: ge.branches.indices, uvs: ge.branches.uvs }
+          const trunkPrim: any = {
+            uuid: generateUUID(),
+            type: 'mesh',
+            name: 'ez-tree: ствол+ветви',
+            geometry: branches,
+            objectMaterialUuid: gfxObject.treeData!.barkMaterialUuid,
+            visible: true,
+            transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] }
+          }
+          const leafPrims: any[] = ge.leafInstances.map(inst => ({
+            uuid: generateUUID(),
+            type: 'leaf',
+            name: 'Лист',
+            geometry: { radius: Math.max(0.01, inst.size), shape: 'texture' },
+            objectMaterialUuid: gfxObject.treeData!.leafMaterialUuid,
+            visible: true,
+            transform: { position: inst.position, rotation: inst.orientation, scale: [1,1,1] }
+          }))
+          return [trunkPrim, ...leafPrims]
+        }
+        return generateTree({
+          ...(params as any),
+          barkMaterialUuid: gfxObject.treeData!.barkMaterialUuid,
+          leafMaterialUuid: gfxObject.treeData!.leafMaterialUuid
+        })
+      })()
     : isGrass
     ? generateGrass({
         ...((gfxObject as any).grassData!.params as any),
