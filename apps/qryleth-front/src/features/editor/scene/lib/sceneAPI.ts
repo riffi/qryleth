@@ -49,6 +49,7 @@ import { generateTree } from '@/features/editor/object/lib/generators/tree/gener
 import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
 import { generateRock } from '@/features/editor/object/lib/generators/rock/generateRock'
+import { generateFlower } from '@/features/editor/object/lib/generators/flower/generateFlower'
 
 /**
  * Применяет автоповорот инстансов по нормали поверхности террейна.
@@ -522,6 +523,27 @@ export class SceneAPI {
           layerId: 'objects',
           libraryUuid: rec.uuid
         }
+      } else if ((rec.objectData as any).objectType === 'flower' && (rec.objectData as any).flowerData?.params) {
+        const f: any = (rec.objectData as any).flowerData
+        const generated = generateFlower({
+          ...(f.params as any),
+          leavesMaterialUuid: f.leavesMaterialUuid,
+          stemMaterialUuid: f.stemMaterialUuid,
+          sphereMaterialUuid: f.sphereMaterialUuid,
+          petalMaterialUuid: f.petalMaterialUuid,
+        } as any)
+        obj = {
+          uuid: objectUuid,
+          name: rec.name,
+          primitives: generated,
+          materials: rec.objectData.materials || [],
+          objectType: 'flower',
+          // @ts-ignore
+          flowerData: (rec.objectData as any).flowerData,
+          boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: generated } as any),
+          layerId: 'objects',
+          libraryUuid: rec.uuid
+        }
       } else {
         obj = {
           uuid: objectUuid,
@@ -535,6 +557,10 @@ export class SceneAPI {
           grassData: (rec.objectData as any).grassData || undefined,
           // @ts-ignore
           treeData: (rec.objectData as any).treeData || undefined,
+          // @ts-ignore
+          rockData: (rec.objectData as any).rockData || undefined,
+          // @ts-ignore
+          flowerData: (rec.objectData as any).flowerData || undefined,
           boundingBox: calculateObjectBoundingBox({ uuid: objectUuid, name: rec.name, primitives: rec.objectData.primitives } as any),
           layerId: 'objects',
           libraryUuid: rec.uuid
@@ -1184,6 +1210,25 @@ export class SceneAPI {
           // @ts-ignore
           rockData: (record.objectData as any).rockData
         }
+      } else if ((record.objectData as any).objectType === 'flower' && (record.objectData as any).flowerData?.params) {
+        const f: any = (record.objectData as any).flowerData
+        const generated = generateFlower({
+          ...(f.params as any),
+          leavesMaterialUuid: f.leavesMaterialUuid,
+          stemMaterialUuid: f.stemMaterialUuid,
+          sphereMaterialUuid: f.sphereMaterialUuid,
+          petalMaterialUuid: f.petalMaterialUuid,
+        } as any)
+        objectData = {
+          uuid: generateUUID(),
+          name: record.name,
+          primitives: generated.map(p => ({ ...p, uuid: generateUUID() })),
+          libraryUuid: record.uuid,
+          materials: record.objectData.materials || [],
+          objectType: 'flower',
+          // @ts-ignore
+          flowerData: (record.objectData as any).flowerData
+        }
       } else {
         objectData = {
           uuid: generateUUID(),
@@ -1496,6 +1541,16 @@ export class SceneAPI {
           rockMaterialUuid: g.rockMaterialUuid
         })
         correctedObject = { ...correctedObject, primitives: generated }
+      } else if (correctedObject.objectType === 'flower' && (correctedObject as any).flowerData?.params) {
+        const f: any = (correctedObject as any).flowerData
+        const generated = generateFlower({
+          ...(f.params as any),
+          leavesMaterialUuid: f.leavesMaterialUuid,
+          stemMaterialUuid: f.stemMaterialUuid,
+          sphereMaterialUuid: f.sphereMaterialUuid,
+          petalMaterialUuid: f.petalMaterialUuid,
+        } as any)
+        correctedObject = { ...correctedObject, primitives: generated }
       }
 
       // Рассчитать BoundingBox для объекта (после возможной реконструкции дерева)
@@ -1518,7 +1573,9 @@ export class SceneAPI {
         // @ts-ignore
         grassData: (correctedObject as any).grassData,
         // @ts-ignore
-        rockData: (correctedObject as any).rockData
+        rockData: (correctedObject as any).rockData,
+        // @ts-ignore
+        flowerData: (correctedObject as any).flowerData
       }
 
       // Добавить объект в store

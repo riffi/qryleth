@@ -75,6 +75,7 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
   const isTree = objectType === 'tree'
   const isGrass = objectType === 'grass'
   const isRock = objectType === 'rock'
+  const isFlower = objectType === 'flower'
   const lodPreviewEnabled = useObjectStore(s => s.lodPreviewEnabled)
 
   /**
@@ -185,6 +186,8 @@ export const ObjectEditor: React.FC<ObjectEditorProps> = ({
         onToggleGrassGenerator={isGrass ? () => panelStateBridge.togglePanel?.('grassGenerator') : undefined}
         rockGeneratorCollapsed={isRock ? panelStateBridge.panelState?.rightPanel !== 'rockGenerator' : undefined}
         onToggleRockGenerator={isRock ? () => panelStateBridge.togglePanel?.('rockGenerator') : undefined}
+        flowerGeneratorCollapsed={isFlower ? (panelStateBridge.panelState?.rightPanel !== 'flowerGenerator') as any : undefined}
+        onToggleFlowerGenerator={isFlower ? () => panelStateBridge.togglePanel?.('flowerGenerator' as any) : undefined}
       />
       <ObjectEditorR3F objectData={objectData} />
     </ObjectEditorLayout>

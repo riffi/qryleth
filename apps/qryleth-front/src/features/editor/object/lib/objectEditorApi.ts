@@ -40,7 +40,7 @@ export class ObjectEditorApi {
       uuid: '',
       name: 'object-editor-object',
       // Если редактируется дерево/трава — не возвращаем примитивы, а возвращаем конфигурацию генератора
-      primitives: (state.objectType === 'tree' || state.objectType === 'grass') ? [] : state.primitives,
+      primitives: (state.objectType === 'tree' || state.objectType === 'grass' || state.objectType === 'rock' || state.objectType === 'flower') ? [] : state.primitives,
       materials: state.materials,
       boundingBox: state.boundingBox ?? (state.primitives.length
         ? calculateObjectBoundingBox({ uuid: '', name: '', primitives: state.primitives })
@@ -49,7 +49,9 @@ export class ObjectEditorApi {
       primitiveGroupAssignments: state.primitiveGroupAssignments,
       objectType: state.objectType,
       treeData: state.objectType === 'tree' ? state.treeData : undefined,
-      grassData: state.objectType === 'grass' ? state.grassData : undefined
+      grassData: state.objectType === 'grass' ? state.grassData : undefined,
+      ...(state.objectType === 'rock' ? { rockData: (state as any).rockData } : {}),
+      ...(state.objectType === 'flower' ? { flowerData: (state as any).flowerData } : {}),
     }
   }
 

@@ -99,7 +99,9 @@ export const SceneObjectRenderer: React.FC<SceneObjectRendererProps> = ({
    * и рендер каждого отдельного `mesh` создаёт большое число draw calls.
    * Даже при единственном инстансе объекта выгодно объединить их в InstancedMesh,
    */
-  const isTreeObject = sceneObject.objectType === 'tree' || sceneObject.primitives?.some(p => p.type === 'leaf' || (p as any).type === 'mesh')
+  // ВАЖНО: не относить любой 'mesh' к дереву — иначе не-деревья (например, цветы) попадают под tree LOD и могут гаситься билбордом.
+  // Деревом считаем только объекты с типом 'tree' или содержащие специальные цилиндры/листья.
+  const isTreeObject = sceneObject.objectType === 'tree' || sceneObject.primitives?.some(p => p.type === 'leaf' || p.type === 'trunk' || p.type === 'branch')
 
   // Ленивая классификация примитивов дерева: ветви/ствол, листья, прочее
   const treeBuckets = useMemo(() => {

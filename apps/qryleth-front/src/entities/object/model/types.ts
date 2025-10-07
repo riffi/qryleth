@@ -19,7 +19,7 @@ export interface GfxObject {
    *
   * Поле опционально для обратной совместимости: отсутствие трактуется как 'regular'.
   */
-  objectType?: 'regular' | 'tree' | 'grass' | 'rock';
+  objectType?: 'regular' | 'tree' | 'grass' | 'rock' | 'flower';
   /**
    * Параметры процедурного дерева (для objectType = 'tree').
    *
@@ -37,6 +37,17 @@ export interface GfxObject {
     barkMaterialUuid: string;
     /** UUID материала листвы. */
     leafMaterialUuid: string;
+  };
+  /**
+   * Параметры процедурного цветка (для objectType = 'flower').
+   * Хранит сериализованные входные параметры генератора и UUID материалов частей.
+   */
+  flowerData?: {
+    params: any;
+    leavesMaterialUuid: string;
+    stemMaterialUuid: string;
+    sphereMaterialUuid: string;
+    petalMaterialUuid: string;
   };
   /**
    * Параметры процедурного камня (для objectType = 'rock').

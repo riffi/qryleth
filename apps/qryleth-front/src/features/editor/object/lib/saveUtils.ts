@@ -17,8 +17,8 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
   
   const updatedObject: GfxObject = {
     ...baseObject,
-    // Если объект является процедурным деревом/травой/камнем — не сохраняем примитивы, а сохраняем параметры генерации
-    primitives: (state.objectType === 'tree' || state.objectType === 'grass' || state.objectType === 'rock') ? [] : state.primitives.map(p => ({ ...p })),
+    // Если объект является процедурным деревом/травой/камнем/цветком — не сохраняем примитивы, а сохраняем параметры генерации
+    primitives: (state.objectType === 'tree' || state.objectType === 'grass' || state.objectType === 'rock' || state.objectType === 'flower') ? [] : state.primitives.map(p => ({ ...p })),
     boundingBox: state.boundingBox,
     materials: state.materials,
     primitiveGroups: state.primitiveGroups,
@@ -27,6 +27,7 @@ export const buildUpdatedObject = (baseObject: GfxObject): GfxObject => {
     treeData: state.objectType === 'tree' ? (state.treeData ?? baseObject.treeData) : undefined,
     grassData: state.objectType === 'grass' ? (state.grassData ?? (baseObject as any).grassData) : undefined,
     rockData: state.objectType === 'rock' ? ((state as any).rockData ?? (baseObject as any).rockData) : undefined,
+    ...(state.objectType === 'flower' ? { flowerData: (state as any).flowerData } : {}),
     // Дублируем теги в objectData для согласованности с библиотекой
     ...(metaTags ? { tags: metaTags } : {}),
   }
@@ -132,6 +133,18 @@ function generateCacheKey(gfxObject: GfxObject): string {
         rock: {
           params: (gfxObject as any).rockData.params,
           mat: (gfxObject as any).rockData.rockMaterialUuid,
+        },
+        materials: gfxObject.materials
+      }
+    : (gfxObject.objectType === 'flower' && (gfxObject as any).flowerData)
+    ? {
+        objectType: 'flower',
+        flower: {
+          params: (gfxObject as any).flowerData.params,
+          leaves: (gfxObject as any).flowerData.leavesMaterialUuid,
+          stem: (gfxObject as any).flowerData.stemMaterialUuid,
+          sphere: (gfxObject as any).flowerData.sphereMaterialUuid,
+          petal: (gfxObject as any).flowerData.petalMaterialUuid,
         },
         materials: gfxObject.materials
       }

@@ -213,8 +213,8 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
         }
 
         // Формируем полные данные объекта для сохранения в библиотеку
-        const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments, objectType, treeData, grassData } = object as any
-        // Если объект — процедурное дерево/трава, сохраняем в библиотеку параметры генератора, а не примитивы
+        const { uuid, primitives, materials, boundingBox, primitiveGroups, primitiveGroupAssignments, objectType, treeData, grassData, rockData, flowerData } = object as any
+        // Если объект — процедурный (дерево/трава/камень/цветок), сохраняем в библиотеку параметры генератора, а не примитивы
         const objectData = objectType === 'tree' && treeData ? {
             uuid,
             name: object.name,
@@ -231,6 +231,22 @@ export const SceneObjectManager: React.FC<ObjectManagerProps> = ({ onSaveSceneTo
             boundingBox,
             objectType,
             grassData,
+        } : (objectType === 'rock' && rockData) ? {
+            uuid,
+            name: object.name,
+            primitives: [],
+            materials,
+            boundingBox,
+            objectType,
+            rockData,
+        } : (objectType === 'flower' && flowerData) ? {
+            uuid,
+            name: object.name,
+            primitives: [],
+            materials,
+            boundingBox,
+            objectType,
+            flowerData,
         } : {
             uuid,
             name: object.name,

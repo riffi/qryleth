@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, lazy } from 'react'
 import { clamp } from '@/shared/lib/math/number'
 import { Box, Container, Paper, Group, Text, ActionIcon } from '@mantine/core'
-import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconLeaf, IconCube, IconX } from '@tabler/icons-react'
+import { IconMessages, IconAdjustments, IconFolder, IconTrees, IconLeaf, IconCube, IconX, IconFlower } from '@tabler/icons-react'
 import { DragHandleVertical } from '@/shared/ui'
 import {
   useSelectedMaterialUuid,
@@ -21,6 +21,7 @@ import { TreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/
 import { EzTreeGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/EzTreeGeneratorPanel'
 import { GrassGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/GrassGeneratorPanel'
 import { RockGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/RockGeneratorPanel'
+import { FlowerGeneratorPanel } from '@/features/editor/object/ui/GeneratorPanels/FlowerGeneratorPanel'
 // Состояние панелей теперь берём из layout‑фичи (глобальный стор панелей)
 import { useGlobalPanelState } from '@/features/editor/object/layout/model/panelVisibilityStore'
 import { useObjectStore } from '@/features/editor/object/model/objectStore'
@@ -293,9 +294,10 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
                 : current === 'treeGenerator' ? <IconTrees size={20} />
                 : current === 'ezTreeGenerator' ? <IconTrees size={20} />
                 : current === 'grassGenerator' ? <IconLeaf size={20} />
+                : current === 'flowerGenerator' ? <IconFlower size={20} />
                 : <IconCube size={20} />
               }
-              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : current === 'ezTreeGenerator' ? 'Генератор дерева (ez-tree)' : current === 'grassGenerator' ? 'Генератор травы' : 'Генератор камня'}</Text>
+              <Text fw={500}>{current === 'manager' ? 'Менеджер объектов' : current === 'treeGenerator' ? 'Генератор дерева' : current === 'ezTreeGenerator' ? 'Генератор дерева (ez-tree)' : current === 'grassGenerator' ? 'Генератор травы' : current === 'flowerGenerator' ? 'Генератор цветов' : 'Генератор камня'}</Text>
             </Group>
             <ActionIcon
               variant="subtle"
@@ -312,6 +314,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
           {current === 'treeGenerator' && isTree && <TreeGeneratorPanel />}
           {current === 'ezTreeGenerator' && isTree && <EzTreeGeneratorPanel />}
           {current === 'grassGenerator' && isGrass && <GrassGeneratorPanel />}
+          {current === 'flowerGenerator' && (useObjectStore.getState().objectType === 'flower') && <FlowerGeneratorPanel />}
           {current === 'rockGenerator' && isRock && <RockGeneratorPanel />}
         </Box>
       </Paper>
@@ -324,6 +327,7 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
   useEffect(() => {
     if (objectType === 'grass') showPanel?.('grassGenerator')
     if (objectType === 'rock') showPanel?.('rockGenerator')
+    if (objectType === 'flower') showPanel?.('flowerGenerator' as any)
   }, [objectType])
   useEffect(() => {
     if (objectType !== 'tree') {
@@ -340,6 +344,11 @@ export const ObjectEditorLayout: React.FC<ObjectEditorLayoutProps> = ({
     if (objectType !== 'grass') {
       if (panelState.rightPanel === 'grassGenerator') {
         hidePanel?.('grassGenerator') ?? showPanel?.('manager')
+      }
+    }
+    if (objectType !== 'flower') {
+      if ((panelState as any).rightPanel === 'flowerGenerator') {
+        hidePanel?.('flowerGenerator' as any) ?? showPanel?.('manager')
       }
     }
     if (objectType !== 'rock') {

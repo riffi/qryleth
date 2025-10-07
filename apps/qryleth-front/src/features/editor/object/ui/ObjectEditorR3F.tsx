@@ -11,6 +11,7 @@ import { generateTree } from '@/features/editor/object/lib/generators/tree/gener
 import { generateEzTreeGeometry, TreeOptions } from '@/features/editor/object/lib/generators/ezTree'
 import { generateUUID } from '@/shared/lib/uuid'
 import { generateGrass } from '@/features/editor/object/lib/generators/grass/generateGrass'
+import { generateFlower } from '@/features/editor/object/lib/generators/flower/generateFlower'
 import { TransformModeButtons, GridToggleButton, RenderModeSegment } from '@/shared/ui'
 import type { GfxObject } from '@/entities/object'
 
@@ -106,6 +107,16 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
           grassMaterialUuid: g.grassMaterialUuid
         })
         store.setPrimitives(generated)
+      } else if ((objectData as any).objectType === 'flower' && (objectData as any).flowerData?.params) {
+        const f = (objectData as any).flowerData
+        const generated = generateFlower({
+          ...(f.params as any),
+          leavesMaterialUuid: f.leavesMaterialUuid,
+          stemMaterialUuid: f.stemMaterialUuid,
+          sphereMaterialUuid: f.sphereMaterialUuid,
+          petalMaterialUuid: f.petalMaterialUuid,
+        } as any)
+        store.setPrimitives(generated)
       } else {
         store.setPrimitives(objectData.primitives.map(p => ({ ...p })))
       }
@@ -120,7 +131,7 @@ export const ObjectEditorR3F: React.FC<ObjectEditorR3FProps> = ({ objectData }) 
         store.setPrimitiveGroupAssignments(objectData.primitiveGroupAssignments)
       }
 
-      if ((objectData.primitives?.length ?? 0) > 0 || (objectData.objectType === 'tree') || ((objectData as any).objectType === 'grass')) {
+      if ((objectData.primitives?.length ?? 0) > 0 || (objectData.objectType === 'tree') || ((objectData as any).objectType === 'grass') || ((objectData as any).objectType === 'flower')) {
         store.selectPrimitive(0)
       }
     }

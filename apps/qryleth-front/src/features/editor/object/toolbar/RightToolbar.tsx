@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActionIcon, Tooltip, Stack } from '@mantine/core'
 import { EdgeToolbar } from '@/shared/ui'
-import { IconFolder, IconTrees, IconLeaf, IconCube } from '@tabler/icons-react'
+import { IconFolder, IconTrees, IconLeaf, IconCube, IconFlower } from '@tabler/icons-react'
 
 interface RightToolbarProps {
   /** Свёрнут ли менеджер объектов (правая панель). true = менеджер скрыт. */
@@ -24,13 +24,17 @@ interface RightToolbarProps {
   rockGeneratorCollapsed?: boolean
   /** Переключить видимость правой панели (генератор камня). */
   onToggleRockGenerator?: () => void
+  /** Свёрнут ли генератор цветов (правая панель). true = панель скрыта. */
+  flowerGeneratorCollapsed?: boolean
+  /** Переключить видимость правой панели (генератор цветов). */
+  onToggleFlowerGenerator?: () => void
 }
 
 /**
  * Правый тулбар ObjectEditor: управление панелью менеджера объектов.
  * Визуально и по UX согласован с тулбаром SceneEditor.
  */
-export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, ezTreeGeneratorCollapsed, onToggleEzTreeGenerator, grassGeneratorCollapsed, onToggleGrassGenerator, rockGeneratorCollapsed, onToggleRockGenerator }) => {
+export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, onToggleManager, generatorCollapsed, onToggleGenerator, ezTreeGeneratorCollapsed, onToggleEzTreeGenerator, grassGeneratorCollapsed, onToggleGrassGenerator, rockGeneratorCollapsed, onToggleRockGenerator, flowerGeneratorCollapsed, onToggleFlowerGenerator }) => {
   return (
     <EdgeToolbar side={'right'}>
       <Stack gap={2} align="center">
@@ -99,6 +103,20 @@ export const RightToolbar: React.FC<RightToolbarProps> = ({ managerCollapsed, on
               style={{ borderRadius: 4, transition: 'all 200ms ease' }}
             >
               <IconCube size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {onToggleFlowerGenerator && (
+          <Tooltip label={flowerGeneratorCollapsed ? 'Открыть генератор цветов' : 'Закрыть генератор цветов'} position="left" withArrow>
+            <ActionIcon
+              size="lg"
+              variant={!flowerGeneratorCollapsed ? 'filled' : 'subtle'}
+              color={!flowerGeneratorCollapsed ? 'pink' : 'gray'}
+              onClick={onToggleFlowerGenerator}
+              aria-label={flowerGeneratorCollapsed ? 'Открыть генератор цветов' : 'Закрыть генератор цветов'}
+              style={{ borderRadius: 4, transition: 'all 200ms ease' }}
+            >
+              <IconFlower size={20} />
             </ActionIcon>
           </Tooltip>
         )}

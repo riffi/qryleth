@@ -22,7 +22,7 @@ interface ObjectStoreState {
    * Тип текущего редактируемого объекта.
    * 'regular' — геометрия хранится в primitives, 'tree' — хранится только конфигурация генератора.
    */
-  objectType?: 'regular' | 'tree' | 'grass' | 'rock'
+  objectType?: 'regular' | 'tree' | 'grass' | 'rock' | 'flower'
   /**
    * Данные процедурного дерева (параметры + UUID материалов), если объект — дерево.
    * Используется для сохранения в библиотеку и реконструкции превью/рендера.
@@ -39,6 +39,17 @@ interface ObjectStoreState {
   grassData?: {
     params: any
     grassMaterialUuid: string
+  }
+  /**
+   * Данные процедурного цветка (параметры + UUID материалов частей), если объект — flower.
+   * Используется для сохранения/восстановления и предпросмотра.
+   */
+  flowerData?: {
+    params: any
+    leavesMaterialUuid: string
+    stemMaterialUuid: string
+    sphereMaterialUuid: string
+    petalMaterialUuid: string
   }
   /**
    * Данные процедурного камня (параметры + UUID материала), если объект — камень.
@@ -77,13 +88,15 @@ interface ObjectStoreState {
 
 interface ObjectStoreActions {
   /** Устанавливает тип объекта (обычный/дерево/трава). */
-  setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | undefined) => void
+  setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | 'flower' | undefined) => void
   /** Записывает/очищает параметры процедурного дерева. */
   setTreeData: (data: ObjectStoreState['treeData']) => void
   /** Записывает/очищает параметры процедурной травы. */
   setGrassData: (data: ObjectStoreState['grassData']) => void
   /** Записывает/очищает параметры процедурного камня. */
   setRockData: (data: ObjectStoreState['rockData']) => void
+  /** Записывает/очищает параметры процедурного цветка. */
+  setFlowerData: (data: ObjectStoreState['flowerData']) => void
   setPrimitives: (primitives: GfxPrimitive[]) => void
   addPrimitive: (primitive: GfxPrimitive) => void
   updatePrimitive: (index: number, updates: Partial<GfxPrimitive>) => void
@@ -194,6 +207,7 @@ export const useObjectStore = create<ObjectStore>()(
     objectType: undefined,
     treeData: undefined,
     grassData: undefined,
+    flowerData: undefined,
     primitives: [],
     materials: [],
     selectedMaterialUuid: null,
@@ -212,7 +226,7 @@ export const useObjectStore = create<ObjectStore>()(
     lodPreviewEnabled: false,
 
     // Устанавливает тип объекта
-    setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | undefined) => set({ objectType: type }),
+    setObjectType: (type: 'regular' | 'tree' | 'grass' | 'rock' | 'flower' | undefined) => set({ objectType: type }),
 
     // Устанавливает или очищает данные процедурного дерева
     setTreeData: (data) => set({ treeData: data }),
@@ -222,6 +236,8 @@ export const useObjectStore = create<ObjectStore>()(
       try { invalidateGrassBillboards() } catch {}
       set({ grassData: data })
     },
+    // Устанавливает или очищает данные процедурного цветка
+    setFlowerData: (data) => set({ flowerData: data }),
     // Устанавливает или очищает данные процедурного камня
     setRockData: (data) => set({ rockData: data }),
 
